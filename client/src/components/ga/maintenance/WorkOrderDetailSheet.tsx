@@ -30,6 +30,7 @@ import { PhotoUploadModal } from '@/pages/ga/maintenance/PhotoUploadModal';
 import { PriorityBadge } from './wo-badges';
 import { AddPartModal, AssignModal, CompleteModal } from './wo-forms';
 import { workOrderKey } from './queries';
+import { useTranslation } from 'react-i18next';
 import {
   TYPE_LABELS,
   apiErrorMessage,
@@ -100,6 +101,7 @@ export function WorkOrderDetailSheet({
   canViewMr,
   assigneeName,
 }: WorkOrderDetailSheetProps) {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const [sub, setSub] = useState<SubForm>(null);
   const [closeConfirm, setCloseConfirm] = useState(false);
@@ -121,35 +123,35 @@ export function WorkOrderDetailSheet({
   const startMutation = useMutation({
     mutationFn: () => api.patch(`/ga/maintenance/work-orders/${id}/start`),
     onSuccess: () => {
-      toast.success('Work order dimulai.');
+      toast.success(t('workOrder.detail.started'));
       invalidate();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal memulai work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.detail.startFailed'))),
   });
 
   const closeMutation = useMutation({
     mutationFn: () => api.patch(`/ga/maintenance/work-orders/${id}/close`),
     onSuccess: () => {
-      toast.success('Work order ditutup.');
+      toast.success(t('workOrder.detail.closed'));
       invalidate();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal menutup work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.detail.closeFailed'))),
   });
 
   const cancelMutation = useMutation({
     mutationFn: (reason: string) => api.patch(`/ga/maintenance/work-orders/${id}/cancel`, { reason }),
     onSuccess: () => {
-      toast.success('Work order dibatalkan.');
+      toast.success(t('workOrder.detail.cancelled'));
       invalidate();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal membatalkan work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.detail.cancelFailed'))),
   });
 
   const actions = wo ? woActions(wo.status) : null;
   const userId = getStoredUser()?.id;
   const dueState = wo ? woDueState(wo) : null;
   const partsTotal = (wo?.parts ?? []).reduce((s, p) => s + toNum(p.quantity) * toNum(p.unitCost), 0);
-  const assignee = wo?.assignedToId ? assigneeName || 'Teknisi ditugaskan' : null;
+  const assignee = wo?.assignedToId ? assigneeName || t('workOrder.detail.technicianAssigned') : null;
 
   const hasFooter =
     !!wo && canEdit && !!actions && (actions.assign || actions.start || actions.complete || actions.close || actions.cancel);
@@ -173,8 +175,8 @@ export function WorkOrderDetailSheet({
               </>
             ) : (
               <>
-                <SheetTitle>Detail Work Order</SheetTitle>
-                <SheetDescription className="sr-only">Memuat detail work order</SheetDescription>
+                <SheetTitle>{t('workOrder.detail.title')}</SheetTitle>
+                <SheetDescription className="sr-only">{t('workOrder.detail.loading')}</SheetDescription>
               </>
             )}
           </SheetHeader>
@@ -184,10 +186,10 @@ export function WorkOrderDetailSheet({
               <EmptyState
                 kind="error"
                 compact
-                description="Work order tidak ditemukan atau gagal dimuat."
+                description={t('workOrder.detail.loadError')}
                 action={
                   <Button size="sm" variant="outline" onClick={() => query.refetch()}>
-                    Coba lagi
+                    {t('workOrder.detail.retry')}
                   </Button>
                 }
               />
@@ -200,56 +202,56 @@ export function WorkOrderDetailSheet({
             ) : (
               <>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Detail label="Jatuh tempo">
+                  <Detail label={t('workOrder.detail.dueDate')}>
                     {wo.dueAt ? <DueDate date={wo.dueAt} dueState={dueState} /> : '—'}
                   </Detail>
-                  <Detail label="Teknisi">{assignee ?? <span className="text-muted-foreground">Belum ditugaskan</span>}</Detail>
-                  <Detail label="Dilaporkan">{formatDate(wo.reportedAt)}</Detail>
-                  <Detail label="Mulai dikerjakan">{wo.startedAt ? formatDate(wo.startedAt) : '—'}</Detail>
-                  <Detail label="Selesai">{wo.completedAt ? formatDate(wo.completedAt) : '—'}</Detail>
-                  <Detail label="Ditutup">{wo.closedAt ? formatDate(wo.closedAt) : '—'}</Detail>
-                  <Detail label="Komponen">{wo.component || '—'}</Detail>
-                  <Detail label="Jadwal preventif">{wo.scheduleId ? 'Terhubung' : '—'}</Detail>
+                  <Detail label={t('workOrder.detail.technician')}>{assignee ?? <span className="text-muted-foreground">{t('workOrder.detail.unassigned')}</span>}</Detail>
+                  <Detail label={t('workOrder.detail.reported')}>{formatDate(wo.reportedAt)}</Detail>
+                  <Detail label={t('workOrder.detail.startedAt')}>{wo.startedAt ? formatDate(wo.startedAt) : '—'}</Detail>
+                  <Detail label={t('workOrder.detail.completedAt')}>{wo.completedAt ? formatDate(wo.completedAt) : '—'}</Detail>
+                  <Detail label={t('workOrder.detail.closedAt')}>{wo.closedAt ? formatDate(wo.closedAt) : '—'}</Detail>
+                  <Detail label={t('workOrder.detail.component')}>{wo.component || '—'}</Detail>
+                  <Detail label={t('workOrder.detail.schedule')}>{wo.scheduleId ? t('workOrder.detail.linked') : '—'}</Detail>
                   {wo.description && (
-                    <Detail label="Deskripsi" wide>
+                    <Detail label={t('workOrder.detail.description')} wide>
                       <span className="whitespace-pre-wrap">{wo.description}</span>
                     </Detail>
                   )}
                   {wo.resolution && (
-                    <Detail label="Penyelesaian" wide>
+                    <Detail label={t('workOrder.detail.resolution')} wide>
                       <span className="whitespace-pre-wrap">{wo.resolution}</span>
                     </Detail>
                   )}
                   {wo.status === 'CANCELLED' && wo.cancelReason && (
-                    <Detail label="Alasan pembatalan" wide>
+                    <Detail label={t('workOrder.detail.cancelReason')} wide>
                       {wo.cancelReason}
                     </Detail>
                   )}
                 </dl>
 
-                <Section id="wo-cost" title="Biaya">
+                <Section id="wo-cost" title={t('workOrder.detail.cost')}>
                   <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <CostFigure label="Tenaga" value={toNum(wo.laborCost)} hint={wo.laborHours ? `${formatNumber(toNum(wo.laborHours), { maxDecimals: 2 })} jam` : undefined} />
-                    <CostFigure label="Vendor" value={toNum(wo.externalCost)} hint={wo.externalVendor ?? undefined} />
-                    <CostFigure label="Part" value={partsTotal} />
-                    <CostFigure label="Total" value={toNum(wo.totalCost)} emphasis />
+                    <CostFigure label={t('workOrder.detail.labor')} value={toNum(wo.laborCost)} hint={wo.laborHours ? t('workOrder.detail.hours', { hours: formatNumber(toNum(wo.laborHours), { maxDecimals: 2 }) }) : undefined} />
+                    <CostFigure label={t('workOrder.detail.vendor')} value={toNum(wo.externalCost)} hint={wo.externalVendor ?? undefined} />
+                    <CostFigure label={t('workOrder.detail.parts')} value={partsTotal} />
+                    <CostFigure label={t('workOrder.detail.total')} value={toNum(wo.totalCost)} emphasis />
                   </dl>
                 </Section>
 
                 <Section
                   id="wo-parts"
-                  title={`Pemakaian part (${wo.parts.length})`}
+                  title={t('workOrder.detail.partsTitle', { count: wo.parts.length })}
                   action={
                     canEdit &&
                     actions?.addParts && (
                       <Button size="sm" variant="ghost" onClick={() => setSub('part')}>
-                        <PackagePlus aria-hidden /> Tambah part
+                        <PackagePlus aria-hidden /> {t('workOrder.detail.addPart')}
                       </Button>
                     )
                   }
                 >
                   {wo.parts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Belum ada part dipakai.</p>
+                    <p className="text-sm text-muted-foreground">{t('workOrder.detail.noParts')}</p>
                   ) : (
                     <ul className="divide-y divide-border rounded-md border border-border">
                       {wo.parts.map((p) => (
@@ -259,7 +261,7 @@ export function WorkOrderDetailSheet({
                             <p className="num text-xs text-muted-foreground">
                               {formatNumber(toNum(p.quantity), { maxDecimals: 2 })} {p.inventoryItem?.uom ?? ''} ×{' '}
                               {formatRupiah(toNum(p.unitCost))}
-                              {p.fromLocation ? ` · dari ${p.fromLocation.code}` : ''}
+                              {p.fromLocation ? ` · ${t('workOrder.detail.fromLocation', { code: p.fromLocation.code })}` : ''}
                             </p>
                           </div>
                           <span className="num shrink-0 text-foreground">
@@ -274,7 +276,7 @@ export function WorkOrderDetailSheet({
                 {Array.isArray(wo.checklist) && wo.checklist.length > 0 && (
                   <Section
                     id="wo-checklist"
-                    title={`Checklist (${wo.checklist.filter((c) => c.done).length}/${wo.checklist.length} selesai)`}
+                    title={t('workOrder.detail.checklistTitle', { done: wo.checklist.filter((c) => c.done).length, total: wo.checklist.length })}
                   >
                     <ul className="space-y-1.5">
                       {wo.checklist.map((c) => (
@@ -286,10 +288,10 @@ export function WorkOrderDetailSheet({
                           )}
                           <div className="min-w-0">
                             <span className="text-foreground">
-                              <span className="sr-only">{c.done ? 'Selesai: ' : 'Belum: '}</span>
+                              <span className="sr-only">{c.done ? t('workOrder.detail.doneSr') : t('workOrder.detail.notDoneSr')} </span>
                               {c.label}
                             </span>
-                            {c.required && <span className="ml-1.5 text-xs font-medium text-danger-text">(wajib)</span>}
+                            {c.required && <span className="ml-1.5 text-xs font-medium text-danger-text">{t('workOrder.detail.required')}</span>}
                             {c.notes && <span className="block text-xs text-muted-foreground">{c.notes}</span>}
                           </div>
                         </li>
@@ -300,18 +302,18 @@ export function WorkOrderDetailSheet({
 
                 <Section
                   id="wo-photos"
-                  title={`Foto (${wo.photos.length}/${MAX_WO_PHOTOS})`}
+                  title={t('workOrder.detail.photosTitle', { count: wo.photos.length, max: MAX_WO_PHOTOS })}
                   action={
                     canEdit &&
                     canUploadPhoto(wo, userId) && (
                       <Button size="sm" variant="ghost" onClick={() => setSub('photo')}>
-                        <ImagePlus aria-hidden /> Tambah foto
+                        <ImagePlus aria-hidden /> {t('workOrder.detail.addPhoto')}
                       </Button>
                     )
                   }
                 >
                   {wo.photos.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Belum ada foto.</p>
+                    <p className="text-sm text-muted-foreground">{t('workOrder.detail.noPhotos')}</p>
                   ) : (
                     <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {wo.photos.map((ph) => (
@@ -319,12 +321,12 @@ export function WorkOrderDetailSheet({
                           <a href={`/uploads/${ph.filePath}`} target="_blank" rel="noreferrer" className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <img
                               src={`/uploads/${ph.filePath}`}
-                              alt={ph.caption || `Foto ${ph.type === 'BEFORE' ? 'sebelum' : 'sesudah'} perbaikan`}
+                              alt={ph.caption || (ph.type === 'BEFORE' ? t('workOrder.detail.photoBeforeAlt') : t('workOrder.detail.photoAfterAlt'))}
                               className="h-24 w-full rounded-md border border-border object-cover"
                             />
                           </a>
                           <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white">
-                            {ph.type === 'BEFORE' ? 'Sebelum' : 'Sesudah'}
+                            {ph.type === 'BEFORE' ? t('workOrder.detail.before') : t('workOrder.detail.after')}
                           </span>
                         </li>
                       ))}
@@ -334,18 +336,18 @@ export function WorkOrderDetailSheet({
 
                 <Section
                   id="wo-mr"
-                  title="Permintaan barang (MR)"
+                  title={t('workOrder.detail.mrTitle')}
                   action={
                     canCreateMr &&
                     actions?.requestMaterial && (
                       <Button size="sm" variant="ghost" onClick={() => setSub('mr')}>
-                        <FilePlus aria-hidden /> Minta sparepart
+                        <FilePlus aria-hidden /> {t('workOrder.detail.requestParts')}
                       </Button>
                     )
                   }
                 >
                   {wo.materialRequests.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Belum ada permintaan barang untuk WO ini.</p>
+                    <p className="text-sm text-muted-foreground">{t('workOrder.detail.noMr')}</p>
                   ) : (
                     <ul className="divide-y divide-border rounded-md border border-border">
                       {wo.materialRequests.map((mr) => (
@@ -361,7 +363,7 @@ export function WorkOrderDetailSheet({
                             ) : (
                               <span className="num font-mono text-foreground">{mr.code}</span>
                             )}
-                            <span className="ml-1.5 text-xs text-muted-foreground">{mr._count?.items ?? 0} item</span>
+                            <span className="ml-1.5 text-xs text-muted-foreground">{t('workOrder.detail.mrItems', { count: mr._count?.items ?? 0 })}</span>
                           </span>
                           <StatusBadge status={mr.status} docType="ga_material_request" />
                         </li>
@@ -377,27 +379,27 @@ export function WorkOrderDetailSheet({
             <SheetFooter className="flex-row flex-wrap justify-end sm:flex-row">
               {actions.cancel && (
                 <Button variant="ghost" className="mr-auto text-danger-text hover:bg-danger-subtle" onClick={() => setCancelConfirm(true)}>
-                  <XCircle aria-hidden /> Batalkan WO
+                  <XCircle aria-hidden /> {t('workOrder.detail.cancelWo')}
                 </Button>
               )}
               {actions.assign && (
                 <Button variant={wo.status === 'OPEN' ? 'primary' : 'outline'} onClick={() => setSub('assign')}>
-                  <UserPlus aria-hidden /> {wo.status === 'ASSIGNED' ? 'Ubah teknisi' : 'Tugaskan'}
+                  <UserPlus aria-hidden /> {wo.status === 'ASSIGNED' ? t('workOrder.detail.changeTechnician') : t('workOrder.detail.assign')}
                 </Button>
               )}
               {actions.start && (
                 <Button variant="outline" onClick={() => startMutation.mutate()} loading={startMutation.isPending}>
-                  <Play aria-hidden /> Mulai
+                  <Play aria-hidden /> {t('workOrder.detail.start')}
                 </Button>
               )}
               {actions.complete && (
                 <Button onClick={() => setSub('complete')}>
-                  <CheckCircle2 aria-hidden /> Selesaikan
+                  <CheckCircle2 aria-hidden /> {t('workOrder.detail.complete')}
                 </Button>
               )}
               {actions.close && (
                 <Button onClick={() => setCloseConfirm(true)} loading={closeMutation.isPending}>
-                  <Lock aria-hidden /> Tutup WO
+                  <Lock aria-hidden /> {t('workOrder.detail.closeWo')}
                 </Button>
               )}
             </SheetFooter>
@@ -424,9 +426,9 @@ export function WorkOrderDetailSheet({
       <ConfirmDialog
         open={closeConfirm}
         onOpenChange={setCloseConfirm}
-        title="Tutup work order?"
-        description={`Work order ${wo?.code ?? ''} akan ditutup dan tidak bisa diubah lagi.`}
-        confirmLabel="Ya, tutup"
+        title={t('workOrder.detail.closeTitle')}
+        description={t('workOrder.detail.closeDescription', { code: wo?.code ?? '' })}
+        confirmLabel={t('workOrder.detail.confirmClose')}
         loading={closeMutation.isPending}
         onConfirm={() => closeMutation.mutateAsync()}
       />
@@ -434,10 +436,10 @@ export function WorkOrderDetailSheet({
         open={cancelConfirm}
         onOpenChange={setCancelConfirm}
         tone="danger"
-        title="Batalkan work order?"
-        description={`Work order ${wo?.code ?? ''} yang dibatalkan tidak bisa dikembalikan.`}
-        confirmLabel="Batalkan WO"
-        requireReason={{ label: 'Alasan pembatalan', minLength: 1 }}
+        title={t('workOrder.detail.cancelTitle')}
+        description={t('workOrder.detail.cancelDescription', { code: wo?.code ?? '' })}
+        confirmLabel={t('workOrder.detail.cancelWo')}
+        requireReason={{ label: t('workOrder.detail.cancelReason'), minLength: 1 }}
         loading={cancelMutation.isPending}
         onConfirm={(reason) => cancelMutation.mutateAsync((reason ?? '').slice(0, 500))}
       />

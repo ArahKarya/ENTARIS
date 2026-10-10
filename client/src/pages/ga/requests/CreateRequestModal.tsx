@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DateInput, Field } from '@/components/shared';
+import { useTranslation } from 'react-i18next';
 import {
   VEHICLE_SERVICE_TYPES,
   SERVICE_TYPE_LABELS,
@@ -32,6 +33,7 @@ type Mode = 'SERVICE' | 'TAX';
 
 /** Central request modal: the vehicle is picked from a dropdown, no need to open the vehicle page. */
 export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () => void }) {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const isService = mode === 'SERVICE';
 
@@ -82,12 +84,12 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
       });
     },
     onSuccess: () => {
-      toast.success(isService ? 'Pengajuan servis terkirim.' : 'Pengajuan pajak terkirim.');
+      toast.success(isService ? t('gaRequests.create.serviceSent') : t('gaRequests.create.taxSent'));
       queryClient.invalidateQueries({ queryKey: ['ga-service-requests'] });
       queryClient.invalidateQueries({ queryKey: ['ga-tax-requests'] });
       onClose();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal mengirim pengajuan.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('gaRequests.create.sendFailed'))),
   });
 
   const valid =
@@ -109,80 +111,80 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
           <OverlayHeader>
             <DialogTitle className="flex items-center gap-2">
               <TitleIcon className={cn('size-5', isService ? 'text-primary' : 'text-info-text')} aria-hidden />
-              {isService ? 'Pengajuan Servis Kendaraan' : 'Pengajuan Pajak / STNK / KIR'}
+              {isService ? t('gaRequests.create.serviceTitle') : t('gaRequests.create.taxTitle')}
             </DialogTitle>
             <DialogDescription>
-              Pilih kendaraan lalu lengkapi data pengajuan. Status bisa dipantau di tab Pengajuan.
+              {t('gaRequests.create.description')}
             </DialogDescription>
           </OverlayHeader>
           <OverlayBody>
           <ComboboxField
-            label="Kendaraan"
+            label={t('gaRequests.create.vehicle')}
             required
                 options={assetOptions}
                 value={assetId}
                 onChange={setAssetId}
-                placeholder={loadingAssets ? 'Memuat…' : 'Pilih kendaraan'}
+                placeholder={loadingAssets ? t('gaRequests.create.loading') : t('gaRequests.create.vehiclePlaceholder')}
           />
 
           {isService ? (
             <>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Jenis Servis" required>
+                <Field label={t('gaRequests.create.serviceType')} required>
                   {(control) => (
                     <Select value={jenisService} onValueChange={(v) => setJenisService(v as ServiceType)}>
                       <SelectTrigger {...control}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {VEHICLE_SERVICE_TYPES.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {SERVICE_TYPE_LABELS[t]}
+                        {VEHICLE_SERVICE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {SERVICE_TYPE_LABELS[type]}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   )}
                 </Field>
-                <Field label="Odometer (km)">
+                <Field label={t('gaRequests.create.odometer')}>
                   <Input
                     type="number"
                     min={0}
                     value={odometer}
                     onChange={(e) => setOdometer(e.target.value)}
-                    placeholder="opsional"
+                    placeholder={t('gaRequests.create.optional')}
                   />
                 </Field>
               </div>
-              <Field label="Keluhan / Deskripsi" required>
+              <Field label={t('gaRequests.create.complaint')} required>
                 <Textarea
                   rows={3}
                   value={deskripsi}
                   onChange={(e) => setDeskripsi(e.target.value)}
-                  placeholder="Contoh: rem depan bunyi, minta ganti kampas."
+                  placeholder={t('gaRequests.create.complaintPlaceholder')}
                 />
               </Field>
             </>
           ) : (
             <>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Jenis" required>
+                <Field label={t('gaRequests.create.taxType')} required>
                   {(control) => (
                     <Select value={taxType} onValueChange={(v) => setTaxType(v as TaxType)}>
                       <SelectTrigger {...control}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {VEHICLE_TAX_TYPES.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {TAX_TYPE_LABELS[t]}
+                        {VEHICLE_TAX_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {TAX_TYPE_LABELS[type]}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   )}
                 </Field>
-                <Field label="Tahun Periode" required>
+                <Field label={t('gaRequests.create.periodYear')} required>
                   <Input
                     type="number"
                     min={2000}
@@ -193,10 +195,10 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
                 </Field>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Jatuh Tempo" required>
+                <Field label={t('gaRequests.create.dueDate')} required>
                   {(control) => <DateInput id={control.id} value={dueDate} onChange={setDueDate} />}
                 </Field>
-                <Field label="Estimasi Biaya">
+                <Field label={t('gaRequests.create.estimatedCost')}>
                   {(control) => (
                     <RupiahField
                       id={control.id}
@@ -206,19 +208,19 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
                   )}
                 </Field>
               </div>
-              <Field label="Catatan">
+              <Field label={t('shared.notes')}>
                 <Textarea
                   rows={2}
                   value={deskripsi}
                   onChange={(e) => setDeskripsi(e.target.value)}
-                  placeholder="opsional"
+                  placeholder={t('gaRequests.create.optional')}
                 />
               </Field>
             </>
           )}
 
           <fieldset className="flex flex-col gap-1.5">
-            <legend className="mb-1.5 text-sm font-medium text-foreground">Urgensi</legend>
+            <legend className="mb-1.5 text-sm font-medium text-foreground">{t('gaRequests.create.urgency')}</legend>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(URGENSI_LABELS) as Urgensi[]).map((u) => (
                 <Button
@@ -236,10 +238,10 @@ export function CreateRequestModal({ mode, onClose }: { mode: Mode; onClose: () 
           </OverlayBody>
           <OverlayFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
-              Batal
+              {t('shared.cancel')}
             </Button>
             <Button type="submit" disabled={!valid} loading={pending}>
-              Kirim Pengajuan
+              {t('gaRequests.create.submit')}
             </Button>
           </OverlayFooter>
         </form>

@@ -1,5 +1,6 @@
 // Tipe & konstanta bersama untuk panel Pengajuan GA (servis kendaraan + pajak/STNK/KIR).
 import type { StatusTone } from '@/lib/status';
+import { labelMap } from '@/components/ga/eam-i18n';
 
 /** URL filter keys of the Pengajuan tab. */
 export const REQUEST_FILTER_KEYS = ['status', 'kind', 'urgensi'] as const;
@@ -12,44 +13,19 @@ export const VEHICLE_SERVICE_TYPES = [
 ] as const;
 export type ServiceType = (typeof VEHICLE_SERVICE_TYPES)[number];
 
-export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  OLI: 'Ganti Oli',
-  TUNE_UP: 'Tune Up',
-  SERVIS_BERKALA: 'Servis Berkala',
-  PERBAIKAN: 'Perbaikan',
-  GANTI_BAN: 'Ganti Ban',
-  ELEKTRIKAL: 'Elektrikal',
-  AC: 'AC',
-  LAINNYA: 'Lainnya',
-};
+export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = labelMap(VEHICLE_SERVICE_TYPES, 'vehicle.serviceType');
 
 export const VEHICLE_TAX_TYPES = ['STNK_TAHUNAN', 'STNK_5_TAHUNAN', 'KIR', 'PAJAK_KENDARAAN'] as const;
 export type TaxType = (typeof VEHICLE_TAX_TYPES)[number];
 
-export const TAX_TYPE_LABELS: Record<TaxType, string> = {
-  STNK_TAHUNAN: 'STNK Tahunan',
-  STNK_5_TAHUNAN: 'STNK 5 Tahunan',
-  KIR: 'KIR',
-  PAJAK_KENDARAAN: 'Pajak Kendaraan',
-};
+export const TAX_TYPE_LABELS: Record<TaxType, string> = labelMap(VEHICLE_TAX_TYPES, 'vehicle.taxType');
 
 /** Filter-chip labels; badges themselves come from lib/status via StatusBadge (same wording). */
-export const REQ_STATUS_LABELS: Record<ReqStatus, string> = {
-  SUBMITTED: 'Diajukan',
-  APPROVED: 'Disetujui',
-  REJECTED: 'Ditolak',
-  COMPLETED: 'Selesai',
-  CANCELLED: 'Dibatalkan',
-};
-
 export const REQ_STATUS_FILTERS: ReqStatus[] = ['SUBMITTED', 'APPROVED', 'REJECTED', 'COMPLETED', 'CANCELLED'];
 
-export const URGENSI_LABELS: Record<Urgensi, string> = {
-  LOW: 'Rendah',
-  MEDIUM: 'Normal',
-  HIGH: 'Tinggi',
-  URGENT: 'Mendesak',
-};
+export const REQ_STATUS_LABELS: Record<ReqStatus, string> = labelMap(REQ_STATUS_FILTERS, 'gaRequests.status');
+
+export const URGENSI_LABELS: Record<Urgensi, string> = labelMap(['LOW', 'MEDIUM', 'HIGH', 'URGENT'], 'gaRequests.urgency');
 
 export const URGENSI_TONE: Record<Urgensi, StatusTone> = {
   LOW: 'neutral',

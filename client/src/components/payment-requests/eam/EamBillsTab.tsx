@@ -26,12 +26,13 @@ import {
 import { apiError } from '@/components/fixed-assets/errors';
 import { EamBillPayDialog } from './EamBillPayDialog';
 import { SelectFilter } from './SelectFilter';
+import { useTranslation } from 'react-i18next';
 import {
   BILL_KINDS,
   EAM_FILTER_KEYS,
   KIND_META,
-  POSTING_DEFAULT_LABEL,
   POSTING_OPTIONS,
+  postingDefaultLabel,
   billState,
   isPosted,
   itemsSummary,
@@ -39,7 +40,6 @@ import {
   type EamSummary,
 } from './eam-bills';
 
-const KIND_OPTIONS = BILL_KINDS.map((k) => ({ value: k, label: KIND_META[k].label }));
 
 const withUnit = (label: string) => (
   <>
@@ -59,6 +59,7 @@ function KindChip({ bill, className }: { bill: GaBill; className?: string }) {
 }
 
 function BillStatus({ bill, className }: { bill: GaBill; className?: string }) {
+  const { t } = useTranslation('eam');
   const state = billState(bill);
   const pi = bill.purchaseInvoice;
   const outstanding = pi?.outstanding !== undefined ? Number(pi.outstanding) : 0;
@@ -67,13 +68,15 @@ function BillStatus({ bill, className }: { bill: GaBill; className?: string }) {
       <StatusBadge status={state.label} label={state.label} tone={state.tone} />
       {state.doc && <span className="num font-mono text-xs text-muted-foreground">{state.doc}</span>}
       {!bill.journalEntry && pi && outstanding > 0 && (
-        <span className="text-xs text-muted-foreground">sisa {formatRupiah(outstanding)}</span>
+        <span className="text-xs text-muted-foreground">{t('eamBills.tab.outstanding', { amount: formatRupiah(outstanding) })}</span>
       )}
     </div>
   );
 }
 
 export const EamBillsTab = () => {
+  const { t } = useTranslation('eam');
+  const kindOptions = useMemo(() => BILL_KINDS.map((kind) => ({ value: kind, label: KIND_META[kind].label })), []);
   const queryClient = useQueryClient();
   const list = useListState({ filters: EAM_FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -102,24 +105,24 @@ export const EamBillsTab = () => {
   const cancelMutation = useMutation({
     mutationFn: (b: GaBill) => api.post(`${PR_ENDPOINT}/eam/${b.kind}/${b.id}/cancel`),
     onSuccess: () => {
-      toast.success('Posting tagihan dibatalkan.');
+      toast.success(t('eamBills.tab.cancelled'));
       invalidate();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal membatalkan posting.')),
+    onError: (e) => toast.error(apiError(e, t('eamBills.tab.cancelFailed'))),
   });
 
   const columns = useMemo<ColumnDef<GaBill>[]>(
     () => [
       {
         id: 'kind',
-        header: 'Jenis',
+        header: t('eamBills.tab.kind'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => <KindChip bill={row.original} />,
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('shared.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -127,7 +130,7 @@ export const EamBillsTab = () => {
       },
       {
         id: 'description',
-        header: 'Keterangan',
+        header: t('eamBills.tab.description'),
         meta: { cellClassName: 'min-w-0 max-w-48 sm:max-w-[22rem]' },
         cell: ({ row }) => {
           const b = row.original;
@@ -153,7 +156,7 @@ export const EamBillsTab = () => {
       },
       {
         id: 'asset',
-        header: 'Aset / Tujuan',
+        header: t('eamBills.tab.asset'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'min-w-36 max-w-56' },
         cell: ({ row }) => (
@@ -167,7 +170,7 @@ export const EamBillsTab = () => {
       },
       {
         id: 'amount',
-        header: () => withUnit('Nilai'),
+        header: () => withUnit(t('eamBills.tab.amount')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -186,29 +189,29 @@ export const EamBillsTab = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <BillStatus bill={row.original} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const b = row.original;
           const posted = isPosted(b);
           return (
             <RowActions
-              label={`Aksi untuk ${b.ref}`}
+              label={t('shared.actionsFor', { name: b.ref })}
               actions={[
                 {
-                  label: 'Bayar / posting ke jurnal',
+                  label: t('eamBills.tab.pay'),
                   icon: Wallet,
                   hidden: posted,
                   onSelect: () => setPayTarget(b),
                 },
                 {
-                  label: 'Batalkan posting',
+                  label: t('eamBills.tab.cancelPosting'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !posted,
@@ -220,7 +223,7 @@ export const EamBillsTab = () => {
         },
       },
     ],
-    [],
+    [t],
   );
 
   const summary = summaryQuery.data;
@@ -228,16 +231,16 @@ export const EamBillsTab = () => {
 
   return (
     <>
-      <section aria-label="Ringkasan tagihan" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <section aria-label={t('eamBills.tab.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
-          label="Belum Diposting"
+          label={t('eamBills.tab.kpiPending')}
           icon={AlertCircle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.pendingCount) : '—'}
-          hint="semua jenis"
+          hint={t('eamBills.tab.kpiPendingHint')}
         />
         <StatCard
-          label="Nilai Belum Diposting"
+          label={t('eamBills.tab.kpiPendingAmount')}
           icon={Wallet}
           loading={kpiLoading}
           value={summary ? formatRupiah(summary.pendingAmount, { compact: true }) : '—'}
@@ -245,11 +248,11 @@ export const EamBillsTab = () => {
           hint={summary ? formatRupiah(summary.pendingAmount) : undefined}
         />
         <StatCard
-          label="Sesuai Filter"
+          label={t('eamBills.tab.kpiMatched')}
           icon={list.filters.posting ? CheckCircle2 : ListFilter}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.matchedCount) : '—'}
-          hint={summary ? `Nilai ${formatRupiah(summary.matchedAmount)}` : undefined}
+          hint={summary ? t('eamBills.tab.kpiMatchedHint', { amount: formatRupiah(summary.matchedAmount) }) : undefined}
           className="col-span-2 lg:col-span-1"
         />
       </section>
@@ -257,24 +260,24 @@ export const EamBillsTab = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari tagihan"
-          searchPlaceholder="Cari aset, keterangan, atau nomor"
-          status={{ key: 'posting', label: 'Status posting', options: POSTING_OPTIONS, allLabel: POSTING_DEFAULT_LABEL }}
+          searchLabel={t('eamBills.tab.searchLabel')}
+          searchPlaceholder={t('eamBills.tab.searchPlaceholder')}
+          status={{ key: 'posting', label: t('eamBills.tab.postingStatus'), options: POSTING_OPTIONS, allLabel: postingDefaultLabel() }}
           dateRange
         >
           <SelectFilter
-            label="Jenis tagihan"
+            label={t('eamBills.tab.kindFilter')}
             value={list.filters.kind}
             onChange={(v) => list.setFilter('kind', v)}
-            options={KIND_OPTIONS}
-            allLabel="Semua jenis"
+            options={kindOptions}
+            allLabel={t('eamBills.tab.allKinds')}
           />
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, billsQuery.data?.total)}
-          label="Daftar tagihan EAM"
-          itemLabel="tagihan"
+          label={t('eamBills.tab.tableLabel')}
+          itemLabel={t('eamBills.tab.itemLabel')}
           columns={columns}
           data={billsQuery.data?.data}
           getRowId={(row) => `${row.kind}-${row.id}`}
@@ -285,8 +288,8 @@ export const EamBillsTab = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Tidak ada tagihan yang menunggu diposting',
-            description: 'Tagihan yang disetujui HRGA di modul EAM akan muncul di sini.',
+            title: t('eamBills.tab.emptyTitle'),
+            description: t('eamBills.tab.emptyDescription'),
           }}
         />
       </div>
@@ -305,13 +308,13 @@ export const EamBillsTab = () => {
         open={!!cancelTarget}
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
-        title="Batalkan posting tagihan?"
+        title={t('eamBills.tab.cancelTitle')}
         description={
           cancelTarget
-            ? `Jurnal/faktur untuk "${cancelTarget.description}" akan dibatalkan dan tagihan kembali ke antrian. Faktur yang sudah dibayar sebagian tidak bisa dibatalkan.`
+            ? t('eamBills.tab.cancelDescription', { name: cancelTarget.description })
             : undefined
         }
-        confirmLabel="Ya, batalkan"
+        confirmLabel={t('eamBills.tab.confirmCancel')}
         loading={cancelMutation.isPending}
         onConfirm={async () => {
           if (!cancelTarget) return;

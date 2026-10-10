@@ -1,18 +1,17 @@
 // Types & constants for the GA Material Request (MR) module. Status labels and
 // tones come from lib/status (StatusBadge docType 'ga_material_request').
+import { labelMap } from '@/components/ga/eam-i18n';
+
 export type MrStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'FULFILLED' | 'PAID' | 'CANCELLED';
 export type ProcurementStatus = 'REQUESTED' | 'QUOTED' | 'ORDERED' | 'RECEIVED' | 'CANCELLED';
 
 export const MR_STATUS_FILTERS: MrStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'FULFILLED', 'PAID', 'CANCELLED'];
 
 /** Procurement status options for the per-item editor (RECEIVED is set by "Terima barang"). */
-export const PROC_STATUS_LABELS: Record<ProcurementStatus, string> = {
-  REQUESTED: 'Diminta',
-  QUOTED: 'Penawaran Masuk',
-  ORDERED: 'Dipesan',
-  RECEIVED: 'Diterima',
-  CANCELLED: 'Dibatalkan',
-};
+export const PROC_STATUS_LABELS: Record<ProcurementStatus, string> = labelMap(
+  ['REQUESTED', 'QUOTED', 'ORDERED', 'RECEIVED', 'CANCELLED'],
+  'materialRequest.procurementStatus',
+);
 export const PROC_STATUS_EDITABLE: ProcurementStatus[] = ['REQUESTED', 'QUOTED', 'ORDERED', 'CANCELLED'];
 
 export interface MrItemDraft {

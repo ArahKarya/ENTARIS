@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EmptyState, StatusBadge } from '@/components/shared';
 import { ExpiryStateLine } from './ExpiryDate';
+import { useTranslation } from 'react-i18next';
 import {
   DOCUMENTS_ENDPOINT,
   GA_DOCUMENTS_KEY,
@@ -40,6 +41,7 @@ function Detail({ label, children, wide }: { label: string; children: ReactNode;
 }
 
 export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDelete }: GaDocumentDetailSheetProps) {
+  const { t } = useTranslation('eam');
   const q = useQuery({
     queryKey: [GA_DOCUMENTS_KEY, 'detail', docId],
     queryFn: async () => (await api.get<GaDocumentRow>(`${DOCUMENTS_ENDPOINT}/${docId}`)).data,
@@ -55,8 +57,8 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
         {q.isLoading && (
           <>
             <SheetHeader>
-              <SheetTitle>Memuat dokumen…</SheetTitle>
-              <SheetDescription className="sr-only">Detail dokumen sedang dimuat</SheetDescription>
+              <SheetTitle>{t('gaDocuments.detail.loading')}</SheetTitle>
+              <SheetDescription className="sr-only">{t('gaDocuments.detail.loadingSr')}</SheetDescription>
             </SheetHeader>
             <SheetBody className="space-y-3" aria-busy>
               {Array.from({ length: 5 }, (_, i) => (
@@ -69,21 +71,21 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
         {q.isError && (
           <>
             <SheetHeader>
-              <SheetTitle>Dokumen</SheetTitle>
-              <SheetDescription className="sr-only">Detail dokumen gagal dimuat</SheetDescription>
+              <SheetTitle>{t('gaDocuments.detail.document')}</SheetTitle>
+              <SheetDescription className="sr-only">{t('gaDocuments.detail.errorSr')}</SheetDescription>
             </SheetHeader>
             <SheetBody>
               <EmptyState
                 kind="error"
                 title={
                   (q.error as { response?: { status?: number } })?.response?.status === 404
-                    ? 'Dokumen tidak ditemukan'
+                    ? t('gaDocuments.detail.notFound')
                     : undefined
                 }
                 action={
                   <Button variant="outline" size="sm" onClick={() => q.refetch()}>
                     <RotateCcw aria-hidden />
-                    Coba lagi
+                    {t('gaDocuments.detail.retry')}
                   </Button>
                 }
               />
@@ -103,19 +105,19 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Jenis dokumen">{doc.type?.name ?? '—'}</Detail>
-                <Detail label="Aset terkait">{doc.asset ? `${doc.asset.code} · ${doc.asset.name}` : '—'}</Detail>
-                <Detail label="Diterbitkan oleh">{doc.issuedBy || '—'}</Detail>
-                <Detail label="Nomor penerbitan">
+                <Detail label={t('gaDocuments.detail.type')}>{doc.type?.name ?? '—'}</Detail>
+                <Detail label={t('gaDocuments.detail.asset')}>{doc.asset ? `${doc.asset.code} · ${doc.asset.name}` : '—'}</Detail>
+                <Detail label={t('gaDocuments.detail.issuedBy')}>{doc.issuedBy || '—'}</Detail>
+                <Detail label={t('gaDocuments.detail.issuedNumber')}>
                   {doc.issuedNumber ? <span className="num font-mono">{doc.issuedNumber}</span> : '—'}
                 </Detail>
-                <Detail label="Tanggal efektif">
+                <Detail label={t('gaDocuments.detail.effectiveDate')}>
                   <span className="num">{doc.effectiveDate ? formatDate(doc.effectiveDate) : '—'}</span>
                 </Detail>
-                <Detail label="Tanggal kedaluwarsa">
-                  <span className="num">{doc.expiryDate ? formatDate(doc.expiryDate) : 'Tanpa batas'}</span>
+                <Detail label={t('gaDocuments.detail.expiryDate')}>
+                  <span className="num">{doc.expiryDate ? formatDate(doc.expiryDate) : t('gaDocuments.detail.noLimit')}</span>
                 </Detail>
-                <Detail label="Masa berlaku" wide>
+                <Detail label={t('gaDocuments.detail.validity')} wide>
                   <ExpiryStateLine date={doc.expiryDate} state={deriveExpiryState(doc)} />
                 </Detail>
               </dl>
@@ -123,12 +125,12 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
               <section aria-labelledby="ga-doc-versions">
                 <div className="flex items-center justify-between gap-2">
                   <h3 id="ga-doc-versions" className="text-sm font-semibold text-foreground">
-                    Riwayat Versi
+                    {t('gaDocuments.detail.versions')}
                   </h3>
                   {onUpload && (
                     <Button variant="outline" size="sm" onClick={() => onUpload(doc)}>
                       <FileUp aria-hidden />
-                      Unggah versi
+                      {t('gaDocuments.detail.uploadVersion')}
                     </Button>
                   )}
                 </div>
@@ -136,8 +138,8 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
                   <EmptyState
                     compact
                     icon={FileText}
-                    title="Belum ada file"
-                    description="Unggah PDF dokumen ini sebagai versi pertama."
+                    title={t('gaDocuments.detail.noFile')}
+                    description={t('gaDocuments.detail.noFileDescription')}
                     className="mt-2"
                   />
                 ) : (
@@ -146,8 +148,8 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
                       <li key={v.id} className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2">
                         <div className="min-w-0 space-y-0.5 text-sm">
                           <p className="flex flex-wrap items-center gap-2">
-                            <span className="num font-medium text-foreground">Versi {v.versionNo}</span>
-                            {v.versionNo === latestNo && <StatusBadge status="latest" label="Terbaru" tone="primary" dot={false} />}
+                            <span className="num font-medium text-foreground">{t('gaDocuments.detail.version', { version: v.versionNo })}</span>
+                            {v.versionNo === latestNo && <StatusBadge status="latest" label={t('gaDocuments.detail.latest')} tone="primary" dot={false} />}
                           </p>
                           <p className="num text-xs text-muted-foreground">
                             {v.createdAt ? formatDateTime(v.createdAt) : '—'} · {formatFileSize(v.fileSize)}
@@ -158,7 +160,7 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
                           variant="ghost"
                           size="icon-sm"
                           className="shrink-0 text-muted-foreground"
-                          aria-label={`Unduh versi ${v.versionNo}`}
+                          aria-label={t('gaDocuments.detail.downloadVersion', { version: v.versionNo })}
                           onClick={() => downloadVersion(doc, v)}
                         >
                           <Download aria-hidden />
@@ -175,13 +177,13 @@ export function GaDocumentDetailSheet({ docId, onClose, onEdit, onUpload, onDele
                 {onDelete && (
                   <Button variant="outline" className="text-danger-text" onClick={() => onDelete(doc)}>
                     <Trash2 aria-hidden />
-                    Hapus
+                    {t('shared.delete')}
                   </Button>
                 )}
                 {onEdit && (
                   <Button onClick={() => onEdit(doc)}>
                     <Pencil aria-hidden />
-                    Edit Dokumen
+                    {t('gaDocuments.detail.edit')}
                   </Button>
                 )}
               </SheetFooter>

@@ -17,11 +17,13 @@ import { FLUSH_TABLE } from '../ui-classes';
 import { useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
 import { apiError, dueStateOf, taxCost } from '../vehicle-model';
 import { DueDateCell, UnitHeader } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 const money = (v: string | number | null | undefined) => (v == null ? '—' : formatRupiah(toNumber(v) ?? 0, { symbol: false }));
 
 export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
   const invalidate = useInvalidateVehicle(assetId);
+  const { t } = useTranslation('eam');
   const [modal, setModal] = useState<TaxRecord | 'new' | null>(null);
   const [showRequest, setShowRequest] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TaxRecord | null>(null);
@@ -40,130 +42,130 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${assetId}/taxes/${id}`),
     onSuccess: () => {
-      toast.success('Data pajak dihapus.');
+      toast.success(t('vehicleSections.tax.deleted'));
       invalidate(['taxes']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal hapus data pajak.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.tax.deleteFailed'))),
   });
   const approveReq = useMutation({
     mutationFn: (id: string) => api.patch(`/ga/vehicle/tax-requests/${id}/approve`),
     onSuccess: () => {
-      toast.success('Pengajuan pajak disetujui. Data pajak dibuat (status Diproses).');
+      toast.success(t('vehicleSections.tax.approved'));
       afterRequestChange();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal approve pengajuan pajak.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.tax.approveFailed'))),
   });
   const rejectReq = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => api.patch(`/ga/vehicle/tax-requests/${id}/reject`, { reason }),
     onSuccess: () => {
-      toast.success('Pengajuan pajak ditolak.');
+      toast.success(t('vehicleSections.tax.rejected'));
       afterRequestChange();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal reject pengajuan pajak.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.tax.rejectFailed'))),
   });
   const cancelReq = useMutation({
     mutationFn: (id: string) => api.patch(`/ga/vehicle/tax-requests/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Pengajuan pajak dibatalkan.');
+      toast.success(t('vehicleSections.tax.cancelled'));
       afterRequestChange();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal cancel pengajuan pajak.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.tax.cancelFailed'))),
   });
 
   const taxColumns = useMemo<ColumnDef<TaxRecord>[]>(
     () => [
       {
         id: 'type',
-        header: 'Jenis',
+        header: t('vehicleSections.tax.type'),
         meta: { cellClassName: 'min-w-36' },
         cell: ({ row }) => (
           <div>
             <p className="font-medium text-foreground">{TAX_TYPE_LABELS[row.original.type] ?? row.original.type}</p>
-            <p className="num text-xs text-muted-foreground">Periode {row.original.periodYear}</p>
+            <p className="num text-xs text-muted-foreground">{t('vehicleSections.tax.period', { year: row.original.periodYear })}</p>
           </div>
         ),
       },
       {
         id: 'dueDate',
-        header: 'Jatuh Tempo',
+        header: t('vehicleSections.tax.dueDate'),
         cell: ({ row }) => (
           <DueDateCell date={row.original.dueDate} state={dueStateOf(row.original.dueDate, row.original.status === 'ACTIVE')} />
         ),
       },
       {
         id: 'paidAt',
-        header: 'Dibayar',
+        header: t('vehicleSections.tax.paidAt'),
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => formatDate(row.original.paidAt),
       },
       {
         id: 'amount',
-        header: () => <UnitHeader label="Biaya" />,
+        header: () => <UnitHeader label={t('vehicleSections.tax.cost')} />,
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => money(taxCost(row.original)),
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
-          const t = row.original;
-          const label = `${TAX_TYPE_LABELS[t.type] ?? t.type} ${t.periodYear}`;
+          const rec = row.original;
+          const label = `${TAX_TYPE_LABELS[rec.type] ?? rec.type} ${rec.periodYear}`;
           return (
             <RowActions
-              label={`Aksi untuk ${label}`}
+              label={t('shared.actionsFor', { name: label })}
               actions={[
-                { label: 'Lihat dokumen', icon: FileCheck2, hidden: !t.document, onSelect: () => t.document && viewDocument(t.document.id) },
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setModal(t) },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(t) },
+                { label: t('vehicleSections.tax.viewDocument'), icon: FileCheck2, hidden: !rec.document, onSelect: () => rec.document && viewDocument(rec.document.id) },
+                { label: t('shared.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setModal(rec) },
+                { label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(rec) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   const requestColumns = useMemo<ColumnDef<TaxRequest>[]>(
     () => [
       {
         id: 'type',
-        header: 'Jenis',
+        header: t('vehicleSections.tax.type'),
         cell: ({ row }) => (
           <div>
             <p className="font-medium text-foreground">{TAX_TYPE_LABELS[row.original.type] ?? row.original.type}</p>
-            <p className="num text-xs text-muted-foreground">Periode {row.original.periodYear}</p>
+            <p className="num text-xs text-muted-foreground">{t('vehicleSections.tax.period', { year: row.original.periodYear })}</p>
           </div>
         ),
       },
       {
         id: 'dueDate',
-        header: 'Jatuh Tempo',
+        header: t('vehicleSections.tax.dueDate'),
         meta: { cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => formatDate(row.original.dueDate),
       },
       {
         id: 'estimatedAmount',
-        header: () => <UnitHeader label="Estimasi" />,
+        header: () => <UnitHeader label={t('vehicleSections.tax.estimate')} />,
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => money(row.original.estimatedAmount),
       },
       {
         id: 'urgensi',
-        header: 'Urgensi',
+        header: t('vehicleSections.tax.urgency'),
         meta: { hideBelow: 'md' },
         cell: ({ row }) => URGENCY_LABELS[row.original.urgensi] ?? row.original.urgensi,
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
             <StatusBadge status={row.original.status} />
@@ -175,18 +177,18 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           const open = r.status === 'SUBMITTED' && canEdit;
           return (
             <RowActions
-              label={`Aksi untuk pengajuan ${TAX_TYPE_LABELS[r.type] ?? r.type} ${r.periodYear}`}
+              label={t('vehicleSections.tax.requestActionsFor', { name: `${TAX_TYPE_LABELS[r.type] ?? r.type} ${r.periodYear}` })}
               actions={[
-                { label: 'Setujui', icon: Check, hidden: !open || !canApprove, onSelect: () => approveReq.mutate(r.id) },
-                { label: 'Tolak', icon: X, tone: 'danger', hidden: !open || !canApprove, onSelect: () => setRejectTarget(r) },
-                { label: 'Batalkan pengajuan', icon: XCircle, tone: 'danger', hidden: !open || canApprove, onSelect: () => cancelReq.mutate(r.id) },
+                { label: t('vehicleSections.tax.approve'), icon: Check, hidden: !open || !canApprove, onSelect: () => approveReq.mutate(r.id) },
+                { label: t('vehicleSections.tax.reject'), icon: X, tone: 'danger', hidden: !open || !canApprove, onSelect: () => setRejectTarget(r) },
+                { label: t('vehicleSections.tax.cancelRequest'), icon: XCircle, tone: 'danger', hidden: !open || canApprove, onSelect: () => cancelReq.mutate(r.id) },
               ]}
             />
           );
@@ -194,27 +196,27 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, canApprove],
+    [canEdit, canApprove, t],
   );
 
   return (
     <div className="space-y-4">
       <Panel
-        title="Pajak, STNK & KIR"
-        description="Jatuh tempo ditandai bila sudah lewat atau kurang dari 30 hari lagi."
+        title={t('vehicleSections.tax.title')}
+        description={t('vehicleSections.tax.description')}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" onClick={() => setModal('new')}>
               <Plus aria-hidden />
-              Tambah
+              {t('vehicleSections.tax.add')}
             </Button>
           )
         }
       >
         <DataTable
-          label="Data pajak, STNK dan KIR"
-          itemLabel="data"
+          label={t('vehicleSections.tax.tableLabel')}
+          itemLabel={t('vehicleSections.tax.itemLabel')}
           columns={taxColumns}
           data={taxesQuery.data}
           getRowId={(r) => r.id}
@@ -223,26 +225,26 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
           onRetry={() => taxesQuery.refetch()}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada data pajak/STNK', description: 'Catat pajak tahunan, STNK 5 tahunan, dan KIR beserta jatuh temponya.' }}
+          empty={{ title: t('vehicleSections.tax.emptyTitle'), description: t('vehicleSections.tax.emptyDescription') }}
         />
       </Panel>
 
       <Panel
-        title="Pengajuan Pajak / STNK"
-        description="Setelah disetujui, data pajak dibuat dengan status Diproses."
+        title={t('vehicleSections.tax.requestsTitle')}
+        description={t('vehicleSections.tax.requestsDescription')}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" variant="outline" onClick={() => setShowRequest(true)}>
               <ClipboardList aria-hidden />
-              Ajukan
+              {t('vehicleSections.tax.request')}
             </Button>
           )
         }
       >
         <DataTable
-          label="Pengajuan pajak dan STNK"
-          itemLabel="pengajuan"
+          label={t('vehicleSections.tax.requestsTable')}
+          itemLabel={t('vehicleSections.tax.requestsItem')}
           columns={requestColumns}
           data={requestsQuery.data}
           getRowId={(r) => r.id}
@@ -251,7 +253,7 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
           onRetry={() => requestsQuery.refetch()}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada pengajuan pajak' }}
+          empty={{ title: t('vehicleSections.tax.requestsEmpty') }}
         />
       </Panel>
 
@@ -279,9 +281,9 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Hapus Data Pajak"
-        description={`Hapus data pajak "${deleteTarget ? `${TAX_TYPE_LABELS[deleteTarget.type] ?? deleteTarget.type} ${deleteTarget.periodYear}` : ''}"?`}
-        confirmLabel="Ya, Hapus"
+        title={t('vehicleSections.tax.deleteTitle')}
+        description={t('vehicleSections.tax.deleteConfirm', { name: deleteTarget ? `${TAX_TYPE_LABELS[deleteTarget.type] ?? deleteTarget.type} ${deleteTarget.periodYear}` : '' })}
+        confirmLabel={t('shared.confirmDelete')}
         tone="danger"
         loading={deleteMut.isPending}
         onConfirm={async () => {
@@ -293,11 +295,11 @@ export function TaxSection({ assetId, canEdit, canApprove }: VehicleContext) {
       <ConfirmDialog
         open={rejectTarget !== null}
         onOpenChange={(o) => !o && setRejectTarget(null)}
-        title="Tolak Pengajuan Pajak"
+        title={t('vehicleSections.tax.rejectTitle')}
         description={rejectTarget ? `${TAX_TYPE_LABELS[rejectTarget.type] ?? rejectTarget.type} ${rejectTarget.periodYear}` : undefined}
-        confirmLabel="Tolak"
+        confirmLabel={t('vehicleSections.tax.reject')}
         tone="danger"
-        requireReason={{ label: 'Alasan penolakan', minLength: 1 }}
+        requireReason={{ label: t('vehicleSections.tax.rejectReason'), minLength: 1 }}
         loading={rejectReq.isPending}
         onConfirm={async (reason) => {
           if (!rejectTarget || !reason) return;

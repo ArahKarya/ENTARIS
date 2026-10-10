@@ -33,6 +33,7 @@ import { ExpiryDate } from '@/components/ga/documents/ExpiryDate';
 import { GaDocumentDetailSheet } from '@/components/ga/documents/GaDocumentDetailSheet';
 import { GaDocumentFormSheet } from '@/components/ga/documents/GaDocumentFormSheet';
 import { UploadVersionDialog } from '@/components/ga/documents/UploadVersionDialog';
+import { useTranslation } from 'react-i18next';
 import {
   DOCUMENTS_ENDPOINT,
   DOC_FILTER_KEYS,
@@ -49,10 +50,11 @@ import {
   type GaDocumentSummary,
 } from '@/components/ga/documents/ga-document-model';
 
-const STATUS_FILTER = statusOptions(DOC_STATUSES, 'ga_document');
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-48';
 
 export const GaDocumentsPage = () => {
+  const { t } = useTranslation('eam');
+  const statusFilter = useMemo(() => statusOptions(DOC_STATUSES, 'ga_document'), []);
   const queryClient = useQueryClient();
   const list = useListState({ filters: DOC_FILTER_KEYS, defaultSort: { id: 'expiryDate', desc: false } });
   const [density, setDensity] = useTableDensity();
@@ -114,21 +116,21 @@ export const GaDocumentsPage = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`${DOCUMENTS_ENDPOINT}/${id}`),
     onSuccess: (_res, id) => {
-      toast.success('Dokumen dihapus.');
+      toast.success(t('gaDocuments.page.deleted'));
       if (openDocId === id) setOpenDoc(null);
       invalidate();
     },
-    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal menghapus dokumen.')),
+    onError: (err: unknown) => toast.error(errorMessage(err, t('gaDocuments.page.deleteFailed'))),
   });
 
-  const typeOptions = useMemo(() => docTypes.map((t) => ({ value: t.id, label: t.name })), [docTypes]);
+  const typeOptions = useMemo(() => docTypes.map((dt) => ({ value: dt.id, label: dt.name })), [docTypes]);
   const assetOptions = useMemo(() => assets.map((a) => ({ value: a.id, label: a.name, hint: a.code })), [assets]);
 
   const columns = useMemo<ColumnDef<GaDocumentRow>[]>(
     () => [
       {
         id: 'code',
-        header: 'Kode',
+        header: t('gaDocuments.page.code'),
         enableSorting: true,
         cell: ({ row }) => {
           const d = row.original;
@@ -145,7 +147,7 @@ export const GaDocumentsPage = () => {
       },
       {
         id: 'title',
-        header: 'Judul',
+        header: t('gaDocuments.page.title'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
         cell: ({ row }) => {
@@ -164,13 +166,13 @@ export const GaDocumentsPage = () => {
       },
       {
         id: 'type',
-        header: 'Jenis',
+        header: t('gaDocuments.page.type'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-48 text-muted-foreground' },
         cell: ({ row }) => row.original.type?.name ?? '—',
       },
       {
         id: 'asset',
-        header: 'Aset Terkait',
+        header: t('gaDocuments.page.asset'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-52' },
         cell: ({ row }) => {
           const a = row.original.asset;
@@ -185,54 +187,54 @@ export const GaDocumentsPage = () => {
       },
       {
         id: 'expiryDate',
-        header: 'Masa Berlaku',
+        header: t('gaDocuments.page.validity'),
         enableSorting: true,
         meta: { hideBelow: 'md' },
         cell: ({ row }) => <ExpiryDate date={row.original.expiryDate} state={row.original.expiryState} />,
       },
       {
         id: 'version',
-        header: 'Versi',
+        header: t('gaDocuments.page.version'),
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => {
           const v = row.original.versions?.[0];
-          return v ? `v${v.versionNo}` : <span className="text-xs">Belum ada file</span>;
+          return v ? `v${v.versionNo}` : <span className="text-xs">{t('gaDocuments.page.noFile')}</span>;
         },
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         meta: { align: 'right' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="ga_document" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const d = row.original;
           const latest = d.versions?.[0];
           return (
             <RowActions
-              label={`Aksi untuk ${d.code}`}
+              label={t('shared.actionsFor', { name: d.code })}
               actions={[
-                { label: 'Lihat detail & versi', icon: Eye, onSelect: () => setOpenDoc(d.id) },
+                { label: t('gaDocuments.page.viewDetail'), icon: Eye, onSelect: () => setOpenDoc(d.id) },
                 {
-                  label: latest ? `Unduh versi terbaru (v${latest.versionNo})` : 'Unduh versi terbaru',
+                  label: latest ? t('gaDocuments.page.downloadLatestVersion', { version: latest.versionNo }) : t('gaDocuments.page.downloadLatest'),
                   icon: Download,
                   hidden: !latest,
                   onSelect: () => latest && downloadVersion(d, latest),
                 },
-                { label: 'Unggah versi baru', icon: FileUp, hidden: !canEdit, onSelect: () => setUploadTarget(d) },
-                { label: 'Edit dokumen', icon: Pencil, hidden: !canEdit, onSelect: () => setFormTarget({ doc: d }) },
-                { label: 'Hapus dokumen', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(d) },
+                { label: t('gaDocuments.page.uploadVersion'), icon: FileUp, hidden: !canEdit, onSelect: () => setUploadTarget(d) },
+                { label: t('gaDocuments.page.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setFormTarget({ doc: d }) },
+                { label: t('gaDocuments.page.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(d) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit, setOpenDoc],
+    [canEdit, setOpenDoc, t],
   );
 
   const summary = summaryQuery.data;
@@ -241,76 +243,76 @@ export const GaDocumentsPage = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Dokumen & Sertifikat"
-        description="Dokumen legal dan sertifikat beserta riwayat versi dan masa berlakunya."
+        title={t('gaDocuments.page.pageTitle')}
+        description={t('gaDocuments.page.description')}
         actions={
           canEdit && (
             <Button onClick={() => setFormTarget({ doc: null })}>
               <Plus aria-hidden />
-              Dokumen Baru
+              {t('gaDocuments.page.new')}
             </Button>
           )
         }
       />
 
-      <section aria-label="Ringkasan dokumen sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('gaDocuments.page.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Dokumen"
+          label={t('gaDocuments.page.kpiCount')}
           icon={FileText}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint="sesuai filter"
+          hint={t('gaDocuments.page.kpiCountHint')}
         />
         <StatCard
-          label="Kedaluwarsa"
+          label={t('gaDocuments.page.kpiExpired')}
           icon={AlertTriangle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.expiredCount) : '—'}
-          hint="perlu diperpanjang"
+          hint={t('gaDocuments.page.kpiExpiredHint')}
         />
         <StatCard
-          label="Segera Kedaluwarsa"
+          label={t('gaDocuments.page.kpiExpiring')}
           icon={Clock}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.expiringCount) : '—'}
-          hint={`dalam ${EXPIRING_SOON_DAYS} hari`}
+          hint={t('gaDocuments.page.kpiExpiringHint', { days: EXPIRING_SOON_DAYS })}
         />
         <StatCard
-          label="Berlaku"
+          label={t('gaDocuments.page.kpiValid')}
           icon={CheckCircle2}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.validCount) : '—'}
-          hint="termasuk tanpa batas"
+          hint={t('gaDocuments.page.kpiValidHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari dokumen"
-          searchPlaceholder="Cari kode, judul, nomor, atau aset"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('gaDocuments.page.searchLabel')}
+          searchPlaceholder={t('gaDocuments.page.searchPlaceholder')}
+          status={{ options: statusFilter }}
         >
           <SelectFilter
-            label="Masa berlaku"
-            allLabel="Semua masa berlaku"
+            label={t('gaDocuments.page.expiryFilter')}
+            allLabel={t('gaDocuments.page.allExpiry')}
             options={EXPIRY_FILTER}
             value={list.filters.expiry}
             onChange={(v) => list.setFilter('expiry', v)}
             className={FILTER_CLASS}
           />
           <SelectFilter
-            label="Jenis dokumen"
-            allLabel="Semua jenis"
+            label={t('gaDocuments.page.typeFilter')}
+            allLabel={t('gaDocuments.page.allTypes')}
             options={typeOptions}
             value={list.filters.typeId}
             onChange={(v) => list.setFilter('typeId', v)}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Aset terkait"
-            allLabel="Semua aset"
-            searchPlaceholder="Cari aset…"
+            label={t('gaDocuments.page.assetFilter')}
+            allLabel={t('gaDocuments.page.allAssets')}
+            searchPlaceholder={t('gaDocuments.page.assetSearch')}
             value={list.filters.assetId}
             onChange={(v) => list.setFilter('assetId', v)}
             options={assetOptions}
@@ -321,8 +323,8 @@ export const GaDocumentsPage = () => {
 
         <DataTable
           {...listTableProps(list, docsQuery.data?.total)}
-          label="Daftar dokumen dan sertifikat"
-          itemLabel="dokumen"
+          label={t('gaDocuments.page.tableLabel')}
+          itemLabel={t('gaDocuments.page.itemLabel')}
           columns={columns}
           data={docsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -335,12 +337,12 @@ export const GaDocumentsPage = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada dokumen',
-            description: 'Izin, sertifikat, STNK, polis, dan dokumen legal lain akan muncul di sini.',
+            title: t('gaDocuments.page.emptyTitle'),
+            description: t('gaDocuments.page.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setFormTarget({ doc: null })}>
                 <Plus aria-hidden />
-                Tambah dokumen pertama
+                {t('gaDocuments.page.addFirst')}
               </Button>
             ) : undefined,
           }}
@@ -371,9 +373,9 @@ export const GaDocumentsPage = () => {
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Hapus Dokumen"
-        description={`Hapus dokumen ${deleteTarget?.code ?? ''} · ${deleteTarget?.title ?? ''}? Semua versi file ikut terhapus.`}
-        confirmLabel="Ya, Hapus"
+        title={t('gaDocuments.page.deleteTitle')}
+        description={t('gaDocuments.page.deleteDescription', { code: deleteTarget?.code ?? '', title: deleteTarget?.title ?? '' })}
+        confirmLabel={t('shared.confirmDelete')}
         tone="danger"
         loading={deleteMutation.isPending}
         onConfirm={async () => {

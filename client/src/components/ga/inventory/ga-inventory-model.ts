@@ -5,6 +5,7 @@
  */
 import api from '@/lib/api';
 import { formatNumber } from '@/lib/format';
+import { labelMap } from '../eam-i18n';
 
 export type GaMovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT';
 export type GaStockState = 'out' | 'low' | 'ok';
@@ -95,12 +96,7 @@ export const ITEM_FILTER_KEYS = ['categoryId', 'locationId', 'stockStatus'] as c
 export const MOVEMENT_FILTER_KEYS = ['type', 'locationId', 'startDate', 'endDate'] as const;
 
 export const MOVEMENT_TYPES: readonly GaMovementType[] = ['IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'];
-export const MOVEMENT_LABEL: Record<GaMovementType, string> = {
-  IN: 'Masuk',
-  OUT: 'Keluar',
-  TRANSFER: 'Transfer',
-  ADJUSTMENT: 'Penyesuaian',
-};
+export const MOVEMENT_LABEL: Record<GaMovementType, string> = labelMap(MOVEMENT_TYPES, 'gaInventory.movementType');
 
 /** Secure item image endpoint; `imagePath` busts the cache when the image changes. */
 export function itemImageUrl(id: string, imagePath?: string | null): string {

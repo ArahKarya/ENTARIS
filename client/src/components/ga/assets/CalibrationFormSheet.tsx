@@ -6,11 +6,13 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { tEam } from '../eam-i18n';
 import { Input } from '@/components/ui/input';
 import { DateInput, Field } from '@/components/shared';
 import { FormNumberInput, FormSheet } from '@/components/inventory/master-data-kit';
 import { CALIBRATION_MODE_OPTIONS, CALIBRATION_RESULT_OPTIONS, apiErrorMessage, numOrNull } from './asset-model';
 import { OptionSelect } from './OptionSelect';
+import { useTranslation } from 'react-i18next';
 
 export interface CalibrationLog {
   id: string;
@@ -41,13 +43,13 @@ type ErrorKey = 'tanggal' | 'validUntil' | 'lembaga' | 'noSertifikat' | 'biaya';
 
 function validateCalibration(f: CalForm): Partial<Record<ErrorKey, string>> {
   const errors: Partial<Record<ErrorKey, string>> = {};
-  if (!f.tanggal) errors.tanggal = 'Tanggal kalibrasi wajib diisi.';
-  if (!f.validUntil) errors.validUntil = 'Masa berlaku wajib diisi.';
-  else if (f.tanggal && f.validUntil < f.tanggal) errors.validUntil = 'Masa berlaku sebelum tanggal kalibrasi.';
-  if (!f.lembaga.trim()) errors.lembaga = 'Lembaga wajib diisi.';
-  if (!f.noSertifikat.trim()) errors.noSertifikat = 'No. sertifikat wajib diisi.';
+  if (!f.tanggal) errors.tanggal = tEam('assets.calibrationForm.dateRequired');
+  if (!f.validUntil) errors.validUntil = tEam('assets.calibrationForm.validUntilRequired');
+  else if (f.tanggal && f.validUntil < f.tanggal) errors.validUntil = tEam('assets.calibrationForm.validUntilBefore');
+  if (!f.lembaga.trim()) errors.lembaga = tEam('assets.calibrationForm.labRequired');
+  if (!f.noSertifikat.trim()) errors.noSertifikat = tEam('assets.calibrationForm.certRequired');
   const biaya = numOrNull(f.biaya);
-  if (biaya !== null && biaya < 0) errors.biaya = 'Biaya tidak boleh negatif.';
+  if (biaya !== null && biaya < 0) errors.biaya = tEam('assets.calibrationForm.costNegative');
   return errors;
 }
 
@@ -65,6 +67,7 @@ interface CalibrationFormSheetProps {
 }
 
 export function CalibrationFormSheet({ assetId, defaultLembaga, onClose, onSaved }: CalibrationFormSheetProps) {
+  const { t } = useTranslation('eam');
   const [form, setForm] = useState<CalForm>({
     tanggal: todayIso(),
     validUntil: '',
@@ -95,10 +98,10 @@ export function CalibrationFormSheet({ assetId, defaultLembaga, onClose, onSaved
         validUntil: form.validUntil,
       }),
     onSuccess: () => {
-      toast.success('Log kalibrasi tersimpan.');
+      toast.success(t('assets.calibrationForm.saved'));
       onSaved();
     },
-    onError: (e) => setServerError(apiErrorMessage(e, 'Gagal menyimpan log kalibrasi.')),
+    onError: (e) => setServerError(apiErrorMessage(e, t('assets.calibrationForm.saveFailed'))),
   });
 
   const submit = () => {
@@ -112,43 +115,43 @@ export function CalibrationFormSheet({ assetId, defaultLembaga, onClose, onSaved
     <FormSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title="Log kalibrasi baru"
-      description="Masa berlaku sertifikat menjadi jatuh tempo kalibrasi berikutnya."
+      title={t('assets.calibrationForm.title')}
+      description={t('assets.calibrationForm.description')}
       error={serverError}
       saving={save.isPending}
-      submitLabel="Simpan log"
+      submitLabel={t('assets.calibrationForm.submit')}
       onSubmit={submit}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Tanggal kalibrasi" required error={errors.tanggal}>
+        <Field label={t('assets.calibrationForm.date')} required error={errors.tanggal}>
           {(control) => <DateInput id={control.id} required={control.required} value={form.tanggal} onChange={(v) => set('tanggal', v)} />}
         </Field>
-        <Field label="Berlaku s/d" required error={errors.validUntil}>
+        <Field label={t('assets.calibrationForm.validUntil')} required error={errors.validUntil}>
           {(control) => (
             <DateInput id={control.id} required={control.required} value={form.validUntil} min={form.tanggal || undefined} onChange={(v) => set('validUntil', v)} />
           )}
         </Field>
       </div>
-      <Field label="Lembaga kalibrasi" required error={errors.lembaga}>
+      <Field label={t('assets.calibrationForm.lab')} required error={errors.lembaga}>
         <Input value={form.lembaga} onChange={(e) => set('lembaga', e.target.value)} maxLength={200} />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="No. sertifikat" required error={errors.noSertifikat}>
+        <Field label={t('assets.calibrationForm.cert')} required error={errors.noSertifikat}>
           <Input value={form.noSertifikat} onChange={(e) => set('noSertifikat', e.target.value)} maxLength={100} />
         </Field>
-        <Field label="Hasil">
+        <Field label={t('assets.calibrationForm.result')}>
           <OptionSelect value={form.hasil} onChange={(v) => set('hasil', v)} options={CALIBRATION_RESULT_OPTIONS} />
         </Field>
-        <Field label="Cara kalibrasi">
+        <Field label={t('assets.calibrationForm.mode')}>
           <OptionSelect value={form.mode} onChange={(v) => set('mode', v)} options={CALIBRATION_MODE_OPTIONS} />
         </Field>
-        <Field label="Biaya (Rp)" error={errors.biaya}>
+        <Field label={t('assets.calibrationForm.cost')} error={errors.biaya}>
           <FormNumberInput value={form.biaya} onChange={(e) => set('biaya', e.target.value)} min={0} className="num text-right" />
         </Field>
-        <Field label="Rentang diuji">
-          <Input value={form.rangeTested} onChange={(e) => set('rangeTested', e.target.value)} maxLength={100} placeholder="Mis. 0–3000 kg" />
+        <Field label={t('assets.calibrationForm.range')}>
+          <Input value={form.rangeTested} onChange={(e) => set('rangeTested', e.target.value)} maxLength={100} placeholder={t('assets.calibrationForm.rangePlaceholder')} />
         </Field>
-        <Field label="Deviasi">
+        <Field label={t('assets.calibrationForm.deviation')}>
           <Input value={form.deviasi} onChange={(e) => set('deviasi', e.target.value)} maxLength={500} />
         </Field>
       </div>

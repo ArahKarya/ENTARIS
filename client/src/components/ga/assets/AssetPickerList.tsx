@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared';
 import { cn } from '@/lib/utils';
+import { LOCALE } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 export interface PickerAsset {
   id: string;
@@ -36,10 +38,10 @@ interface AssetPickerListProps<T extends PickerAsset> {
 }
 
 function filterPickerAssets<T extends PickerAsset>(assets: readonly T[], search: string): T[] {
-  const q = search.trim().toLocaleLowerCase('id-ID');
+  const q = search.trim().toLocaleLowerCase(LOCALE);
   if (!q) return [...assets];
   return assets.filter((a) =>
-    [a.code, a.name, a.location, a.branch?.name, a.category?.name].some((f) => !!f && f.toLocaleLowerCase('id-ID').includes(q)),
+    [a.code, a.name, a.location, a.branch?.name, a.category?.name].some((f) => !!f && f.toLocaleLowerCase(LOCALE).includes(q)),
   );
 }
 
@@ -55,6 +57,7 @@ export function AssetPickerList<T extends PickerAsset>({
   empty,
   searchPlaceholder,
 }: AssetPickerListProps<T>) {
+  const { t } = useTranslation('eam');
   const id = useId();
   const [search, setSearch] = useState('');
   const visible = useMemo(() => filterPickerAssets(assets, search), [assets, search]);
@@ -75,7 +78,7 @@ export function AssetPickerList<T extends PickerAsset>({
         compact
         action={
           <Button variant="outline" size="sm" onClick={onRetry}>
-            Coba lagi
+            {t('assets.picker.retry')}
           </Button>
         }
       />
@@ -87,10 +90,10 @@ export function AssetPickerList<T extends PickerAsset>({
       <EmptyState
         kind="no-results"
         compact
-        description="Coba kata kunci lain."
+        description={t('assets.picker.tryOther')}
         action={
           <Button variant="outline" size="sm" onClick={() => setSearch('')}>
-            Hapus pencarian
+            {t('assets.picker.clearSearch')}
           </Button>
         }
       />
@@ -132,7 +135,7 @@ export function AssetPickerList<T extends PickerAsset>({
     <section aria-label={label} className="h-fit overflow-hidden rounded-lg border border-border bg-card">
       <div role="search" className="border-b border-border p-3">
         <label htmlFor={`${id}-q`} className="sr-only">
-          Cari aset
+          {t('assets.picker.search')}
         </label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -149,7 +152,7 @@ export function AssetPickerList<T extends PickerAsset>({
             <button
               type="button"
               onClick={() => setSearch('')}
-              aria-label="Hapus pencarian"
+              aria-label={t('assets.picker.clearSearch')}
               className="absolute right-1.5 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="size-4" aria-hidden />
@@ -158,7 +161,7 @@ export function AssetPickerList<T extends PickerAsset>({
         </div>
         {!loading && !error && assets.length > 0 && (
           <p className="num mt-2 text-xs text-muted-foreground" aria-live="polite">
-            {visible.length === assets.length ? `${assets.length} aset` : `${visible.length} dari ${assets.length} aset`}
+            {visible.length === assets.length ? t('assets.picker.count', { count: assets.length }) : t('assets.picker.countFiltered', { shown: visible.length, count: assets.length })}
           </p>
         )}
       </div>

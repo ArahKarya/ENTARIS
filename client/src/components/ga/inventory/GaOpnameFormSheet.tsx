@@ -14,6 +14,7 @@ import { FormNumberInput, FormSection, FormSheet } from '@/components/inventory/
 import { FormSelect } from './form-select';
 import { GA_INVENTORY_KEY, errorMessage, formatQty } from './ga-inventory-model';
 import { useGaItemOptions, useGaLocations, useInvalidateGaInventory } from './queries';
+import { useTranslation } from 'react-i18next';
 
 interface FormState {
   itemId: string;
@@ -43,6 +44,7 @@ interface GaOpnameFormSheetProps {
 
 /** Mount per open (keyed) so the form starts fresh. */
 export function GaOpnameFormSheet({ open, itemId, onClose }: GaOpnameFormSheetProps) {
+  const { t } = useTranslation('eam');
   const { data: items = [] } = useGaItemOptions(open);
   const { data: locations = [] } = useGaLocations();
   const invalidate = useInvalidateGaInventory();
@@ -70,9 +72,9 @@ export function GaOpnameFormSheet({ open, itemId, onClose }: GaOpnameFormSheetPr
 
   const submit = async () => {
     const e: Errors = {};
-    if (!form.itemId) e.itemId = 'Item wajib dipilih.';
-    if (!form.locationId) e.locationId = 'Lokasi wajib dipilih.';
-    if (form.quantity === '' || Number(form.quantity) < 0) e.quantity = 'Stok hasil hitung wajib diisi (tidak boleh negatif).';
+    if (!form.itemId) e.itemId = t('gaInventory.opname.itemRequired');
+    if (!form.locationId) e.locationId = t('gaInventory.opname.locationRequired');
+    if (form.quantity === '' || Number(form.quantity) < 0) e.quantity = t('gaInventory.opname.qtyRequired');
     setErrors(e);
     if (Object.keys(e).length > 0) return;
     setSaving(true);
@@ -85,15 +87,19 @@ export function GaOpnameFormSheet({ open, itemId, onClose }: GaOpnameFormSheetPr
         notes: form.notes || null,
       });
       const d = res.data;
-      if (d && d.changed === false) toast.info('Stok sudah sesuai, tidak ada penyesuaian.');
+      if (d && d.changed === false) toast.info(t('gaInventory.opname.noChange'));
       else
         toast.success(
-          `Opname tersimpan. ${formatQty(d?.before)} → ${formatQty(d?.after)} (selisih ${d?.delta > 0 ? '+' : ''}${formatQty(d?.delta ?? 0)}).`,
+          t('gaInventory.opname.saved', {
+            before: formatQty(d?.before),
+            after: formatQty(d?.after),
+            delta: `${d?.delta > 0 ? '+' : ''}${formatQty(d?.delta ?? 0)}`,
+          }),
         );
       invalidate();
       onClose();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal menyimpan opname.'));
+      setServerError(errorMessage(err, t('gaInventory.opname.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -103,38 +109,38 @@ export function GaOpnameFormSheet({ open, itemId, onClose }: GaOpnameFormSheetPr
     <FormSheet
       open={open}
       onOpenChange={(next) => !next && onClose()}
-      title="Stok Opname Cepat"
-      description="Isi hasil hitung fisik per item dan lokasi. Selisihnya dicatat sebagai mutasi Penyesuaian."
+      title={t('gaInventory.opname.title')}
+      description={t('gaInventory.opname.description')}
       error={serverError}
       saving={saving}
-      submitLabel="Simpan Opname"
+      submitLabel={t('gaInventory.opname.submit')}
       onSubmit={submit}
     >
-      <FormSection title="Yang dihitung">
-        <Field label="Item" required error={errors.itemId}>
+      <FormSection title={t('gaInventory.opname.sectionCounted')}>
+        <Field label={t('gaInventory.opname.item')} required error={errors.itemId}>
           <FormSelect
             value={form.itemId}
             onChange={(v) => set('itemId', v)}
             options={items.map((i) => ({ value: i.id, label: `${i.sku} · ${i.name}` }))}
-            placeholder="Pilih item…"
+            placeholder={t('gaInventory.opname.itemPlaceholder')}
           />
         </Field>
-        <Field label="Lokasi" required error={errors.locationId}>
+        <Field label={t('gaInventory.opname.location')} required error={errors.locationId}>
           <FormSelect
             value={form.locationId}
             onChange={(v) => set('locationId', v)}
             options={locations.map((l) => ({ value: l.id, label: `${l.code} · ${l.name}` }))}
-            placeholder="Pilih lokasi…"
+            placeholder={t('gaInventory.opname.locationPlaceholder')}
           />
         </Field>
       </FormSection>
 
-      <FormSection title="Hasil hitung">
+      <FormSection title={t('gaInventory.opname.sectionResult')}>
         <Field
-          label={item ? `Stok hasil hitung fisik (${item.uom})` : 'Stok hasil hitung fisik'}
+          label={item ? t('gaInventory.opname.countedUom', { uom: item.uom }) : t('gaInventory.opname.counted')}
           required
           error={errors.quantity}
-          hint="Angka riil hasil hitung di gudang."
+          hint={t('gaInventory.opname.countedHint')}
         >
           <FormNumberInput
             value={form.quantity}
@@ -148,31 +154,31 @@ export function GaOpnameFormSheet({ open, itemId, onClose }: GaOpnameFormSheetPr
         {item && systemStock !== null && (
           <dl className="space-y-1 rounded-md border border-border bg-muted px-3 py-2.5 text-sm" aria-live="polite">
             <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Stok sistem di lokasi ini</dt>
+              <dt className="text-muted-foreground">{t('gaInventory.opname.systemStock')}</dt>
               <dd className="num font-medium text-foreground">
-                {detail.isFetching && !detail.data ? 'Memuat…' : `${formatQty(systemStock)} ${item.uom}`}
+                {detail.isFetching && !detail.data ? t('gaInventory.opname.loading') : `${formatQty(systemStock)} ${item.uom}`}
               </dd>
             </div>
             {delta !== null && (
               <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Selisih</dt>
+                <dt className="text-muted-foreground">{t('gaInventory.opname.difference')}</dt>
                 <dd
                   className={cn(
                     'num font-semibold',
                     delta === 0 ? 'text-muted-foreground' : delta > 0 ? 'text-success-text' : 'text-danger-text',
                   )}
                 >
-                  {delta === 0 ? 'Sesuai' : `${delta > 0 ? '+' : '−'}${formatQty(Math.abs(delta))} ${item.uom}`}
+                  {delta === 0 ? t('gaInventory.opname.match') : `${delta > 0 ? '+' : '−'}${formatQty(Math.abs(delta))} ${item.uom}`}
                 </dd>
               </div>
             )}
           </dl>
         )}
-        <Field label="Catatan">
+        <Field label={t('shared.notes')}>
           <Input
             value={form.notes}
             onChange={(e) => set('notes', e.target.value)}
-            placeholder="mis. Opname bulanan Oktober"
+            placeholder={t('gaInventory.opname.notesPlaceholder')}
             autoComplete="off"
           />
         </Field>

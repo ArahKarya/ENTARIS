@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle2, Clock, ImageOff } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { photoUrl, type DueInfo } from './asset-model';
+import { useTranslation } from 'react-i18next';
 
 const DUE_ICON = { overdue: AlertTriangle, dueSoon: Clock, ok: CheckCircle2 } as const;
 const DUE_TEXT = { overdue: 'text-danger-text', dueSoon: 'text-warning-text', ok: 'text-muted-foreground' } as const;
@@ -59,16 +60,17 @@ interface AssetThumbProps {
 
 /** Square photo thumbnail with a neutral placeholder (no photo / broken file). */
 export function AssetThumb({ filePath, alt, size = 'sm', className }: AssetThumbProps) {
+  const { t } = useTranslation('eam');
   const [broken, setBroken] = useState(false);
   const box = size === 'sm' ? 'size-10' : 'size-16';
   if (!filePath || broken) {
     return (
       <span
         className={cn('inline-flex shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground', box, className)}
-        title="Belum ada foto"
+        title={t('assets.noPhoto')}
       >
         <ImageOff className="size-4" aria-hidden />
-        <span className="sr-only">Belum ada foto</span>
+        <span className="sr-only">{t('assets.noPhoto')}</span>
       </span>
     );
   }

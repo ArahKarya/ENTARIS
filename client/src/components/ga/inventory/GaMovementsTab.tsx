@@ -26,8 +26,8 @@ import {
   type GaMovementType,
 } from './ga-inventory-model';
 import { useGaLocations } from './queries';
+import { useTranslation } from 'react-i18next';
 
-const TYPE_FILTER = MOVEMENT_TYPES.map((t) => ({ value: t, label: MOVEMENT_LABEL[t] }));
 const TYPE_ICON: Record<GaMovementType, typeof ArrowDownLeft> = {
   IN: ArrowDownLeft,
   OUT: ArrowUpRight,
@@ -50,6 +50,8 @@ interface GaMovementsTabProps {
 }
 
 export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
+  const { t } = useTranslation('eam');
+  const typeFilter = useMemo(() => MOVEMENT_TYPES.map((type) => ({ value: type, label: MOVEMENT_LABEL[type] })), []);
   const list = useListState({ filters: MOVEMENT_FILTER_KEYS, defaultSort: { id: 'createdAt', desc: true } });
   const [density, setDensity] = useTableDensity();
   const { data: locations = [] } = useGaLocations();
@@ -65,7 +67,7 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
     () => [
       {
         id: 'createdAt',
-        header: 'Tanggal',
+        header: t('shared.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -79,13 +81,13 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
       },
       {
         id: 'type',
-        header: 'Tipe',
+        header: t('gaInventory.movements.type'),
         meta: { hideBelow: 'md' },
         cell: ({ row }) => <MovementType type={row.original.type} />,
       },
       {
         id: 'item',
-        header: 'Item',
+        header: t('gaInventory.movements.item'),
         meta: { cellClassName: 'min-w-36 max-w-72' },
         cell: ({ row }) => {
           const m = row.original;
@@ -100,7 +102,7 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
       },
       {
         id: 'quantity',
-        header: 'Qty',
+        header: t('gaInventory.movements.qty'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -115,13 +117,13 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
       },
       {
         id: 'route',
-        header: 'Lokasi',
+        header: t('gaInventory.movements.location'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-56 truncate text-muted-foreground' },
         cell: ({ row }) => movementRoute(row.original),
       },
       {
         id: 'reference',
-        header: 'Referensi',
+        header: t('gaInventory.movements.reference'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-56' },
         cell: ({ row }) => {
           const m = row.original;
@@ -139,21 +141,21 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
         },
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <div className="space-y-3">
       <FilterBar
         list={list}
-        searchLabel="Cari pergerakan"
-        searchPlaceholder="Cari item, referensi, atau catatan"
-        status={{ options: TYPE_FILTER, key: 'type', label: 'Tipe pergerakan', allLabel: 'Semua tipe' }}
-        dateRange={{ label: 'Rentang tanggal pergerakan' }}
+        searchLabel={t('gaInventory.movements.searchLabel')}
+        searchPlaceholder={t('gaInventory.movements.searchPlaceholder')}
+        status={{ options: typeFilter, key: 'type', label: t('gaInventory.movements.typeFilter'), allLabel: t('gaInventory.movements.allTypes') }}
+        dateRange={{ label: t('gaInventory.movements.dateRange') }}
       >
         <SelectFilter
-          label="Lokasi"
-          allLabel="Semua lokasi"
+          label={t('gaInventory.movements.location')}
+          allLabel={t('gaInventory.movements.allLocations')}
           options={locationOptions}
           value={list.filters.locationId}
           onChange={(v) => list.setFilter('locationId', v)}
@@ -162,8 +164,8 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
 
       <DataTable
         {...listTableProps(list, movementsQuery.data?.total)}
-        label="Riwayat pergerakan inventaris kantor"
-        itemLabel="pergerakan"
+        label={t('gaInventory.movements.tableLabel')}
+        itemLabel={t('gaInventory.movements.itemLabel')}
         columns={columns}
         data={movementsQuery.data?.data}
         getRowId={(row) => row.id}
@@ -174,12 +176,12 @@ export function GaMovementsTab({ onCreate }: GaMovementsTabProps) {
         density={density}
         onDensityChange={setDensity}
         empty={{
-          title: 'Belum ada pergerakan',
-          description: 'Stok masuk, keluar, transfer, dan penyesuaian akan tercatat di sini.',
+          title: t('gaInventory.movements.emptyTitle'),
+          description: t('gaInventory.movements.emptyDescription'),
           action: onCreate ? (
             <Button size="sm" onClick={onCreate}>
               <Plus aria-hidden />
-              Catat pergerakan pertama
+              {t('gaInventory.movements.addFirst')}
             </Button>
           ) : undefined,
         }}

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ClipboardList, Send, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { SERVICE_TYPES, SERVICE_TYPE_LABELS, URGENCIES, URGENCY_LABELS } from '../constants';
 import { apiError, numOrNull } from '../vehicle-model';
@@ -22,6 +23,7 @@ interface CoaAccount {
 }
 
 export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
+  const { t } = useTranslation('eam');
   const [f, setF] = useState({ tanggal: '', odometer: '', jenisService: 'SERVIS_BERKALA', deskripsi: '', bengkel: '', biaya: '' });
   const [postJournal, setPostJournal] = useState(false);
   const [accountId, setAccountId] = useState('');
@@ -68,27 +70,27 @@ export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
         creditAccountId: postJournal ? creditAccountId || null : null,
       }),
     onSuccess: () => {
-      toast.success(postJournal ? 'Service log tersimpan + jurnal dibuat.' : 'Service log ditambahkan.');
+      toast.success(postJournal ? t('fleet.serviceModals.savedWithJournal') : t('fleet.serviceModals.saved'));
       onSaved();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal simpan service log.')),
+    onError: (e) => toast.error(apiError(e, t('fleet.serviceModals.saveFailed'))),
   });
 
   const label = (a: CoaAccount) => `${a.accountNumber} · ${a.name}`;
 
   return (
-    <ModalShell title="Tambah Service Log" icon={Wrench} onClose={onClose}>
+    <ModalShell title={t('fleet.serviceModals.logTitle')} icon={Wrench} onClose={onClose}>
       <ModalForm onSubmit={() => mut.mutate()} onCancel={onClose} submitting={mut.isPending}>
         <FieldRow>
-          <TextField label="Tanggal" type="date" value={f.tanggal} onChange={set('tanggal')} required />
-          <SelectField label="Jenis service" value={f.jenisService} onChange={set('jenisService')} options={SERVICE_TYPES} labels={SERVICE_TYPE_LABELS} />
+          <TextField label={t('fleet.field.date')} type="date" value={f.tanggal} onChange={set('tanggal')} required />
+          <SelectField label={t('fleet.serviceModals.serviceType')} value={f.jenisService} onChange={set('jenisService')} options={SERVICE_TYPES} labels={SERVICE_TYPE_LABELS} />
         </FieldRow>
-        <TextField label="Deskripsi" value={f.deskripsi} onChange={set('deskripsi')} required />
+        <TextField label={t('fleet.serviceModals.description')} value={f.deskripsi} onChange={set('deskripsi')} required />
         <FieldRow>
-          <TextField label="Odometer (km)" type="number" value={f.odometer} onChange={set('odometer')} />
-          <TextField label="Biaya (Rp)" type="number" value={f.biaya} onChange={set('biaya')} />
+          <TextField label={t('fleet.field.odometerKm')} type="number" value={f.odometer} onChange={set('odometer')} />
+          <TextField label={t('fleet.serviceModals.cost')} type="number" value={f.biaya} onChange={set('biaya')} />
         </FieldRow>
-        <TextField label="Bengkel" value={f.bengkel} onChange={set('bengkel')} />
+        <TextField label={t('fleet.serviceModals.workshop')} value={f.bengkel} onChange={set('bengkel')} />
 
         <div className="space-y-3 rounded-md border border-border bg-muted/50 p-3">
           <div className="flex items-start gap-2">
@@ -100,30 +102,29 @@ export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
               className="mt-0.5 size-4 rounded border-input accent-[var(--primary)]"
             />
             <label htmlFor="svc-post-journal" className="cursor-pointer text-sm">
-              <span className="font-medium text-foreground">Catat ke jurnal keuangan</span>
+              <span className="font-medium text-foreground">{t('fleet.serviceModals.postJournal')}</span>
               <span className="block text-xs text-muted-foreground">
-                Membuat jurnal otomatis: debit akun beban, kredit kas/bank. Jangan dicentang bila biaya ini sudah
-                diinput manual di modul Keuangan.
+                {t('fleet.serviceModals.postJournalHint')}
               </span>
             </label>
           </div>
           {postJournal && (
             <FieldRow>
               <SelectField
-                label="Akun beban (debit)"
+                label={t('fleet.serviceModals.expenseAccount')}
                 value={effectiveAccountId}
                 onChange={setAccountId}
                 options={expenseOptions.map((a) => a.id)}
                 labels={Object.fromEntries(expenseOptions.map((a) => [a.id, label(a)]))}
-                emptyLabel="pilih akun beban"
+                emptyLabel={t('fleet.serviceModals.expenseAccountEmpty')}
               />
               <SelectField
-                label="Sumber dana (kredit)"
+                label={t('fleet.serviceModals.sourceAccount')}
                 value={creditAccountId}
                 onChange={setCreditAccountId}
                 options={sourceOptions.map((a) => a.id)}
                 labels={Object.fromEntries(sourceOptions.map((a) => [a.id, label(a)]))}
-                emptyLabel="default: kas utama"
+                emptyLabel={t('fleet.serviceModals.sourceAccountEmpty')}
               />
             </FieldRow>
           )}
@@ -134,6 +135,7 @@ export function ServiceLogModal({ assetId, onClose, onSaved }: ModalProps) {
 }
 
 export function ServiceRequestModal({ assetId, onClose, onSaved }: ModalProps) {
+  const { t } = useTranslation('eam');
   const [f, setF] = useState({ jenisService: 'PERBAIKAN', odometer: '', deskripsi: '', urgensi: 'MEDIUM' });
   const set = (k: keyof typeof f) => (v: string) => setF((prev) => ({ ...prev, [k]: v }));
   const mut = useMutation({
@@ -145,19 +147,19 @@ export function ServiceRequestModal({ assetId, onClose, onSaved }: ModalProps) {
         urgensi: f.urgensi,
       }),
     onSuccess: () => {
-      toast.success('Pengajuan dikirim.');
+      toast.success(t('fleet.serviceModals.requestSent'));
       onSaved();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal mengirim pengajuan.')),
+    onError: (e) => toast.error(apiError(e, t('fleet.serviceModals.requestFailed'))),
   });
   return (
-    <ModalShell title="Ajukan Service" icon={ClipboardList} onClose={onClose} description="Pengajuan menunggu persetujuan sebelum dikerjakan.">
-      <ModalForm onSubmit={() => mut.mutate()} onCancel={onClose} submitting={mut.isPending} submitLabel="Kirim" submitIcon={Send}>
-        <SelectField label="Jenis service" value={f.jenisService} onChange={set('jenisService')} options={SERVICE_TYPES} labels={SERVICE_TYPE_LABELS} />
-        <TextAreaField label="Deskripsi" value={f.deskripsi} onChange={set('deskripsi')} required />
+    <ModalShell title={t('fleet.serviceModals.requestTitle')} icon={ClipboardList} onClose={onClose} description={t('fleet.serviceModals.requestDescription')}>
+      <ModalForm onSubmit={() => mut.mutate()} onCancel={onClose} submitting={mut.isPending} submitLabel={t('fleet.serviceModals.send')} submitIcon={Send}>
+        <SelectField label={t('fleet.serviceModals.serviceType')} value={f.jenisService} onChange={set('jenisService')} options={SERVICE_TYPES} labels={SERVICE_TYPE_LABELS} />
+        <TextAreaField label={t('fleet.serviceModals.description')} value={f.deskripsi} onChange={set('deskripsi')} required />
         <FieldRow>
-          <TextField label="Odometer (km)" type="number" value={f.odometer} onChange={set('odometer')} />
-          <SelectField label="Urgensi" value={f.urgensi} onChange={set('urgensi')} options={URGENCIES} labels={URGENCY_LABELS} />
+          <TextField label={t('fleet.field.odometerKm')} type="number" value={f.odometer} onChange={set('odometer')} />
+          <SelectField label={t('fleet.serviceModals.urgency')} value={f.urgensi} onChange={set('urgensi')} options={URGENCIES} labels={URGENCY_LABELS} />
         </FieldRow>
       </ModalForm>
     </ModalShell>

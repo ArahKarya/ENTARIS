@@ -17,11 +17,13 @@ import { FLUSH_TABLE } from '../ui-classes';
 import { useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
 import { apiError, dueStateOf } from '../vehicle-model';
 import { DueDateCell, UnitHeader } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 const money = (v: string | number | null | undefined) => (v == null ? '—' : formatRupiah(toNumber(v) ?? 0, { symbol: false }));
 
 export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
   const invalidate = useInvalidateVehicle(assetId);
+  const { t } = useTranslation('eam');
   const [modal, setModal] = useState<InsuranceRecord | 'new' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<InsuranceRecord | null>(null);
 
@@ -32,17 +34,17 @@ export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${assetId}/insurances/${id}`),
     onSuccess: () => {
-      toast.success('Data asuransi dihapus.');
+      toast.success(t('vehicleSections.insurance.deleted'));
       invalidate(['insurances']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal hapus data asuransi.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.insurance.deleteFailed'))),
   });
 
   const columns = useMemo<ColumnDef<InsuranceRecord>[]>(
     () => [
       {
         id: 'provider',
-        header: 'Polis',
+        header: t('vehicleSections.insurance.policy'),
         meta: { cellClassName: 'min-w-40' },
         cell: ({ row }) => {
           const i = row.original;
@@ -59,72 +61,72 @@ export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
       },
       {
         id: 'period',
-        header: 'Masa Berlaku',
+        header: t('vehicleSections.insurance.period'),
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
-            <span className="num whitespace-nowrap text-xs text-muted-foreground">Mulai {formatDate(row.original.startDate)}</span>
+            <span className="num whitespace-nowrap text-xs text-muted-foreground">{t('vehicleSections.insurance.starts', { date: formatDate(row.original.startDate) })}</span>
             <DueDateCell date={row.original.endDate} state={dueStateOf(row.original.endDate, row.original.status === 'ACTIVE')} />
           </div>
         ),
       },
       {
         id: 'premium',
-        header: () => <UnitHeader label="Premi" />,
+        header: () => <UnitHeader label={t('vehicleSections.insurance.premium')} />,
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => money(row.original.premium),
       },
       {
         id: 'coverage',
-        header: () => <UnitHeader label="Pertanggungan" />,
+        header: () => <UnitHeader label={t('vehicleSections.insurance.coverage')} />,
         meta: { align: 'right', hideBelow: 'lg' },
         cell: ({ row }) => money(row.original.coverageValue),
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const i = row.original;
           return (
             <RowActions
-              label={`Aksi untuk polis ${i.provider}`}
+              label={t('vehicleSections.insurance.actionsFor', { name: i.provider })}
               actions={[
-                { label: 'Lihat dokumen', icon: FileCheck2, hidden: !i.document, onSelect: () => i.document && viewDocument(i.document.id) },
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setModal(i) },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(i) },
+                { label: t('vehicleSections.insurance.viewDocument'), icon: FileCheck2, hidden: !i.document, onSelect: () => i.document && viewDocument(i.document.id) },
+                { label: t('shared.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setModal(i) },
+                { label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(i) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   return (
     <>
       <Panel
-        title="Asuransi Kendaraan"
-        description="Polis aktif ditandai bila sudah berakhir atau berakhir dalam 30 hari."
+        title={t('vehicleSections.insurance.title')}
+        description={t('vehicleSections.insurance.description')}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" onClick={() => setModal('new')}>
               <Plus aria-hidden />
-              Tambah polis
+              {t('vehicleSections.insurance.add')}
             </Button>
           )
         }
       >
         <DataTable
-          label="Polis asuransi kendaraan"
-          itemLabel="polis"
+          label={t('vehicleSections.insurance.tableLabel')}
+          itemLabel={t('vehicleSections.insurance.itemLabel')}
           columns={columns}
           data={query.data}
           getRowId={(r) => r.id}
@@ -133,7 +135,7 @@ export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
           onRetry={() => query.refetch()}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada data asuransi', description: 'Catat polis beserta masa berlakunya agar pengingat jatuh tempo aktif.' }}
+          empty={{ title: t('vehicleSections.insurance.emptyTitle'), description: t('vehicleSections.insurance.emptyDescription') }}
         />
       </Panel>
       {modal && (
@@ -150,9 +152,9 @@ export function InsuranceSection({ assetId, canEdit }: VehicleContext) {
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Hapus Data Asuransi"
-        description={`Hapus data asuransi "${deleteTarget ? `${deleteTarget.provider} · ${deleteTarget.policyNumber ?? ''}` : ''}"?`}
-        confirmLabel="Ya, Hapus"
+        title={t('vehicleSections.insurance.deleteTitle')}
+        description={t('vehicleSections.insurance.deleteConfirm', { name: deleteTarget ? `${deleteTarget.provider} · ${deleteTarget.policyNumber ?? ''}` : '' })}
+        confirmLabel={t('shared.confirmDelete')}
         tone="danger"
         loading={deleteMut.isPending}
         onConfirm={async () => {

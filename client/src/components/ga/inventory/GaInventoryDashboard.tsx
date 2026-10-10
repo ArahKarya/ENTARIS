@@ -13,6 +13,7 @@ import { StatCard, StatusBadge } from '@/components/shared';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Panel, PanelState } from '@/components/inventory/dashboard-kit';
 import { MovementType } from './GaMovementsTab';
+import { useTranslation } from 'react-i18next';
 import {
   GA_INVENTORY_KEY,
   MOVEMENT_TYPES,
@@ -42,16 +43,17 @@ interface BreakdownRow {
 }
 
 function BreakdownTable({ label, head, rows }: { label: string; head: string; rows: BreakdownRow[] }) {
+  const { t } = useTranslation('eam');
   return (
     <Table aria-label={label}>
       <TableHeader>
         <TableRow>
           <TableHead scope="col">{head}</TableHead>
           <TableHead scope="col" className="text-right">
-            Item
+            {t('gaInventory.dashboard.item')}
           </TableHead>
           <TableHead scope="col" className="text-right">
-            Total Qty
+            {t('gaInventory.dashboard.totalQty')}
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -69,6 +71,7 @@ function BreakdownTable({ label, head, rows }: { label: string; head: string; ro
 }
 
 export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInventoryDashboardProps) {
+  const { t } = useTranslation('eam');
   const q = useDashboard();
   const d = q.data;
   const loading = q.isLoading;
@@ -76,49 +79,49 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan stok inventaris kantor" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('gaInventory.dashboard.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Total Item"
+          label={t('gaInventory.dashboard.kpiItems')}
           icon={Package}
           loading={loading}
           value={s ? formatNumber(s.totalItems) : '—'}
-          hint={s ? `${formatNumber(s.activeItems)} aktif · ${formatNumber(s.categoryCount)} kategori` : undefined}
+          hint={s ? t('gaInventory.dashboard.kpiItemsHint', { active: formatNumber(s.activeItems), categories: formatNumber(s.categoryCount) }) : undefined}
         />
         <StatCard
-          label="Total Kuantitas"
+          label={t('gaInventory.dashboard.kpiQty')}
           icon={Boxes}
           loading={loading}
           value={s ? formatQty(s.totalQty) : '—'}
-          hint={s ? `di ${formatNumber(s.locationCount)} lokasi` : undefined}
+          hint={s ? t('gaInventory.dashboard.kpiQtyHint', { locations: formatNumber(s.locationCount) }) : undefined}
         />
         <StatCard
-          label="Perlu Restock"
+          label={t('gaInventory.dashboard.kpiRestock')}
           icon={AlertTriangle}
           loading={loading}
           value={s ? formatNumber(s.lowStockCount) : '—'}
-          hint={s ? `di bawah minimum · ${formatNumber(s.outOfStockCount)} habis` : undefined}
+          hint={s ? t('gaInventory.dashboard.kpiRestockHint', { out: formatNumber(s.outOfStockCount) }) : undefined}
         />
         <StatCard
-          label="Mutasi 30 Hari"
+          label={t('gaInventory.dashboard.kpiMovements')}
           icon={TrendingUp}
           loading={loading}
           value={s ? formatNumber(s.movements30d) : '—'}
-          hint={s ? `${formatNumber(s.itemsMoved30d)} item bergerak` : undefined}
+          hint={s ? t('gaInventory.dashboard.kpiMovementsHint', { items: formatNumber(s.itemsMoved30d) }) : undefined}
         />
       </section>
 
-      <Panel title="Aktivitas Mutasi" description="30 hari terakhir, per tipe pergerakan">
+      <Panel title={t('gaInventory.dashboard.activity')} description={t('gaInventory.dashboard.activityDescription')}>
         <PanelState loading={loading} error={q.error} onRetry={() => q.refetch()}>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {MOVEMENT_TYPES.map((t) => {
-              const total = d?.movementTotals[t] ?? { count: 0, qty: 0 };
+            {MOVEMENT_TYPES.map((type) => {
+              const total = d?.movementTotals[type] ?? { count: 0, qty: 0 };
               return (
-                <div key={t} className="min-w-0 rounded-md border border-border px-3 py-2.5">
+                <div key={type} className="min-w-0 rounded-md border border-border px-3 py-2.5">
                   <dt className="text-sm">
-                    <MovementType type={t} />
+                    <MovementType type={type} />
                   </dt>
                   <dd className="num mt-1 font-heading text-lg font-semibold text-foreground">{formatQty(total.qty)}</dd>
-                  <dd className="text-xs text-muted-foreground">{formatNumber(total.count)} transaksi</dd>
+                  <dd className="text-xs text-muted-foreground">{t('gaInventory.dashboard.transactions', { count: total.count, n: formatNumber(total.count) })}</dd>
                 </div>
               );
             })}
@@ -127,20 +130,20 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
       </Panel>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="Stok per Lokasi" action={<MapPin className="size-4 text-muted-foreground" aria-hidden />}>
+        <Panel title={t('gaInventory.dashboard.byLocation')} action={<MapPin className="size-4 text-muted-foreground" aria-hidden />}>
           <PanelState
             loading={loading}
             error={q.error}
             onRetry={() => q.refetch()}
             empty={d?.byLocation.length === 0}
             emptyIcon={MapPin}
-            emptyTitle="Belum ada lokasi"
-            emptyDescription="Tambahkan lokasi gudang di Data Induk Aset."
+            emptyTitle={t('gaInventory.dashboard.noLocations')}
+            emptyDescription={t('gaInventory.dashboard.noLocationsDescription')}
           >
             <div className="-m-4">
               <BreakdownTable
-                label="Stok per Lokasi"
-                head="Lokasi"
+                label={t('gaInventory.dashboard.byLocation')}
+                head={t('gaInventory.dashboard.location')}
                 rows={(d?.byLocation ?? []).map((l) => ({
                   key: l.code,
                   name: (
@@ -157,26 +160,26 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
           </PanelState>
         </Panel>
 
-        <Panel title="Stok per Kategori" action={<Boxes className="size-4 text-muted-foreground" aria-hidden />}>
+        <Panel title={t('gaInventory.dashboard.byCategory')} action={<Boxes className="size-4 text-muted-foreground" aria-hidden />}>
           <PanelState
             loading={loading}
             error={q.error}
             onRetry={() => q.refetch()}
             empty={d?.byCategory.length === 0}
             emptyIcon={Boxes}
-            emptyTitle="Belum ada kategori terpakai"
+            emptyTitle={t('gaInventory.dashboard.noCategories')}
           >
             <div className="-m-4">
               <BreakdownTable
-                label="Stok per Kategori"
-                head="Kategori"
+                label={t('gaInventory.dashboard.byCategory')}
+                head={t('gaInventory.dashboard.category')}
                 rows={(d?.byCategory ?? []).map((c) => ({
                   key: c.name,
                   name: (
                     <>
                       <span className="block font-medium text-foreground">{c.name}</span>
                       <span className="block text-xs text-muted-foreground">
-                        {c.type === 'SPAREPART' ? 'Sparepart' : 'Habis pakai'}
+                        {c.type === 'SPAREPART' ? t('gaInventory.dashboard.sparepart') : t('gaInventory.dashboard.consumable')}
                       </span>
                     </>
                   ),
@@ -191,11 +194,11 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel
-          title="Item di Bawah Stok Minimum"
-          description="10 kekurangan terbesar"
+          title={t('gaInventory.dashboard.lowStock')}
+          description={t('gaInventory.dashboard.lowStockDescription')}
           action={
             <Button variant="link" size="sm" onClick={onShowLowStock}>
-              Lihat item
+              {t('gaInventory.dashboard.viewItems')}
             </Button>
           }
         >
@@ -205,8 +208,8 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
             onRetry={() => q.refetch()}
             empty={d?.lowStockItems.length === 0}
             emptyIcon={Package}
-            emptyTitle="Semua item aman"
-            emptyDescription="Tidak ada item di bawah stok minimum."
+            emptyTitle={t('gaInventory.dashboard.allOk')}
+            emptyDescription={t('gaInventory.dashboard.allOkDescription')}
           >
             <ul className="divide-y divide-border">
               {d?.lowStockItems.map((it) => {
@@ -225,7 +228,7 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
                         {formatQty(it.totalStock)} <span className="text-xs font-normal text-muted-foreground">{it.uom}</span>
                       </span>
                       <span className="num text-xs text-muted-foreground">
-                        min {formatQty(it.minStock)} · kurang {formatQty(it.shortfall)}
+                        {t('gaInventory.dashboard.minShort', { min: formatQty(it.minStock), short: formatQty(it.shortfall) })}
                       </span>
                       <StatusBadge status={state} docType="inventory_item" />
                     </div>
@@ -237,11 +240,11 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
         </Panel>
 
         <Panel
-          title="Mutasi Terakhir"
+          title={t('gaInventory.dashboard.recent')}
           action={
             <Button variant="link" size="sm" onClick={onShowMovements}>
               <ArrowLeftRight aria-hidden />
-              Lihat semua
+              {t('gaInventory.dashboard.viewAll')}
             </Button>
           }
         >
@@ -251,7 +254,7 @@ export function GaInventoryDashboard({ onShowMovements, onShowLowStock }: GaInve
             onRetry={() => q.refetch()}
             empty={d?.recentMovements.length === 0}
             emptyIcon={ArrowLeftRight}
-            emptyTitle="Belum ada pergerakan"
+            emptyTitle={t('gaInventory.dashboard.noMovements')}
           >
             <ul className="divide-y divide-border">
               {d?.recentMovements.map((m) => (

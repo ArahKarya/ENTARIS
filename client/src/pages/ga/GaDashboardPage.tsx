@@ -14,7 +14,9 @@ import { cn } from '../../lib/utils';
 import { getRoute } from '../../app/routes';
 import { Card } from '../../components/ui/card';
 import { EmptyState, LoadingState, PageHeader, StatCard, StatusBadge } from '../../components/shared';
+import { useTranslation } from 'react-i18next';
 import type { StatusTone } from '../../lib/status';
+import { tEam } from '../../components/ga/eam-i18n';
 
 interface CategorySummary {
   category: string;
@@ -47,11 +49,10 @@ interface GaAsset {
 const ACTIVE_WO_STATUSES = new Set<WoStatus>(['OPEN', 'ASSIGNED', 'IN_PROGRESS']);
 const MAX_WO_ROWS = 6;
 
-const PRIORITY_META: Record<WoPriority, { label: string; tone: StatusTone }> = {
-  URGENT: { label: 'Mendesak', tone: 'danger' },
-  HIGH: { label: 'Tinggi', tone: 'warning' },
-  MEDIUM: { label: 'Sedang', tone: 'info' },
-  LOW: { label: 'Rendah', tone: 'neutral' },
+const PRIORITY_TONE: Record<WoPriority, StatusTone> = { URGENT: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral' };
+const priorityMeta = (p: WoPriority): { label: string; tone: StatusTone } => {
+  const priority = PRIORITY_TONE[p] ? p : 'LOW';
+  return { label: tEam(`workOrder.priority.${priority}`), tone: PRIORITY_TONE[priority] };
 };
 
 /** Shortcuts to existing GA pages; label & icon come from the route registry. */
@@ -66,16 +67,20 @@ const QUICK_LINK_PATHS = [
 
 const isOverdue = (wo: WorkOrder, now: Date) => !!wo.dueAt && new Date(wo.dueAt) < now;
 
-const SectionLink = ({ to }: { to: string }) => (
-  <Link
-    to={to}
-    className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-  >
-    Lihat semua <ArrowRight className="size-3" aria-hidden />
-  </Link>
-);
+const SectionLink = ({ to }: { to: string }) => {
+  const { t } = useTranslation('eam');
+  return (
+    <Link
+      to={to}
+      className="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {t('gaDashboard.viewAll')} <ArrowRight className="size-3" aria-hidden />
+    </Link>
+  );
+};
 
 export const GaDashboardPage = () => {
+  const { t } = useTranslation('eam');
   const canViewFixedAssets = can('fixed_assets', 'view');
   const canViewMaintenance = can('ga_maintenance', 'view');
 
@@ -135,8 +140,8 @@ export const GaDashboardPage = () => {
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
-        title="Ringkasan Aset & Pemeliharaan"
-        description="Ringkasan aset tetap, kondisi aset, dan pekerjaan pemeliharaan yang masih aktif."
+        title={t('gaDashboard.title')}
+        description={t('gaDashboard.description')}
         className="pb-0"
       />
 
@@ -144,36 +149,36 @@ export const GaDashboardPage = () => {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={Boxes}
-          label="Total Aset Tetap"
+          label={t('gaDashboard.kpiFixedAssets')}
           loading={loadingCategories}
           value={canViewFixedAssets ? formatNumber(totals.totalAssetCount) : '—'}
-          hint={canViewFixedAssets ? `${formatNumber(categorySummary.length)} kategori` : 'Butuh akses Aset Tetap'}
+          hint={canViewFixedAssets ? t('gaDashboard.categories', { count: categorySummary.length, n: formatNumber(categorySummary.length) }) : t('gaDashboard.needFixedAssets')}
         />
         <StatCard
           icon={Wallet}
-          label="Nilai Buku"
+          label={t('gaDashboard.kpiBookValue')}
           loading={loadingCategories}
           value={canViewFixedAssets ? formatRupiah(totals.totalBookValue, { compact: true }) : '—'}
           valueTitle={canViewFixedAssets ? formatRupiah(totals.totalBookValue) : undefined}
-          hint={canViewFixedAssets ? `Harga perolehan ${formatRupiah(totals.totalCost, { compact: true })}` : 'Butuh akses Aset Tetap'}
+          hint={canViewFixedAssets ? t('gaDashboard.acquisitionCost', { amount: formatRupiah(totals.totalCost, { compact: true }) }) : t('gaDashboard.needFixedAssets')}
         />
         <StatCard
           icon={Wrench}
-          label="Perintah Kerja Aktif"
+          label={t('gaDashboard.kpiActiveWo')}
           loading={loadingWorkOrders}
           value={canViewMaintenance ? formatNumber(woStats.active.length) : '—'}
-          hint={canViewMaintenance ? `${formatNumber(woStats.urgent.length)} prioritas tinggi/mendesak` : 'Butuh akses Pemeliharaan'}
+          hint={canViewMaintenance ? t('gaDashboard.highPriority', { n: formatNumber(woStats.urgent.length) }) : t('gaDashboard.needMaintenance')}
           href={canViewMaintenance ? '/ga/maintenance' : undefined}
         />
         <StatCard
           icon={AlertTriangle}
-          label="Perintah Kerja Terlambat"
+          label={t('gaDashboard.kpiOverdueWo')}
           loading={loadingWorkOrders || assetQuery.isLoading}
           value={canViewMaintenance ? formatNumber(woStats.overdue.length) : '—'}
           hint={
             poorConditionCount > 0
-              ? `${formatNumber(poorConditionCount)} aset kondisi kurang/rusak`
-              : 'Semua aset kondisi baik'
+              ? t('gaDashboard.poorCondition', { n: formatNumber(poorConditionCount) })
+              : t('gaDashboard.allGood')
           }
           className={cn(woStats.overdue.length > 0 && 'border-danger')}
         />
@@ -183,17 +188,17 @@ export const GaDashboardPage = () => {
         {/* Fixed assets per category */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Aset Tetap per Kategori</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t('gaDashboard.byCategory')}</h2>
             <SectionLink to="/ga/assets" />
           </div>
           {!canViewFixedAssets ? (
-            <EmptyState compact title="Tidak ada akses" description="Ringkasan ini butuh hak lihat Aset Tetap." />
+            <EmptyState compact title={t('shared.noAccess')} description={t('gaDashboard.needFixedAssetsDescription')} />
           ) : loadingCategories ? (
-            <LoadingState size="sm" label="Memuat ringkasan…" />
+            <LoadingState size="sm" label={t('gaDashboard.loading')} />
           ) : categoryQuery.isError ? (
             <EmptyState compact kind="error" />
           ) : sortedCategories.length === 0 ? (
-            <EmptyState compact icon={Boxes} title="Belum ada aset tetap" description="Aset tetap yang tercatat akan muncul di sini." />
+            <EmptyState compact icon={Boxes} title={t('gaDashboard.noFixedAssets')} description={t('gaDashboard.noFixedAssetsDescription')} />
           ) : (
             <ul className="space-y-2.5">
               {sortedCategories.map((c) => {
@@ -203,13 +208,13 @@ export const GaDashboardPage = () => {
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="min-w-0 truncate font-medium text-foreground">{c.category}</span>
                       <span className="shrink-0 tabular-nums text-muted-foreground">
-                        {formatNumber(c.count)} aset · {formatRupiah(c.total_book_value)}
+                        {t('gaDashboard.assetCount', { n: formatNumber(c.count), amount: formatRupiah(c.total_book_value) })}
                       </span>
                     </div>
                     <div
                       className="mt-1 h-1.5 overflow-hidden rounded-sm bg-muted"
                       role="progressbar"
-                      aria-label={`Porsi nilai buku ${c.category}`}
+                      aria-label={t('gaDashboard.bookValueShare', { name: c.category })}
                       aria-valuenow={Math.round(pct)}
                       aria-valuemin={0}
                       aria-valuemax={100}
@@ -226,22 +231,22 @@ export const GaDashboardPage = () => {
         {/* Active work orders */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Perintah Kerja Aktif</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t('gaDashboard.kpiActiveWo')}</h2>
             {canViewMaintenance && <SectionLink to="/ga/maintenance" />}
           </div>
           {!canViewMaintenance ? (
-            <EmptyState compact title="Tidak ada akses" description="Daftar ini butuh hak lihat Pemeliharaan." />
+            <EmptyState compact title={t('shared.noAccess')} description={t('gaDashboard.needMaintenanceDescription')} />
           ) : loadingWorkOrders ? (
-            <LoadingState size="sm" label="Memuat ringkasan…" />
+            <LoadingState size="sm" label={t('gaDashboard.loading')} />
           ) : workOrderQuery.isError ? (
             <EmptyState compact kind="error" />
           ) : woStats.active.length === 0 ? (
-            <EmptyState compact icon={Wrench} title="Tidak ada perintah kerja aktif" description="Semua pekerjaan pemeliharaan sudah selesai." />
+            <EmptyState compact icon={Wrench} title={t('gaDashboard.noActiveWo')} description={t('gaDashboard.noActiveWoDescription')} />
           ) : (
             <ul className="space-y-2">
               {woStats.active.slice(0, MAX_WO_ROWS).map((w) => {
                 const overdue = isOverdue(w, woStats.now);
-                const priority = PRIORITY_META[w.priority] ?? PRIORITY_META.LOW;
+                const priority = priorityMeta(w.priority);
                 return (
                   <li key={w.id}>
                     <Link
@@ -251,8 +256,8 @@ export const GaDashboardPage = () => {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">{w.title}</p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {w.code} · {w.asset?.name ?? 'Tanpa aset'}
-                          {overdue && <span className="font-medium text-danger-text"> · Terlambat</span>}
+                          {w.code} · {w.asset?.name ?? t('gaDashboard.noAsset')}
+                          {overdue && <span className="font-medium text-danger-text"> · {t('gaDashboard.overdue')}</span>}
                         </p>
                       </div>
                       <StatusBadge label={priority.label} tone={priority.tone} dot={false} className="shrink-0" />
@@ -262,7 +267,7 @@ export const GaDashboardPage = () => {
               })}
               {woStats.active.length > MAX_WO_ROWS && (
                 <li className="pt-1 text-center text-xs text-muted-foreground">
-                  +{formatNumber(woStats.active.length - MAX_WO_ROWS)} lainnya
+                  {t('gaDashboard.more', { n: formatNumber(woStats.active.length - MAX_WO_ROWS) })}
                 </li>
               )}
             </ul>
@@ -273,7 +278,7 @@ export const GaDashboardPage = () => {
       {/* Quick links */}
       {quickLinks.length > 0 && (
         <Card className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Akses Cepat</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">{t('gaDashboard.quickAccess')}</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {quickLinks.map(({ path, label, icon: Icon }) => (
               <Link

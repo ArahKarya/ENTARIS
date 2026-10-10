@@ -10,12 +10,14 @@ import { DateInput, Field } from '@/components/shared';
 import { FormModal } from './form-modal';
 import { assetOptions, useGaAssetOptions } from './queries';
 import { apiErrorMessage, assetLabel, toDateInput, type ScheduleRow } from './wo-meta';
+import { useTranslation } from 'react-i18next';
 
 const numOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
 const str = (v: number | null) => (v != null ? String(v) : '');
 
 /** Pass `schedule` to edit; omit to create. */
 export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRow | null; onClose: () => void }) {
+  const { t } = useTranslation('eam');
   const editing = !!schedule;
   const queryClient = useQueryClient();
   const { data: assets, isLoading } = useGaAssetOptions();
@@ -32,9 +34,9 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const errors = {
-    assetId: !editing && !form.assetId ? 'Aset wajib dipilih.' : undefined,
-    interval: !form.intervalDays && !form.intervalHours && !form.intervalKm ? 'Isi salah satu interval (hari, jam, atau km).' : undefined,
-    nextDueAt: !editing && !form.nextDueAt ? 'Tanggal jatuh tempo berikutnya wajib diisi.' : undefined,
+    assetId: !editing && !form.assetId ? t('schedule.form.assetRequired') : undefined,
+    interval: !form.intervalDays && !form.intervalHours && !form.intervalKm ? t('schedule.form.intervalRequired') : undefined,
+    nextDueAt: !editing && !form.nextDueAt ? t('schedule.form.nextDueRequired') : undefined,
   };
 
   const intervals = {
@@ -59,11 +61,11 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
             notes: form.notes || null,
           }),
     onSuccess: () => {
-      toast.success(editing ? 'Jadwal diperbarui.' : 'Jadwal dibuat.');
+      toast.success(editing ? t('schedule.form.updated') : t('schedule.form.created'));
       queryClient.invalidateQueries({ queryKey: ['ga-schedules'] });
       onClose();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, editing ? 'Gagal memperbarui jadwal.' : 'Gagal membuat jadwal.')),
+    onError: (err) => toast.error(apiErrorMessage(err, editing ? t('schedule.form.updateFailed') : t('schedule.form.createFailed'))),
   });
 
   const submit = () => {
@@ -74,36 +76,36 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
 
   return (
     <FormModal
-      title={editing ? 'Edit Jadwal Preventif' : 'Buat Jadwal Preventif'}
-      description={editing ? assetLabel(schedule.asset) : 'Jadwal perawatan berkala; jatuh tempo bergulir otomatis saat WO terkait selesai.'}
+      title={editing ? t('schedule.form.editTitle') : t('schedule.form.createTitle')}
+      description={editing ? assetLabel(schedule.asset) : t('schedule.form.description')}
       onClose={onClose}
       onSubmit={submit}
-      submitLabel="Simpan"
+      submitLabel={t('shared.save')}
       submitting={mutation.isPending}
     >
       {!editing && (
-        <ComboboxField label="Aset" required error={submitted ? errors.assetId : undefined}
+        <ComboboxField label={t('schedule.form.asset')} required error={submitted ? errors.assetId : undefined}
   options={assetOptions(assets)}
   value={form.assetId}
   onChange={(v) => set({ assetId: v })}
-  placeholder={isLoading ? 'Memuat…' : 'Pilih aset'}
+  placeholder={isLoading ? t('schedule.form.loading') : t('schedule.form.assetPlaceholder')}
 />
       )}
       <fieldset className="flex flex-col gap-1.5" aria-describedby="schedule-interval-hint">
         <legend className="mb-0.5 text-sm font-medium text-foreground">
-          Interval <span className="text-danger-text" aria-hidden>*</span>
+          {t('schedule.form.interval')} <span className="text-danger-text" aria-hidden>*</span>
         </legend>
         <p id="schedule-interval-hint" className="text-xs text-muted-foreground">
-          Isi salah satu: hari kalender, jam operasi, atau kilometer.
+          {t('schedule.form.intervalHint')}
         </p>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Hari">
+          <Field label={t('schedule.form.days')}>
             <NumberInput min={1} value={form.intervalDays} onChange={(e) => set({ intervalDays: e.target.value })} />
           </Field>
-          <Field label="Jam">
+          <Field label={t('schedule.form.hours')}>
             <NumberInput min={1} value={form.intervalHours} onChange={(e) => set({ intervalHours: e.target.value })} />
           </Field>
-          <Field label="Km">
+          <Field label={t('schedule.form.km')}>
             <NumberInput min={1} value={form.intervalKm} onChange={(e) => set({ intervalKm: e.target.value })} />
           </Field>
         </div>
@@ -113,10 +115,10 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
           </p>
         )}
       </fieldset>
-      <Field label="Jatuh tempo berikutnya" required={!editing} error={submitted ? errors.nextDueAt : undefined}>
+      <Field label={t('schedule.form.nextDue')} required={!editing} error={submitted ? errors.nextDueAt : undefined}>
         {(control) => <DateInput id={control.id} value={form.nextDueAt} onChange={(v) => set({ nextDueAt: v })} />}
       </Field>
-      <Field label="Catatan">
+      <Field label={t('shared.notes')}>
         <Textarea rows={2} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
       </Field>
       {editing && (
@@ -127,7 +129,7 @@ export function ScheduleFormModal({ schedule, onClose }: { schedule?: ScheduleRo
             onChange={(e) => set({ isActive: e.target.checked })}
             className="size-4 accent-[var(--primary)]"
           />
-          Jadwal aktif
+          {t('schedule.form.active')}
         </label>
       )}
     </FormModal>

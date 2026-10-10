@@ -15,9 +15,11 @@ import { FLUSH_TABLE } from '../ui-classes';
 import { useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
 import { apiError } from '../vehicle-model';
 import { UnitHeader } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 export function FuelSection({ assetId, canEdit }: VehicleContext) {
   const invalidate = useInvalidateVehicle(assetId);
+  const { t } = useTranslation('eam');
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FuelLog | null>(null);
 
@@ -28,10 +30,10 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${assetId}/fuel-logs/${id}`),
     onSuccess: () => {
-      toast.success('Log BBM dihapus.');
+      toast.success(t('vehicleSections.fuel.deleted'));
       invalidate(['fuel']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal hapus log BBM.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.fuel.deleteFailed'))),
   });
 
   const totals = useMemo(() => {
@@ -46,7 +48,7 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
     () => [
       {
         id: 'tanggal',
-        header: 'Tanggal',
+        header: t('shared.date'),
         cell: ({ row }) => (
           <div>
             <p className="num whitespace-nowrap text-foreground">{formatDate(row.original.tanggal)}</p>
@@ -58,41 +60,41 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
       },
       {
         id: 'odometer',
-        header: () => <UnitHeader label="Odometer" unit="km" />,
+        header: () => <UnitHeader label={t('vehicleSections.fuel.odometer')} unit="km" />,
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '—'),
       },
       {
         id: 'liters',
-        header: () => <UnitHeader label="Volume" unit="L" />,
+        header: () => <UnitHeader label={t('vehicleSections.fuel.volume')} unit="L" />,
         meta: { align: 'right' },
         cell: ({ row }) => formatNumber(row.original.liters, { maxDecimals: 2 }),
       },
       {
         id: 'price',
-        header: () => <UnitHeader label="Harga/L" />,
+        header: () => <UnitHeader label={t('vehicleSections.fuel.pricePerLiter')} />,
         meta: { align: 'right', hideBelow: 'md' },
         cell: ({ row }) => (row.original.pricePerLiter != null ? formatRupiah(row.original.pricePerLiter, { symbol: false }) : '—'),
       },
       {
         id: 'totalCost',
-        header: () => <UnitHeader label="Total" />,
+        header: () => <UnitHeader label={t('vehicleSections.fuel.total')} />,
         meta: { align: 'right' },
         cell: ({ row }) => formatRupiah(row.original.totalCost, { symbol: false }),
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk log BBM ${formatDate(row.original.tanggal)}`}
-            actions={[{ label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(row.original) }]}
+            label={t('vehicleSections.fuel.actionsFor', { date: formatDate(row.original.tanggal) })}
+            actions={[{ label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(row.original) }]}
           />
         ),
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   const count = query.data?.length ?? 0;
@@ -100,25 +102,25 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
   return (
     <>
       <Panel
-        title="Log Pengisian BBM"
+        title={t('vehicleSections.fuel.title')}
         description={
           count > 0
-            ? `${formatNumber(count)} pengisian · ${formatNumber(totals.liters, { maxDecimals: 1 })} L · ${formatRupiah(totals.cost)}`
-            : 'Catat setiap pengisian untuk memantau konsumsi dan biaya BBM.'
+            ? t('vehicleSections.fuel.summary', { count, n: formatNumber(count), liters: formatNumber(totals.liters, { maxDecimals: 1 }), cost: formatRupiah(totals.cost) })
+            : t('vehicleSections.fuel.descriptionEmpty')
         }
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" onClick={() => setShowModal(true)}>
               <Plus aria-hidden />
-              Isi BBM
+              {t('vehicleSections.fuel.add')}
             </Button>
           )
         }
       >
         <DataTable
-          label="Log pengisian BBM"
-          itemLabel="pengisian"
+          label={t('vehicleSections.fuel.tableLabel')}
+          itemLabel={t('vehicleSections.fuel.itemLabel')}
           columns={columns}
           data={query.data}
           getRowId={(r) => r.id}
@@ -127,7 +129,7 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
           onRetry={() => query.refetch()}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada log BBM' }}
+          empty={{ title: t('vehicleSections.fuel.empty') }}
         />
       </Panel>
       {showModal && (
@@ -143,9 +145,9 @@ export function FuelSection({ assetId, canEdit }: VehicleContext) {
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Hapus Log BBM"
-        description={`Hapus log BBM "${deleteTarget ? `${formatDate(deleteTarget.tanggal)} · ${formatNumber(deleteTarget.liters, { maxDecimals: 2 })} L` : ''}"?`}
-        confirmLabel="Ya, Hapus"
+        title={t('vehicleSections.fuel.deleteTitle')}
+        description={t('vehicleSections.fuel.deleteConfirm', { name: deleteTarget ? `${formatDate(deleteTarget.tanggal)} · ${formatNumber(deleteTarget.liters, { maxDecimals: 2 })} L` : '' })}
+        confirmLabel={t('shared.confirmDelete')}
         tone="danger"
         loading={deleteMut.isPending}
         onConfirm={async () => {

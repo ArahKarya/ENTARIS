@@ -20,6 +20,7 @@ import { apiErrorMessage } from './asset-model';
 import { masterPayload, validateMaster, type MasterEntity, type MasterRow } from './master-config';
 import { OptionSelect } from './OptionSelect';
 import { masterOptions, useGaMaster } from './useGaMaster';
+import { useTranslation } from 'react-i18next';
 
 interface GaMasterTabProps {
   entity: MasterEntity;
@@ -29,6 +30,7 @@ interface GaMasterTabProps {
 const asActiveRow = (r: MasterRow) => ({ ...r, isActive: r.isActive ?? true });
 
 export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const query = useGaMaster<MasterRow>(entity.id);
   const [search, setSearch] = useState('');
@@ -54,10 +56,10 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
     const form = Object.fromEntries(entity.fields.map((f) => [f.key, String(row[f.key] ?? '')]));
     try {
       await api.put(`/ga/master/${entity.id}/${row.id}`, masterPayload(entity, form, !row.isActive));
-      toast.success(row.isActive ? `"${row.name}" dinonaktifkan.` : `"${row.name}" diaktifkan.`);
+      toast.success(row.isActive ? t('master.tab.deactivated', { name: row.name }) : t('master.tab.activated', { name: row.name }));
       invalidate();
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Gagal mengubah status.'));
+      toast.error(apiErrorMessage(err, t('master.tab.statusFailed')));
     }
   };
 
@@ -65,11 +67,11 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
     if (!deleteTarget) return;
     try {
       await api.delete(`/ga/master/${entity.id}/${deleteTarget.id}`);
-      toast.success('Data dihapus.');
+      toast.success(t('master.tab.deleted'));
       invalidate();
       setDeleteTarget(null);
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Gagal menghapus data. Data yang sudah dipakai tidak bisa dihapus.'));
+      toast.error(apiErrorMessage(err, t('master.tab.deleteFailed')));
       throw err;
     }
   };
@@ -79,7 +81,7 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
       {
         id: 'code',
         accessorKey: 'code',
-        header: 'Kode',
+        header: t('master.tab.code'),
         enableSorting: true,
         meta: { cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => <span className="num font-mono text-xs text-foreground">{row.original.code}</span>,
@@ -87,7 +89,7 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
       {
         id: 'name',
         accessorKey: 'name',
-        header: 'Nama',
+        header: t('master.tab.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36' },
         cell: ({ row }) => {
@@ -112,7 +114,7 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
             {
               id: 'status',
               accessorFn: (r: MasterRow) => (r.isActive ? 1 : 0),
-              header: 'Status',
+              header: t('shared.status'),
               enableSorting: true,
               meta: { hideBelow: 'sm' as const },
               cell: ({ row }: { row: { original: MasterRow } }) => (
@@ -123,22 +125,22 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
         : []),
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${r.code}`}
+              label={t('shared.actionsFor', { name: r.code })}
               actions={[
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ row: r }) },
+                { label: t('shared.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ row: r }) },
                 {
-                  label: r.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  label: r.isActive ? t('master.tab.deactivate') : t('master.tab.activate'),
                   icon: r.isActive ? PowerOff : Power,
                   hidden: !canEdit || !entity.hasActive,
                   onSelect: () => toggleActive(r),
                 },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(r) },
+                { label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(r) },
               ]}
             />
           );
@@ -146,19 +148,19 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toggleActive only closes over stable setters
-    [canEdit, entity],
+    [canEdit, entity, t],
   );
 
   const summary =
     all.length > 0
       ? entity.hasActive
-        ? `${formatNumber(counts.total)} ${entity.noun} · ${formatNumber(counts.active)} aktif`
-        : `${formatNumber(all.length)} ${entity.noun}`
+        ? t('master.tab.summaryActive', { total: formatNumber(counts.total), noun: entity.noun, active: formatNumber(counts.active) })
+        : t('master.tab.summary', { total: formatNumber(all.length), noun: entity.noun })
       : undefined;
   const createAction = canEdit && (
     <Button onClick={() => setSheet({ row: null })}>
       <Plus aria-hidden />
-      Tambah
+      {t('master.tab.add')}
     </Button>
   );
 
@@ -170,19 +172,19 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
         <MasterToolbar
           search={search}
           onSearch={setSearch}
-          searchLabel={`Cari ${entity.noun}`}
-          searchPlaceholder="Cari kode atau nama"
+          searchLabel={t('master.tab.search', { noun: entity.noun })}
+          searchPlaceholder={t('master.tab.searchPlaceholder')}
           status={status}
           onStatus={setStatus}
           summary={summary}
           action={createAction}
         />
       ) : (
-        <SearchToolbar search={search} onSearch={setSearch} label={`Cari ${entity.noun}`} summary={summary} action={createAction} />
+        <SearchToolbar search={search} onSearch={setSearch} label={t('master.tab.search', { noun: entity.noun })} summary={summary} action={createAction} />
       )}
 
       <DataTable
-        label={`Daftar ${entity.noun}`}
+        label={t('master.tab.list', { noun: entity.noun })}
         itemLabel={entity.noun}
         columns={columns}
         data={rows}
@@ -199,12 +201,12 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
         rowClassName={(r) => (r.isActive ? undefined : 'text-muted-foreground')}
         pageSize={25}
         empty={{
-          title: `Belum ada ${entity.noun}`,
+          title: t('master.tab.empty', { noun: entity.noun }),
           description: entity.info,
           action: canEdit ? (
             <Button size="sm" onClick={() => setSheet({ row: null })}>
               <Plus aria-hidden />
-              Tambah {entity.noun}
+              {t('master.tab.addNoun', { noun: entity.noun })}
             </Button>
           ) : undefined,
         }}
@@ -227,9 +229,9 @@ export function GaMasterTab({ entity, canEdit }: GaMasterTabProps) {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title={`Hapus ${entity.noun}?`}
-        description={`Hapus "${deleteTarget?.name ?? ''}"? Data yang sudah dipakai aset atau dokumen tidak bisa dihapus${entity.hasActive ? '. Nonaktifkan saja' : ''}.`}
-        confirmLabel="Ya, hapus"
+        title={t('master.tab.deleteTitle', { noun: entity.noun })}
+        description={entity.hasActive ? t('master.tab.deleteDescriptionActive', { name: deleteTarget?.name ?? '' }) : t('master.tab.deleteDescription', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('shared.confirmDelete')}
         onConfirm={handleDelete}
       />
     </div>
@@ -249,9 +251,10 @@ function SearchToolbar({
   summary?: string;
   action?: React.ReactNode;
 }) {
+  const { t } = useTranslation('eam');
   const id = useId();
   return (
-    <div role="search" aria-label="Filter daftar" className="flex flex-wrap items-center gap-2">
+    <div role="search" aria-label={t('master.tab.filterLabel')} className="flex flex-wrap items-center gap-2">
       <div className="relative w-full sm:w-auto sm:min-w-60 sm:max-w-sm sm:flex-1">
         <label htmlFor={`${id}-q`} className="sr-only">
           {label}
@@ -262,7 +265,7 @@ function SearchToolbar({
           type="search"
           value={search}
           onChange={(e) => onSearch(e.target.value)}
-          placeholder="Cari kode atau nama"
+          placeholder={t('master.tab.searchPlaceholder')}
           autoComplete="off"
           className="pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden"
         />
@@ -270,7 +273,7 @@ function SearchToolbar({
           <button
             type="button"
             onClick={() => onSearch('')}
-            aria-label="Hapus pencarian"
+            aria-label={t('master.tab.clearSearch')}
             className="absolute right-1.5 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" aria-hidden />
@@ -294,6 +297,7 @@ function MasterFormSheet({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation('eam');
   const isEdit = !!row;
   const switchId = useId();
   const needsBranches = entity.fields.some((f) => f.type === 'branch');
@@ -317,10 +321,10 @@ function MasterFormSheet({
       const payload = masterPayload(entity, form, isActive);
       if (isEdit) await api.put(`/ga/master/${entity.id}/${row.id}`, payload);
       else await api.post(`/ga/master/${entity.id}`, payload);
-      toast.success(isEdit ? 'Data diperbarui.' : 'Data dibuat.');
+      toast.success(isEdit ? t('master.tab.updated') : t('master.tab.created'));
       onSaved();
     } catch (err) {
-      setServerError(apiErrorMessage(err, 'Gagal menyimpan data.'));
+      setServerError(apiErrorMessage(err, t('master.tab.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -330,11 +334,11 @@ function MasterFormSheet({
     <FormSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title={isEdit ? `Edit ${entity.noun}` : `${entity.label} baru`}
+      title={isEdit ? t('master.tab.editTitle', { noun: entity.noun }) : t('master.tab.newTitle', { label: entity.label })}
       description={isEdit ? `${row.code} · ${row.name}` : entity.info}
       error={serverError}
       saving={saving}
-      submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan'}
+      submitLabel={isEdit ? t('master.tab.saveChanges') : t('shared.save')}
       onSubmit={submit}
     >
       {entity.fields.map((f) => (
@@ -344,7 +348,7 @@ function MasterFormSheet({
               value={form[f.key] ?? ''}
               onChange={(v) => set(f.key, v)}
               options={masterOptions(branches.data, row?.branchId)}
-              placeholder={branches.isLoading ? 'Memuat…' : 'Pilih cabang'}
+              placeholder={branches.isLoading ? t('master.tab.loading') : t('master.tab.branchPlaceholder')}
             />
           ) : f.type === 'select' ? (
             <OptionSelect value={form[f.key] ?? ''} onChange={(v) => set(f.key, v)} options={f.options ?? []} />
@@ -363,9 +367,9 @@ function MasterFormSheet({
         <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
           <div>
             <label htmlFor={switchId} className="text-sm font-medium text-foreground">
-              Aktif
+              {t('master.tab.active')}
             </label>
-            <p className="text-xs text-muted-foreground">Data nonaktif tidak ditawarkan saat membuat aset baru.</p>
+            <p className="text-xs text-muted-foreground">{t('master.tab.activeHint')}</p>
           </div>
           <Switch id={switchId} checked={isActive} onCheckedChange={(v: boolean) => setIsActive(v)} />
         </div>

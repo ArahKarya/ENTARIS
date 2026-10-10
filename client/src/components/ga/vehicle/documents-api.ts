@@ -4,6 +4,7 @@
  */
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { tEam } from '../eam-i18n';
 
 /**
  * Upload a supporting scan (STNK/KIR/polis) for a tax or insurance record:
@@ -18,7 +19,7 @@ export async function uploadSupportingDocument(opts: {
 }): Promise<string> {
   const typesRes = await api.get<Array<{ id: string; code: string }>>('/ga/master/document-types');
   const docType = typesRes.data.find((t) => t.code === opts.typeCode);
-  if (!docType) throw new Error(`Tipe dokumen "${opts.typeCode}" tidak ditemukan di Master Data.`);
+  if (!docType) throw new Error(tEam('vehicle.docsApi.typeNotFound', { code: opts.typeCode }));
 
   const createRes = await api.post('/ga/documents', {
     title: opts.title,
@@ -59,9 +60,9 @@ export async function openGaDocument(documentId: string, versionId?: string): Pr
 export async function viewDocument(documentId: string, versionId?: string): Promise<void> {
   try {
     const ok = await openGaDocument(documentId, versionId);
-    if (!ok) toast.error('Dokumen belum punya file terunggah.');
+    if (!ok) toast.error(tEam('vehicle.docsApi.noFile'));
   } catch {
-    toast.error('Gagal membuka dokumen.');
+    toast.error(tEam('vehicle.docsApi.openFailed'));
   }
 }
 
@@ -76,7 +77,7 @@ export async function fetchInspectionPhotoDataUrl(assetId: string, inspectionId:
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Gagal membaca file foto.'));
+    reader.onerror = () => reject(new Error(tEam('vehicle.docsApi.photoReadFailed')));
     reader.readAsDataURL(res.data as Blob);
   });
 }

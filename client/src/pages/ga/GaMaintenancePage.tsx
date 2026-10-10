@@ -22,6 +22,7 @@ import type { WoPrefill, WorkOrderRow } from '@/components/ga/maintenance/wo-met
 import { RequestsTab } from './GaRequestsPage';
 import { REQUEST_FILTER_KEYS } from './requests/types';
 import { CreateRequestModal } from './requests/CreateRequestModal';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'wo' | 'schedules' | 'requests';
 type Creating = { kind: 'wo'; prefill?: WoPrefill } | { kind: 'schedule' } | { kind: 'request'; mode: 'SERVICE' | 'TAX' } | null;
@@ -37,6 +38,7 @@ const LIST_KEYS = [
 ];
 
 export const GaMaintenancePage = () => {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const canEdit = can('ga_maintenance', 'edit');
@@ -100,14 +102,14 @@ export const GaMaintenancePage = () => {
       return (
         <Button onClick={() => setCreating({ kind: 'wo' })}>
           <Plus aria-hidden />
-          Buat Work Order
+          {t('maintenance.page.createWo')}
         </Button>
       );
     if (tab === 'schedules' && canEdit)
       return (
         <Button onClick={() => setCreating({ kind: 'schedule' })}>
           <CalendarPlus aria-hidden />
-          Buat Jadwal
+          {t('maintenance.page.createSchedule')}
         </Button>
       );
     if (tab === 'requests' && canEditRequests)
@@ -115,12 +117,12 @@ export const GaMaintenancePage = () => {
         <>
           <Button variant="outline" onClick={() => setCreating({ kind: 'request', mode: 'TAX' })}>
             <Plus aria-hidden />
-            <span className="sm:hidden">Pajak / KIR</span>
-            <span className="hidden sm:inline">Ajukan Pajak / KIR</span>
+            <span className="sm:hidden">{t('maintenance.page.taxShort')}</span>
+            <span className="hidden sm:inline">{t('maintenance.page.requestTax')}</span>
           </Button>
           <Button onClick={() => setCreating({ kind: 'request', mode: 'SERVICE' })}>
             <Plus aria-hidden />
-            Ajukan Servis
+            {t('maintenance.page.requestService')}
           </Button>
         </>
       );
@@ -130,16 +132,16 @@ export const GaMaintenancePage = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Pemeliharaan"
-        description="Work order perbaikan, jadwal perawatan preventif, dan pengajuan servis aset."
+        title={t('maintenance.page.title')}
+        description={t('maintenance.page.description')}
         actions={headerActions}
       />
 
       <Tabs value={tab} onValueChange={changeTab}>
-        <TabsList variant="underline" aria-label="Bagian pemeliharaan">
-          <TabsTrigger value="wo">Work Order</TabsTrigger>
-          <TabsTrigger value="schedules">Jadwal Preventif</TabsTrigger>
-          {canViewRequests && <TabsTrigger value="requests">Pengajuan</TabsTrigger>}
+        <TabsList variant="underline" aria-label={t('maintenance.page.tabsLabel')}>
+          <TabsTrigger value="wo">{t('maintenance.page.tabWo')}</TabsTrigger>
+          <TabsTrigger value="schedules">{t('maintenance.page.tabSchedules')}</TabsTrigger>
+          {canViewRequests && <TabsTrigger value="requests">{t('maintenance.page.tabRequests')}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="wo" className="mt-5">

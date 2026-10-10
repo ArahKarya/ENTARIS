@@ -15,6 +15,7 @@ import type { AssetDetail, VehicleContext, VehicleData } from '../types';
 import { useInvalidateVehicle, useUserOptions, vehicleKeys } from '../vehicle-queries';
 import { FLEET_DOCS, FLEET_DOC_LABELS, apiError, numOrNull, type FleetRow } from '../vehicle-model';
 import { DetailItem, DueDateCell } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 const DOC_SECTION: Record<string, VehicleSection> = {
   tax: 'pajak', stnk: 'pajak', kir: 'pajak', insurance: 'asuransi', inspection: 'inspeksi',
@@ -41,6 +42,7 @@ interface OverviewProps extends VehicleContext {
 }
 
 function DriverCard({ assetId, canEdit, pic }: { assetId: string; canEdit: boolean; pic: AssetDetail['pic'] }) {
+  const { t } = useTranslation('eam');
   const invalidate = useInvalidateVehicle(assetId);
   const [editing, setEditing] = useState(false);
   const [picked, setPicked] = useState(pic?.id ?? '');
@@ -48,21 +50,21 @@ function DriverCard({ assetId, canEdit, pic }: { assetId: string; canEdit: boole
   const assign = useMutation({
     mutationFn: (picUserId: string | null) => api.patch(`/ga/vehicle/assets/${assetId}/driver`, { picUserId }),
     onSuccess: () => {
-      toast.success('Driver kendaraan diperbarui.');
+      toast.success(t('vehicleSections.overview.driverUpdated'));
       setEditing(false);
       invalidate(['assetDetail']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal menugaskan driver.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.overview.driverFailed'))),
   });
 
   return (
     <Panel
-      title="Driver / Penanggung Jawab"
+      title={t('vehicleSections.overview.driverTitle')}
       action={
         canEdit && !editing && (
           <Button size="sm" variant="outline" onClick={() => { setPicked(pic?.id ?? ''); setEditing(true); }}>
             <UserCog aria-hidden />
-            {pic ? 'Ganti driver' : 'Tugaskan driver'}
+            {pic ? t('vehicleSections.overview.changeDriver') : t('vehicleSections.overview.assignDriver')}
           </Button>
         )
       }
@@ -71,31 +73,32 @@ function DriverCard({ assetId, canEdit, pic }: { assetId: string; canEdit: boole
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
             <ComboboxField
-              label="Driver"
+              label={t('vehicleSections.overview.driver')}
               value={picked}
               onChange={setPicked}
               options={(users.data ?? []).map((u) => ({ value: u.id, label: u.fullName }))}
-              placeholder="Pilih driver…"
+              placeholder={t('vehicleSections.overview.driverPlaceholder')}
             />
           </div>
           <Button size="sm" loading={assign.isPending} onClick={() => assign.mutate(picked || null)}>
             {!assign.isPending && <Save aria-hidden />}
-            Simpan
+            {t('shared.save')}
           </Button>
-          <Button size="icon-sm" variant="ghost" aria-label="Batal" onClick={() => setEditing(false)}>
+          <Button size="icon-sm" variant="ghost" aria-label={t('shared.cancel')} onClick={() => setEditing(false)}>
             <X aria-hidden />
           </Button>
         </div>
       ) : pic ? (
         <p className="text-sm text-foreground">{pic.fullName ?? pic.id}</p>
       ) : (
-        <p className="text-sm text-muted-foreground">Belum ada driver ditugaskan.</p>
+        <p className="text-sm text-muted-foreground">{t('vehicleSections.overview.noDriver')}</p>
       )}
     </Panel>
   );
 }
 
 function VehicleDataPanel({ assetId, canEdit, data, loading }: { assetId: string; canEdit: boolean; data: VehicleData | null | undefined; loading: boolean }) {
+  const { t } = useTranslation('eam');
   const invalidate = useInvalidateVehicle(assetId);
   const [form, setForm] = useState<Form>(() => toForm(data));
   const set = (k: keyof Form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -111,20 +114,20 @@ function VehicleDataPanel({ assetId, canEdit, data, loading }: { assetId: string
         odometerTerakhir: numOrNull(form.odometerTerakhir), notes: form.notes || null,
       }),
     onSuccess: () => {
-      toast.success('Data kendaraan disimpan.');
+      toast.success(t('vehicleSections.overview.dataSaved'));
       invalidate(['vehicle']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal simpan data kendaraan.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.overview.dataFailed'))),
   });
 
   return (
     <Panel
-      title="Data Kendaraan"
+      title={t('vehicleSections.overview.dataTitle')}
       action={
         canEdit && (
           <Button size="sm" loading={save.isPending} onClick={() => save.mutate()} disabled={loading}>
             {!save.isPending && <Save aria-hidden />}
-            Simpan
+            {t('shared.save')}
           </Button>
         )
       }
@@ -137,24 +140,25 @@ function VehicleDataPanel({ assetId, canEdit, data, loading }: { assetId: string
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         aria-busy={loading || undefined}
       >
-        <TextField label="No. plat" value={form.noPlat} onChange={set('noPlat')} disabled={!canEdit} />
-        <TextField label="Merek" value={form.brand} onChange={set('brand')} disabled={!canEdit} />
-        <TextField label="Tipe" value={form.tipe} onChange={set('tipe')} disabled={!canEdit} />
-        <TextField label="Tahun produksi" type="number" inputMode="numeric" value={form.tahunProduksi} onChange={set('tahunProduksi')} disabled={!canEdit} />
-        <TextField label="No. mesin" value={form.noMesin} onChange={set('noMesin')} disabled={!canEdit} />
-        <TextField label="No. rangka" value={form.noRangka} onChange={set('noRangka')} disabled={!canEdit} />
-        <SelectField label="Jenis BBM" value={form.jenisBBM} onChange={set('jenisBBM')} options={FUEL_TYPES} labels={FUEL_TYPE_LABELS} emptyLabel="—" disabled={!canEdit} />
-        <TextField label="Kapasitas tangki (L)" type="number" value={form.kapasitasTangki} onChange={set('kapasitasTangki')} disabled={!canEdit} />
-        <TextField label="Warna" value={form.warna} onChange={set('warna')} disabled={!canEdit} />
-        <TextField label="Odometer saat beli (km)" type="number" value={form.odometerSaatBeli} onChange={set('odometerSaatBeli')} disabled={!canEdit} />
-        <TextField label="Odometer terakhir (km)" type="number" value={form.odometerTerakhir} onChange={set('odometerTerakhir')} disabled={!canEdit} />
-        <TextAreaField label="Catatan" value={form.notes} onChange={set('notes')} disabled={!canEdit} className="sm:col-span-2 lg:col-span-3" />
+        <TextField label={t('vehicleSections.overview.plate')} value={form.noPlat} onChange={set('noPlat')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.brand')} value={form.brand} onChange={set('brand')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.type')} value={form.tipe} onChange={set('tipe')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.year')} type="number" inputMode="numeric" value={form.tahunProduksi} onChange={set('tahunProduksi')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.engineNo')} value={form.noMesin} onChange={set('noMesin')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.chassisNo')} value={form.noRangka} onChange={set('noRangka')} disabled={!canEdit} />
+        <SelectField label={t('vehicleSections.overview.fuelType')} value={form.jenisBBM} onChange={set('jenisBBM')} options={FUEL_TYPES} labels={FUEL_TYPE_LABELS} emptyLabel="—" disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.tank')} type="number" value={form.kapasitasTangki} onChange={set('kapasitasTangki')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.color')} value={form.warna} onChange={set('warna')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.odometerAtPurchase')} type="number" value={form.odometerSaatBeli} onChange={set('odometerSaatBeli')} disabled={!canEdit} />
+        <TextField label={t('vehicleSections.overview.odometerLastKm')} type="number" value={form.odometerTerakhir} onChange={set('odometerTerakhir')} disabled={!canEdit} />
+        <TextAreaField label={t('shared.notes')} value={form.notes} onChange={set('notes')} disabled={!canEdit} className="sm:col-span-2 lg:col-span-3" />
       </form>
     </Panel>
   );
 }
 
 export function OverviewSection({ assetId, canEdit, row, asset, assetUnavailable, onNavigate }: OverviewProps) {
+  const { t } = useTranslation('eam');
   const vehicleQuery = useQuery<VehicleData | null>({
     queryKey: vehicleKeys.vehicle(assetId),
     queryFn: async () => (await api.get(`/ga/vehicle/assets/${assetId}`)).data,
@@ -163,7 +167,7 @@ export function OverviewSection({ assetId, canEdit, row, asset, assetUnavailable
 
   return (
     <div className="space-y-4">
-      <Panel title="Kepatuhan & Jadwal" description="Klik untuk membuka bagian terkait.">
+      <Panel title={t('vehicleSections.overview.complianceTitle')} description={t('vehicleSections.overview.complianceDescription')}>
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {FLEET_DOCS.map((d) => {
             const due = row?.due[d];
@@ -178,7 +182,7 @@ export function OverviewSection({ assetId, canEdit, row, asset, assetUnavailable
                   {due?.dueDate ? (
                     <DueDateCell date={due.dueDate} state={due.state} hideOk={false} />
                   ) : (
-                    <span className="text-sm text-muted-foreground">Belum dicatat</span>
+                    <span className="text-sm text-muted-foreground">{t('vehicleSections.overview.notRecorded')}</span>
                   )}
                 </button>
               </li>
@@ -197,29 +201,29 @@ export function OverviewSection({ assetId, canEdit, row, asset, assetUnavailable
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {assetUnavailable ? (
-          <Panel title="Driver / Penanggung Jawab">
-            <p className="text-sm text-muted-foreground">Data aset tidak dapat dimuat (perlu akses modul Aset).</p>
+          <Panel title={t('vehicleSections.overview.driverTitle')}>
+            <p className="text-sm text-muted-foreground">{t('vehicleSections.overview.assetUnavailable')}</p>
           </Panel>
         ) : (
           <DriverCard key={asset?.pic?.id ?? 'none'} assetId={assetId} canEdit={canEdit} pic={asset?.pic ?? null} />
         )}
-        <Panel title="Aset & Nilai Buku">
+        <Panel title={t('vehicleSections.overview.assetTitle')}>
           <dl className="grid grid-cols-2 gap-3">
-            <DetailItem label="Kode aset"><span className="num">{asset?.code ?? row?.code ?? '—'}</span></DetailItem>
-            <DetailItem label="Kategori">{asset?.category?.name ?? row?.categoryName ?? '—'}</DetailItem>
-            <DetailItem label="Cabang">{asset?.branch?.name ?? '—'}</DetailItem>
-            <DetailItem label="Odometer terakhir">
+            <DetailItem label={t('vehicleSections.overview.assetCode')}><span className="num">{asset?.code ?? row?.code ?? '—'}</span></DetailItem>
+            <DetailItem label={t('vehicleSections.overview.category')}>{asset?.category?.name ?? row?.categoryName ?? '—'}</DetailItem>
+            <DetailItem label={t('vehicleSections.overview.branch')}>{asset?.branch?.name ?? '—'}</DetailItem>
+            <DetailItem label={t('vehicleSections.overview.odometerLast')}>
               <span className="num">{row?.odometer != null ? `${formatNumber(row.odometer)} km` : '—'}</span>
             </DetailItem>
             {fa ? (
               <>
-                <DetailItem label="Harga perolehan"><span className="num">{formatRupiah(fa.acquisitionCost)}</span></DetailItem>
-                <DetailItem label="Akumulasi penyusutan"><span className="num">{formatRupiah(fa.accumulatedDepreciation)}</span></DetailItem>
-                <DetailItem label="Nilai buku (NBV)"><span className="num font-semibold">{formatRupiah(fa.bookValue)}</span></DetailItem>
-                <DetailItem label="Masa manfaat"><span className="num">{fa.usefulLifeMonths} bulan</span></DetailItem>
+                <DetailItem label={t('vehicleSections.overview.acquisitionCost')}><span className="num">{formatRupiah(fa.acquisitionCost)}</span></DetailItem>
+                <DetailItem label={t('vehicleSections.overview.accumulatedDepreciation')}><span className="num">{formatRupiah(fa.accumulatedDepreciation)}</span></DetailItem>
+                <DetailItem label={t('vehicleSections.overview.bookValue')}><span className="num font-semibold">{formatRupiah(fa.bookValue)}</span></DetailItem>
+                <DetailItem label={t('vehicleSections.overview.usefulLife')}><span className="num">{t('vehicleSections.overview.months', { count: fa.usefulLifeMonths })}</span></DetailItem>
               </>
             ) : (
-              <DetailItem label="Harga perolehan">
+              <DetailItem label={t('vehicleSections.overview.acquisitionCost')}>
                 <span className="num">{asset?.acquisitionCost != null ? formatRupiah(asset.acquisitionCost) : '—'}</span>
               </DetailItem>
             )}

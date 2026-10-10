@@ -15,6 +15,7 @@ import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHea
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmDialog, EmptyState, Field, StatusBadge } from '@/components/shared';
 import { FormModal } from '@/components/ga/maintenance/form-modal';
+import { useTranslation } from 'react-i18next';
 import {
   PROC_STATUS_EDITABLE,
   PROC_STATUS_LABELS,
@@ -55,6 +56,7 @@ function Detail({ label, children, wide }: { label: string; children: ReactNode;
 }
 
 export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, onClose }: MrDetailDrawerProps) {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const [receiveItem, setReceiveItem] = useState<MrItemDetail | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -76,16 +78,10 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
     mutationFn: (action: { verb: 'submit' | 'approve' | 'reject' | 'cancel'; body?: JsonBody }) =>
       api.patch(`/ga/material-requests/${id}/${action.verb}`, action.body ?? {}),
     onSuccess: (_res, action) => {
-      const done: Record<string, string> = {
-        submit: 'Permintaan diajukan.',
-        approve: 'Permintaan disetujui.',
-        reject: 'Permintaan ditolak.',
-        cancel: 'Permintaan dibatalkan.',
-      };
-      toast.success(done[action.verb] ?? 'Status permintaan diperbarui.');
+      toast.success(t(`materialRequest.detail.done.${action.verb}`));
       invalidate();
     },
-    onError: (err: unknown) => toast.error(apiErrorMessage(err, 'Gagal memperbarui status.')),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, t('materialRequest.detail.statusFailed'))),
   });
 
   const actions = mr ? mrActions(mr.status) : null;
@@ -105,14 +101,14 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                   <StatusBadge status={mr.status} docType="ga_material_request" />
                 </div>
                 <SheetDescription>
-                  {mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : mr.machineTarget || 'Tanpa aset spesifik'} ·{' '}
-                  {formatNumber(mr.items.length)} barang
+                  {mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : mr.machineTarget || t('materialRequest.detail.noAsset')} ·{' '}
+                  {t('materialRequest.detail.itemCount', { count: mr.items.length, n: formatNumber(mr.items.length) })}
                 </SheetDescription>
               </>
             ) : (
               <>
-                <SheetTitle>Detail Permintaan Barang</SheetTitle>
-                <SheetDescription className="sr-only">Memuat detail permintaan barang</SheetDescription>
+                <SheetTitle>{t('materialRequest.detail.title')}</SheetTitle>
+                <SheetDescription className="sr-only">{t('materialRequest.detail.loading')}</SheetDescription>
               </>
             )}
           </SheetHeader>
@@ -122,10 +118,10 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
               <EmptyState
                 kind="error"
                 compact
-                description="Permintaan barang tidak ditemukan atau gagal dimuat."
+                description={t('materialRequest.detail.loadError')}
                 action={
                   <Button size="sm" variant="outline" onClick={() => query.refetch()}>
-                    Coba lagi
+                    {t('materialRequest.detail.retry')}
                   </Button>
                 }
               />
@@ -138,25 +134,25 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
             ) : (
               <>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Detail label="Diminta">{formatDate(mr.requestedAt)}</Detail>
-                  <Detail label="Pemohon">{mr.requester?.fullName || requesterName || '—'}</Detail>
-                  <Detail label="Aset">{mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : '—'}</Detail>
-                  <Detail label="Mesin / target">{mr.machineTarget || '—'}</Detail>
-                  {mr.approvedAt && <Detail label="Disetujui">{formatDate(mr.approvedAt)}</Detail>}
-                  {mr.rejectedAt && <Detail label="Ditolak">{formatDate(mr.rejectedAt)}</Detail>}
-                  <Detail label="Estimasi nilai">
+                  <Detail label={t('materialRequest.detail.requested')}>{formatDate(mr.requestedAt)}</Detail>
+                  <Detail label={t('materialRequest.detail.requester')}>{mr.requester?.fullName || requesterName || '—'}</Detail>
+                  <Detail label={t('materialRequest.detail.asset')}>{mr.asset ? `${mr.asset.code} · ${mr.asset.name}` : '—'}</Detail>
+                  <Detail label={t('materialRequest.detail.machine')}>{mr.machineTarget || '—'}</Detail>
+                  {mr.approvedAt && <Detail label={t('materialRequest.detail.approvedAt')}>{formatDate(mr.approvedAt)}</Detail>}
+                  {mr.rejectedAt && <Detail label={t('materialRequest.detail.rejectedAt')}>{formatDate(mr.rejectedAt)}</Detail>}
+                  <Detail label={t('materialRequest.detail.estimate')}>
                     <span className="num">{formatRupiah(total)}</span>
                   </Detail>
-                  <Detail label="Barang diterima">
-                    {formatNumber(received)} dari {formatNumber(mr.items.length)}
+                  <Detail label={t('materialRequest.detail.received')}>
+                    {t('materialRequest.detail.receivedOf', { received: formatNumber(received), total: formatNumber(mr.items.length) })}
                   </Detail>
                   {mr.notes && (
-                    <Detail label="Catatan" wide>
+                    <Detail label={t('shared.notes')} wide>
                       <span className="whitespace-pre-wrap">{mr.notes}</span>
                     </Detail>
                   )}
                   {mr.rejectReason && (
-                    <Detail label="Alasan penolakan" wide>
+                    <Detail label={t('materialRequest.detail.rejectReason')} wide>
                       {mr.rejectReason}
                     </Detail>
                   )}
@@ -165,16 +161,16 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                 {mr.status === 'PAID' && (
                   <section aria-labelledby="mr-paid" className="rounded-md border border-border bg-success-subtle/40 px-3 py-2">
                     <h3 id="mr-paid" className="text-sm font-semibold text-foreground">
-                      Sudah dibayar
+                      {t('materialRequest.detail.paidTitle')}
                     </h3>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      {mr.paidAt ? `Dibayar ${formatDate(mr.paidAt)}` : 'Dibayar'}
+                      {mr.paidAt ? t('materialRequest.detail.paidOn', { date: formatDate(mr.paidAt) }) : t('materialRequest.detail.paid')}
                       {mr.paidAmount != null && (
                         <>
                           {' '}· <span className="num text-foreground">{formatRupiah(mr.paidAmount)}</span>
                         </>
                       )}
-                      {mr.journalEntryId ? ' · jurnal sudah diposting' : ''}
+                      {mr.journalEntryId ? ` · ${t('materialRequest.detail.journalPosted')}` : ''}
                     </p>
                   </section>
                 )}
@@ -187,20 +183,20 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                     >
                       <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                       <span className="min-w-0">
-                        Dari work order <span className="num font-mono font-medium text-primary">{mr.workOrder.code}</span>:{' '}
+                        {t('materialRequest.detail.fromWo')} <span className="num font-mono font-medium text-primary">{mr.workOrder.code}</span>:{' '}
                         {mr.workOrder.title}
                       </span>
                     </Link>
                   ) : (
                     <p className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-foreground">
                       <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      Dari work order <span className="num font-mono">{mr.workOrder.code}</span>
+                      {t('materialRequest.detail.fromWo')} <span className="num font-mono">{mr.workOrder.code}</span>
                     </p>
                   ))}
 
                 <section aria-labelledby="mr-items" className="space-y-2">
                   <h3 id="mr-items" className="text-sm font-semibold text-foreground">
-                    Barang &amp; pengadaan
+                    {t('materialRequest.detail.itemsTitle')}
                   </h3>
                   <ul className="space-y-3">
                     {mr.items.map((it) => (
@@ -224,12 +220,12 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
             <SheetFooter className="flex-row flex-wrap justify-end sm:flex-row">
               {actions.cancel && (
                 <Button variant="ghost" className="mr-auto text-danger-text hover:bg-danger-subtle" onClick={() => setCancelOpen(true)}>
-                  <Ban aria-hidden /> Batalkan
+                  <Ban aria-hidden /> {t('materialRequest.detail.cancel')}
                 </Button>
               )}
               {actions.reject && (
                 <Button variant="outline" onClick={() => setRejectOpen(true)}>
-                  <ThumbsDown aria-hidden /> Tolak
+                  <ThumbsDown aria-hidden /> {t('materialRequest.detail.reject')}
                 </Button>
               )}
               {actions.approve && (
@@ -237,7 +233,7 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                   onClick={() => lifecycle.mutate({ verb: 'approve' })}
                   loading={lifecycle.isPending && lifecycle.variables?.verb === 'approve'}
                 >
-                  <ThumbsUp aria-hidden /> Setujui
+                  <ThumbsUp aria-hidden /> {t('materialRequest.detail.approve')}
                 </Button>
               )}
               {actions.submit && (
@@ -245,7 +241,7 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
                   onClick={() => lifecycle.mutate({ verb: 'submit' })}
                   loading={lifecycle.isPending && lifecycle.variables?.verb === 'submit'}
                 >
-                  <Send aria-hidden /> Ajukan
+                  <Send aria-hidden /> {t('materialRequest.detail.submit')}
                 </Button>
               )}
             </SheetFooter>
@@ -261,10 +257,10 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
         open={rejectOpen}
         onOpenChange={setRejectOpen}
         tone="danger"
-        title="Tolak permintaan barang?"
-        description={mr ? `${mr.code} akan ditolak dan tidak bisa diproses lagi.` : undefined}
-        confirmLabel="Tolak"
-        requireReason={{ label: 'Alasan penolakan', minLength: 1 }}
+        title={t('materialRequest.detail.rejectTitle')}
+        description={mr ? t('materialRequest.detail.rejectDescription', { code: mr.code }) : undefined}
+        confirmLabel={t('materialRequest.detail.reject')}
+        requireReason={{ label: t('materialRequest.detail.rejectReason'), minLength: 1 }}
         loading={lifecycle.isPending}
         onConfirm={(reason) => lifecycle.mutateAsync({ verb: 'reject', body: { reason: (reason ?? '').slice(0, 500) } })}
       />
@@ -272,10 +268,10 @@ export function MrDetailDrawer({ id, canEdit, canViewWorkOrder, requesterName, o
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         tone="danger"
-        title="Batalkan permintaan barang?"
-        description={mr ? `${mr.code} akan dibatalkan.` : undefined}
-        confirmLabel="Batalkan MR"
-        cancelLabel="Kembali"
+        title={t('materialRequest.detail.cancelTitle')}
+        description={mr ? t('materialRequest.detail.cancelDescription', { code: mr.code }) : undefined}
+        confirmLabel={t('materialRequest.detail.cancelMr')}
+        cancelLabel={t('materialRequest.detail.back')}
         loading={lifecycle.isPending}
         onConfirm={() => lifecycle.mutateAsync({ verb: 'cancel' })}
       />
@@ -299,6 +295,7 @@ function ItemRow({
   onChanged: () => void;
   onReceive: () => void;
 }) {
+  const { t } = useTranslation('eam');
   const [vendorName, setVendorName] = useState(item.vendorName ?? '');
   const [unitPrice, setUnitPrice] = useState<string>(item.unitPrice != null ? String(Number(item.unitPrice) || 0) : '0');
   const [poNumber, setPoNumber] = useState(item.poNumber ?? '');
@@ -313,10 +310,10 @@ function ItemRow({
         procurementStatus,
       }),
     onSuccess: () => {
-      toast.success('Data pengadaan disimpan.');
+      toast.success(t('materialRequest.detail.procSaved'));
       onChanged();
     },
-    onError: (err: unknown) => toast.error(apiErrorMessage(err, 'Gagal menyimpan pengadaan.')),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, t('materialRequest.detail.procFailed'))),
   });
 
   const locked = isItemLocked(item, mrStatus);
@@ -331,7 +328,9 @@ function ItemRow({
           <p className="text-xs text-muted-foreground">
             <span className="num">{formatNumber(qty, { maxDecimals: 3 })}</span> {item.uom}
             {item.sku ? ` · SKU ${item.sku}` : ''}
-            {item.inventoryItem ? ` · tertaut ${item.inventoryItem.sku}` : ' · belum tertaut inventaris'}
+            {item.inventoryItem
+              ? ` · ${t('materialRequest.detail.linked', { sku: item.inventoryItem.sku })}`
+              : ` · ${t('materialRequest.detail.notLinked')}`}
           </p>
           {(item.vendorName || Number(item.unitPrice) > 0 || item.poNumber) && (
             <p className="text-xs text-muted-foreground">
@@ -342,8 +341,12 @@ function ItemRow({
           )}
           {item.procurementStatus === 'RECEIVED' && (
             <p className="text-xs text-success-text">
-              Diterima {formatNumber(Number(item.receivedQty), { maxDecimals: 3 })} {item.uom} →{' '}
-              {item.receivedIntoLocation?.name ?? '—'} ({formatDate(item.receivedAt)})
+              {t('materialRequest.detail.receivedLine', {
+                qty: formatNumber(Number(item.receivedQty), { maxDecimals: 3 }),
+                uom: item.uom,
+                location: item.receivedIntoLocation?.name ?? '—',
+                date: formatDate(item.receivedAt),
+              })}
             </p>
           )}
         </div>
@@ -352,16 +355,16 @@ function ItemRow({
 
       {canEdit && !locked && (
         <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
-          <Field label="Vendor" className="col-span-2">
+          <Field label={t('materialRequest.detail.supplier')} className="col-span-2">
             <Input value={vendorName} onChange={(e) => setVendorName(e.target.value)} />
           </Field>
-          <Field label="Harga satuan (Rp)">
+          <Field label={t('materialRequest.detail.unitPrice')}>
             <NumberInput min={0} step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
           </Field>
-          <Field label="No. PO (manual)">
+          <Field label={t('materialRequest.detail.poNumber')}>
             <Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} />
           </Field>
-          <Field label="Status pengadaan" className="col-span-2 sm:col-span-1">
+          <Field label={t('materialRequest.detail.procStatus')} className="col-span-2 sm:col-span-1">
             {(control) => (
               <Select value={procurementStatus} onValueChange={(v) => setProcurementStatus(v as ProcurementStatus)}>
                 <SelectTrigger id={control.id}>
@@ -379,16 +382,16 @@ function ItemRow({
           </Field>
           <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 sm:col-span-1 sm:self-end">
             <span className="text-xs text-muted-foreground">
-              Total <span className="num text-foreground">{formatRupiah((Number(unitPrice) || 0) * qty)}</span>
+              {t('materialRequest.detail.total')} <span className="num text-foreground">{formatRupiah((Number(unitPrice) || 0) * qty)}</span>
             </span>
           </div>
           <div className="col-span-2 flex flex-wrap justify-end gap-2">
             <Button size="sm" variant="outline" onClick={() => procMutation.mutate()} loading={procMutation.isPending}>
-              <Check aria-hidden /> Simpan pengadaan
+              <Check aria-hidden /> {t('materialRequest.detail.saveProc')}
             </Button>
             {canReceive && (
               <Button size="sm" onClick={onReceive}>
-                <PackageCheck aria-hidden /> Terima barang
+                <PackageCheck aria-hidden /> {t('materialRequest.detail.receive')}
               </Button>
             )}
           </div>
@@ -410,6 +413,7 @@ function ReceiveModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation('eam');
   const { data: locations = [] } = useQuery<LocationOpt[]>({
     queryKey: ['ga-locations-mr'],
     queryFn: async () => (await api.get('/ga/master/locations')).data,
@@ -438,11 +442,11 @@ function ReceiveModal({
   });
 
   const errors = {
-    location: !locationId ? 'Lokasi gudang wajib dipilih.' : undefined,
-    qty: !(Number(receivedQty) > 0) ? 'Qty diterima harus lebih dari 0.' : undefined,
-    existing: needsLink && mode === 'existing' && !existingItemId ? 'Pilih item inventaris.' : undefined,
-    sku: needsLink && mode === 'new' && !newSku.trim() ? 'SKU wajib untuk item baru.' : undefined,
-    category: needsLink && mode === 'new' && !categoryId ? 'Kategori wajib untuk item baru.' : undefined,
+    location: !locationId ? t('materialRequest.detail.locationRequired') : undefined,
+    qty: !(Number(receivedQty) > 0) ? t('materialRequest.detail.qtyRequired') : undefined,
+    existing: needsLink && mode === 'existing' && !existingItemId ? t('materialRequest.detail.existingRequired') : undefined,
+    sku: needsLink && mode === 'new' && !newSku.trim() ? t('materialRequest.detail.skuRequired') : undefined,
+    category: needsLink && mode === 'new' && !categoryId ? t('materialRequest.detail.categoryRequired') : undefined,
   };
 
   const mutation = useMutation({
@@ -455,11 +459,11 @@ function ReceiveModal({
       return api.patch(`/ga/material-requests/${mrId}/items/${item.id}/receive`, body);
     },
     onSuccess: () => {
-      toast.success('Barang diterima & stok bertambah.');
+      toast.success(t('materialRequest.detail.receivedToast'));
       onDone();
       onClose();
     },
-    onError: (err: unknown) => toast.error(apiErrorMessage(err, 'Gagal menerima barang.')),
+    onError: (err: unknown) => toast.error(apiErrorMessage(err, t('materialRequest.detail.receiveFailed'))),
   });
 
   const submit = () => {
@@ -472,57 +476,56 @@ function ReceiveModal({
 
   return (
     <FormModal
-      title={`Terima Barang: ${item.itemName}`}
-      description="Stok GA bertambah di lokasi tujuan."
+      title={t('materialRequest.detail.receiveTitle', { name: item.itemName })}
+      description={t('materialRequest.detail.receiveDescription')}
       onClose={onClose}
       onSubmit={submit}
-      submitLabel="Terima & tambah stok"
+      submitLabel={t('materialRequest.detail.receiveSubmit')}
       submitting={mutation.isPending}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label={`Qty diterima (${item.uom})`} required error={err('qty')}>
+        <Field label={t('materialRequest.detail.receivedQty', { uom: item.uom })} required error={err('qty')}>
           <NumberInput min={0} step="any" value={receivedQty} onChange={(e) => setReceivedQty(e.target.value)} />
         </Field>
-        <ComboboxField label="Lokasi gudang tujuan" required error={err('location')}
+        <ComboboxField label={t('materialRequest.detail.location')} required error={err('location')}
   options={locations.map((l) => ({ value: l.id, label: `${l.code} · ${l.name}` }))}
   value={locationId}
   onChange={setLocationId}
-  placeholder="Pilih lokasi"
+  placeholder={t('materialRequest.detail.locationPlaceholder')}
 />
       </div>
 
       {needsLink && (
         <fieldset className="space-y-3 rounded-md border border-border p-3">
-          <legend className="px-1 text-sm font-medium text-foreground">Item inventaris</legend>
+          <legend className="px-1 text-sm font-medium text-foreground">{t('materialRequest.detail.invItem')}</legend>
           <p className="text-xs text-muted-foreground">
-            Barang ini belum tertaut ke inventaris GA. Pilih item yang sudah ada, atau buat item baru agar stok bisa
-            ditambahkan.
+            {t('materialRequest.detail.linkHint')}
           </p>
-          <div className="flex gap-2" role="group" aria-label="Cara menautkan item">
+          <div className="flex gap-2" role="group" aria-label={t('materialRequest.detail.linkMode')}>
             <Button size="sm" variant={mode === 'new' ? 'primary' : 'secondary'} aria-pressed={mode === 'new'} onClick={() => setMode('new')} className="flex-1">
-              Buat item baru
+              {t('materialRequest.detail.newItem')}
             </Button>
             <Button size="sm" variant={mode === 'existing' ? 'primary' : 'secondary'} aria-pressed={mode === 'existing'} onClick={() => setMode('existing')} className="flex-1">
-              Pilih yang ada
+              {t('materialRequest.detail.pickExisting')}
             </Button>
           </div>
           {mode === 'existing' ? (
-            <ComboboxField label="Item inventaris" required error={err('existing')}
+            <ComboboxField label={t('materialRequest.detail.invItem')} required error={err('existing')}
   options={invItems.map((x) => ({ value: x.id, label: `${x.sku} · ${x.name}` }))}
   value={existingItemId}
   onChange={setExistingItemId}
-  placeholder="Pilih item"
+  placeholder={t('materialRequest.detail.itemPlaceholder')}
 />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="SKU baru" required error={err('sku')}>
+              <Field label={t('materialRequest.detail.newSku')} required error={err('sku')}>
                 <Input value={newSku} onChange={(e) => setNewSku(e.target.value)} />
               </Field>
-              <ComboboxField label="Kategori" required error={err('category')}
+              <ComboboxField label={t('materialRequest.detail.category')} required error={err('category')}
   options={categories.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` }))}
   value={categoryId}
   onChange={setCategoryId}
-  placeholder="Pilih kategori"
+  placeholder={t('materialRequest.detail.categoryPlaceholder')}
 />
             </div>
           )}

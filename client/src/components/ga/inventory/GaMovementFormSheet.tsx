@@ -5,12 +5,14 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { labelMap } from '../eam-i18n';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/shared';
 import { FormNumberInput, FormSection, FormSheet } from '@/components/inventory/master-data-kit';
 import { FormSelect } from './form-select';
 import { MOVEMENT_LABEL, MOVEMENT_TYPES, errorMessage, movementNeeds, type GaMovementType } from './ga-inventory-model';
 import { useGaItemOptions, useGaLocations, useInvalidateGaInventory } from './queries';
+import { useTranslation } from 'react-i18next';
 
 interface FormState {
   itemId: string;
@@ -24,12 +26,7 @@ interface FormState {
 
 type Errors = Partial<Record<keyof FormState, string>>;
 
-const TYPE_HINT: Record<GaMovementType, string> = {
-  IN: 'Stok masuk ke lokasi tujuan.',
-  OUT: 'Stok keluar dari lokasi asal.',
-  TRANSFER: 'Pindah stok dari lokasi asal ke lokasi tujuan.',
-  ADJUSTMENT: 'Tambah stok di lokasi tujuan (koreksi). Untuk menyamakan dengan hitungan fisik, pakai Stok Opname.',
-};
+const TYPE_HINT: Record<GaMovementType, string> = labelMap(MOVEMENT_TYPES, 'gaInventory.movementForm.typeHint');
 
 interface GaMovementFormSheetProps {
   open: boolean;
@@ -40,6 +37,7 @@ interface GaMovementFormSheetProps {
 
 /** Mount per open (keyed) so the form starts fresh. */
 export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormSheetProps) {
+  const { t } = useTranslation('eam');
   const { data: items = [] } = useGaItemOptions(open);
   const { data: locations = [] } = useGaLocations();
   const invalidate = useInvalidateGaInventory();
@@ -66,11 +64,11 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
 
   const submit = async () => {
     const e: Errors = {};
-    if (!form.itemId) e.itemId = 'Item wajib dipilih.';
+    if (!form.itemId) e.itemId = t('gaInventory.movementForm.itemRequired');
     const qty = Number(form.quantity);
-    if (!qty || qty <= 0) e.quantity = 'Qty harus lebih dari 0.';
-    if (needs.from && !form.fromLocationId) e.fromLocationId = 'Lokasi asal wajib dipilih.';
-    if (needs.to && !form.toLocationId) e.toLocationId = 'Lokasi tujuan wajib dipilih.';
+    if (!qty || qty <= 0) e.quantity = t('gaInventory.movementForm.qtyRequired');
+    if (needs.from && !form.fromLocationId) e.fromLocationId = t('gaInventory.movementForm.fromRequired');
+    if (needs.to && !form.toLocationId) e.toLocationId = t('gaInventory.movementForm.toRequired');
     setErrors(e);
     if (Object.keys(e).length > 0) return;
     setSaving(true);
@@ -86,11 +84,11 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
         referenceNo: form.referenceNo || null,
         notes: form.notes || null,
       });
-      toast.success('Pergerakan dicatat.');
+      toast.success(t('gaInventory.movementForm.saved'));
       invalidate();
       onClose();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal mencatat pergerakan.'));
+      setServerError(errorMessage(err, t('gaInventory.movementForm.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -100,31 +98,31 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
     <FormSheet
       open={open}
       onOpenChange={(next) => !next && onClose()}
-      title="Catat Pergerakan"
-      description="Stok masuk, keluar, transfer antar lokasi, atau penyesuaian."
+      title={t('gaInventory.movementForm.title')}
+      description={t('gaInventory.movementForm.description')}
       error={serverError}
       saving={saving}
-      submitLabel="Simpan Pergerakan"
+      submitLabel={t('gaInventory.movementForm.submit')}
       onSubmit={submit}
     >
-      <FormSection title="Barang">
-        <Field label="Item" required error={errors.itemId}>
+      <FormSection title={t('gaInventory.movementForm.sectionItem')}>
+        <Field label={t('gaInventory.movementForm.item')} required error={errors.itemId}>
           <FormSelect
             value={form.itemId}
             onChange={(v) => set('itemId', v)}
             options={items.map((i) => ({ value: i.id, label: `${i.sku} · ${i.name}` }))}
-            placeholder="Pilih item…"
+            placeholder={t('gaInventory.movementForm.itemPlaceholder')}
           />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Tipe" required hint={TYPE_HINT[form.type]}>
+          <Field label={t('gaInventory.movementForm.type')} required hint={TYPE_HINT[form.type]}>
             <FormSelect
               value={form.type}
               onChange={(v) => set('type', v as GaMovementType)}
-              options={MOVEMENT_TYPES.map((t) => ({ value: t, label: MOVEMENT_LABEL[t] }))}
+              options={MOVEMENT_TYPES.map((type) => ({ value: type, label: MOVEMENT_LABEL[type] }))}
             />
           </Field>
-          <Field label={item ? `Qty (${item.uom})` : 'Qty'} required error={errors.quantity}>
+          <Field label={item ? t('gaInventory.movementForm.qtyUom', { uom: item.uom }) : t('gaInventory.movementForm.qty')} required error={errors.quantity}>
             <FormNumberInput
               value={form.quantity}
               onChange={(ev) => set('quantity', ev.target.value)}
@@ -136,34 +134,34 @@ export function GaMovementFormSheet({ open, itemId, onClose }: GaMovementFormShe
         </div>
       </FormSection>
 
-      <FormSection title="Lokasi">
+      <FormSection title={t('gaInventory.movementForm.sectionLocation')}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Lokasi asal" required={needs.from} error={errors.fromLocationId} hint={needs.from ? undefined : 'Tidak dipakai tipe ini'}>
+          <Field label={t('gaInventory.movementForm.from')} required={needs.from} error={errors.fromLocationId} hint={needs.from ? undefined : t('gaInventory.movementForm.notUsed')}>
             <FormSelect
               value={needs.from ? form.fromLocationId : ''}
               onChange={(v) => set('fromLocationId', v)}
               options={locationOptions}
-              placeholder={needs.from ? 'Pilih lokasi…' : '—'}
+              placeholder={needs.from ? t('gaInventory.movementForm.locationPlaceholder') : '—'}
               disabled={!needs.from}
             />
           </Field>
-          <Field label="Lokasi tujuan" required={needs.to} error={errors.toLocationId} hint={needs.to ? undefined : 'Tidak dipakai tipe ini'}>
+          <Field label={t('gaInventory.movementForm.to')} required={needs.to} error={errors.toLocationId} hint={needs.to ? undefined : t('gaInventory.movementForm.notUsed')}>
             <FormSelect
               value={needs.to ? form.toLocationId : ''}
               onChange={(v) => set('toLocationId', v)}
               options={locationOptions}
-              placeholder={needs.to ? 'Pilih lokasi…' : '—'}
+              placeholder={needs.to ? t('gaInventory.movementForm.locationPlaceholder') : '—'}
               disabled={!needs.to}
             />
           </Field>
         </div>
       </FormSection>
 
-      <FormSection title="Keterangan">
-        <Field label="No. referensi">
+      <FormSection title={t('gaInventory.movementForm.sectionRemarks')}>
+        <Field label={t('gaInventory.movementForm.reference')}>
           <Input value={form.referenceNo} onChange={(e) => set('referenceNo', e.target.value)} autoComplete="off" />
         </Field>
-        <Field label="Catatan">
+        <Field label={t('shared.notes')}>
           <Input value={form.notes} onChange={(e) => set('notes', e.target.value)} autoComplete="off" />
         </Field>
       </FormSection>

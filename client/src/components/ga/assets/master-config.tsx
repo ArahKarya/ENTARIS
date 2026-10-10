@@ -1,5 +1,6 @@
 /** Entity definitions for the asset master data tabs (GET/POST/PUT/DELETE /ga/master/<path>). */
 import type { ReactNode } from 'react';
+import { tEam } from '../eam-i18n';
 
 export interface MasterRow {
   id: string;
@@ -49,90 +50,90 @@ export interface MasterEntity {
   searchText?: (row: MasterRow) => Array<string | null | undefined>;
 }
 
-export const INVENTORY_TYPE_OPTIONS = [
-  { value: 'SPAREPART', label: 'Sparepart' },
-  { value: 'CONSUMABLE', label: 'Consumable (habis pakai)' },
-] as const;
+/** Defines `props` on `base` as getters reading `eam:master.<key>`, so the text follows the UI language. */
+function withText<T extends object>(base: T, props: Record<string, string>): T {
+  for (const [prop, key] of Object.entries(props)) {
+    Object.defineProperty(base, prop, { enumerable: true, configurable: true, get: () => tEam(`master.${key}`) });
+  }
+  return base;
+}
 
-const CODE: MasterField = { key: 'code', label: 'Kode', type: 'text', required: true, maxLength: 50 };
-const NAME: MasterField = { key: 'name', label: 'Nama', type: 'text', required: true, maxLength: 200 };
-const BRANCH_FIELD: MasterField = { key: 'branchId', label: 'Cabang', type: 'branch', required: true };
-const branchColumn: MasterColumn = {
-  id: 'branch',
-  header: 'Cabang',
-  hideBelow: 'md',
-  render: (r) => r.branch?.name ?? '—',
-};
+export const INVENTORY_TYPE_OPTIONS = (['SPAREPART', 'CONSUMABLE'] as const).map((value) =>
+  withText({ value, label: '' }, { label: `inventoryType.${value}` }),
+);
+
+const codeField = (texts: Record<string, string> = {}): MasterField =>
+  withText<MasterField>({ key: 'code', label: '', type: 'text', required: true, maxLength: 50 }, { label: 'field.code', ...texts });
+const nameField = (): MasterField =>
+  withText<MasterField>({ key: 'name', label: '', type: 'text', required: true, maxLength: 200 }, { label: 'field.name' });
+const branchField = (): MasterField =>
+  withText<MasterField>({ key: 'branchId', label: '', type: 'branch', required: true }, { label: 'field.branch' });
+const branchColumn = (): MasterColumn =>
+  withText<MasterColumn>({ id: 'branch', header: '', hideBelow: 'md', render: (r) => r.branch?.name ?? '—' }, { header: 'field.branch' });
+
+const entity = (id: MasterEntity['id'], rest: Omit<MasterEntity, 'id' | 'label' | 'noun' | 'info'>): MasterEntity =>
+  withText<MasterEntity>({ id, label: '', noun: '', info: '', ...rest }, {
+    label: `entity.${id}.label`,
+    noun: `entity.${id}.noun`,
+    info: `entity.${id}.info`,
+  });
 
 export const MASTER_ENTITIES: readonly MasterEntity[] = [
-  {
-    id: 'asset-categories',
-    label: 'Kategori Aset',
-    noun: 'kategori aset',
-    info: 'Kategori menentukan awalan kode aset (mis. BANGUNAN → BLD-…) dan halaman yang menampilkannya: Bangunan/Gudang di Gedung & Sewa, Peralatan di Peralatan & Kalibrasi, Kendaraan di Kendaraan.',
+  entity('asset-categories', {
     hasActive: true,
-    fields: [{ ...CODE, placeholder: 'Mis. IT_EQUIPMENT', hint: 'Kode baku dipakai sistem; hindari mengubahnya bila sudah ada aset.' }, NAME],
+    fields: [codeField({ placeholder: 'field.categoryCodePlaceholder', hint: 'field.categoryCodeHint' }), nameField()],
     extraColumns: [],
-  },
-  {
-    id: 'branches',
-    label: 'Cabang',
-    noun: 'cabang',
-    info: 'Cabang/lokasi kantor pemilik aset. Kode cabang menjadi bagian kode aset (mis. BLD-PST-0001).',
+  }),
+  entity('branches', {
     hasActive: true,
-    fields: [CODE, NAME, { key: 'address', label: 'Alamat', type: 'text' }],
-    extraColumns: [{ id: 'address', header: 'Alamat', hideBelow: 'lg', render: (r) => r.address || '—' }],
+    fields: [codeField(), nameField(), withText<MasterField>({ key: 'address', label: '', type: 'text' }, { label: 'field.address' })],
+    extraColumns: [withText<MasterColumn>({ id: 'address', header: '', hideBelow: 'lg', render: (r) => r.address || '—' }, { header: 'field.address' })],
     searchText: (r) => [r.address],
-  },
-  {
-    id: 'cost-centers',
-    label: 'Cost Center',
-    noun: 'cost center',
-    info: 'Pusat biaya per cabang yang dapat dikaitkan ke setiap aset.',
+  }),
+  entity('cost-centers', {
     hasActive: true,
-    fields: [CODE, NAME, BRANCH_FIELD],
-    extraColumns: [branchColumn],
+    fields: [codeField(), nameField(), branchField()],
+    extraColumns: [branchColumn()],
     searchText: (r) => [r.branch?.name],
-  },
-  {
-    id: 'locations',
-    label: 'Lokasi',
-    noun: 'lokasi',
-    info: 'Lokasi (gudang, ruang) di tiap cabang, dipakai Inventaris Kantor, Pemeliharaan, dan Permintaan Barang.',
+  }),
+  entity('locations', {
     hasActive: false,
-    fields: [CODE, NAME, BRANCH_FIELD],
-    extraColumns: [branchColumn],
+    fields: [codeField(), nameField(), branchField()],
+    extraColumns: [branchColumn()],
     searchText: (r) => [r.branch?.name],
-  },
-  {
-    id: 'document-types',
-    label: 'Tipe Dokumen',
-    noun: 'tipe dokumen',
-    info: 'Jenis dokumen legal & sertifikat (STNK, IMB, sertifikat kalibrasi, …) untuk Dokumen & Sertifikat.',
+  }),
+  entity('document-types', {
     hasActive: true,
-    fields: [CODE, NAME, { key: 'category', label: 'Kelompok', type: 'text', placeholder: 'Mis. Kendaraan' }],
-    extraColumns: [{ id: 'category', header: 'Kelompok', hideBelow: 'md', render: (r) => r.category || '—' }],
+    fields: [
+      codeField(),
+      nameField(),
+      withText<MasterField>({ key: 'category', label: '', type: 'text' }, { label: 'field.group', placeholder: 'field.groupPlaceholder' }),
+    ],
+    extraColumns: [withText<MasterColumn>({ id: 'category', header: '', hideBelow: 'md', render: (r) => r.category || '—' }, { header: 'field.group' })],
     searchText: (r) => [r.category],
-  },
-  {
-    id: 'inventory-categories',
-    label: 'Kategori Inventaris',
-    noun: 'kategori inventaris',
-    info: 'Kelompok barang Inventaris Kantor: sparepart atau barang habis pakai.',
+  }),
+  entity('inventory-categories', {
     hasActive: false,
     fields: [
-      CODE,
-      NAME,
-      { key: 'type', label: 'Tipe', type: 'select', required: true, options: INVENTORY_TYPE_OPTIONS, defaultValue: 'SPAREPART' },
+      codeField(),
+      nameField(),
+      withText<MasterField>(
+        { key: 'type', label: '', type: 'select', required: true, options: INVENTORY_TYPE_OPTIONS, defaultValue: 'SPAREPART' },
+        { label: 'field.type' },
+      ),
     ],
     extraColumns: [
-      {
-        id: 'type',
-        header: 'Tipe',
-        render: (r) => (r.type === 'SPAREPART' ? 'Sparepart' : r.type === 'CONSUMABLE' ? 'Consumable' : r.type || '—'),
-      },
+      withText<MasterColumn>(
+        {
+          id: 'type',
+          header: '',
+          render: (r) =>
+            r.type === 'SPAREPART' ? tEam('master.typeShort.SPAREPART') : r.type === 'CONSUMABLE' ? tEam('master.typeShort.CONSUMABLE') : r.type || '—',
+        },
+        { header: 'field.type' },
+      ),
     ],
-  },
+  }),
 ];
 
 export const DEFAULT_MASTER_TAB = MASTER_ENTITIES[0].id;
@@ -160,8 +161,8 @@ export function validateMaster(entity: MasterEntity, form: Record<string, string
   const errors: Record<string, string> = {};
   for (const f of entity.fields) {
     const v = (form[f.key] ?? '').trim();
-    if (f.required && !v) errors[f.key] = `${f.label} wajib diisi.`;
-    else if (f.maxLength && v.length > f.maxLength) errors[f.key] = `${f.label} maksimal ${f.maxLength} karakter.`;
+    if (f.required && !v) errors[f.key] = tEam('master.validation.required', { field: f.label });
+    else if (f.maxLength && v.length > f.maxLength) errors[f.key] = tEam('master.validation.maxLength', { field: f.label, max: f.maxLength });
   }
   return errors;
 }

@@ -26,16 +26,11 @@ import { compareNullable, includesText, pageRows, sortRows, type Comparators } f
 import { ScheduleFormModal } from './schedule-forms';
 import { SCHEDULE_FILTER_KEYS } from './queries';
 import { intervalLabel, scheduleDueState, toDateInput, type ScheduleRow, type WoPrefill } from './wo-meta';
+import { useTranslation } from 'react-i18next';
 
 
-const ACTIVE_FILTER = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'inactive', label: 'Nonaktif' },
-];
-const DUE_FILTER = [
-  { value: 'overdue', label: 'Lewat jatuh tempo' },
-  { value: 'dueSoon', label: 'Jatuh tempo 7 hari' },
-];
+const ACTIVE_FILTER_VALUES = ['active', 'inactive'] as const;
+const DUE_FILTER_VALUES = ['overdue', 'dueSoon'] as const;
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-44';
 
 const COMPARATORS: Comparators<ScheduleRow> = {
@@ -52,6 +47,9 @@ export interface SchedulesTabProps {
 export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: SchedulesTabProps) {
   const list = useListState({ filters: SCHEDULE_FILTER_KEYS, defaultSort: { id: 'nextDueAt', desc: false } });
   const [density, setDensity] = useTableDensity();
+  const { t } = useTranslation('eam');
+  const activeFilter = useMemo(() => ACTIVE_FILTER_VALUES.map((value) => ({ value, label: t(`schedule.tab.activeFilter.${value}`) })), [t]);
+  const dueFilter = useMemo(() => DUE_FILTER_VALUES.map((value) => ({ value, label: t(`schedule.tab.dueFilter.${value}`) })), [t]);
   const [editing, setEditing] = useState<ScheduleRow | null>(null);
 
   const query = useQuery({
@@ -95,7 +93,7 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
     () => [
       {
         id: 'asset',
-        header: 'Aset',
+        header: t('schedule.tab.asset'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => {
@@ -112,13 +110,13 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
       },
       {
         id: 'interval',
-        header: 'Interval',
+        header: t('schedule.tab.interval'),
         meta: { hideBelow: 'sm', cellClassName: 'whitespace-nowrap text-foreground' },
         cell: ({ row }) => intervalLabel(row.original),
       },
       {
         id: 'nextDueAt',
-        header: 'Jatuh Tempo Berikutnya',
+        header: t('schedule.tab.nextDue'),
         enableSorting: true,
         cell: ({ row }) =>
           row.original.nextDueAt ? (
@@ -129,7 +127,7 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
       },
       {
         id: 'notes',
-        header: 'Catatan',
+        header: t('shared.notes'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-72' },
         cell: ({ row }) =>
           row.original.notes ? (
@@ -140,23 +138,23 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const s = row.original;
           const dueNow = scheduleDueState(s) !== null;
           return (
             <RowActions
-              label={`Aksi untuk jadwal ${s.asset?.code ?? ''}`}
+              label={t('schedule.tab.actionsFor', { name: s.asset?.code ?? '' })}
               actions={[
                 {
-                  label: 'Buat WO dari jadwal',
+                  label: t('schedule.tab.createWo'),
                   icon: FilePlus,
                   hidden: !canEdit || !dueNow || !s.asset?.id,
                   onSelect: () =>
@@ -167,51 +165,51 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
                       dueAt: toDateInput(s.nextDueAt),
                     }),
                 },
-                { label: 'Edit jadwal', icon: Pencil, hidden: !canEdit, onSelect: () => setEditing(s) },
+                { label: t('schedule.tab.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setEditing(s) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit, onCreateWorkOrder],
+    [canEdit, onCreateWorkOrder, t],
   );
 
   const loading = query.isLoading;
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan jadwal preventif" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Jadwal Aktif" icon={CalendarCheck} loading={loading} value={formatNumber(counts.active)} hint={`dari ${formatNumber(counts.total)} jadwal`} />
-        <StatCard label="Lewat Jatuh Tempo" icon={CalendarX} loading={loading} value={formatNumber(counts.overdue)} hint="perlu dibuatkan WO" />
-        <StatCard label="Jatuh Tempo 7 Hari" icon={CalendarClock} loading={loading} value={formatNumber(counts.dueSoon)} hint="siapkan WO preventif" />
-        <StatCard label="Nonaktif" icon={CalendarCheck} loading={loading} value={formatNumber(counts.total - counts.active)} hint="tidak dipantau" />
+      <section aria-label={t('schedule.tab.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('schedule.tab.kpiActive')} icon={CalendarCheck} loading={loading} value={formatNumber(counts.active)} hint={t('schedule.tab.kpiActiveHint', { total: formatNumber(counts.total) })} />
+        <StatCard label={t('schedule.tab.kpiOverdue')} icon={CalendarX} loading={loading} value={formatNumber(counts.overdue)} hint={t('schedule.tab.kpiOverdueHint')} />
+        <StatCard label={t('schedule.tab.kpiDueSoon')} icon={CalendarClock} loading={loading} value={formatNumber(counts.dueSoon)} hint={t('schedule.tab.kpiDueSoonHint')} />
+        <StatCard label={t('schedule.tab.kpiInactive')} icon={CalendarCheck} loading={loading} value={formatNumber(counts.total - counts.active)} hint={t('schedule.tab.kpiInactiveHint')} />
       </section>
 
       <div className="space-y-3">
-        <FilterBar list={list} searchLabel="Cari jadwal" searchPlaceholder="Cari aset atau catatan">
+        <FilterBar list={list} searchLabel={t('schedule.tab.searchLabel')} searchPlaceholder={t('schedule.tab.searchPlaceholder')}>
           <ComboboxFilter
-            label="Filter status jadwal"
-            allLabel="Semua status"
+            label={t('schedule.tab.statusFilter')}
+            allLabel={t('schedule.tab.allStatus')}
             value={list.filters.active}
             onChange={(v) => list.setFilter('active', v)}
-            options={ACTIVE_FILTER}
+            options={activeFilter}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter jatuh tempo"
-            allLabel="Semua jatuh tempo"
+            label={t('schedule.tab.dueFilterLabel')}
+            allLabel={t('schedule.tab.allDue')}
             value={list.filters.due}
             onChange={(v) => list.setFilter('due', v)}
-            options={DUE_FILTER}
+            options={dueFilter}
             className={FILTER_CLASS}
           />
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, filtered.length)}
-          label="Daftar jadwal preventif"
-          itemLabel="jadwal"
+          label={t('schedule.tab.tableLabel')}
+          itemLabel={t('schedule.tab.itemLabel')}
           columns={columns}
           data={query.data ? rows : undefined}
           getRowId={(row) => row.id}
@@ -223,12 +221,12 @@ export function SchedulesTab({ canEdit, onCreate, onCreateWorkOrder }: Schedules
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada jadwal preventif',
-            description: 'Buat jadwal perawatan berkala per aset (hari, jam operasi, atau km).',
+            title: t('schedule.tab.emptyTitle'),
+            description: t('schedule.tab.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={onCreate}>
                 <Plus aria-hidden />
-                Buat jadwal pertama
+                {t('schedule.tab.createFirst')}
               </Button>
             ) : undefined,
           }}

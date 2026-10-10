@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
 
 // Dynamic checklist editor used inside the Complete Work Order modal.
 // Mirrors the backend `checklist` schema: array of { id, label, required, done, notes }.
@@ -31,6 +32,7 @@ export const ChecklistEditor = ({
   items: ChecklistItem[];
   onChange: (items: ChecklistItem[]) => void;
 }) => {
+  const { t } = useTranslation('eam');
   const update = (id: string, patch: Partial<ChecklistItem>) =>
     onChange(items.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
@@ -39,15 +41,15 @@ export const ChecklistEditor = ({
   return (
     <div className="space-y-2">
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Belum ada item checklist.</p>
+        <p className="text-sm text-muted-foreground">{t('maintenance.checklist.empty')}</p>
       ) : (
         <ol className="space-y-2">
           {items.map((it, idx) => (
             <li key={it.id} className="space-y-2 rounded-md border border-border p-3">
               <div className="flex items-start gap-2">
                 <Input
-                  aria-label={`Item checklist ${idx + 1}`}
-                  placeholder="Item checklist (mis. Cek tekanan oli)"
+                  aria-label={t('maintenance.checklist.item', { n: idx + 1 })}
+                  placeholder={t('maintenance.checklist.itemPlaceholder')}
                   value={it.label}
                   onChange={(e) => update(it.id, { label: e.target.value })}
                 />
@@ -55,7 +57,7 @@ export const ChecklistEditor = ({
                   variant="ghost"
                   size="icon"
                   onClick={() => remove(it.id)}
-                  aria-label={`Hapus item checklist ${idx + 1}`}
+                  aria-label={t('maintenance.checklist.remove', { n: idx + 1 })}
                   className="shrink-0 text-danger-text hover:bg-danger-subtle"
                 >
                   <Trash2 aria-hidden />
@@ -69,7 +71,7 @@ export const ChecklistEditor = ({
                     onChange={(e) => update(it.id, { required: e.target.checked })}
                     className={checkboxClass}
                   />
-                  Wajib
+                  {t('maintenance.checklist.required')}
                 </label>
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input
@@ -78,12 +80,12 @@ export const ChecklistEditor = ({
                     onChange={(e) => update(it.id, { done: e.target.checked })}
                     className={checkboxClass}
                   />
-                  Selesai
+                  {t('maintenance.checklist.done')}
                 </label>
               </div>
               <Input
-                aria-label={`Catatan item checklist ${idx + 1}`}
-                placeholder="Catatan (opsional)"
+                aria-label={t('maintenance.checklist.notes', { n: idx + 1 })}
+                placeholder={t('maintenance.checklist.notesPlaceholder')}
                 value={it.notes}
                 onChange={(e) => update(it.id, { notes: e.target.value })}
               />
@@ -92,7 +94,7 @@ export const ChecklistEditor = ({
         </ol>
       )}
       <Button variant="secondary" size="sm" onClick={() => onChange([...items, newItem()])}>
-        <Plus aria-hidden /> Tambah item checklist
+        <Plus aria-hidden /> {t('maintenance.checklist.add')}
       </Button>
     </div>
   );

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { CalendarClock, Camera, ChevronDown, ChevronRight, ClipboardCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { ComboboxField } from '@/components/overlays/ComboboxField';
 import { formatDate } from '@/lib/format';
@@ -43,6 +44,7 @@ function worstState(cat: InspectionCategory, checklist: Record<string, CheckStat
 }
 
 export function InspectionModal({ assetId, onClose, onSaved }: Props) {
+  const { t } = useTranslation('eam');
   const categories = useInspectionCategories();
   const { data: users = [] } = useUserOptions('ga-users-inspector-picker');
 
@@ -110,15 +112,15 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
             failed += 1;
           }
         }
-        if (failed > 0) toast.warning(`${failed} foto gagal diunggah. Inspeksi tetap tersimpan.`);
+        if (failed > 0) toast.warning(t('fleet.inspectionModal.photosFailed', { count: failed }));
       }
       return created;
     },
     onSuccess: () => {
-      toast.success('Inspeksi disimpan.');
+      toast.success(t('fleet.inspectionModal.saved'));
       onSaved();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal simpan inspeksi.')),
+    onError: (e) => toast.error(apiError(e, t('fleet.inspectionModal.saveFailed'))),
   });
 
   const setPoint = (key: string, value: CheckState) => setChecklist((prev) => ({ ...prev, [key]: value }));
@@ -131,11 +133,11 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
       return;
     }
     if (!PHOTO_TYPES.includes(f.type)) {
-      toast.error('Format foto harus JPG, PNG, atau WEBP.');
+      toast.error(t('fleet.inspectionModal.photoFormat'));
       return;
     }
     if (f.size > MAX_PHOTO_BYTES) {
-      toast.error('Ukuran foto maksimal 5 MB.');
+      toast.error(t('fleet.inspectionModal.photoSize'));
       return;
     }
     setPhotos((prev) => ({ ...prev, [category]: { file: f, preview: URL.createObjectURL(f) } }));
@@ -144,7 +146,7 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
   const result = INSPECTION_RESULT_META[overallResult]!;
 
   return (
-    <ModalShell title="Inspeksi Berkala" icon={ClipboardCheck} onClose={onClose} wide>
+    <ModalShell title={t('fleet.inspectionModal.title')} icon={ClipboardCheck} onClose={onClose} wide>
       <ModalForm
         onSubmit={() => mut.mutate()}
         onCancel={onClose}
@@ -152,35 +154,35 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
         submitDisabled={!tanggal || filledCount === 0}
       >
         <FieldRow cols={4}>
-          <TextField label="Tanggal" type="date" value={tanggal} onChange={setTanggal} required />
-          <TextField label="Odometer (km)" type="number" value={odometer} onChange={setOdometer} />
-          <SelectField label="Level BBM" value={fuelLevel} onChange={setFuelLevel} options={FUEL_LEVELS} labels={FUEL_LEVEL_LABELS} emptyLabel="Pilih" />
-          <TextField label="Interval (hari)" type="number" value={intervalDays} onChange={setIntervalDays} inputMode="numeric" />
+          <TextField label={t('fleet.field.date')} type="date" value={tanggal} onChange={setTanggal} required />
+          <TextField label={t('fleet.field.odometerKm')} type="number" value={odometer} onChange={setOdometer} />
+          <SelectField label={t('fleet.inspectionModal.fuelLevel')} value={fuelLevel} onChange={setFuelLevel} options={FUEL_LEVELS} labels={FUEL_LEVEL_LABELS} emptyLabel={t('fleet.field.choose')} />
+          <TextField label={t('fleet.inspectionModal.intervalDays')} type="number" value={intervalDays} onChange={setIntervalDays} inputMode="numeric" />
         </FieldRow>
         <FieldRow>
           <ComboboxField
-              label="Inspektor"
+              label={t('fleet.inspectionModal.inspector')}
               value={inspectorUserId}
               onChange={(v: string) => {
                 setInspectorUserId(v);
                 setInspectorName(users.find((u) => u.id === v)?.fullName ?? '');
               }}
               options={users.map((u) => ({ value: u.id, label: u.fullName }))}
-              placeholder="Pilih inspektor…"
+              placeholder={t('fleet.inspectionModal.inspectorPlaceholder')}
             />
-          <TextField label="Nama inspektor (bila di luar daftar user)" value={inspectorName} onChange={setInspectorName} />
+          <TextField label={t('fleet.inspectionModal.inspectorName')} value={inspectorName} onChange={setInspectorName} />
         </FieldRow>
 
         <p className="flex items-center gap-2 rounded-md bg-info-subtle px-3 py-2 text-xs text-info-text">
           <CalendarClock className="size-4 shrink-0" aria-hidden />
-          Jadwal inspeksi berikutnya: <strong className="num">{nextDueDate ? formatDate(nextDueDate) : '—'}</strong>
+          {t('fleet.inspectionModal.nextDue')} <strong className="num">{nextDueDate ? formatDate(nextDueDate) : '—'}</strong>
         </p>
 
         <fieldset className="space-y-2">
           <legend className="flex w-full items-center justify-between pb-1 text-sm font-medium text-foreground">
-            Checklist komponen
+            {t('fleet.inspectionModal.checklist')}
             <span className="num text-xs font-normal text-muted-foreground">
-              {filledCount}/{allItems.length} terisi
+              {t('fleet.inspectionModal.filled', { filled: filledCount, total: allItems.length })}
             </span>
           </legend>
           {categories.map((cat) => {
@@ -211,7 +213,7 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
                 {isOpen && (
                   <div id={panelId} className="space-y-2 p-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Tandai semua:</span>
+                      <span className="text-xs text-muted-foreground">{t('fleet.inspectionModal.markAll')}</span>
                       {CHECK_STATES.map((v) => (
                         <button
                           key={v}
@@ -259,22 +261,22 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
                       {photos[cat.key] ? (
                         <div className="flex items-center gap-3">
                           <div className="relative inline-block">
-                            <img src={photos[cat.key]!.preview} alt={`Foto ${cat.label}`} className="h-20 rounded-md border border-border object-cover" />
+                            <img src={photos[cat.key]!.preview} alt={t('fleet.inspectionModal.photoAlt', { name: cat.label })} className="h-20 rounded-md border border-border object-cover" />
                             <button
                               type="button"
                               onClick={() => pickPhoto(cat.key, null)}
-                              aria-label={`Batalkan foto ${cat.label}`}
+                              aria-label={t('fleet.inspectionModal.removePhoto', { name: cat.label })}
                               className="absolute -right-2 -top-2 inline-flex size-6 items-center justify-center rounded-md bg-foreground text-background hover:bg-danger"
                             >
                               <X className="size-3.5" aria-hidden />
                             </button>
                           </div>
-                          <span className="text-xs text-muted-foreground">Foto diunggah setelah inspeksi disimpan.</span>
+                          <span className="text-xs text-muted-foreground">{t('fleet.inspectionModal.photoAfterSave')}</span>
                         </div>
                       ) : (
                         <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed border-border-strong px-3 py-2 text-xs text-muted-foreground hover:bg-accent focus-within:ring-2 focus-within:ring-ring">
                           <Camera className="size-4" aria-hidden />
-                          Foto bukti {cat.label} (opsional, maks 5 MB)
+                          {t('fleet.inspectionModal.photoPick', { name: cat.label })}
                           <input
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
@@ -292,10 +294,10 @@ export function InspectionModal({ assetId, onClose, onSaved }: Props) {
         </fieldset>
 
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Hasil keseluruhan:</span>
+          <span className="text-muted-foreground">{t('fleet.inspectionModal.overall')}</span>
           <ToneBadge label={result.label} tone={result.tone} />
         </div>
-        <TextAreaField label="Catatan" value={notes} onChange={setNotes} />
+        <TextAreaField label={t('fleet.field.notes')} value={notes} onChange={setNotes} />
       </ModalForm>
     </ModalShell>
   );

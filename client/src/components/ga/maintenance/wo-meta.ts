@@ -4,6 +4,8 @@
  * docType 'ga_work_order'); priority and type labels live here.
  */
 import type { StatusTone } from '@/lib/status';
+import { LOCALE } from '@/lib/format';
+import { labelMap, tEam } from '../eam-i18n';
 
 export type WoStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'DONE' | 'CLOSED' | 'CANCELLED';
 export type WoPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -19,12 +21,7 @@ export const WO_STATUS_ACTIVE = 'ACTIVE';
 
 export const PRIORITY_ORDER: readonly WoPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 
-export const PRIORITY_LABELS: Record<WoPriority, string> = {
-  LOW: 'Rendah',
-  MEDIUM: 'Sedang',
-  HIGH: 'Tinggi',
-  URGENT: 'Mendesak',
-};
+export const PRIORITY_LABELS: Record<WoPriority, string> = labelMap(PRIORITY_ORDER, 'workOrder.priority');
 
 export const PRIORITY_TONE: Record<WoPriority, StatusTone> = {
   LOW: 'neutral',
@@ -33,10 +30,7 @@ export const PRIORITY_TONE: Record<WoPriority, StatusTone> = {
   URGENT: 'danger',
 };
 
-export const TYPE_LABELS: Record<WoType, string> = {
-  CORRECTIVE: 'Korektif',
-  PREVENTIVE: 'Preventif',
-};
+export const TYPE_LABELS: Record<WoType, string> = labelMap(['CORRECTIVE', 'PREVENTIVE'], 'workOrder.type');
 
 export const DUE_SOON_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -150,9 +144,9 @@ export function scheduleDueState(s: Pick<ScheduleRow, 'isActive' | 'nextDueAt'>,
 }
 
 export function intervalLabel(s: Pick<ScheduleRow, 'intervalDays' | 'intervalHours' | 'intervalKm'>): string {
-  if (s.intervalDays) return `Setiap ${s.intervalDays} hari`;
-  if (s.intervalHours) return `Setiap ${s.intervalHours} jam operasi`;
-  if (s.intervalKm) return `Setiap ${s.intervalKm.toLocaleString('id-ID')} km`;
+  if (s.intervalDays) return tEam('schedule.interval.days', { count: s.intervalDays });
+  if (s.intervalHours) return tEam('schedule.interval.hours', { count: s.intervalHours });
+  if (s.intervalKm) return tEam('schedule.interval.km', { km: s.intervalKm.toLocaleString(LOCALE) });
   return '—';
 }
 
