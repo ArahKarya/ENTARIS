@@ -16976,7 +16976,8 @@
         "depreciationMethod": "enum",
         "assetAccountId": "uuid",
         "depreciationAccountId": "uuid",
-        "accumulatedDepAccountId": "uuid"
+        "accumulatedDepAccountId": "uuid",
+        "gaAssetId": "string"
       },
       "params": [
         {
@@ -17057,6 +17058,13 @@
           "type": "uuid",
           "required": true,
           "description": "Akun akumulasi penyusutan."
+        },
+        {
+          "name": "gaAssetId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan."
         }
       ],
       "output": {
@@ -27133,7 +27141,8 @@
         "id": "string",
         "name": "string",
         "category": "string",
-        "description": "string"
+        "description": "string",
+        "gaAssetId": "string"
       },
       "params": [
         {
@@ -27163,6 +27172,13 @@
           "type": "string",
           "required": false,
           "description": "Keterangan."
+        },
+        {
+          "name": "gaAssetId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID aset EAM (GaAsset) yang ditautkan; satu aset EAM hanya untuk satu aset tetap. Kosong/null = tidak ditautkan."
         }
       ],
       "output": {

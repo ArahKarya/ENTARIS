@@ -11,6 +11,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { controlBase } from '@/components/ui/styles';
 import { DateInput, Field } from '@/components/shared';
 import { AccountPicker } from './AccountPicker';
+import { EamAssetPicker } from './EamAssetPicker';
 import { apiError } from './errors';
 import type { CoaOption } from './types';
 
@@ -32,6 +33,7 @@ interface FormState {
   depreciationAccountId: string;
   accumulatedDepAccountId: string;
   description: string;
+  gaAssetId: string;
 }
 
 const EMPTY: FormState = {
@@ -45,6 +47,7 @@ const EMPTY: FormState = {
   depreciationAccountId: '',
   accumulatedDepAccountId: '',
   description: '',
+  gaAssetId: '',
 };
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -104,12 +107,15 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
           assetAccountId: f.assetAccountId,
           depreciationAccountId: f.depreciationAccountId,
           accumulatedDepAccountId: f.accumulatedDepAccountId,
+          gaAssetId: f.gaAssetId || null,
         })
       ).data,
     onSuccess: () => {
       toast.success('Aset tetap berhasil dibuat');
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
+      qc.invalidateQueries({ queryKey: ['ga-assets'] });
+      qc.invalidateQueries({ queryKey: ['ga-asset-detail'] });
       onOpenChange(false);
     },
     onError: (err) => toast.error(apiError(err, 'Gagal membuat aset tetap')),
@@ -222,6 +228,9 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
             <Field label="Keterangan">
               <Input value={form.description} onChange={(e) => set('description', e.target.value)} maxLength={500} />
             </Field>
+            <div className="sm:col-span-2">
+              <EamAssetPicker value={form.gaAssetId} onChange={(v) => set('gaAssetId', v)} enabled={open} />
+            </div>
           </div>
 
           <DialogFooter>

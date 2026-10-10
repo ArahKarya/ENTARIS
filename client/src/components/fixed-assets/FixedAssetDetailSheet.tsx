@@ -129,6 +129,11 @@ export function FixedAssetDetailSheet({
                 <Detail label="Nilai sisa">{formatRupiah(asset.salvageValue)}</Detail>
                 <Detail label="Metode">{asset.depreciationMethod === 'straight_line' ? 'Garis lurus' : asset.depreciationMethod}</Detail>
                 <Detail label="Dibuat oleh">{asset.user?.fullName ?? '-'}</Detail>
+                {asset.gaAsset && (
+                  <Detail label="Aset EAM terkait">
+                    <span className="font-mono">{asset.gaAsset.code}</span> · {asset.gaAsset.name}
+                  </Detail>
+                )}
                 {asset.disposalDate && <Detail label="Tanggal dilepas">{formatDate(asset.disposalDate)}</Detail>}
                 <Detail wide label="Akun aset">{account(asset.assetAccount)}</Detail>
                 <Detail wide label="Akun beban penyusutan">{account(asset.depreciationAccount)}</Detail>
