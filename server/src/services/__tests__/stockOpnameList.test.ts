@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import {
   buildStockOpnameWhere,
   DEFAULT_STOCK_OPNAME_SORT,
+  mergeOpnameWarehouses,
   opnameWarehouses,
   STOCK_OPNAME_SORT_FIELDS,
   stockOpnameOrderBy,
@@ -26,9 +27,10 @@ describe('buildStockOpnameWhere', () => {
     });
   });
 
-  it('filters by warehouse through resolved opname ids or the line warehouse', () => {
+  it('filters by header warehouse, resolved opname ids or the line warehouse', () => {
     const r = buildStockOpnameWhere({ warehouseId: 'w1' }, { warehouseOpnameIds: ['o1', 'o2'] });
     expect(r.ok && r.where.OR).toEqual([
+      { warehouseId: 'w1' },
       { id: { in: ['o1', 'o2'] } },
       { items: { some: { warehouseId: 'w1' } } },
     ]);
@@ -36,7 +38,7 @@ describe('buildStockOpnameWhere', () => {
 
   it('matches nothing via ids when no movement hit the warehouse', () => {
     const r = buildStockOpnameWhere({ warehouseId: 'w1' });
-    expect(r.ok && r.where.OR?.[0]).toEqual({ id: { in: [] } });
+    expect(r.ok && r.where.OR?.[1]).toEqual({ id: { in: [] } });
   });
 
   it('searches number, notes and creator; combines with warehouse via AND', () => {
@@ -98,5 +100,22 @@ describe('opnameWarehouses', () => {
     ]);
     expect(m.get('a')).toEqual([utm, prd]);
     expect(m.has('b')).toBe(false);
+  });
+});
+
+describe('mergeOpnameWarehouses', () => {
+  const utm = { id: 'w1', code: 'GDG-UTM', name: 'Gudang Utama' };
+  const prd = { id: 'w2', code: 'GDG-PRD', name: 'Gudang Produksi' };
+
+  it('shows the header warehouse even without adjustment movements', () => {
+    expect(mergeOpnameWarehouses(utm, [])).toEqual([utm]);
+  });
+
+  it('puts the header first and drops duplicates from movements', () => {
+    expect(mergeOpnameWarehouses(utm, [prd, utm])).toEqual([utm, prd]);
+  });
+
+  it('falls back to movement warehouses for legacy rows without a header', () => {
+    expect(mergeOpnameWarehouses(null, [prd])).toEqual([prd]);
   });
 });

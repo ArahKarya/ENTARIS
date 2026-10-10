@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
+import { withJournalLabels } from '../services/ledgerEntryLabels';
 import { AuthRequest } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { systemAccounts } from '../services/systemAccounts';
@@ -133,7 +134,10 @@ router.get('/:id', async (req, res) => {
       take: 200,
     });
 
-    return res.json({ ...reconciliation, unmatchedLedgerEntries });
+    return res.json({
+      ...reconciliation,
+      unmatchedLedgerEntries: await withJournalLabels(unmatchedLedgerEntries),
+    });
   } catch (error) {
     return handleRouteError(res, error, 'GET /reconciliation/:id', 'Gagal mengambil detail rekonsiliasi.');
   }

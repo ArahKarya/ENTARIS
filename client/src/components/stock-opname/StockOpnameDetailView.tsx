@@ -29,7 +29,17 @@ export interface OpnameDetail {
   status: string;
   notes: string | null;
   createdBy?: { fullName: string } | null;
+  warehouse?: { id: string; code: string; name: string } | null;
   items: OpnameDetailLine[];
+}
+
+/** "Gudang X · Dibuat oleh Y", skipping parts that are missing. */
+function headerDescription(detail: OpnameDetail): string | undefined {
+  const parts = [
+    detail.warehouse ? `Gudang ${detail.warehouse.name}` : null,
+    detail.createdBy?.fullName ? `Dibuat oleh ${detail.createdBy.fullName}` : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : undefined;
 }
 
 const qty = (v: Num) => formatNumber(v, { maxDecimals: 3 });
@@ -96,7 +106,7 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
             <StatusBadge status={detail.status} docType="stock_opname" />
           </span>
         }
-        description={detail.createdBy?.fullName ? `Dibuat oleh ${detail.createdBy.fullName}` : undefined}
+        description={headerDescription(detail)}
         actions={
           <>
             <PDFDownloadButton

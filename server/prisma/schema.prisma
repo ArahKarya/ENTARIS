@@ -989,6 +989,7 @@ model Warehouse {
   salesInvoiceItems    SalesInvoiceItem[]       @relation("SalesInvoiceItemWarehouse")
   productionLines      ProductionRunItem[]      @relation("ProductionLineWarehouse")
   opnameLines          StockOpnameItem[]        @relation("OpnameLineWarehouse")
+  opnames              StockOpname[]            @relation("OpnameWarehouse")
   deliveryOrderItems   DeliveryOrderItem[]      @relation("DOLineWarehouse")
   goodsReceiptItems    GoodsReceiptItem[]       @relation("GRItemWarehouse")
   costStandards        ProductionCostStandard[] @relation("WarehouseCostStandards")
@@ -1537,6 +1538,9 @@ model StockOpname {
   date         DateTime
   status       StockOpnameStatus @default(Draft)
   notes        String?
+  // Warehouse the session counted (one warehouse per opname).
+  warehouseId  String?           @map("warehouse_id")
+  warehouse    Warehouse?        @relation("OpnameWarehouse", fields: [warehouseId], references: [id])
   items        StockOpnameItem[]
   fiscalYearId String            @map("fiscal_year_id")
   fiscalYear   FiscalYear        @relation(fields: [fiscalYearId], references: [id])
@@ -1550,6 +1554,7 @@ model StockOpname {
   @@index([date])
   @@index([status])
   @@index([fiscalYearId])
+  @@index([warehouseId])
   @@map("stock_opnames")
 }
 

@@ -34,6 +34,14 @@ export interface LedgerEntry {
   description: string | null;
   referenceType: string;
   referenceId: string;
+  referenceNumber?: string | null;
+}
+
+/** Human label for a book entry: description, then journal number, then the reference type. */
+function ledgerEntryLabel(entry: LedgerEntry): string {
+  if (entry.description) return entry.description;
+  if (entry.referenceNumber) return entry.referenceNumber;
+  return entry.referenceType === 'JournalEntry' ? 'Jurnal umum' : entry.referenceType;
 }
 
 export interface ReconciliationDetail {
@@ -272,8 +280,8 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                         <TableCell className="num hidden whitespace-nowrap py-2 text-muted-foreground sm:table-cell">
                           {formatDate(entry.date)}
                         </TableCell>
-                        <TableCell className="max-w-40 py-2 sm:max-w-56" title={entry.description || entry.referenceType}>
-                          <p className="truncate text-foreground">{entry.description || entry.referenceType}</p>
+                        <TableCell className="max-w-40 py-2 sm:max-w-56" title={ledgerEntryLabel(entry)}>
+                          <p className="truncate text-foreground">{ledgerEntryLabel(entry)}</p>
                           {/* Mobile: date stacked here because its column is hidden. */}
                           <p className="num text-xs text-muted-foreground sm:hidden">{formatDate(entry.date)}</p>
                         </TableCell>
@@ -287,7 +295,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                               size="sm"
                               onClick={() => matchEntry(entry.id)}
                               disabled={matchMutation.isPending}
-                              aria-label={`Cocokkan ${entry.description || entry.referenceType} ${formatDate(entry.date)}`}
+                              aria-label={`Cocokkan ${ledgerEntryLabel(entry)} ${formatDate(entry.date)}`}
                               className="text-primary-hover"
                             >
                               <Link2 aria-hidden />
