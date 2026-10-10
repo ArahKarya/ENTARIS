@@ -22,7 +22,7 @@
   },
   "src/components/ApprovalPanel.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 10
+      "count": 8
     },
     "react-hooks/refs": {
       "count": 1

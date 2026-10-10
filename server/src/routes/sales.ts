@@ -7,6 +7,7 @@ import { CreateSalesInvoiceSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
 import { cancelSalesInvoiceInTx } from '../services/invoiceCancellation';
 import { submitSalesInvoiceInTx } from '../services/salesInvoiceSubmit';
+import { PAYMENT_ALLOCATION_PAYMENT_SELECT } from '../services/paymentAllocationDetail';
 import { logger } from '../lib/logger';
 import { parseListPaging, parseSort } from '../utils/listQuery';
 import {
@@ -139,21 +140,7 @@ router.get('/:id', async (req, res) => {
     // break down cash vs. non-cash portions (commission, discount, etc).
     const allocations = await prisma.paymentAllocation.findMany({
       where: { invoiceType: 'SalesInvoice', invoiceId: invoice.id },
-      include: {
-        payment: {
-          select: {
-            id: true, paymentNumber: true, date: true, amount: true, referenceNo: true,
-            notes: true, status: true,
-            account: { select: { id: true, accountNumber: true, name: true, rootType: true } },
-            splits: {
-              select: {
-                id: true, amount: true, notes: true,
-                account: { select: { id: true, accountNumber: true, name: true, rootType: true } },
-              },
-            },
-          },
-        },
-      },
+      include: { payment: { select: PAYMENT_ALLOCATION_PAYMENT_SELECT } },
       orderBy: { payment: { date: 'asc' } },
     });
 

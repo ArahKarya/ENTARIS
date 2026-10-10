@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useState } from 'react';
+import React, { useDeferredValue, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, ClipboardList, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRupiah } from '@/lib/format';
 import { computePoTotals, PAYMENT_TERM_PRESETS, paymentTermLabel, poDueDate } from '@/lib/purchaseOrderCalc';
+import { useSelectedPartyOption } from '@/hooks/useSelectedPartyOption';
 
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
@@ -51,6 +52,8 @@ export interface PurchaseOrderSource {
   status?: string;
   approvalStatus?: string | null;
   partyId: string | null;
+  /** Included by GET /purchase-orders/:id; keeps the picker filled when the supplier is outside the loaded list. */
+  supplier?: { id: string; name: string } | null;
   expectedDeliveryDate: string | null;
   notes: string | null;
   terms: string | null;
@@ -164,7 +167,11 @@ const PurchaseOrderModal: React.FC<Props> = ({ onClose, mode = 'create', source 
     },
   });
 
-  const supplierOptions: SelectOption[] = (parties ?? []).map((p: any) => ({ value: p.id, label: p.name }));
+  const supplierOptions = useSelectedPartyOption<SelectOption>(
+    useMemo(() => (parties ?? []).map((p: any) => ({ value: p.id, label: p.name })), [parties]),
+    partyId,
+    source?.supplier,
+  );
   const warehouseOptions: SelectOption[] = (warehouses ?? []).map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }));
   const itemOptions = (inventoryItems ?? []).map((i: any) => ({
     value: i.id,

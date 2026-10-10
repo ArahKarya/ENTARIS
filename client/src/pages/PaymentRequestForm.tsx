@@ -23,6 +23,7 @@ import { TravelLinesEditor } from '@/components/payment-requests/TravelLinesEdit
 import { TravelSection } from '@/components/payment-requests/TravelSection';
 import { EMPTY_TRAVEL, validateTravelValue, type TravelErrors, type TravelValue } from '@/components/payment-requests/travel';
 import { linesTotal, newLine, type DraftLine } from '@/components/payment-requests/lines';
+import { useSelectedPartyOption } from '@/hooks/useSelectedPartyOption';
 import {
   KIND_LABEL,
   PR_ENDPOINT,
@@ -166,7 +167,7 @@ function PaymentRequestFormBody({
   const vendorsQuery = useQuery({
     queryKey: ['parties', 'payment-request-vendors'],
     queryFn: async () => {
-      const res = await api.get('/parties', { params: { limit: 500 } });
+      const res = await api.get('/parties', { params: { sort: 'name', limit: 500 } });
       return (res.data.data ?? res.data) as Array<{ id: string; name: string }>;
     },
     enabled: form.payeeKind === 'VENDOR',
@@ -179,7 +180,11 @@ function PaymentRequestFormBody({
   const isTravel = selectedType?.kind === 'TRAVEL';
   const days = tripDays(travel.startDate, travel.endDate);
   const savedAttachments = (detailQuery.data?.attachments ?? []).filter((a) => a.scope !== 'SETTLEMENT');
-  const vendorOptions = useMemo(() => (vendorsQuery.data ?? []).map((v) => ({ value: v.id, label: v.name })), [vendorsQuery.data]);
+  const vendorOptions = useSelectedPartyOption(
+    useMemo(() => (vendorsQuery.data ?? []).map((v) => ({ value: v.id, label: v.name })), [vendorsQuery.data]),
+    form.payeeKind === 'VENDOR' ? form.partyId : null,
+    detailQuery.data?.party,
+  );
 
   const removeAttachment = useMutation({
     mutationFn: (attId: string) => api.delete(`${PR_ENDPOINT}/${id}/attachments/${attId}`),

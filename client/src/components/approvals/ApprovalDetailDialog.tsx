@@ -21,11 +21,11 @@ export interface ApprovalDetailDialogProps {
   currentUserId: string | null;
   detailCtx: any;
   detailCtxLoading: boolean;
-  partyMap: Record<string, string>;
+  partyName: (partyId: string | null | undefined) => string;
   warehouseMap: Record<string, string>;
   machineMap: Record<string, string>;
-  itemName: (id: string) => string;
-  itemUnit: (id: string) => string;
+  itemName: (id: string | null | undefined) => string;
+  itemUnit: (id: string | null | undefined) => string;
   onResubmit?: (req: ApprovalRequest) => void;
   onViewDocument?: (req: ApprovalRequest) => void;
   onReject: (id: string) => void;
@@ -49,7 +49,7 @@ function DetailContent({
   currentUserId,
   detailCtx,
   detailCtxLoading,
-  partyMap,
+  partyName,
   warehouseMap,
   machineMap,
   itemName,
@@ -104,7 +104,7 @@ function DetailContent({
           )}
           {!isProd && p.partyId && (
             <div>
-              <span className="text-muted-foreground">{isDO ? 'Pelanggan:' : 'Supplier:'}</span> <span className="text-foreground">{partyMap[p.partyId] ?? '—'}</span>
+              <span className="text-muted-foreground">{isDO ? 'Pelanggan:' : 'Supplier:'}</span> <span className="text-foreground">{partyName(p.partyId)}</span>
             </div>
           )}
           {!isProd && p.dueDate && (

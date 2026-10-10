@@ -374,7 +374,15 @@ export async function assertCashAccount(tx: Tx, accountId: string) {
 /** Create a Submitted journal + ledger rows + balance updates for already-balanced lines. */
 export async function postJournalInTx(
   tx: Tx,
-  input: { date: Date; narration: string; fiscalYearId: string; actorId: string; now: Date; lines: readonly JournalLine[] },
+  input: {
+    date: Date;
+    narration: string;
+    fiscalYearId: string;
+    actorId: string;
+    now: Date;
+    lines: readonly JournalLine[];
+    partyId?: string | null;
+  },
 ) {
   const { date, narration, fiscalYearId } = input;
   const entryNumber = await generateDocumentNumber(tx, 'JV', date, fiscalYearId);
@@ -387,7 +395,16 @@ export async function postJournalInTx(
       fiscalYearId,
       createdBy: input.actorId,
       submittedAt: input.now,
-      items: { create: input.lines.map((l) => ({ accountId: l.accountId, debit: l.debit, credit: l.credit, description: l.description })) },
+      items: {
+        create: input.lines.map((l) => ({
+          accountId: l.accountId,
+          debit: l.debit,
+          credit: l.credit,
+          description: l.description,
+          // Journal-item party only (Kas & Bank "Pihak" column); ledger rows stay party-less.
+          ...(input.partyId ? { partyId: input.partyId } : {}),
+        })),
+      },
     },
     include: { items: true },
   });
@@ -452,7 +469,9 @@ export async function payPaymentRequestInTx(
     settlementStatus: initialSettlementStatus(pr.type.kind, pr.type.requiresSettlement),
   });
 
-  const journal = await postJournalInTx(tx, { date, narration, fiscalYearId: fiscalYear.id, actorId: actor.id, now, lines: built.lines });
+  // Vendor payees carry their party onto the journal so Kas & Bank shows the vendor name.
+  const partyId = pr.payeeKind === 'VENDOR' ? pr.partyId : null;
+  const journal = await postJournalInTx(tx, { date, narration, fiscalYearId: fiscalYear.id, actorId: actor.id, now, lines: built.lines, partyId });
   await tx.paymentRequest.update({ where: { id }, data: { journalEntryId: journal.id } });
   await addHistory(tx, {
     requestId: id,

@@ -231,6 +231,7 @@ export const CreatePurchaseInvoiceSchema = z.object({
   items: z.array(PurchaseInvoiceItemSchema).min(1, 'Minimal satu item.'),
   dueDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  terms: z.string().nullable().optional(),
   taxPct: z.coerce.number().min(0).max(100).optional().default(0),
   biayaLain: z.coerce.number().optional().default(0),  // boleh negatif (potongan tagihan)
   // `potongan` at header level is a derived cache (SUM items.potonganItem).

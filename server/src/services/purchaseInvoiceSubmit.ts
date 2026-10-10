@@ -38,6 +38,7 @@ export interface SubmitPurchaseInvoiceInput {
   }>;
   dueDate?: string | null;
   notes?: string | null;
+  terms?: string | null;
   biayaLain?: number;
   taxPct?: number;
   potongan?: number;
@@ -163,6 +164,7 @@ export async function submitPurchaseInvoiceInTx(
       biayaLain: body.biayaLain ?? 0,
       status: 'Submitted',
       notes: body.notes || null,
+      terms: body.terms || null,
       fiscalYearId: fiscalYear.id,
       createdBy: userId,
       submittedAt: new Date(),

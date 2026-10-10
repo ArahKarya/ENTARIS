@@ -112,6 +112,20 @@ describe('payPaymentRequestInTx', () => {
     expect(tx.paymentRequest.updateMany.mock.calls[0][0].data.settlementStatus).toBeNull();
   });
 
+  it('tags every journal item with the vendor party for VENDOR payees', async () => {
+    const tx = makeTx(makeRequest({ payeeKind: 'VENDOR', partyId: 'party-v1' }));
+    await payPaymentRequestInTx(asTx(tx), 'pr-1', finance, { cashAccountId: 'acc-cash', paymentDate: '2026-10-05' });
+    const items = tx.journalEntry.create.mock.calls[0][0].data.items.create;
+    expect(items).toHaveLength(2);
+    for (const it of items) expect(it.partyId).toBe('party-v1');
+  });
+
+  it('leaves partyId off the journal for employee payees', async () => {
+    const tx = makeTx(makeRequest({ payeeKind: 'EMPLOYEE', partyId: null }));
+    await payPaymentRequestInTx(asTx(tx), 'pr-1', finance, { cashAccountId: 'acc-cash', paymentDate: '2026-10-05' });
+    for (const it of tx.journalEntry.create.mock.calls[0][0].data.items.create) expect(it).not.toHaveProperty('partyId');
+  });
+
   it('rejects a payment dated in a closed fiscal period — nothing is posted', async () => {
     const tx = makeTx(makeRequest(), { fiscalYear: null });
     await expect(

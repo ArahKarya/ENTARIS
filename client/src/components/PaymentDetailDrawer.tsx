@@ -175,7 +175,7 @@ const PaymentDetailDrawer: React.FC<Props> = ({ paymentId, onClose }) => {
                         <p className="text-xs font-medium text-foreground">
                           {a.invoiceType === 'SalesInvoice' ? 'Faktur Penjualan' : 'Faktur Pembelian'}
                         </p>
-                        <p className="font-mono text-xs text-muted-foreground">{a.invoiceId.slice(0, 8)}...</p>
+                        <p className="font-mono text-xs text-muted-foreground">{a.invoiceNumber ?? `${a.invoiceId.slice(0, 8)}...`}</p>
                       </div>
                       <span className="num text-xs font-bold text-foreground">{formatRupiah(Number(a.allocatedAmount))}</span>
                     </li>
