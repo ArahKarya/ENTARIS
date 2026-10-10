@@ -7,6 +7,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ColumnDef } from '@tanstack/react-table';
 import { CheckCircle2, Clock, Plus, Undo2, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -60,7 +61,7 @@ interface VendorDepositSummary {
 
 const ENDPOINT = '/vendor-deposits';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Active', 'PartiallyUsed', 'FullyUsed', 'Cancelled'], 'deposit');
+const STATUS_FILTER_VALUES = ['Active', 'PartiallyUsed', 'FullyUsed', 'Cancelled'];
 /** Same threshold as the server: a remaining balance above this can still be used/refunded. */
 const REMAINING_EPSILON = 0.01;
 
@@ -87,6 +88,9 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export const VendorDeposits = () => {
+  const { t } = useTranslation('purchasing');
+  // Built per render (not at module load) so the labels follow the UI language.
+  const statusFilter = statusOptions(STATUS_FILTER_VALUES, 'deposit');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -112,12 +116,12 @@ export const VendorDeposits = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`${ENDPOINT}/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Uang muka vendor dibatalkan.');
+      toast.success(t('depositList.toastCancelled'));
       queryClient.invalidateQueries({ queryKey: ['vendor-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
     },
-    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan uang muka.')),
+    onError: (err: unknown) => toast.error(errorMessage(err, t('depositList.errorCancel'))),
   });
 
   const summary = summaryQuery.data;
@@ -126,7 +130,7 @@ export const VendorDeposits = () => {
     () => [
       {
         id: 'paymentNumber',
-        header: 'Nomor',
+        header: t('depositList.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -143,7 +147,7 @@ export const VendorDeposits = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('depositList.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -151,7 +155,7 @@ export const VendorDeposits = () => {
       },
       {
         id: 'supplier',
-        header: 'Pemasok',
+        header: t('depositList.columns.supplier'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => {
@@ -169,7 +173,7 @@ export const VendorDeposits = () => {
       },
       {
         id: 'amount',
-        header: () => withUnit('Jumlah'),
+        header: () => withUnit(t('depositList.columns.amount')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -177,7 +181,7 @@ export const VendorDeposits = () => {
       },
       {
         id: 'totalApplied',
-        header: () => withUnit('Digunakan'),
+        header: () => withUnit(t('depositList.columns.applied')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'lg' },
@@ -187,8 +191,8 @@ export const VendorDeposits = () => {
             <div>
               <span className={totalApplied > 0 ? 'text-foreground' : 'text-muted-foreground'}>{money(totalApplied)}</span>
               {totalRefunded > 0 && (
-                <div className="mt-0.5 text-xs text-warning-text" title={`Dikembalikan vendor (refund kas): ${formatRupiah(totalRefunded)}`}>
-                  refund {money(totalRefunded)}
+                <div className="mt-0.5 text-xs text-warning-text" title={t('depositList.refundedTitle', { amount: formatRupiah(totalRefunded) })}>
+                  {t('depositList.refunded', { amount: money(totalRefunded) })}
                 </div>
               )}
             </div>
@@ -197,7 +201,7 @@ export const VendorDeposits = () => {
       },
       {
         id: 'remaining',
-        header: () => withUnit('Sisa'),
+        header: () => withUnit(t('depositList.columns.remaining')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -217,29 +221,29 @@ export const VendorDeposits = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('depositList.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={depositState(row.original)} docType="deposit" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('depositList.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const d = row.original;
           const isCancelled = d.status === 'Cancelled';
           return (
             <RowActions
-              label={`Aksi untuk ${d.paymentNumber}`}
+              label={t('depositList.rowActions', { number: d.paymentNumber })}
               actions={[
                 {
-                  label: 'Refund / offset',
+                  label: t('depositList.actions.refund'),
                   icon: Undo2,
                   hidden: !canEdit || isCancelled || d.remaining <= REMAINING_EPSILON,
                   onSelect: () => setRefundTarget(d),
                 },
                 {
-                  label: 'Batalkan',
+                  label: t('depositList.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !canEdit || isCancelled,
@@ -251,7 +255,7 @@ export const VendorDeposits = () => {
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
@@ -259,37 +263,41 @@ export const VendorDeposits = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Uang Muka Vendor"
-        description="Kelola deposit dan uang muka ke supplier."
+        title={t('depositList.title')}
+        description={t('depositList.description')}
         actions={
           canEdit && (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus aria-hidden />
-              Buat Uang Muka
+              {t('depositList.create')}
             </Button>
           )
         }
       />
 
-      <section aria-label="Ringkasan uang muka sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('depositList.kpi.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Total Deposit"
+          label={t('depositList.kpi.total')}
           icon={Wallet}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalDeposit)}
           valueTitle={summary ? formatRupiah(summary.totalDeposit) : undefined}
-          hint={summary ? `${formatNumber(summary.count - summary.cancelledCount)} uang muka` : undefined}
+          hint={summary ? t('depositList.kpi.totalHint', { count: formatNumber(summary.count - summary.cancelledCount) }) : undefined}
         />
         <StatCard
-          label="Sudah Digunakan"
+          label={t('depositList.kpi.applied')}
           icon={CheckCircle2}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalApplied)}
           valueTitle={summary ? formatRupiah(summary.totalApplied) : undefined}
-          hint={summary && summary.totalRefunded > 0 ? `Refund ${formatRupiah(summary.totalRefunded)}` : 'ke faktur'}
+          hint={
+            summary && summary.totalRefunded > 0
+              ? t('depositList.kpi.appliedRefund', { amount: formatRupiah(summary.totalRefunded) })
+              : t('depositList.kpi.appliedHint')
+          }
         />
         <StatCard
-          label="Sisa Deposit"
+          label={t('depositList.kpi.remaining')}
           icon={Wallet}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalRemaining)}
@@ -297,20 +305,20 @@ export const VendorDeposits = () => {
           hint={summary ? formatRupiah(summary.totalRemaining) : undefined}
         />
         <StatCard
-          label="Deposit Aktif"
+          label={t('depositList.kpi.active')}
           icon={Clock}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.activeCount) : '—'}
-          hint="masih punya sisa"
+          hint={t('depositList.kpi.activeHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari uang muka"
-          searchPlaceholder="Cari nomor deposit atau pemasok"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('depositList.searchLabel')}
+          searchPlaceholder={t('depositList.searchPlaceholder')}
+          status={{ options: statusFilter }}
           dateRange
         >
           <PartyFilter
@@ -322,8 +330,8 @@ export const VendorDeposits = () => {
 
         <DataTable
           {...listTableProps(list, depositsQuery.data?.total)}
-          label="Daftar uang muka vendor"
-          itemLabel="uang muka"
+          label={t('depositList.tableLabel')}
+          itemLabel={t('depositList.itemLabel')}
           columns={columns}
           data={depositsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -334,12 +342,12 @@ export const VendorDeposits = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada uang muka vendor',
-            description: 'Deposit yang dibayarkan ke pemasok akan muncul di sini.',
+            title: t('depositList.empty.title'),
+            description: t('depositList.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat uang muka pertama
+                {t('depositList.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -374,9 +382,9 @@ export const VendorDeposits = () => {
             setCancelTarget(null);
           }
         }}
-        title="Batalkan Uang Muka"
-        message={`Apakah Anda yakin ingin membatalkan uang muka ${cancelTarget?.paymentNumber}? Saldo akun dan deposit vendor akan dikembalikan.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('depositList.confirmCancel.title')}
+        message={t('depositList.confirmCancel.message', { number: cancelTarget?.paymentNumber ?? '' })}
+        confirmLabel={t('depositList.confirmCancel.confirm')}
         variant="danger"
       />
     </div>

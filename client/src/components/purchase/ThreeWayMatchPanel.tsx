@@ -1,9 +1,10 @@
 /**
- * "Pencocokan PO–STT–Faktur" panel — advisory three-way match per invoice line.
+ * "Pencocokan PO–STT–Invoice" panel — advisory three-way match per invoice line.
  * Used live in PurchaseInvoiceModal (via useMatchPreview), in the PI detail
  * drawer (GET /purchase/invoices/:id → match) and in the PI approval dialog.
  */
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, Loader2, MinusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -40,24 +41,24 @@ interface PanelProps {
 }
 
 export function ThreeWayMatchPanel({ match, loading, className }: PanelProps) {
+  const { t } = useTranslation('purchasing');
   const lines = useMemo(() => (match?.lines ?? []).filter((l) => l.status !== 'unlinked'), [match]);
   if (!match && !loading) return null;
   if (match && lines.length === 0) return null;
   const overall = match ? overallStatusMeta(match.status) : null;
 
   return (
-    <section aria-label="Pencocokan PO–STT–Faktur" className={cn('rounded-lg border border-border bg-card p-3', className)}>
+    <section aria-label={t('threeWayMatch.title')} className={cn('rounded-lg border border-border bg-card p-3', className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">Pencocokan PO–STT–Faktur</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('threeWayMatch.title')}</h3>
         <div className="flex items-center gap-2">
-          {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" aria-label="Memuat pencocokan" />}
+          {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" aria-label={t('threeWayMatch.loading')} />}
           {overall && <StatusPill label={overall.label} tone={overall.tone} />}
         </div>
       </div>
       {match && (
         <p className="mt-1 text-xs text-muted-foreground">
-          Toleransi: qty {match.tolerance.qtyPct}% · harga {match.tolerance.pricePct}% dari harga PO (setelah diskon).
-          Peringatan saja, tidak memblokir penyimpanan.
+          {t('threeWayMatch.tolerance', { qtyPct: match.tolerance.qtyPct, pricePct: match.tolerance.pricePct })}
         </p>
       )}
       {lines.length > 0 && (
@@ -69,9 +70,12 @@ export function ThreeWayMatchPanel({ match, loading, className }: PanelProps) {
               <li key={l.key} className="py-2 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{l.itemName || 'Item'}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{l.itemName || t('threeWayMatch.itemFallback')}</p>
                     <p className="text-xs text-muted-foreground">
-                      {[l.poNumber && `PO ${l.poNumber}`, l.sttNumber && `STT ${l.sttNumber}`].filter(Boolean).join(' · ') || '—'}
+                      {[
+                        l.poNumber && t('threeWayMatch.poRef', { number: l.poNumber }),
+                        l.sttNumber && t('threeWayMatch.sttRef', { number: l.sttNumber }),
+                      ].filter(Boolean).join(' · ') || '—'}
                     </p>
                   </div>
                   <StatusPill label={meta.label} tone={meta.tone} />

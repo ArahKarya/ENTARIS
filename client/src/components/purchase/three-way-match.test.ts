@@ -55,7 +55,7 @@ describe('three-way match status mapping', () => {
 
   it('describes price variance with amount and %', () => {
     const [text] = describeMatchLine(line({ status: 'price' }));
-    expect(text).toContain('Harga faktur');
+    expect(text).toContain('Harga invoice');
     expect(text).toContain('(+3%)');
     expect(text).toMatch(/total \+Rp\s15\.000/);
   });

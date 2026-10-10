@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { formatRupiah } from '@/lib/format';
 import { NumberInput } from '@/components/ui/number-input';
@@ -26,6 +27,7 @@ interface Props {
 }
 
 const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit }) => {
+  const { t } = useTranslation('purchasing');
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [offsetAmount, setOffsetAmount] = useState<number>(0);
@@ -67,7 +69,7 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
   const mutation = useMutation({
     mutationFn: (body: any) => api.post(`/vendor-deposits/${deposit!.id}/refund`, body),
     onSuccess: () => {
-      toast.success('Uang muka vendor diselesaikan.');
+      toast.success(t('refundDeposit.toastDone'));
       queryClient.invalidateQueries({ queryKey: ['vendor-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       queryClient.invalidateQueries({ queryKey: ['journals'] });
@@ -76,7 +78,7 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
       onClose();
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Gagal memproses refund/offset.');
+      setError(err.response?.data?.error || t('refundDeposit.errorFailed'));
     },
   });
 
@@ -88,10 +90,15 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
 
   const handleSubmit = () => {
     setError('');
-    if (!totalValid) { setError('Total offset + kas harus > 0 dan ≤ sisa.'); return; }
-    if (Number(cashAmount) > 0 && !cashAccountId) { setError('Pilih akun kas/bank untuk refund kas.'); return; }
+    if (!totalValid) { setError(t('refundDeposit.errorTotal')); return; }
+    if (Number(cashAmount) > 0 && !cashAccountId) { setError(t('refundDeposit.errorCashAccount')); return; }
     if (Number(offsetAmount) > Number(partyOutstanding ?? 0) + 0.01) {
-      setError(`Offset (${formatRupiah(Number(offsetAmount))}) melebihi total hutang ke vendor (${formatRupiah(Number(partyOutstanding ?? 0))}).`);
+      setError(
+        t('refundDeposit.errorOffsetExceeds', {
+          offset: formatRupiah(Number(offsetAmount)),
+          payable: formatRupiah(Number(partyOutstanding ?? 0)),
+        }),
+      );
       return;
     }
     mutation.mutate({
@@ -111,36 +118,36 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Refund / Offset Uang Muka Vendor"
+      title={t('refundDeposit.title')}
       description={`${deposit.paymentNumber} · ${deposit.party?.name ?? ''}`}
       busy={mutation.isPending}
-      submitLabel="Proses"
-      busyLabel="Memproses…"
+      submitLabel={t('refundDeposit.submit')}
+      busyLabel={t('refundDeposit.submitting')}
       onSubmit={handleSubmit}
       submitDisabled={!totalValid}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-warning/30 bg-warning-subtle px-3 py-2">
-          <p className="text-xs font-semibold uppercase text-warning-text">Sisa Uang Muka</p>
+          <p className="text-xs font-semibold uppercase text-warning-text">{t('refundDeposit.remainingDeposit')}</p>
           <p className="num text-lg font-bold text-warning-text">{formatRupiah(remaining)}</p>
         </div>
         <div className="rounded-lg border border-info/30 bg-info-subtle px-3 py-2">
-          <p className="text-xs font-semibold uppercase text-info-text">Hutang ke Vendor</p>
+          <p className="text-xs font-semibold uppercase text-info-text">{t('refundDeposit.payableToSupplier')}</p>
           <p className="num text-lg font-bold text-info-text">{formatRupiah(Number(partyOutstanding ?? 0))}</p>
         </div>
       </div>
 
-      <Field label="Tanggal">
+      <Field label={t('refundDeposit.date')}>
         <DateInput value={date} onChange={setDate} />
       </Field>
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="refund-offset" className="text-sm font-medium text-foreground">
-            Offset ke Hutang (FIFO invoice terlama)
+            {t('refundDeposit.offsetLabel')}
           </label>
           <Button type="button" variant="link" size="sm" className="min-h-11 sm:min-h-0" onClick={setOffsetMax}>
-            Maks: {formatRupiah(maxOffset)}
+            {t('refundDeposit.max', { amount: formatRupiah(maxOffset) })}
           </Button>
         </div>
         <NumberInput
@@ -157,10 +164,10 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="refund-cash" className="text-sm font-medium text-foreground">
-            Refund Kas dari Vendor (masuk ke Bank)
+            {t('refundDeposit.cashLabel')}
           </label>
           <Button type="button" variant="link" size="sm" className="min-h-11 sm:min-h-0" onClick={setCashRest}>
-            Sisa: {formatRupiah(cashRest)}
+            {t('refundDeposit.rest', { amount: formatRupiah(cashRest) })}
           </Button>
         </div>
         <NumberInput
@@ -174,27 +181,27 @@ const RefundVendorDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit })
         />
         {Number(cashAmount) > 0 && (
           <OptionPicker
-            aria-label="Akun kas/bank untuk refund"
+            aria-label={t('refundDeposit.cashAccountAria')}
             value={cashAccountId}
             onChange={setCashAccountId}
-            placeholder="Pilih akun kas/bank"
+            placeholder={t('refundDeposit.cashAccountPlaceholder')}
             options={(cashAccounts || []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` }))}
             className="mt-2"
           />
         )}
       </div>
 
-      <Field label="Catatan (opsional)">
+      <Field label={t('refundDeposit.notesOptional')}>
         <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
 
       <div className="space-y-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm">
         <div className="flex justify-between gap-2">
-          <span className="text-muted-foreground">Total penyelesaian:</span>
+          <span className="text-muted-foreground">{t('refundDeposit.settlementTotal')}</span>
           <span className="num font-semibold">{formatRupiah(total)}</span>
         </div>
         <div className="flex justify-between gap-2 text-muted-foreground">
-          <span>Sisa setelah ini:</span>
+          <span>{t('refundDeposit.remainingAfter')}</span>
           <span className="num">{formatRupiah(Math.max(0, remaining - total))}</span>
         </div>
       </div>
