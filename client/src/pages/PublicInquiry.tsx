@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle2, Mail, MessageSquareText, Phone, Send } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import api from '../lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,11 +53,13 @@ const EMPTY_FORM: FormValues = { name: '', phone: '', email: '', itemsText: '' }
 /** Client-side checks mirror the server schema (routes/public.ts) so bad input never costs a rate-limit slot. */
 function validate(values: FormValues): FieldErrors {
   const errors: FieldErrors = {};
-  if (values.name.trim().length < 2) errors.name = 'Nama minimal 2 karakter.';
+  const msg = (key: 'nameMin' | 'phoneMin' | 'emailInvalid' | 'itemsMin', min?: number) =>
+    i18n.t(`publicInquiry.errors.${key}`, { ns: 'auth', min });
+  if (values.name.trim().length < 2) errors.name = msg('nameMin', 2);
   const digits = values.phone.replace(/\D/g, '');
-  if (values.phone.trim().length < 8 || digits.length < 8) errors.phone = 'Nomor telepon/WhatsApp minimal 8 digit.';
-  if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) errors.email = 'Format email belum benar.';
-  if (values.itemsText.trim().length < 10) errors.itemsText = 'Tuliskan kebutuhan Anda, minimal 10 karakter.';
+  if (values.phone.trim().length < 8 || digits.length < 8) errors.phone = msg('phoneMin', 8);
+  if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) errors.email = msg('emailInvalid');
+  if (values.itemsText.trim().length < 10) errors.itemsText = msg('itemsMin', 10);
   return errors;
 }
 
@@ -70,12 +74,13 @@ function initials(name: string): string {
 }
 
 function TenantIdentity({ branding, companyName }: { branding: Branding | null; companyName: string | null }) {
+  const { t } = useTranslation('auth');
   if (branding?.logoUrl) {
     const darkLogo = branding.logoUrlDark || branding.logoUrl;
     return (
       <div className="flex h-12 items-center">
-        <img src={branding.logoUrl} alt={companyName ?? 'Logo perusahaan'} className="h-12 max-w-[180px] object-contain dark:hidden" />
-        <img src={darkLogo} alt={companyName ?? 'Logo perusahaan'} className="hidden h-12 max-w-[180px] object-contain dark:block" />
+        <img src={branding.logoUrl} alt={companyName ?? t('publicInquiry.companyLogo')} className="h-12 max-w-[180px] object-contain dark:hidden" />
+        <img src={darkLogo} alt={companyName ?? t('publicInquiry.companyLogo')} className="hidden h-12 max-w-[180px] object-contain dark:block" />
       </div>
     );
   }
@@ -97,10 +102,11 @@ function TenantIdentity({ branding, companyName }: { branding: Branding | null; 
 }
 
 function ContactLinks({ phone, email }: { phone?: string | null; email?: string | null }) {
+  const { t } = useTranslation('auth');
   if (!phone && !email) return null;
   return (
     <div className="mt-6 border-t border-border pt-5 text-sm">
-      <p className="text-muted-foreground">Butuh jawaban lebih cepat? Hubungi kami:</p>
+      <p className="text-muted-foreground">{t('publicInquiry.contactPrompt')}</p>
       <ul className="mt-2 flex flex-col items-center gap-1.5">
         {phone && (
           <li>
@@ -122,14 +128,20 @@ function ContactLinks({ phone, email }: { phone?: string | null; email?: string 
 }
 
 function PoweredBy() {
+  const { t } = useTranslation('auth');
   return (
     <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-      Formulir oleh <BrandMark variant="auto" size={14} title="" /> <span className="font-semibold">Entaris</span>
+      <Trans
+        t={t}
+        i18nKey="publicInquiry.poweredBy"
+        components={{ mark: <BrandMark variant="auto" size={14} title="" />, strong: <span className="font-semibold" /> }}
+      />
     </p>
   );
 }
 
 export default function PublicInquiry() {
+  const { t } = useTranslation(['auth', 'common']);
   const [searchParams] = useSearchParams();
   const srcParam = searchParams.get('src')?.toLowerCase() ?? '';
   const channel = CHANNEL_FROM_SRC[srcParam] ?? 'Lainnya';
@@ -151,8 +163,8 @@ export default function PublicInquiry() {
   }, []);
 
   useEffect(() => {
-    document.title = companyName ? `Tanya Harga · ${companyName}` : 'Tanya Harga & Pemesanan';
-  }, [companyName]);
+    document.title = companyName ? t('publicInquiry.docTitleCompany', { company: companyName }) : t('publicInquiry.title');
+  }, [companyName, t]);
 
   const setField = (field: FieldName, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -185,7 +197,7 @@ export default function PublicInquiry() {
       setSuccess({ inquiryNumber: res.data.inquiryNumber, message: res.data.message });
     } catch (err: unknown) {
       const apiError = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setFormError(apiError ?? 'Permintaan belum terkirim. Periksa koneksi Anda lalu coba lagi.');
+      setFormError(apiError ?? t('publicInquiry.sendFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -203,15 +215,15 @@ export default function PublicInquiry() {
         <div className="w-full max-w-md">
           <section className="rounded-xl border border-border bg-card p-6 text-center shadow-[var(--shadow-2)] sm:p-8" aria-live="polite">
             <CheckCircle2 className="mx-auto mb-4 size-8 text-success-text" aria-hidden />
-            <h1 className="text-xl font-semibold text-foreground">Terima kasih, permintaan terkirim</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t('publicInquiry.successTitle')}</h1>
             <p className="mt-2 text-sm text-foreground-secondary">{success.message}</p>
             <div className="mt-5 rounded-lg bg-surface-sunken px-4 py-3">
-              <p className="text-xs text-muted-foreground">Nomor referensi</p>
+              <p className="text-xs text-muted-foreground">{t('publicInquiry.reference')}</p>
               <p className="mt-0.5 font-mono text-base font-semibold text-foreground">{success.inquiryNumber}</p>
             </div>
             <ContactLinks phone={branding?.phone} email={branding?.email} />
             <Button variant="ghost" size="sm" className="mt-5" onClick={resetForm}>
-              <ArrowLeft aria-hidden /> Kirim permintaan lain
+              <ArrowLeft aria-hidden /> {t('publicInquiry.sendAnother')}
             </Button>
           </section>
           <PoweredBy />
@@ -228,37 +240,36 @@ export default function PublicInquiry() {
             <TenantIdentity branding={branding} companyName={companyName} />
             <div>
               {companyName && <p className="text-sm font-medium text-foreground-secondary">{companyName}</p>}
-              <h1 className="mt-0.5 text-xl font-semibold text-foreground">Tanya Harga &amp; Pemesanan</h1>
+              <h1 className="mt-0.5 text-xl font-semibold text-foreground">{t('publicInquiry.title')}</h1>
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Ceritakan kebutuhan Anda. Tim sales akan menghubungi Anda dalam 1×24 jam dengan penawaran harga dan
-              ketersediaan stok.
+              {t('publicInquiry.intro')}
             </p>
           </header>
 
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 px-5 py-6 sm:px-8" aria-label="Formulir tanya harga">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 px-5 py-6 sm:px-8" aria-label={t('publicInquiry.formLabel')}>
             {/* Honeypot — hidden from real users and assistive tech. */}
             <div className="absolute -left-[9999px] -top-[9999px]" aria-hidden="true">
               <label>
-                Website (jangan diisi)
+                {t('publicInquiry.honeypot')}
                 <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
               </label>
             </div>
 
-            <Field label="Nama / nama perusahaan" required error={errors.name} id="inquiry-name">
+            <Field label={t('publicInquiry.name')} required error={errors.name} id="inquiry-name">
               <Input
                 name="name"
                 autoComplete="name"
                 autoCapitalize="words"
                 value={values.name}
                 onChange={(e) => setField('name', e.target.value)}
-                placeholder="Nama perusahaan atau perorangan"
+                placeholder={t('publicInquiry.namePlaceholder')}
                 maxLength={200}
                 className="h-11 md:h-10"
               />
             </Field>
 
-            <Field label="Telepon / WhatsApp" required error={errors.phone} id="inquiry-phone">
+            <Field label={t('publicInquiry.phone')} required error={errors.phone} id="inquiry-phone">
               <Input
                 name="phone"
                 type="tel"
@@ -273,7 +284,7 @@ export default function PublicInquiry() {
             </Field>
 
             <Field
-              label={<>Email <span className="font-normal text-muted-foreground">(opsional)</span></>}
+              label={<>{t('publicInquiry.email')} <span className="font-normal text-muted-foreground">({t('common:labels.optional')})</span></>}
               error={errors.email}
               id="inquiry-email"
             >
@@ -286,17 +297,17 @@ export default function PublicInquiry() {
                 spellCheck={false}
                 value={values.email}
                 onChange={(e) => setField('email', e.target.value)}
-                placeholder="nama@perusahaan.com"
+                placeholder={t('publicInquiry.emailPlaceholder')}
                 maxLength={200}
                 className="h-11 md:h-10"
               />
             </Field>
 
             <Field
-              label="Apa yang ingin Anda tanyakan?"
+              label={t('publicInquiry.items')}
               required
               error={errors.itemsText}
-              hint={`Sebutkan produk, jumlah, dan kota pengiriman. ${values.itemsText.length}/${ITEMS_MAX} karakter.`}
+              hint={t('publicInquiry.itemsHint', { length: values.itemsText.length, max: ITEMS_MAX })}
               id="inquiry-itemsText"
             >
               <Textarea
@@ -304,7 +315,7 @@ export default function PublicInquiry() {
                 value={values.itemsText}
                 onChange={(e) => setField('itemsText', e.target.value)}
                 rows={5}
-                placeholder="Contoh: Butuh Produk A 25 kg sebanyak 100 sak, dikirim ke Bandung pekan depan."
+                placeholder={t('publicInquiry.itemsPlaceholder')}
                 maxLength={ITEMS_MAX}
                 className="min-h-32 resize-y"
               />
@@ -319,11 +330,11 @@ export default function PublicInquiry() {
 
             <Button type="submit" size="lg" loading={submitting} className="h-11 w-full">
               {!submitting && <Send aria-hidden />}
-              {submitting ? 'Mengirim…' : 'Kirim permintaan'}
+              {submitting ? t('publicInquiry.sending') : t('publicInquiry.submit')}
             </Button>
 
             <p className="text-center text-xs leading-relaxed text-muted-foreground">
-              Dengan mengirim formulir ini, Anda setuju data kontak disimpan untuk menindaklanjuti penawaran.
+              {t('publicInquiry.consent')}
             </p>
           </form>
         </section>

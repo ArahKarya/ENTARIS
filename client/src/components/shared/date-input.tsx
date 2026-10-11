@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type DateInputProps = {
   id?: string;
@@ -50,13 +51,14 @@ export function DateInput({
   id,
   value,
   onChange,
-  placeholder = 'dd/mm/yyyy',
+  placeholder,
   disabled,
   className,
   required,
   min,
   max,
 }: DateInputProps) {
+  const { t } = useTranslation('common');
   const [display, setDisplay] = useState(() => isoToDisplay(value));
   const [prevValue, setPrevValue] = useState(value);
   const nativeRef = useRef<HTMLInputElement>(null);
@@ -97,7 +99,7 @@ export function DateInput({
         id={id}
         type="text"
         inputMode="numeric"
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('dateInput.placeholder')}
         value={display}
         onChange={(e) => handleChange(e.target.value)}
         disabled={disabled}
@@ -111,7 +113,7 @@ export function DateInput({
         onClick={openNativePicker}
         disabled={disabled}
         className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Pilih tanggal"
+        aria-label={t('dateInput.openPicker')}
         tabIndex={-1}
       >
         <CalendarDays className="size-4" />

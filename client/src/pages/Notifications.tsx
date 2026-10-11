@@ -20,6 +20,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import type shellId from '@/locales/id/shell.json';
 import api from '@/lib/api';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import type { StatusTone } from '@/lib/status';
@@ -56,6 +59,8 @@ interface TypeCount {
   count: number;
 }
 
+type TypeKey = keyof (typeof shellId)['notifications']['types'];
+
 interface TypeMeta {
   label: string;
   tone: StatusTone;
@@ -64,34 +69,35 @@ interface TypeMeta {
 
 const ENDPOINT = '/notifications';
 const FILTER_KEYS = ['isRead', 'type'] as const;
-const READ_FILTER = [
-  { value: 'false', label: 'Belum dibaca' },
-  { value: 'true', label: 'Sudah dibaca' },
+const readFilter = () => [
+  { value: 'false', label: i18n.t('notifications.unread', { ns: 'shell' }) },
+  { value: 'true', label: i18n.t('notifications.read', { ns: 'shell' }) },
 ];
 const ALL = '__all__';
 
-const TYPE_META: Record<string, TypeMeta> = {
-  invoice_overdue: { label: 'Faktur Jatuh Tempo', tone: 'danger', icon: FileWarning },
-  payment_received: { label: 'Pembayaran', tone: 'success', icon: CreditCard },
-  low_stock: { label: 'Stok Rendah', tone: 'warning', icon: Package },
-  approval_pending: { label: 'Menunggu Persetujuan', tone: 'warning', icon: ClipboardCheck },
-  approval_approved: { label: 'Disetujui', tone: 'success', icon: CheckCheck },
-  approval_rejected: { label: 'Ditolak', tone: 'danger', icon: Ban },
-  approval_revision: { label: 'Perlu Revisi', tone: 'warning', icon: FileWarning },
-  quotation_expiring: { label: 'Penawaran Kedaluwarsa', tone: 'warning', icon: CalendarClock },
-  guarantee_due: { label: 'Jaminan Jatuh Tempo', tone: 'warning', icon: ShieldCheck },
-  po_overdue: { label: 'PO Terlambat', tone: 'danger', icon: Truck },
-  cash_book_draft: { label: 'Draft Buku Kas', tone: 'info', icon: NotebookPen },
-  wo_overdue: { label: 'WO Terlambat', tone: 'danger', icon: Wrench },
-  wo_assigned: { label: 'WO Ditugaskan', tone: 'info', icon: Wrench },
-  wo_completed: { label: 'WO Selesai', tone: 'success', icon: Wrench },
-  mr_pending: { label: 'Permintaan Material', tone: 'warning', icon: ClipboardCheck },
-  mr_approved: { label: 'Permintaan Disetujui', tone: 'success', icon: CheckCheck },
-  mr_rejected: { label: 'Permintaan Ditolak', tone: 'danger', icon: Ban },
-  calibration_due: { label: 'Kalibrasi', tone: 'warning', icon: CalendarClock },
-  document_expiring: { label: 'Dokumen Kedaluwarsa', tone: 'warning', icon: CalendarClock },
-  rental_expiring: { label: 'Sewa Berakhir', tone: 'warning', icon: CalendarClock },
-  system: { label: 'Sistem', tone: 'neutral', icon: Info },
+/** Label: `shell:notifications.types.<key>`. */
+const TYPE_META: Record<string, { key: TypeKey; tone: StatusTone; icon: LucideIcon }> = {
+  invoice_overdue: { key: 'invoice_overdue', tone: 'danger', icon: FileWarning },
+  payment_received: { key: 'payment_received', tone: 'success', icon: CreditCard },
+  low_stock: { key: 'low_stock', tone: 'warning', icon: Package },
+  approval_pending: { key: 'approval_pending', tone: 'warning', icon: ClipboardCheck },
+  approval_approved: { key: 'approval_approved', tone: 'success', icon: CheckCheck },
+  approval_rejected: { key: 'approval_rejected', tone: 'danger', icon: Ban },
+  approval_revision: { key: 'approval_revision', tone: 'warning', icon: FileWarning },
+  quotation_expiring: { key: 'quotation_expiring', tone: 'warning', icon: CalendarClock },
+  guarantee_due: { key: 'guarantee_due', tone: 'warning', icon: ShieldCheck },
+  po_overdue: { key: 'po_overdue', tone: 'danger', icon: Truck },
+  cash_book_draft: { key: 'cash_book_draft', tone: 'info', icon: NotebookPen },
+  wo_overdue: { key: 'wo_overdue', tone: 'danger', icon: Wrench },
+  wo_assigned: { key: 'wo_assigned', tone: 'info', icon: Wrench },
+  wo_completed: { key: 'wo_completed', tone: 'success', icon: Wrench },
+  mr_pending: { key: 'mr_pending', tone: 'warning', icon: ClipboardCheck },
+  mr_approved: { key: 'mr_approved', tone: 'success', icon: CheckCheck },
+  mr_rejected: { key: 'mr_rejected', tone: 'danger', icon: Ban },
+  calibration_due: { key: 'calibration_due', tone: 'warning', icon: CalendarClock },
+  document_expiring: { key: 'document_expiring', tone: 'warning', icon: CalendarClock },
+  rental_expiring: { key: 'rental_expiring', tone: 'warning', icon: CalendarClock },
+  system: { key: 'system', tone: 'neutral', icon: Info },
 };
 
 const ICON_TONE: Record<StatusTone, string> = {
@@ -104,22 +110,25 @@ const ICON_TONE: Record<StatusTone, string> = {
 };
 
 function typeMeta(type: string): TypeMeta {
-  return TYPE_META[type] ?? { label: type.replace(/_/g, ' '), tone: 'neutral', icon: Info };
+  const meta = TYPE_META[type];
+  if (!meta) return { label: type.replace(/_/g, ' '), tone: 'neutral', icon: Info };
+  return { label: i18n.t(`notifications.types.${meta.key}`, { ns: 'shell' }), tone: meta.tone, icon: meta.icon };
 }
 
 /** "Baru saja" / "5 menit lalu" / "3 jam lalu" / "2 hari lalu", then the date. */
 function relativeTime(value: string, now = Date.now()): string {
   const minutes = Math.floor((now - new Date(value).getTime()) / 60000);
-  if (minutes < 1) return 'Baru saja';
-  if (minutes < 60) return `${minutes} menit lalu`;
+  if (minutes < 1) return i18n.t('relativeTime.justNow', { ns: 'common' });
+  if (minutes < 60) return i18n.t('relativeTime.minutesAgo', { ns: 'common', count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
+  if (hours < 24) return i18n.t('relativeTime.hoursAgo', { ns: 'common', count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} hari lalu`;
+  if (days < 7) return i18n.t('relativeTime.daysAgo', { ns: 'common', count: days });
   return formatDate(value);
 }
 
 export const Notifications = () => {
+  const { t } = useTranslation(['shell', 'common']);
   const list = useListState({ filters: FILTER_KEYS });
   const [density, setDensity] = useTableDensity();
   const queryClient = useQueryClient();
@@ -147,16 +156,16 @@ export const Notifications = () => {
   const markRead = useMutation({
     mutationFn: (id: string) => api.patch(`${ENDPOINT}/${id}/read`),
     onSuccess: invalidate,
-    onError: () => toast.error('Gagal menandai notifikasi.'),
+    onError: () => toast.error(t('notifications.markFailed')),
   });
 
   const markAllRead = useMutation({
     mutationFn: () => api.patch(`${ENDPOINT}/read-all`),
     onSuccess: () => {
       invalidate();
-      toast.success('Semua notifikasi ditandai sudah dibaca.');
+      toast.success(t('notifications.allMarked'));
     },
-    onError: () => toast.error('Gagal menandai semua notifikasi.'),
+    onError: () => toast.error(t('notifications.markAllFailed')),
   });
 
   const openNotification = (n: NotificationRow) => {
@@ -169,7 +178,7 @@ export const Notifications = () => {
     () => [
       {
         id: 'notification',
-        header: 'Notifikasi',
+        header: t('notifications.columns.notification'),
         meta: { cellClassName: 'min-w-56' },
         cell: ({ row }) => {
           const n = row.original;
@@ -188,7 +197,7 @@ export const Notifications = () => {
                   {!n.isRead && (
                     <>
                       <span className="mr-1.5 inline-block size-2 rounded-full bg-primary align-middle" aria-hidden />
-                      <span className="sr-only">Belum dibaca: </span>
+                      <span className="sr-only">{t('notifications.unreadPrefix')} </span>
                     </>
                   )}
                   {n.title}
@@ -208,7 +217,7 @@ export const Notifications = () => {
       },
       {
         id: 'type',
-        header: 'Jenis',
+        header: t('notifications.columns.type'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => {
           const meta = typeMeta(row.original.type);
@@ -217,7 +226,7 @@ export const Notifications = () => {
       },
       {
         id: 'createdAt',
-        header: 'Waktu',
+        header: t('notifications.columns.time'),
         meta: { hideBelow: 'sm', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => (
           <time dateTime={row.original.createdAt} title={formatDateTime(row.original.createdAt)}>
@@ -227,17 +236,17 @@ export const Notifications = () => {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('common:labels.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const n = row.original;
           const hasLink = !!notificationLink(n, currentUserRole());
           return (
             <RowActions
-              label={`Aksi untuk notifikasi ${n.title}`}
+              label={t('notifications.rowActions', { title: n.title })}
               actions={[
-                { label: 'Buka', icon: ExternalLink, hidden: !hasLink, onSelect: () => openNotification(n) },
-                { label: 'Tandai sudah dibaca', icon: CheckCheck, hidden: n.isRead, onSelect: () => markRead.mutate(n.id) },
+                { label: t('common:actions.open'), icon: ExternalLink, hidden: !hasLink, onSelect: () => openNotification(n) },
+                { label: t('notifications.markRead'), icon: CheckCheck, hidden: n.isRead, onSelect: () => markRead.mutate(n.id) },
               ]}
             />
           );
@@ -245,7 +254,7 @@ export const Notifications = () => {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [t],
   );
 
   const unreadCount = listQuery.data?.unreadCount;
@@ -254,13 +263,13 @@ export const Notifications = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Notifikasi"
+        title={t('notifications.title')}
         description={
           unreadCount === undefined
-            ? 'Pemberitahuan sistem untuk akun Anda.'
+            ? t('notifications.description')
             : unreadCount > 0
-              ? `${formatNumber(unreadCount)} notifikasi belum dibaca.`
-              : 'Semua notifikasi sudah dibaca.'
+              ? t('notifications.unreadCount', { count: unreadCount, formatted: formatNumber(unreadCount) })
+              : t('notifications.allRead')
         }
         actions={
           <Button
@@ -270,7 +279,7 @@ export const Notifications = () => {
             disabled={!unreadCount}
           >
             <CheckCheck aria-hidden />
-            Tandai Semua Dibaca
+            {t('notifications.markAllRead')}
           </Button>
         }
       />
@@ -278,13 +287,18 @@ export const Notifications = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari notifikasi"
-          searchPlaceholder="Cari judul atau isi notifikasi"
-          status={{ key: 'isRead', options: READ_FILTER, label: 'Status baca', allLabel: 'Semua status' }}
+          searchLabel={t('notifications.searchLabel')}
+          searchPlaceholder={t('notifications.searchPlaceholder')}
+          status={{
+            key: 'isRead',
+            options: readFilter(),
+            label: t('notifications.readStatus'),
+            allLabel: t('common:filters.allStatuses'),
+          }}
         >
           <div className="w-[calc(50%-0.25rem)] sm:w-56">
             <label htmlFor="notifications-type" className="sr-only">
-              Jenis notifikasi
+              {t('notifications.typeFilter')}
             </label>
             <Select
               value={list.filters.type || ALL}
@@ -294,14 +308,14 @@ export const Notifications = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>Semua jenis</SelectItem>
+                <SelectItem value={ALL}>{t('notifications.allTypes')}</SelectItem>
                 {/* Keep a filtered type selectable even if it no longer has rows. */}
-                {list.filters.type && !typeOptions.some((t) => t.type === list.filters.type) && (
+                {list.filters.type && !typeOptions.some((opt) => opt.type === list.filters.type) && (
                   <SelectItem value={list.filters.type}>{typeMeta(list.filters.type).label}</SelectItem>
                 )}
-                {typeOptions.map((t) => (
-                  <SelectItem key={t.type} value={t.type}>
-                    {typeMeta(t.type).label} ({formatNumber(t.count)})
+                {typeOptions.map((opt) => (
+                  <SelectItem key={opt.type} value={opt.type}>
+                    {typeMeta(opt.type).label} ({formatNumber(opt.count)})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -311,8 +325,8 @@ export const Notifications = () => {
 
         <DataTable
           {...listTableProps(list, listQuery.data?.total)}
-          label="Daftar notifikasi"
-          itemLabel="notifikasi"
+          label={t('notifications.tableLabel')}
+          itemLabel={t('notifications.itemLabel')}
           columns={columns}
           data={listQuery.data?.data}
           getRowId={(row) => row.id}
@@ -325,8 +339,8 @@ export const Notifications = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada notifikasi',
-            description: 'Pemberitahuan jatuh tempo, stok, dan persetujuan akan muncul di sini.',
+            title: t('notifications.emptyTitle'),
+            description: t('notifications.emptyDescription'),
           }}
         />
       </div>
