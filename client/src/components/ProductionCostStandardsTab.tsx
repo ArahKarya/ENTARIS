@@ -8,6 +8,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowDownToLine, ArrowUpFromLine, Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can, cap } from '@/lib/permissions';
 import { formatNumber, formatRupiah } from '@/lib/format';
@@ -66,17 +67,16 @@ const blankForm: FormState = {
   warehouseId: '',
 };
 
-const SIDE_LABEL: Record<CostSide, string> = { InputSide: 'Sisi input', OutputSide: 'Sisi output' };
-const BASIS_LABEL: Record<Basis, string> = { InputQty: 'Per kg input', OutputQty: 'Per kg output', Fixed: 'Tetap per proses' };
-const BASIS_UNIT: Record<Basis, string> = { InputQty: '/kg input', OutputQty: '/kg output', Fixed: '/proses' };
-const SIDE_FILTER = [
-  { value: 'InputSide', label: 'Sisi input' },
-  { value: 'OutputSide', label: 'Sisi output' },
-];
+const COST_SIDES: readonly CostSide[] = ['InputSide', 'OutputSide'];
+
+/** Quantity (kg) used in the rate example under the rate field. */
+const EXAMPLE_QTY = 10_000;
 
 const fmtRate = (v: string | number) => formatRupiah(v, { decimals: Number(v) % 1 === 0 ? 0 : 2 });
 
 export default function ProductionCostStandardsTab() {
+  const { t } = useTranslation('production');
+  const sideFilter = COST_SIDES.map((value) => ({ value, label: t(`productionCostStandardsTab.side.${value}`) }));
   const canEdit = can('production', 'edit');
   const canDelete = canEdit && cap('doc.cancel');
   const queryClient = useQueryClient();
@@ -113,10 +113,10 @@ export default function ProductionCostStandardsTab() {
   const toggleActive = async (s: CostStandard) => {
     try {
       await api.put(`/inventory/production-cost-standards/${s.id}`, { isActive: !s.isActive });
-      toast.success(s.isActive ? `Standar "${s.name}" dinonaktifkan.` : `Standar "${s.name}" diaktifkan.`);
+      toast.success(s.isActive ? t('productionCostStandardsTab.toast.deactivated', { name: s.name }) : t('productionCostStandardsTab.toast.activated', { name: s.name }));
       invalidate();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal mengubah status standar biaya.'));
+      toast.error(errorMessage(err, t('productionCostStandardsTab.toast.toggleFailed')));
     }
   };
 
@@ -124,10 +124,10 @@ export default function ProductionCostStandardsTab() {
     if (!deleteTarget) return;
     try {
       const res = await api.delete(`/inventory/production-cost-standards/${deleteTarget.id}`);
-      toast.success(res.data?.message || 'Standar biaya dihapus.');
+      toast.success(res.data?.message || t('productionCostStandardsTab.toast.deleted'));
       invalidate();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal menghapus standar biaya.'));
+      toast.error(errorMessage(err, t('productionCostStandardsTab.toast.deleteFailed')));
       throw err;
     }
   };
@@ -137,7 +137,7 @@ export default function ProductionCostStandardsTab() {
       {
         id: 'name',
         accessorKey: 'name',
-        header: 'Standar Biaya',
+        header: t('productionCostStandardsTab.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-40 max-w-80' },
         cell: ({ row }) => {
@@ -147,7 +147,7 @@ export default function ProductionCostStandardsTab() {
               <p className="font-medium text-foreground">{s.name}</p>
               {s.description && <p className="line-clamp-1 text-xs text-muted-foreground">{s.description}</p>}
               <p className="text-xs text-muted-foreground md:hidden">
-                {SIDE_LABEL[s.costSide]} · {BASIS_LABEL[s.basis]}
+                {t(`productionCostStandardsTab.side.${s.costSide}`)} · {t(`productionCostStandardsTab.basis.${s.basis}`)}
               </p>
             </div>
           );
@@ -156,7 +156,7 @@ export default function ProductionCostStandardsTab() {
       {
         id: 'costSide',
         accessorKey: 'costSide',
-        header: 'Sisi',
+        header: t('productionCostStandardsTab.columns.side'),
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
@@ -165,7 +165,7 @@ export default function ProductionCostStandardsTab() {
           return (
             <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
               <Icon className={input ? 'size-4 text-info-text' : 'size-4 text-success-text'} aria-hidden />
-              {input ? 'Input' : 'Output'}
+              {input ? t('productionCostStandardsTab.sideShort.input') : t('productionCostStandardsTab.sideShort.output')}
             </span>
           );
         },
@@ -173,41 +173,41 @@ export default function ProductionCostStandardsTab() {
       {
         id: 'basis',
         accessorKey: 'basis',
-        header: 'Basis',
+        header: t('productionCostStandardsTab.columns.basis'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap text-muted-foreground' },
-        cell: ({ row }) => BASIS_LABEL[row.original.basis],
+        cell: ({ row }) => t(`productionCostStandardsTab.basis.${row.original.basis}`),
       },
       {
         id: 'defaultRate',
         accessorFn: (s) => Number(s.defaultRate),
-        header: 'Tarif',
+        header: t('productionCostStandardsTab.columns.rate'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
         cell: ({ row }) => (
           <span className="text-foreground">
             {fmtRate(row.original.defaultRate)}
-            <span className="ml-1 text-xs text-muted-foreground">{BASIS_UNIT[row.original.basis]}</span>
+            <span className="ml-1 text-xs text-muted-foreground">{t(`productionCostStandardsTab.basisUnit.${row.original.basis}`)}</span>
           </span>
         ),
       },
       {
         id: 'scope',
-        header: 'Lingkup',
+        header: t('productionCostStandardsTab.columns.scope'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-56' },
         cell: ({ row }) => {
           const s = row.original;
           return (
             <div className="min-w-0 text-xs">
-              <p className="truncate text-foreground">{s.warehouse ? `${s.warehouse.code} · ${s.warehouse.name}` : 'Semua gudang'}</p>
-              <p className="truncate text-muted-foreground">{s.item ? s.item.name : 'Semua item'}</p>
+              <p className="truncate text-foreground">{s.warehouse ? `${s.warehouse.code} · ${s.warehouse.name}` : t('productionCostStandardsTab.allWarehouses')}</p>
+              <p className="truncate text-muted-foreground">{s.item ? s.item.name : t('productionCostStandardsTab.allItems')}</p>
             </div>
           );
         },
       },
       {
         id: 'account',
-        header: 'Akun (tag)',
+        header: t('productionCostStandardsTab.columns.account'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-48 text-xs' },
         cell: ({ row }) => {
           const a = row.original.costAccount;
@@ -223,29 +223,29 @@ export default function ProductionCostStandardsTab() {
       {
         id: 'status',
         accessorFn: (s) => (s.isActive ? 1 : 0),
-        header: 'Status',
+        header: t('productionCostStandardsTab.columns.status'),
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'active' : 'inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('productionCostStandardsTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const s = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${s.name}`}
+              label={t('productionCostStandardsTab.rowActions', { name: s.name })}
               actions={[
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: s }) },
+                { label: t('productionCostStandardsTab.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setSheet({ edit: s }) },
                 {
-                  label: s.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  label: s.isActive ? t('productionCostStandardsTab.actions.deactivate') : t('productionCostStandardsTab.actions.activate'),
                   icon: s.isActive ? PowerOff : Power,
                   hidden: !canEdit,
                   onSelect: () => toggleActive(s),
                 },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(s) },
+                { label: t('productionCostStandardsTab.actions.delete'), icon: Trash2, tone: 'danger', hidden: !canDelete, onSelect: () => setDeleteTarget(s) },
               ]}
             />
           );
@@ -253,45 +253,57 @@ export default function ProductionCostStandardsTab() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toggleActive only closes over stable setters
-    [canEdit, canDelete],
+    [t, canEdit, canDelete],
   );
 
   return (
     <div className="space-y-4">
       <InfoNote>
-        Tarif acuan untuk menghitung HPP per kg pada proses produksi. <strong className="font-medium text-foreground">Tidak memposting jurnal</strong>.
-        Biaya riil (listrik, gaji, dll.) tetap masuk laba rugi lewat tagihan/jurnal. Mengubah master tidak mengubah HPP
-        produksi yang sudah tercatat.
+        <Trans
+          t={t}
+          i18nKey="productionCostStandardsTab.info"
+          components={{ strong: <strong className="font-medium text-foreground" /> }}
+        />
       </InfoNote>
 
       <MasterToolbar
         search={search}
         onSearch={setSearch}
-        searchLabel="Cari standar biaya"
-        searchPlaceholder="Cari nama, item, atau akun"
+        searchLabel={t('productionCostStandardsTab.searchLabel')}
+        searchPlaceholder={t('productionCostStandardsTab.searchPlaceholder')}
         status={status}
         onStatus={setStatus}
         summary={
           all.length > 0
-            ? `${formatNumber(counts.total)} standar · ${formatNumber(inputCount)} input · ${formatNumber(counts.total - inputCount)} output`
+            ? t('productionCostStandardsTab.summary', {
+                total: formatNumber(counts.total),
+                input: formatNumber(inputCount),
+                output: formatNumber(counts.total - inputCount),
+              })
             : undefined
         }
         action={
           canEdit && (
             <Button onClick={() => setSheet({ edit: null })}>
               <Plus aria-hidden />
-              Standar Baru
+              {t('productionCostStandardsTab.newStandard')}
             </Button>
           )
         }
       >
-        <SelectFilter label="Sisi biaya" allLabel="Semua sisi" options={SIDE_FILTER} value={side} onChange={setSide} />
-        <WarehouseFilter value={warehouseId} onChange={setWarehouseId} allLabel="Semua gudang" />
+        <SelectFilter
+          label={t('productionCostStandardsTab.sideFilter')}
+          allLabel={t('productionCostStandardsTab.allSides')}
+          options={sideFilter}
+          value={side}
+          onChange={setSide}
+        />
+        <WarehouseFilter value={warehouseId} onChange={setWarehouseId} allLabel={t('productionCostStandardsTab.allWarehouses')} />
       </MasterToolbar>
 
       <DataTable
-        label="Daftar standar biaya produksi"
-        itemLabel="standar"
+        label={t('productionCostStandardsTab.tableLabel')}
+        itemLabel={t('productionCostStandardsTab.itemLabel')}
         columns={columns}
         data={rows}
         getRowId={(r) => r.id}
@@ -310,12 +322,12 @@ export default function ProductionCostStandardsTab() {
         rowClassName={(s) => (s.isActive ? undefined : 'text-muted-foreground')}
         pageSize={25}
         empty={{
-          title: 'Belum ada standar biaya',
-          description: 'Tambahkan tarif seperti listrik mesin per kg input atau ongkos angkut per kg output.',
+          title: t('productionCostStandardsTab.empty.title'),
+          description: t('productionCostStandardsTab.empty.description'),
           action: canEdit ? (
             <Button size="sm" onClick={() => setSheet({ edit: null })}>
               <Plus aria-hidden />
-              Tambah standar pertama
+              {t('productionCostStandardsTab.empty.action')}
             </Button>
           ) : undefined,
         }}
@@ -336,9 +348,9 @@ export default function ProductionCostStandardsTab() {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus standar biaya?"
-        description={`Hapus "${deleteTarget?.name ?? ''}"? Jika sudah dipakai di produksi, standar akan dinonaktifkan.`}
-        confirmLabel="Ya, hapus"
+        title={t('productionCostStandardsTab.deleteDialog.title')}
+        description={t('productionCostStandardsTab.deleteDialog.description', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('productionCostStandardsTab.deleteDialog.confirm')}
         onConfirm={handleDelete}
       />
     </div>
@@ -372,6 +384,7 @@ function CostStandardFormSheet({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation('production');
   const isEdit = !!editTarget;
   const [form, setForm] = useState<FormState>(() =>
     editTarget
@@ -421,7 +434,7 @@ function CostStandardFormSheet({
     }));
 
   const rate = Number(form.defaultRate.replace(',', '.'));
-  const example = Number.isFinite(rate) && rate > 0 && form.basis !== 'Fixed' ? rate * 10_000 : null;
+  const example = Number.isFinite(rate) && rate > 0 && form.basis !== 'Fixed' ? rate * EXAMPLE_QTY : null;
 
   const submit = async () => {
     setTouched(true);
@@ -441,14 +454,14 @@ function CostStandardFormSheet({
       };
       if (isEdit) {
         await api.put(`/inventory/production-cost-standards/${editTarget.id}`, payload);
-        toast.success('Standar biaya diperbarui.');
+        toast.success(t('productionCostStandardsTab.toast.updated'));
       } else {
         await api.post('/inventory/production-cost-standards', payload);
-        toast.success('Standar biaya dibuat.');
+        toast.success(t('productionCostStandardsTab.toast.created'));
       }
       onSaved();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal menyimpan standar biaya.'));
+      setServerError(errorMessage(err, t('productionCostStandardsTab.toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -458,57 +471,69 @@ function CostStandardFormSheet({
     <FormSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title={isEdit ? 'Edit standar biaya' : 'Standar biaya baru'}
-      description={isEdit ? `Mengubah ${editTarget.name}. HPP produksi lama tidak berubah.` : 'Tarif acuan untuk menghitung HPP loaded.'}
+      title={isEdit ? t('productionCostStandardsTab.form.editTitle') : t('productionCostStandardsTab.form.newTitle')}
+      description={
+        isEdit
+          ? t('productionCostStandardsTab.form.editDescription', { name: editTarget.name })
+          : t('productionCostStandardsTab.form.newDescription')
+      }
       error={serverError}
       saving={saving}
-      submitLabel={isEdit ? 'Simpan perubahan' : 'Simpan standar'}
+      submitLabel={isEdit ? t('productionCostStandardsTab.form.saveChanges') : t('productionCostStandardsTab.form.save')}
       onSubmit={submit}
       footerNote={
         <>
-          {SIDE_LABEL[form.costSide]} · {BASIS_LABEL[form.basis]}
+          {t(`productionCostStandardsTab.side.${form.costSide}`)} · {t(`productionCostStandardsTab.basis.${form.basis}`)}
           {Number.isFinite(rate) && form.defaultRate && <> · {fmtRate(rate)}</>}
         </>
       }
     >
-      <FormSection title="Sisi biaya">
+      <FormSection title={t('productionCostStandardsTab.form.sideSection')}>
         <ChoiceCards
-          label="Sisi biaya"
+          label={t('productionCostStandardsTab.form.sideSection')}
           value={form.costSide}
           onChange={pickSide}
           options={[
-            { value: 'InputSide', label: 'Sisi input', hint: 'biaya bahan baku masuk', icon: <ArrowDownToLine className="size-4" aria-hidden /> },
-            { value: 'OutputSide', label: 'Sisi output', hint: 'biaya hasil produksi', icon: <ArrowUpFromLine className="size-4" aria-hidden /> },
+            { value: 'InputSide', label: t('productionCostStandardsTab.side.InputSide'), hint: t('productionCostStandardsTab.form.inputSideHint'), icon: <ArrowDownToLine className="size-4" aria-hidden /> },
+            { value: 'OutputSide', label: t('productionCostStandardsTab.side.OutputSide'), hint: t('productionCostStandardsTab.form.outputSideHint'), icon: <ArrowUpFromLine className="size-4" aria-hidden /> },
           ]}
         />
       </FormSection>
 
-      <FormSection title="Identitas">
-        <Field label="Nama standar" required error={errors.name}>
-          <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Listrik mesin produksi" />
+      <FormSection title={t('productionCostStandardsTab.form.identitySection')}>
+        <Field label={t('productionCostStandardsTab.form.name')} required error={errors.name}>
+          <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={t('productionCostStandardsTab.form.namePlaceholder')} />
         </Field>
-        <Field label="Keterangan">
-          <Input value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Estimasi listrik per kg bahan baku" />
+        <Field label={t('productionCostStandardsTab.form.description')}>
+          <Input value={form.description} onChange={(e) => set('description', e.target.value)} placeholder={t('productionCostStandardsTab.form.descriptionPlaceholder')} />
         </Field>
       </FormSection>
 
-      <FormSection title="Tarif & basis">
+      <FormSection title={t('productionCostStandardsTab.form.rateSection')}>
         <ChoiceCards
-          label="Basis perhitungan"
+          label={t('productionCostStandardsTab.form.basisLabel')}
           value={form.basis}
           onChange={(v) => set('basis', v)}
           columns={3}
           options={[
-            { value: 'InputQty', label: 'Per kg input', hint: 'tarif × qty input' },
-            { value: 'OutputQty', label: 'Per kg output', hint: 'tarif × qty output' },
-            { value: 'Fixed', label: 'Tetap per proses', hint: 'tarif = total' },
+            { value: 'InputQty', label: t('productionCostStandardsTab.basis.InputQty'), hint: t('productionCostStandardsTab.form.basisHint.InputQty') },
+            { value: 'OutputQty', label: t('productionCostStandardsTab.basis.OutputQty'), hint: t('productionCostStandardsTab.form.basisHint.OutputQty') },
+            { value: 'Fixed', label: t('productionCostStandardsTab.basis.Fixed'), hint: t('productionCostStandardsTab.form.basisHint.Fixed') },
           ]}
         />
         <Field
-          label={`Tarif (Rp ${BASIS_UNIT[form.basis]})`}
+          label={t('productionCostStandardsTab.form.rate', { unit: t(`productionCostStandardsTab.basisUnit.${form.basis}`) })}
           required
           error={errors.defaultRate}
-          hint={example !== null ? `Contoh: 10.000 kg × ${fmtRate(rate)} = ${formatRupiah(example)}` : undefined}
+          hint={
+            example !== null
+              ? t('productionCostStandardsTab.form.rateExample', {
+                  qty: formatNumber(EXAMPLE_QTY),
+                  rate: fmtRate(rate),
+                  total: formatRupiah(example),
+                })
+              : undefined
+          }
         >
           <FormNumberInput
             value={form.defaultRate}
@@ -521,48 +546,48 @@ function CostStandardFormSheet({
         </Field>
       </FormSection>
 
-      <FormSection title="Lingkup (opsional)">
-        <Field label="Berlaku untuk gudang" hint="Kosongkan agar berlaku untuk semua gudang.">
+      <FormSection title={t('productionCostStandardsTab.form.scopeSection')}>
+        <Field label={t('productionCostStandardsTab.form.warehouse')} hint={t('productionCostStandardsTab.form.warehouseHint')}>
           {(control) => (
             <div id={control.id}>
               <ComboboxFilter
-                label="Berlaku untuk gudang"
+                label={t('productionCostStandardsTab.form.warehouse')}
                 value={form.warehouseId}
                 onChange={(v) => set('warehouseId', v)}
                 options={warehouses.data ?? []}
-                allLabel="Semua gudang"
+                allLabel={t('productionCostStandardsTab.allWarehouses')}
                 loading={warehouses.isLoading}
                 className="w-full"
               />
             </div>
           )}
         </Field>
-        <Field label="Berlaku untuk item" hint="Kosongkan agar bisa dipakai untuk item apa pun.">
+        <Field label={t('productionCostStandardsTab.form.item')} hint={t('productionCostStandardsTab.form.itemHint')}>
           {(control) => (
             <div id={control.id}>
               <ComboboxFilter
-                label="Berlaku untuk item"
+                label={t('productionCostStandardsTab.form.item')}
                 value={form.itemId}
                 onChange={(v) => set('itemId', v)}
                 options={items.data ?? []}
-                allLabel="Semua item"
-                searchPlaceholder="Cari item…"
+                allLabel={t('productionCostStandardsTab.allItems')}
+                searchPlaceholder={t('productionCostStandardsTab.form.searchItem')}
                 loading={items.isLoading}
                 className="w-full"
               />
             </div>
           )}
         </Field>
-        <Field label="Akun biaya (tag laporan)" hint="Tidak ada posting jurnal ke akun ini; hanya untuk pengelompokan laporan.">
+        <Field label={t('productionCostStandardsTab.form.account')} hint={t('productionCostStandardsTab.form.accountHint')}>
           {(control) => (
             <div id={control.id}>
               <ComboboxFilter
-                label="Akun biaya"
+                label={t('productionCostStandardsTab.form.accountShort')}
                 value={form.costAccountId}
                 onChange={(v) => set('costAccountId', v)}
                 options={accounts.data ?? []}
-                allLabel="Tidak ditandai"
-                searchPlaceholder="Cari akun…"
+                allLabel={t('productionCostStandardsTab.form.untagged')}
+                searchPlaceholder={t('productionCostStandardsTab.form.searchAccount')}
                 loading={accounts.isLoading}
                 className="w-full"
               />

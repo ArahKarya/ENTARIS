@@ -7,6 +7,8 @@ import { Plus, Trash2, Layers } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { formatNumber } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,6 +57,7 @@ interface ModalProps {
 }
 
 export function StockTransferModal({ isOpen, onClose }: ModalProps) {
+  const { t } = useTranslation('inventory');
   const today = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
@@ -84,7 +87,7 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
       });
       const { allocations, shortfall } = allocateFifo(batches, qty, claimed);
       if (allocations.length === 0) {
-        toast.error('Tidak ada batch tersedia untuk item ini di gudang asal.');
+        toast.error(t('stockTransferModal.toast.noBatches'));
         return;
       }
       const newRows: TransferItemRow[] = allocations.map(a => ({
@@ -97,13 +100,13 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
       }));
       if (shortfall > 0) {
         newRows.push({ id: crypto.randomUUID(), itemId: row.itemId, quantity: shortfall, unit: row.unit, sourceMovementId: '' });
-        toast.warning(`${shortfall.toLocaleString('id-ID')} melebihi total batch tersedia. Baris sisa memakai biaya rata-rata (WAC).`);
+        toast.warning(t('stockTransferModal.toast.shortfall', { qty: formatNumber(shortfall, { maxDecimals: 3 }) }));
       } else {
-        toast.success(`Dibagi ke ${allocations.length} batch (FIFO).`);
+        toast.success(t('stockTransferModal.toast.split', { count: allocations.length }));
       }
       setItems(prev => [...prev.slice(0, idx), ...newRows, ...prev.slice(idx + 1)]);
     } catch {
-      toast.error('Gagal mengambil daftar batch.');
+      toast.error(t('stockTransferModal.toast.batchesFailed'));
     }
   };
   const [error, setError] = useState('');
@@ -142,23 +145,23 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
   const mutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => api.post('/stock-transfers', data),
     onSuccess: () => {
-      toast.success('Transfer dibuat. Stok sudah pindah, SJG siap dicetak.');
+      toast.success(t('stockTransferModal.toast.created'));
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       onClose();
     },
     onError: (e: unknown) =>
-      setError((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Gagal buat transfer.'),
+      setError((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? t('stockTransferModal.errors.createFailed')),
   });
 
   const handleSubmit = () => {
     setError('');
-    if (!fromWarehouseId) { setError('Pilih gudang asal.'); return; }
-    if (!toWarehouseId) { setError('Pilih gudang tujuan.'); return; }
-    if (fromWarehouseId === toWarehouseId) { setError('Gudang asal dan tujuan harus berbeda.'); return; }
+    if (!fromWarehouseId) { setError(t('stockTransferModal.errors.fromRequired')); return; }
+    if (!toWarehouseId) { setError(t('stockTransferModal.errors.toRequired')); return; }
+    if (fromWarehouseId === toWarehouseId) { setError(t('stockTransferModal.errors.sameWarehouse')); return; }
     const valid = items.filter((it) => it.itemId && it.quantity > 0);
-    if (valid.length === 0) { setError('Tambahkan minimal satu item dengan qty > 0.'); return; }
+    if (valid.length === 0) { setError(t('stockTransferModal.errors.noItems')); return; }
     mutation.mutate({
       date,
       fromWarehouseId,
@@ -190,40 +193,40 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
           className="flex min-h-0 flex-1 flex-col"
         >
           <PinnedHeader>
-            <DialogTitle>Buat Transfer Stok</DialogTitle>
-            <DialogDescription>Stok pindah antar gudang + cetak SJG untuk supir.</DialogDescription>
+            <DialogTitle>{t('stockTransferModal.title')}</DialogTitle>
+            <DialogDescription>{t('stockTransferModal.description')}</DialogDescription>
           </PinnedHeader>
 
           <PinnedBody className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Tanggal">
+              <Field label={t('stockTransferModal.fields.date')}>
                 <DateInput value={date} onChange={setDate} />
               </Field>
               <ComboboxField
-                label="Dari Gudang"
+                label={t('stockTransferModal.fields.from')}
                 required
                 options={whOptions}
                 value={fromWarehouseId}
                 onChange={setFromWarehouseId}
-                placeholder="Pilih gudang asal…"
+                placeholder={t('stockTransferModal.fields.fromPlaceholder')}
               />
               <ComboboxField
-                label="Ke Gudang"
+                label={t('stockTransferModal.fields.to')}
                 required
                 options={whOptions.filter((o) => o.value !== fromWarehouseId)}
                 value={toWarehouseId}
                 onChange={setToWarehouseId}
-                placeholder="Pilih gudang tujuan…"
+                placeholder={t('stockTransferModal.fields.toPlaceholder')}
               />
             </div>
 
             {/* SJG fields: physical delivery metadata printed on the SJG */}
             <fieldset className="space-y-3 rounded-lg border border-border bg-info-subtle/40 p-3">
               <legend className="px-1 text-xs font-semibold uppercase tracking-widest text-info-text">
-                Info Pengiriman (untuk SJG)
+                {t('stockTransferModal.shipping.title')}
               </legend>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="No. Mobil">
+                <Field label={t('stockTransferModal.shipping.vehicle')}>
                   <Input
                     value={nomorMobil}
                     onChange={(e) => setNomorMobil(e.target.value)}
@@ -231,26 +234,26 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
                     className="font-mono uppercase"
                   />
                 </Field>
-                <Field label="Supir">
-                  <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder="Nama supir" />
+                <Field label={t('stockTransferModal.shipping.driver')}>
+                  <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder={t('stockTransferModal.shipping.driverPlaceholder')} />
                 </Field>
-                <Field label="Penerima (Gudang Tujuan)">
+                <Field label={t('stockTransferModal.shipping.recipient')}>
                   <Input
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
-                    placeholder="Nama PIC penerima"
+                    placeholder={t('stockTransferModal.shipping.recipientPlaceholder')}
                   />
                 </Field>
               </div>
               <p className="text-xs text-muted-foreground">
-                Field-field ini opsional, tetapi muncul di cetakan SJG untuk verifikasi waktu serah-terima.
+                {t('stockTransferModal.shipping.hint')}
               </p>
             </fieldset>
 
             <section aria-labelledby="transfer-items-heading">
               <div className="mb-2 flex items-center justify-between">
                 <h3 id="transfer-items-heading" className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                  Item
+                  {t('stockTransferModal.items.title')}
                 </h3>
                 <Button
                   type="button"
@@ -258,7 +261,7 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
                   size="sm"
                   onClick={() => setItems([...items, { id: crypto.randomUUID(), itemId: '', quantity: 0 }])}
                 >
-                  <Plus aria-hidden /> Tambah baris
+                  <Plus aria-hidden /> {t('stockTransferModal.items.addRow')}
                 </Button>
               </div>
               <ul className="space-y-2">
@@ -269,7 +272,7 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
                   >
                     <div className="col-span-2 min-w-0 space-y-2 md:col-span-1">
                       <ComboboxField
-                        label={`Item baris ${idx + 1}`}
+                        label={t('stockTransferModal.items.itemLabel', { n: idx + 1 })}
                         options={itemOptions}
                         value={it.itemId}
                         onChange={(v) => {
@@ -279,16 +282,16 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
                           if (itemMeta) next[idx].unit = itemMeta.unit;
                           setItems(next);
                         }}
-                        placeholder="Pilih item…"
+                        placeholder={t('stockTransferModal.items.itemPlaceholder')}
                       />
                       {/* Optional batch picker: locks unitCost to a specific inbound batch */}
                       {it.itemId && fromWarehouseId && (
                         <div>
-                          <span className="mb-0.5 block text-xs text-muted-foreground">Batch sumber (opsional)</span>
+                          <span className="mb-0.5 block text-xs text-muted-foreground">{t('stockTransferModal.items.batch')}</span>
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="min-w-0 flex-1">
                               <BatchSelect
-                                label={`Batch sumber baris ${idx + 1}`}
+                                label={t('stockTransferModal.items.batchLabel', { n: idx + 1 })}
                                 itemId={it.itemId}
                                 warehouseId={fromWarehouseId}
                                 value={it.sourceMovementId ?? ''}
@@ -308,16 +311,16 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => void splitTransferRow(idx)}
-                                title="Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)"
+                                title={t('stockTransferModal.items.splitHint')}
                               >
-                                <Layers aria-hidden /> Bagi Batch
+                                <Layers aria-hidden /> {t('stockTransferModal.items.split')}
                               </Button>
                             )}
                           </div>
                         </div>
                       )}
                     </div>
-                    <Field label={`Qty${it.unit ? ` (${it.unit})` : ''}`} id={`transfer-qty-${it.id}`}>
+                    <Field label={it.unit ? t('stockTransferModal.items.qtyWithUnit', { unit: it.unit }) : t('stockTransferModal.items.qty')} id={`transfer-qty-${it.id}`}>
                       <NumberInput
                         min={0}
                         value={it.quantity || ''}
@@ -337,7 +340,7 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
                           size="icon-touch"
                           className="text-danger-text md:size-9"
                           onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                          aria-label={`Hapus baris ${idx + 1}`}
+                          aria-label={t('stockTransferModal.items.removeRow', { n: idx + 1 })}
                         >
                           <Trash2 aria-hidden />
                         </Button>
@@ -348,8 +351,8 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
               </ul>
             </section>
 
-            <Field label="Catatan">
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Alasan transfer…" />
+            <Field label={t('stockTransferModal.fields.notes')}>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t('stockTransferModal.fields.notesPlaceholder')} />
             </Field>
 
             <FormError message={error} />
@@ -357,10 +360,10 @@ export function StockTransferModal({ isOpen, onClose }: ModalProps) {
 
           <PinnedFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
-              Batal
+              {t('stockTransferModal.cancel')}
             </Button>
             <Button type="submit" loading={pending}>
-              {pending ? 'Menyimpan…' : 'Submit Transfer'}
+              {pending ? t('stockTransferModal.saving') : t('stockTransferModal.submit')}
             </Button>
           </PinnedFooter>
         </form>

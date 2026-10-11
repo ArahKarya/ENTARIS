@@ -8,7 +8,9 @@ import { useCallback, useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Pencil, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { statusOptions } from '@/lib/status';
 import { formatDate } from '@/lib/format';
 import { useListState } from '@/hooks/useListState';
 import { useTableDensity } from '@/hooks/useTableDensity';
@@ -29,11 +31,7 @@ import {
 } from './inventory-rows';
 
 export const PRODUCTION_DRAFTS_ENDPOINT = '/inventory/production-runs/drafts';
-const STATUS_FILTER = [
-  { value: 'Draft', label: 'Draft' },
-  { value: 'PendingApproval', label: 'Menunggu persetujuan' },
-  { value: 'Posted', label: 'Diposting' },
-];
+const DRAFT_STATUSES = ['Draft', 'PendingApproval', 'Posted'] as const;
 
 interface ProductionDraftsTabProps {
   canEdit: boolean;
@@ -47,6 +45,7 @@ interface ProductionDraftsTabProps {
 }
 
 export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPost, onDelete, onOpenRun }: ProductionDraftsTabProps) {
+  const { t } = useTranslation('production');
   const list = useListState({ filters: PRODUCTION_FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
 
@@ -68,7 +67,7 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
     () => [
       {
         id: 'draftNumber',
-        header: 'Nomor draft',
+        header: t('productionDraftsTab.columns.draftNumber'),
         cell: ({ row }) => {
           const d = row.original;
           return (
@@ -87,13 +86,13 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('productionDraftsTab.columns.date'),
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => formatDate(row.original.date),
       },
       {
         id: 'summary',
-        header: 'Ringkasan',
+        header: t('productionDraftsTab.columns.summary'),
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72 text-xs' },
         cell: ({ row }) => {
           const s = row.original.summary;
@@ -102,7 +101,7 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
             <div className="space-y-0.5">
               <div className="truncate font-medium text-foreground">{s.mainOutput ?? '—'}</div>
               <div className="num text-muted-foreground">
-                Input {formatQty(s.inputQty)} → Output {formatQty(s.outputQty)}
+                {t('productionDraftsTab.summaryLine', { input: formatQty(s.inputQty), output: formatQty(s.outputQty) })}
               </div>
             </div>
           );
@@ -110,13 +109,13 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
       },
       {
         id: 'createdBy',
-        header: 'Dibuat oleh',
+        header: t('productionDraftsTab.columns.createdBy'),
         meta: { hideBelow: 'lg', cellClassName: 'text-xs text-muted-foreground' },
         cell: ({ row }) => row.original.createdBy?.fullName ?? '—',
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('productionDraftsTab.columns.status'),
         cell: ({ row }) => {
           const d = row.original;
           return (
@@ -131,49 +130,49 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('productionDraftsTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const d = row.original;
           const editable = d.status === 'Draft' && canEdit && canManage(d);
           return (
             <RowActions
-              label={`Aksi untuk ${d.draftNumber}`}
+              label={t('productionDraftsTab.actionsFor', { number: d.draftNumber })}
               actions={[
-                { label: 'Edit draft', icon: Pencil, hidden: !editable, onSelect: () => onEdit(d) },
-                { label: 'Posting', icon: Send, hidden: !editable, onSelect: () => onPost(d) },
+                { label: t('productionDraftsTab.actions.edit'), icon: Pencil, hidden: !editable, onSelect: () => onEdit(d) },
+                { label: t('productionDraftsTab.actions.post'), icon: Send, hidden: !editable, onSelect: () => onPost(d) },
                 {
-                  label: 'Lihat proses produksi',
+                  label: t('productionDraftsTab.actions.viewRun'),
                   icon: Eye,
                   hidden: d.status !== 'Posted' || !d.postedRunId,
                   onSelect: () => d.postedRunId && onOpenRun(d.postedRunId),
                 },
-                { label: 'Hapus draft', icon: Trash2, tone: 'danger', hidden: !editable, onSelect: () => onDelete(d) },
+                { label: t('productionDraftsTab.actions.delete'), icon: Trash2, tone: 'danger', hidden: !editable, onSelect: () => onDelete(d) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit, canManage, openRow, onEdit, onPost, onDelete, onOpenRun],
+    [canEdit, canManage, openRow, onEdit, onPost, onDelete, onOpenRun, t],
   );
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Draft belum memengaruhi stok, jurnal, HPP, laporan, maupun OEE. Efek baru terjadi setelah draft diposting.
+        {t('productionDraftsTab.info')}
       </p>
       <FilterBar
         list={list}
-        searchLabel="Cari draft produksi"
-        searchPlaceholder="Cari nomor draft, catatan"
-        status={{ options: STATUS_FILTER, label: 'Status draft', allLabel: 'Semua status' }}
+        searchLabel={t('productionDraftsTab.searchLabel')}
+        searchPlaceholder={t('productionDraftsTab.searchPlaceholder')}
+        status={{ options: statusOptions(DRAFT_STATUSES, 'production_draft'), label: t('productionDraftsTab.statusFilter'), allLabel: t('productionDraftsTab.allStatuses') }}
         dateRange
       />
       <DataTable
         {...listTableProps(list, draftsQuery.data?.total)}
-        label="Daftar draft proses produksi"
-        itemLabel="draft"
+        label={t('productionDraftsTab.tableLabel')}
+        itemLabel={t('productionDraftsTab.itemLabel')}
         columns={columns}
         data={draftsQuery.data?.data}
         getRowId={(row) => row.id}
@@ -185,12 +184,12 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
         density={density}
         onDensityChange={setDensity}
         empty={{
-          title: 'Belum ada draft produksi',
-          description: 'Input produksi disimpan sebagai draft lebih dulu, lalu diposting setelah dicek.',
+          title: t('productionDraftsTab.empty.title'),
+          description: t('productionDraftsTab.empty.description'),
           action: onCreate ? (
             <Button size="sm" onClick={onCreate}>
               <Plus aria-hidden />
-              Buat draft produksi
+              {t('productionDraftsTab.empty.action')}
             </Button>
           ) : undefined,
         }}

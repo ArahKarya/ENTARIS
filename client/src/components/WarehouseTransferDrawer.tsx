@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { XCircle, FileDown, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { formatDate, formatNumber } from '@/lib/format';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ function Info({ label, children, mono }: { label: string; children: React.ReactN
 }
 
 const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
+  const { t } = useTranslation('inventory');
   const company = useCompanyPDF();
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -56,9 +58,9 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['stock-transfer-detail', transferId] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Transfer dibatalkan. Stok dikembalikan ke gudang asal.');
+      toast.success(t('warehouseTransferDrawer.toast.cancelled'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan transfer.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('warehouseTransferDrawer.toast.cancelFailed')),
   });
 
   const markPrintedMutation = useMutation({
@@ -108,34 +110,34 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
         <SheetContent size="lg">
           <SheetHeader>
             <div className="flex flex-wrap items-center gap-2">
-              <SheetTitle>{isLoading ? 'Memuat…' : (doc?.transferNumber ?? 'Transfer Stok')}</SheetTitle>
+              <SheetTitle>{isLoading ? t('warehouseTransferDrawer.loadingShort') : (doc?.transferNumber ?? t('warehouseTransferDrawer.titleFallback'))}</SheetTitle>
               {doc && <StatusBadge status={status} />}
             </div>
-            <SheetDescription>Surat Jalan Antar Gudang (SJG)</SheetDescription>
+            <SheetDescription>{t('warehouseTransferDrawer.description')}</SheetDescription>
           </SheetHeader>
 
-          <SheetBody className="space-y-6" role="region" aria-label="Isi detail transfer stok" tabIndex={0}>
+          <SheetBody className="space-y-6" role="region" aria-label={t('warehouseTransferDrawer.bodyLabel')} tabIndex={0}>
             {isLoading ? (
-              <LoadingState label="Memuat transfer gudang…" />
+              <LoadingState label={t('warehouseTransferDrawer.loading')} />
             ) : !doc ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">Transfer tidak ditemukan.</p>
+              <p className="py-12 text-center text-sm text-muted-foreground">{t('warehouseTransferDrawer.notFound')}</p>
             ) : (
               <>
                 <section aria-labelledby="wt-route" className="rounded-lg border border-border bg-info-subtle/40 p-4">
                   <h3 id="wt-route" className="mb-3 text-xs font-semibold uppercase tracking-widest text-info-text">
-                    Rute Transfer
+                    {t('warehouseTransferDrawer.route.title')}
                   </h3>
                   <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
                     <div className="flex-1 rounded-lg border border-border bg-card p-3">
-                      <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">Gudang Asal</p>
+                      <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">{t('warehouseTransferDrawer.route.from')}</p>
                       <p className="text-sm font-semibold text-foreground">{doc.fromWarehouse?.name ?? '—'}</p>
                       {doc.fromWarehouse?.location && (
                         <p className="mt-0.5 text-xs text-muted-foreground">{doc.fromWarehouse.location}</p>
                       )}
                     </div>
-                    <ArrowRight className="size-6 shrink-0 self-center text-primary max-sm:rotate-90" aria-label="menuju" role="img" />
+                    <ArrowRight className="size-6 shrink-0 self-center text-primary max-sm:rotate-90" aria-label={t('warehouseTransferDrawer.route.to')} role="img" />
                     <div className="flex-1 rounded-lg border border-border bg-card p-3">
-                      <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">Gudang Tujuan</p>
+                      <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">{t('warehouseTransferDrawer.route.destination')}</p>
                       <p className="text-sm font-semibold text-foreground">{doc.toWarehouse?.name ?? '—'}</p>
                       {doc.toWarehouse?.location && (
                         <p className="mt-0.5 text-xs text-muted-foreground">{doc.toWarehouse.location}</p>
@@ -147,41 +149,41 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <section aria-labelledby="wt-ship">
                     <h3 id="wt-ship" className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Info Pengiriman
+                      {t('warehouseTransferDrawer.shipping.title')}
                     </h3>
                     <dl className="grid grid-cols-2 gap-3">
-                      <Info label="Tanggal">{formatDate(doc.date)}</Info>
-                      <Info label="No. Mobil" mono>{doc.nomorMobil || '—'}</Info>
-                      <Info label="Supir">{doc.driverName || '—'}</Info>
-                      <Info label="Penerima">{doc.recipientName || '—'}</Info>
+                      <Info label={t('warehouseTransferDrawer.shipping.date')}>{formatDate(doc.date)}</Info>
+                      <Info label={t('warehouseTransferDrawer.shipping.vehicle')} mono>{doc.nomorMobil || '—'}</Info>
+                      <Info label={t('warehouseTransferDrawer.shipping.driver')}>{doc.driverName || '—'}</Info>
+                      <Info label={t('warehouseTransferDrawer.shipping.recipient')}>{doc.recipientName || '—'}</Info>
                     </dl>
                   </section>
                   <section aria-labelledby="wt-audit">
                     <h3 id="wt-audit" className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Audit
+                      {t('warehouseTransferDrawer.audit.title')}
                     </h3>
                     <dl className="space-y-3">
-                      <Info label="Dibuat oleh">{doc.user?.fullName ?? '—'}</Info>
-                      {doc.printedAt && <Info label="Dicetak terakhir">{formatDate(doc.printedAt)}</Info>}
+                      <Info label={t('warehouseTransferDrawer.audit.createdBy')}>{doc.user?.fullName ?? '—'}</Info>
+                      {doc.printedAt && <Info label={t('warehouseTransferDrawer.audit.lastPrinted')}>{formatDate(doc.printedAt)}</Info>}
                     </dl>
                   </section>
                 </div>
 
                 <section aria-labelledby="wt-items">
                   <h3 id="wt-items" className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Item ({items.length})
+                    {t('warehouseTransferDrawer.items.title', { total: items.length })}
                   </h3>
                   {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width */}
-                  <div className="overflow-x-auto rounded-lg border border-border" role="region" aria-label="Daftar item transfer" tabIndex={0}>
+                  <div className="overflow-x-auto rounded-lg border border-border" role="region" aria-label={t('warehouseTransferDrawer.items.label')} tabIndex={0}>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/50">
                           <th scope="col" className={`${th} w-8 text-left`}>#</th>
-                          <th scope="col" className={`${th} text-left`}>Kode</th>
-                          <th scope="col" className={`${th} text-left`}>Nama</th>
-                          <th scope="col" className={`${th} text-right`}>Qty</th>
-                          <th scope="col" className={`${th} text-center`}>Sat</th>
-                          <th scope="col" className={`${th} text-left`}>Keterangan</th>
+                          <th scope="col" className={`${th} text-left`}>{t('warehouseTransferDrawer.items.code')}</th>
+                          <th scope="col" className={`${th} text-left`}>{t('warehouseTransferDrawer.items.name')}</th>
+                          <th scope="col" className={`${th} text-right`}>{t('warehouseTransferDrawer.items.qty')}</th>
+                          <th scope="col" className={`${th} text-center`}>{t('warehouseTransferDrawer.items.unit')}</th>
+                          <th scope="col" className={`${th} text-left`}>{t('warehouseTransferDrawer.items.description')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -205,7 +207,7 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
                 {doc.notes && (
                   <section aria-labelledby="wt-notes">
                     <h3 id="wt-notes" className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Catatan
+                      {t('warehouseTransferDrawer.notes')}
                     </h3>
                     <p className="whitespace-pre-wrap text-sm text-foreground">{doc.notes}</p>
                   </section>
@@ -214,7 +216,7 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
                 {status === 'Cancelled' && (
                   <p role="status" className="flex items-start gap-2 rounded-lg bg-danger-subtle p-3 text-sm text-danger-text">
                     <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    Transfer ini sudah dibatalkan. Stok telah dikembalikan ke gudang asal.
+                    {t('warehouseTransferDrawer.cancelledNotice')}
                   </p>
                 )}
               </>
@@ -225,7 +227,7 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
             <SheetFooter className="flex-wrap">
               {status === 'Submitted' && canCancel && (
                 <Button variant="outline" className="text-danger-text sm:mr-auto" onClick={() => setConfirmCancel(true)}>
-                  <XCircle aria-hidden /> Batalkan Transfer
+                  <XCircle aria-hidden /> {t('warehouseTransferDrawer.cancel')}
                 </Button>
               )}
               {pdfDoc && (
@@ -240,7 +242,7 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
                       }}
                     >
                       {!loading && <FileDown aria-hidden />}
-                      {loading ? 'Membuat…' : 'Cetak SJG'}
+                      {loading ? t('warehouseTransferDrawer.generating') : t('warehouseTransferDrawer.print')}
                     </Button>
                   )}
                 </PDFDownloadLink>
@@ -253,9 +255,9 @@ const WarehouseTransferDrawer: React.FC<Props> = ({ transferId, onClose }) => {
       <ConfirmDialog
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
-        title="Batalkan Transfer Stok"
-        description={`Batalkan transfer ${doc?.transferNumber ?? ''}? Stok akan dikembalikan ke gudang asal.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('warehouseTransferDrawer.cancelDialog.title')}
+        description={t('warehouseTransferDrawer.cancelDialog.description', { number: doc?.transferNumber ?? '' })}
+        confirmLabel={t('warehouseTransferDrawer.cancelDialog.confirm')}
         tone="danger"
         onConfirm={() => {
           cancelMutation.mutate();

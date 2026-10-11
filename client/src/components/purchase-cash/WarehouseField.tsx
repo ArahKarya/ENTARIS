@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { OptionPicker } from './OptionPicker';
 
@@ -33,9 +34,10 @@ export function WarehouseField({
   onChange,
   autoDefault = true,
   disabled,
-  placeholder = 'Pilih gudang...',
+  placeholder,
   'aria-label': ariaLabel,
 }: WarehouseFieldProps) {
+  const { t } = useTranslation('inventory');
   const { data } = useQuery({
     queryKey: ['warehouses-active'],
     queryFn: async () => {
@@ -58,7 +60,7 @@ export function WarehouseField({
       aria-label={ariaLabel}
       value={value}
       onChange={onChange}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t('warehouseField.placeholder')}
       disabled={disabled}
       options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
     />

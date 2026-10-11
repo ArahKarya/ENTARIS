@@ -5,6 +5,7 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ const initialForm = (svc: ServiceItemRow | null) =>
     : { code: '', name: '', unit: 'Jasa', defaultRate: '', accountId: '', description: '' };
 
 export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps) {
+  const { t } = useTranslation('inventory');
   const queryClient = useQueryClient();
   const [serviceForm, setServiceForm] = useState(() => initialForm(editService));
   const [serviceSaving, setServiceSaving] = useState(false);
@@ -61,7 +63,7 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
   const handleSaveService = async () => {
     if (!serviceForm.code || !serviceForm.name || !serviceForm.accountId) {
       setShowErrors(true);
-      toast.error('Kode, nama, dan akun pendapatan wajib diisi.');
+      toast.error(t('serviceItemModal.toast.missingFields'));
       return;
     }
     setServiceSaving(true);
@@ -72,15 +74,15 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
       };
       if (editService) {
         await api.patch(`/service-items/${editService.id}`, payload);
-        toast.success('Layanan diubah.');
+        toast.success(t('serviceItemModal.toast.updated'));
       } else {
         await api.post('/service-items', payload);
-        toast.success('Layanan ditambahkan.');
+        toast.success(t('serviceItemModal.toast.created'));
       }
       queryClient.invalidateQueries({ queryKey: ['service-items'] });
       onClose();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal menyimpan layanan.'));
+      toast.error(errorMessage(err, t('serviceItemModal.toast.saveFailed')));
     } finally {
       setServiceSaving(false);
     }
@@ -90,7 +92,7 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
     e.preventDefault();
     void handleSaveService();
   };
-  const required = (v: string) => (showErrors && !v ? 'Wajib diisi.' : undefined);
+  const required = (v: string) => (showErrors && !v ? t('serviceItemModal.errors.required') : undefined);
   const set = (patch: Partial<typeof serviceForm>) => setServiceForm((f) => ({ ...f, ...patch }));
 
   return (
@@ -98,26 +100,26 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
       <DialogContent size="md" className={pinnedDialogClass}>
         <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <PinnedHeader>
-            <DialogTitle>{editService ? 'Edit Layanan' : 'Tambah Layanan'}</DialogTitle>
-            <DialogDescription>Layanan jasa yang dapat ditagihkan pada faktur penjualan.</DialogDescription>
+            <DialogTitle>{editService ? t('serviceItemModal.titleEdit') : t('serviceItemModal.titleCreate')}</DialogTitle>
+            <DialogDescription>{t('serviceItemModal.description')}</DialogDescription>
           </PinnedHeader>
           <PinnedBody className="grid gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Kode" required error={required(serviceForm.code)}>
+              <Field label={t('serviceItemModal.fields.code')} required error={required(serviceForm.code)}>
                 <Input value={serviceForm.code} onChange={(e) => set({ code: e.target.value })} placeholder="JSG-001" />
               </Field>
-              <Field label="Satuan">
-                <Input value={serviceForm.unit} onChange={(e) => set({ unit: e.target.value })} placeholder="Jasa" />
+              <Field label={t('serviceItemModal.fields.unit')}>
+                <Input value={serviceForm.unit} onChange={(e) => set({ unit: e.target.value })} placeholder={t('serviceItemModal.placeholders.unit')} />
               </Field>
             </div>
-            <Field label="Nama Layanan" required error={required(serviceForm.name)}>
+            <Field label={t('serviceItemModal.fields.name')} required error={required(serviceForm.name)}>
               <Input
                 value={serviceForm.name}
                 onChange={(e) => set({ name: e.target.value })}
-                placeholder="Jasa Maklon Produksi"
+                placeholder={t('serviceItemModal.placeholders.name')}
               />
             </Field>
-            <Field label="Tarif Default (Rp)">
+            <Field label={t('serviceItemModal.fields.defaultRate')}>
               <NumberInput
                 value={serviceForm.defaultRate}
                 onChange={(e) => set({ defaultRate: e.target.value })}
@@ -126,17 +128,17 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
                 className="h-10 text-right tabular-nums"
               />
             </Field>
-            <Field label="Akun Pendapatan" required error={required(serviceForm.accountId)}>
+            <Field label={t('serviceItemModal.fields.account')} required error={required(serviceForm.accountId)}>
               {(control) => (
                 <Select
                   value={serviceForm.accountId || NO_ACCOUNT}
                   onValueChange={(v) => set({ accountId: v === NO_ACCOUNT ? '' : v })}
                 >
                   <SelectTrigger {...control}>
-                    <SelectValue placeholder="Pilih akun" />
+                    <SelectValue placeholder={t('serviceItemModal.placeholders.account')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_ACCOUNT}>Pilih Akun</SelectItem>
+                    <SelectItem value={NO_ACCOUNT}>{t('serviceItemModal.noAccount')}</SelectItem>
                     {revenueAccounts?.map((acc) => (
                       <SelectItem key={acc.id} value={acc.id}>
                         {acc.accountNumber} · {acc.name}
@@ -146,20 +148,20 @@ export function ServiceItemModal({ editService, onClose }: ServiceItemModalProps
                 </Select>
               )}
             </Field>
-            <Field label="Deskripsi">
+            <Field label={t('serviceItemModal.fields.description')}>
               <Input
                 value={serviceForm.description}
                 onChange={(e) => set({ description: e.target.value })}
-                placeholder="Opsional"
+                placeholder={t('serviceItemModal.placeholders.description')}
               />
             </Field>
           </PinnedBody>
           <PinnedFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={serviceSaving}>
-              Batal
+              {t('serviceItemModal.actions.cancel')}
             </Button>
             <Button type="submit" loading={serviceSaving}>
-              {serviceSaving ? 'Menyimpan…' : editService ? 'Simpan Perubahan' : 'Tambah Layanan'}
+              {serviceSaving ? t('serviceItemModal.actions.saving') : editService ? t('serviceItemModal.actions.saveChanges') : t('serviceItemModal.actions.create')}
             </Button>
           </PinnedFooter>
         </form>

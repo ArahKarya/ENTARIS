@@ -8,7 +8,9 @@ import { useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Factory, Pencil, Percent, Plus, Scale, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { statusOptions } from '@/lib/status';
 import { formatDate, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useListState } from '@/hooks/useListState';
@@ -35,10 +37,7 @@ import {
 } from './inventory-rows';
 
 const ENDPOINT = '/inventory/production-runs';
-const STATUS_FILTER = [
-  { value: 'active', label: 'Diposting' },
-  { value: 'cancelled', label: 'Dibatalkan' },
-];
+const RUN_STATUSES = ['active', 'cancelled'] as const;
 
 interface ProductionRunsTabProps {
   canEdit: boolean;
@@ -50,6 +49,7 @@ interface ProductionRunsTabProps {
 }
 
 function Lines({ lines, cancelled }: { lines: ProductionRunLine[]; cancelled: boolean }) {
+  const { t } = useTranslation('production');
   if (lines.length === 0) return <span className="text-muted-foreground">—</span>;
   return (
     <ul className={cn('min-w-0 space-y-0.5 text-xs', cancelled && 'line-through')}>
@@ -63,7 +63,7 @@ function Lines({ lines, cancelled }: { lines: ProductionRunLine[]; cancelled: bo
             {formatQty(l.quantity)} {l.item?.unit}
           </span>
           {isByProductLine(l) && (
-            <span className="shrink-0 rounded-sm bg-warning-subtle px-1 text-[11px] font-medium text-warning-text">Samping</span>
+            <span className="shrink-0 rounded-sm bg-warning-subtle px-1 text-[11px] font-medium text-warning-text">{t('productionRunsTab.byProductBadge')}</span>
           )}
         </li>
       ))}
@@ -72,6 +72,7 @@ function Lines({ lines, cancelled }: { lines: ProductionRunLine[]; cancelled: bo
 }
 
 export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit, onCancel }: ProductionRunsTabProps) {
+  const { t } = useTranslation('production');
   const list = useListState({ filters: PRODUCTION_FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
 
@@ -95,7 +96,7 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
     () => [
       {
         id: 'runNumber',
-        header: 'Nomor',
+        header: t('productionRunsTab.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => {
@@ -120,7 +121,7 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('productionRunsTab.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -128,25 +129,25 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
       },
       {
         id: 'reference',
-        header: 'Referensi',
+        header: t('productionRunsTab.columns.reference'),
         meta: { hideBelow: 'xl', cellClassName: 'num font-mono text-xs text-muted-foreground' },
         cell: ({ row }) => row.original.referenceNumber || '—',
       },
       {
         id: 'inputs',
-        header: 'Input',
+        header: t('productionRunsTab.columns.inputs'),
         meta: { hideBelow: 'lg', cellClassName: 'min-w-40 max-w-64' },
         cell: ({ row }) => <Lines lines={splitRunLines(row.original).inputs} cancelled={row.original.isCancelled} />,
       },
       {
         id: 'outputs',
-        header: 'Output',
+        header: t('productionRunsTab.columns.outputs'),
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => <Lines lines={splitRunLines(row.original).outputs} cancelled={row.original.isCancelled} />,
       },
       {
         id: 'yieldPct',
-        header: 'Rendemen',
+        header: t('productionRunsTab.columns.yield'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -164,24 +165,24 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
       },
       {
         id: 'notes',
-        header: 'Catatan',
+        header: t('productionRunsTab.columns.notes'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-44 truncate text-xs text-muted-foreground' },
         cell: ({ row }) => row.original.notes || '—',
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('productionRunsTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${r.runNumber}`}
+              label={t('productionRunsTab.actionsFor', { number: r.runNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => onOpen(r.id) },
-                { label: 'Edit proses produksi', icon: Pencil, hidden: r.isCancelled || !canEdit, onSelect: () => onEdit(r) },
+                { label: t('productionRunsTab.actions.view'), icon: Eye, onSelect: () => onOpen(r.id) },
+                { label: t('productionRunsTab.actions.edit'), icon: Pencil, hidden: r.isCancelled || !canEdit, onSelect: () => onEdit(r) },
                 {
-                  label: 'Batalkan proses produksi',
+                  label: t('productionRunsTab.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: r.isCancelled || !canCancel,
@@ -193,55 +194,55 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
         },
       },
     ],
-    [canEdit, canCancel, onOpen, onEdit, onCancel],
+    [canEdit, canCancel, onOpen, onEdit, onCancel, t],
   );
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan proses produksi sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('productionRunsTab.kpi.sectionAria')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Proses Produksi"
+          label={t('productionRunsTab.kpi.runs')}
           icon={Factory}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.activeCount) : '—'}
-          hint={summary && summary.cancelledCount > 0 ? `${formatNumber(summary.cancelledCount)} dibatalkan` : 'diposting'}
+          hint={summary && summary.cancelledCount > 0 ? t('productionRunsTab.kpi.cancelledHint', { value: formatNumber(summary.cancelledCount) }) : t('productionRunsTab.kpi.postedHint')}
         />
         <StatCard
-          label="Total Input"
+          label={t('productionRunsTab.kpi.totalInput')}
           icon={Scale}
           loading={kpiLoading}
           value={summary ? `${formatQty(summary.inputQty)}${unit}` : '—'}
-          hint="bahan baku dipakai"
+          hint={t('productionRunsTab.kpi.totalInputHint')}
         />
         <StatCard
-          label="Total Output"
+          label={t('productionRunsTab.kpi.totalOutput')}
           icon={Scale}
           loading={kpiLoading}
           value={summary ? `${formatQty(summary.outputQty)}${unit}` : '—'}
-          hint={summary && summary.byproductQty > 0 ? `termasuk samping ${formatQty(summary.byproductQty)}${unit}` : 'produk dihasilkan'}
+          hint={summary && summary.byproductQty > 0 ? t('productionRunsTab.kpi.byProductHint', { value: `${formatQty(summary.byproductQty)}${unit}` }) : t('productionRunsTab.kpi.totalOutputHint')}
         />
         <StatCard
-          label="Rendemen Rata-rata"
+          label={t('productionRunsTab.kpi.avgYield')}
           icon={Percent}
           loading={kpiLoading}
           value={summary?.yieldPct != null ? `${formatNumber(summary.yieldPct, { decimals: 1 })}%` : '—'}
-          hint="tertimbang input"
+          hint={t('productionRunsTab.kpi.avgYieldHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari proses produksi"
-          searchPlaceholder="Cari nomor, referensi, item, catatan"
-          status={{ options: STATUS_FILTER, label: 'Status proses', allLabel: 'Semua status' }}
+          searchLabel={t('productionRunsTab.searchLabel')}
+          searchPlaceholder={t('productionRunsTab.searchPlaceholder')}
+          status={{ options: statusOptions(RUN_STATUSES, 'production_run'), label: t('productionRunsTab.statusFilter'), allLabel: t('productionRunsTab.allStatuses') }}
           dateRange
         />
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar proses produksi"
-          itemLabel="proses"
+          label={t('productionRunsTab.tableLabel')}
+          itemLabel={t('productionRunsTab.itemLabel')}
           columns={columns}
           data={runsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -253,12 +254,12 @@ export function ProductionRunsTab({ canEdit, canCancel, onCreate, onOpen, onEdit
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada proses produksi',
-            description: 'Catat proses produksi untuk mengubah bahan baku menjadi produk jadi.',
+            title: t('productionRunsTab.empty.title'),
+            description: t('productionRunsTab.empty.description'),
             action: onCreate ? (
               <Button size="sm" onClick={onCreate}>
                 <Plus aria-hidden />
-                Catat proses produksi
+                {t('productionRunsTab.empty.action')}
               </Button>
             ) : undefined,
           }}

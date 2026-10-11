@@ -1,4 +1,6 @@
 /** Types, pure helpers and the OEE preview calculation for the production run form. */
+import i18n from '@/i18n';
+import { LOCALE } from '@/lib/format';
 
 export interface LineItem {
   itemId: string;
@@ -30,7 +32,7 @@ export interface CostStandard {
   itemId: string | null;
 }
 
-export const fmtRupiah = (n: number) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 4 });
+export const fmtRupiah = (n: number) => Number(n).toLocaleString(LOCALE, { maximumFractionDigits: 4 });
 
 export interface OutputLineItem {
   itemId: string;
@@ -178,7 +180,7 @@ export function computeOeePreview({
     const machine = machineById.get(m.machineId);
     return {
       machineId: m.machineId,
-      label: machine ? `${machine.code} · ${machine.name}` : '(mesin?)',
+      label: machine ? `${machine.code} · ${machine.name}` : i18n.t('production:runFormUtils.unknownMachine'),
       runMin: m.runMin,
       allocatedQty,
       availabilityPct,

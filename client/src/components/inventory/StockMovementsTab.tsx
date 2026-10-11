@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Ban, Eye, Pencil, XCircle } from 'lucide-react';
 import api from '@/lib/api';
@@ -30,7 +31,6 @@ import { MovementDetailSheet } from './MovementDetailSheet';
 import {
   MOVEMENT_FILTER_KEYS,
   MOVEMENT_TYPES,
-  MOVEMENT_TYPE_LABEL,
   formatQty,
   isInbound,
   movementCancelBlock,
@@ -42,11 +42,6 @@ import {
 } from './inventory-rows';
 
 const ENDPOINT = '/inventory/movements';
-const TYPE_FILTER = MOVEMENT_TYPES.map((t) => ({ value: t, label: MOVEMENT_TYPE_LABEL[t] }));
-const STATUS_FILTER = [
-  { value: 'active', label: 'Diposting' },
-  { value: 'cancelled', label: 'Dibatalkan' },
-];
 
 interface StockMovementsTabProps {
   canEdit: boolean;
@@ -58,6 +53,7 @@ interface StockMovementsTabProps {
 }
 
 function QtyCell({ m }: { m: StockMovementRow }) {
+  const { t } = useTranslation('inventory');
   const inbound = isInbound(m.movementType);
   const Icon = inbound ? ArrowDownLeft : ArrowUpRight;
   return (
@@ -68,7 +64,7 @@ function QtyCell({ m }: { m: StockMovementRow }) {
       )}
     >
       <Icon className="size-3.5 shrink-0" aria-hidden />
-      <span className="sr-only">{inbound ? 'Masuk' : 'Keluar'}: </span>
+      <span className="sr-only">{inbound ? t('stockMovementsTab.direction.in') : t('stockMovementsTab.direction.out')}: </span>
       {inbound ? '+' : '−'}
       {formatQty(m.quantity)}
       <span className="text-xs font-normal text-muted-foreground">{m.item?.unit ?? ''}</span>
@@ -77,6 +73,7 @@ function QtyCell({ m }: { m: StockMovementRow }) {
 }
 
 export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCancel, onOpenProductionRun }: StockMovementsTabProps) {
+  const { t } = useTranslation('inventory');
   const list = useListState({ filters: MOVEMENT_FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [selected, setSelected] = useState<StockMovementRow | null>(null);
@@ -105,7 +102,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
     () => [
       {
         id: 'movementNumber',
-        header: 'Nomor',
+        header: t('stockMovementsTab.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => {
@@ -126,7 +123,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('stockMovementsTab.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -134,7 +131,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
       },
       {
         id: 'item',
-        header: 'Item',
+        header: t('stockMovementsTab.columns.item'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-32 max-w-56' },
         cell: ({ row }) => {
@@ -152,28 +149,28 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
       },
       {
         id: 'warehouse',
-        header: 'Gudang',
+        header: t('stockMovementsTab.columns.warehouse'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-32 text-muted-foreground' },
         cell: ({ row }) => row.original.warehouse?.name ?? '—',
       },
       {
         id: 'movementType',
-        header: 'Tipe',
+        header: t('stockMovementsTab.columns.type'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
-          const t = row.original.movementType;
-          const Icon = t.startsWith('Transfer') ? ArrowLeftRight : isInbound(t) ? ArrowDownLeft : ArrowUpRight;
+          const type = row.original.movementType;
+          const Icon = type.startsWith('Transfer') ? ArrowLeftRight : isInbound(type) ? ArrowDownLeft : ArrowUpRight;
           return (
             <span className="inline-flex items-center gap-1.5 text-foreground">
               <Icon className="size-3.5 text-muted-foreground" aria-hidden />
-              {movementTypeLabel(t)}
+              {movementTypeLabel(type)}
             </span>
           );
         },
       },
       {
         id: 'quantity',
-        header: 'Kuantitas',
+        header: t('stockMovementsTab.columns.quantity'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -186,7 +183,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
       },
       {
         id: 'totalValue',
-        header: () => withUnit('Nilai'),
+        header: () => withUnit(t('stockMovementsTab.columns.value')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md' },
@@ -201,7 +198,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
       },
       {
         id: 'reference',
-        header: 'Referensi',
+        header: t('stockMovementsTab.columns.reference'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-36' },
         cell: ({ row }) => {
           const m = row.original;
@@ -216,18 +213,18 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('stockMovementsTab.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const m = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${m.movementNumber ?? 'gerakan stok'}`}
+              label={t('stockMovementsTab.actions.menuLabel', { name: m.movementNumber ?? t('stockMovementsTab.actions.fallbackName') })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelected(m) },
-                { label: 'Edit gerakan', icon: Pencil, hidden: !editFor || !!movementEditBlock(m), onSelect: () => onEdit(m) },
+                { label: t('stockMovementsTab.actions.view'), icon: Eye, onSelect: () => setSelected(m) },
+                { label: t('stockMovementsTab.actions.edit'), icon: Pencil, hidden: !editFor || !!movementEditBlock(m), onSelect: () => onEdit(m) },
                 {
-                  label: 'Batalkan gerakan',
+                  label: t('stockMovementsTab.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !cancelFor || !!movementCancelBlock(m),
@@ -239,28 +236,38 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
         },
       },
     ],
-    [editFor, cancelFor, onEdit, onCancel],
+    [editFor, cancelFor, onEdit, onCancel, t],
+  );
+
+  // Not memoized: movementTypeLabel reads the active language on each render.
+  const typeFilter = MOVEMENT_TYPES.map((type) => ({ value: type, label: movementTypeLabel(type) }));
+  const statusFilter = useMemo(
+    () => [
+      { value: 'active', label: t('stockMovementsTab.statusFilter.active') },
+      { value: 'cancelled', label: t('stockMovementsTab.statusFilter.cancelled') },
+    ],
+    [t],
   );
 
   const unit = filteredItem?.unit;
   const qtyHint = (count: number | undefined, qty: number | undefined) => {
     if (count === undefined) return undefined;
-    const base = `${formatNumber(count)} gerakan`;
+    const base = t('stockMovementsTab.kpi.movementCount', { count, formatted: formatNumber(count) });
     return unit && qty !== undefined ? `${base} · ${formatQty(qty)} ${unit}` : base;
   };
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan gerakan stok sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('stockMovementsTab.kpi.sectionLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Gerakan"
+          label={t('stockMovementsTab.kpi.count')}
           icon={ArrowLeftRight}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary ? `${formatNumber(summary.count - summary.cancelledCount)} diposting` : undefined}
+          hint={summary ? t('stockMovementsTab.kpi.posted', { count: summary.count - summary.cancelledCount, formatted: formatNumber(summary.count - summary.cancelledCount) }) : undefined}
         />
         <StatCard
-          label="Nilai Masuk"
+          label={t('stockMovementsTab.kpi.inValue')}
           icon={ArrowDownLeft}
           loading={kpiLoading}
           value={summary ? formatRupiah(summary.inValue, { compact: true }) : '—'}
@@ -268,7 +275,7 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           hint={qtyHint(summary?.inCount, summary?.inQty)}
         />
         <StatCard
-          label="Nilai Keluar"
+          label={t('stockMovementsTab.kpi.outValue')}
           icon={ArrowUpRight}
           loading={kpiLoading}
           value={summary ? formatRupiah(summary.outValue, { compact: true }) : '—'}
@@ -276,26 +283,26 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           hint={qtyHint(summary?.outCount, summary?.outQty)}
         />
         <StatCard
-          label="Dibatalkan"
+          label={t('stockMovementsTab.kpi.cancelled')}
           icon={Ban}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.cancelledCount) : '—'}
-          hint="tidak dihitung di nilai"
+          hint={t('stockMovementsTab.kpi.cancelledHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari gerakan stok"
-          searchPlaceholder="Cari nomor, item, referensi, catatan"
-          status={{ options: TYPE_FILTER, key: 'movementType', label: 'Tipe gerakan', allLabel: 'Semua tipe' }}
+          searchLabel={t('stockMovementsTab.search.label')}
+          searchPlaceholder={t('stockMovementsTab.search.placeholder')}
+          status={{ options: typeFilter, key: 'movementType', label: t('stockMovementsTab.filters.type'), allLabel: t('stockMovementsTab.filters.allTypes') }}
           dateRange
         >
           <SelectFilter
-            label="Status gerakan"
-            allLabel="Semua status"
-            options={STATUS_FILTER}
+            label={t('stockMovementsTab.filters.status')}
+            allLabel={t('stockMovementsTab.filters.allStatuses')}
+            options={statusFilter}
             value={list.filters.status}
             onChange={(v) => list.setFilter('status', v)}
           />
@@ -305,8 +312,8 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Riwayat gerakan stok"
-          itemLabel="gerakan"
+          label={t('stockMovementsTab.table.label')}
+          itemLabel={t('stockMovementsTab.table.itemLabel')}
           columns={columns}
           data={movementsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -319,11 +326,11 @@ export function StockMovementsTab({ canEdit, canCancel, onCreate, onEdit, onCanc
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada gerakan stok',
-            description: 'Gerakan dari STT, surat jalan, produksi, opname, dan input manual muncul di sini.',
+            title: t('stockMovementsTab.empty.title'),
+            description: t('stockMovementsTab.empty.description'),
             action: onCreate ? (
               <Button size="sm" onClick={onCreate}>
-                Catat gerakan
+                {t('stockMovementsTab.empty.action')}
               </Button>
             ) : undefined,
           }}

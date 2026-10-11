@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { formatNumber, formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
+  const { t } = useTranslation('inventory');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [warehouseId, setWarehouseId] = useState('');
   const [notes, setNotes] = useState('');
@@ -123,12 +125,12 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
     }));
 
     if (opnameItems.length === 0) {
-      toast.error('Tidak ada item untuk stok opname.');
+      toast.error(t('stockOpnameCountForm.toast.noItems'));
       return;
     }
 
     if (!warehouseId) {
-      toast.error('Pilih gudang opname terlebih dahulu.');
+      toast.error(t('stockOpnameCountForm.toast.warehouseRequired'));
       return;
     }
 
@@ -140,11 +142,11 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
         notes: notes || null,
         items: opnameItems,
       });
-      toast.success('Stok opname disimpan dan diproses.');
+      toast.success(t('stockOpnameCountForm.toast.saved'));
       onSuccess();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
-      toast.error(message || 'Gagal menyimpan stok opname.');
+      toast.error(message || t('stockOpnameCountForm.toast.saveFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -156,17 +158,17 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
       <div className="sm:hidden">{breadcrumb}</div>
       <PageHeader
         breadcrumb={breadcrumb}
-        title="Buat Stok Opname"
-        description="Isi stok fisik hasil hitung. Kolom kosong dianggap sama dengan stok sistem."
+        title={t('stockOpnameCountForm.title')}
+        description={t('stockOpnameCountForm.description')}
       />
 
       {/* Header */}
       <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-card p-4 md:grid-cols-3">
-        <Field label="Tanggal" required>
+        <Field label={t('stockOpnameCountForm.fields.date')} required>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
         <WarehouseSelectField
-          label="Gudang"
+          label={t('stockOpnameCountForm.fields.warehouse')}
           required
               value={warehouseId}
               onChange={(id) => {
@@ -176,29 +178,29 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
                 setActualStocks({});
               }}
           autoDefault
-          placeholder="Pilih gudang opname..."
+          placeholder={t('stockOpnameCountForm.fields.warehousePlaceholder')}
         />
-        <Field label="Catatan">
-          <Input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional..." />
+        <Field label={t('stockOpnameCountForm.fields.notes')}>
+          <Input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('stockOpnameCountForm.fields.notesPlaceholder')} />
         </Field>
       </div>
       {!warehouseId && (
         <p role="status" className="rounded-lg border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-text">
-          Pilih gudang dulu untuk menampilkan stok sistem per gudang.
+          {t('stockOpnameCountForm.pickWarehouseHint')}
         </p>
       )}
 
       {/* Summary */}
-      <section aria-label="Ringkasan perubahan" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard label="Item Berubah" value={formatNumber(summary.changed)} />
-        <StatCard label="Surplus" value={formatRupiah(summary.surplus)} />
-        <StatCard label="Defisit" value={formatRupiah(summary.deficit)} />
+      <section aria-label={t('stockOpnameCountForm.summary.label')} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard label={t('stockOpnameCountForm.summary.changed')} value={formatNumber(summary.changed)} />
+        <StatCard label={t('stockOpnameCountForm.summary.surplus')} value={formatRupiah(summary.surplus)} />
+        <StatCard label={t('stockOpnameCountForm.summary.deficit')} value={formatRupiah(summary.deficit)} />
       </section>
 
       {/* Search */}
       <div className="relative">
         <label htmlFor="opname-item-search" className="sr-only">
-          Cari item
+          {t('stockOpnameCountForm.search.label')}
         </label>
         <Search
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -210,18 +212,18 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
-          placeholder="Cari item..."
+          placeholder={t('stockOpnameCountForm.search.placeholder')}
         />
       </div>
 
       {/* Items table */}
       {isLoading ? (
-        <LoadingState label="Memuat lembar hitung…" />
+        <LoadingState label={t('stockOpnameCountForm.loading')} />
       ) : (
         <div
           className="overflow-x-auto rounded-lg border border-border bg-card"
           role="region"
-          aria-label="Daftar item untuk dihitung"
+          aria-label={t('stockOpnameCountForm.table.label')}
           // Focusable so keyboard users can scroll the wide count table.
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
           tabIndex={0}
@@ -229,14 +231,14 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
           <table className="w-full min-w-[56rem] text-sm">
             <thead className="border-b border-border bg-muted/50 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th scope="col" className="px-3 py-2">Kode</th>
-                <th scope="col" className="px-3 py-2">Nama Item</th>
-                <th scope="col" className="px-3 py-2">Satuan</th>
-                <th scope="col" className="px-3 py-2 text-right">Stok Sistem</th>
-                <th scope="col" className="w-36 px-3 py-2 text-right">Stok Aktual</th>
-                <th scope="col" className="px-3 py-2 text-right">Selisih</th>
-                <th scope="col" className="w-40 px-3 py-2 text-right">Nilai/Satuan</th>
-                <th scope="col" className="px-3 py-2 text-right">Nilai Selisih</th>
+                <th scope="col" className="px-3 py-2">{t('stockOpnameCountForm.table.code')}</th>
+                <th scope="col" className="px-3 py-2">{t('stockOpnameCountForm.table.name')}</th>
+                <th scope="col" className="px-3 py-2">{t('stockOpnameCountForm.table.unit')}</th>
+                <th scope="col" className="px-3 py-2 text-right">{t('stockOpnameCountForm.table.systemStock')}</th>
+                <th scope="col" className="w-36 px-3 py-2 text-right">{t('stockOpnameCountForm.table.actualStock')}</th>
+                <th scope="col" className="px-3 py-2 text-right">{t('stockOpnameCountForm.table.difference')}</th>
+                <th scope="col" className="w-40 px-3 py-2 text-right">{t('stockOpnameCountForm.table.unitCost')}</th>
+                <th scope="col" className="px-3 py-2 text-right">{t('stockOpnameCountForm.table.varianceValue')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -267,7 +269,7 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
                         step="any"
                         min="0"
                         className="num text-right"
-                        aria-label={`Stok aktual ${item.name}`}
+                        aria-label={t('stockOpnameCountForm.table.actualStockAria', { name: item.name })}
                         placeholder={qty(systemStock)}
                         value={actualStocks[item.id] ?? ''}
                         onChange={(e) => handleActualChange(item.id, e.target.value)}
@@ -287,11 +289,11 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
                         step="any"
                         min="0"
                         className={cn('num text-right', costChanged && 'border-warning')}
-                        aria-label={`Nilai per satuan ${item.name}`}
+                        aria-label={t('stockOpnameCountForm.table.unitCostAria', { name: item.name })}
                         placeholder={qty(avgCost)}
                         value={unitCosts[item.id] ?? ''}
                         onChange={(e) => handleCostChange(item.id, e.target.value)}
-                        title="Kosongkan untuk memakai HPP rata-rata. Diisi = revaluasi nilai persediaan."
+                        title={t('stockOpnameCountForm.table.unitCostHint')}
                       />
                     </td>
                     <td className="num px-3 py-2 text-right whitespace-nowrap">
@@ -308,10 +310,10 @@ export function StockOpnameCountForm({ breadcrumb, onBack, onSuccess }: Props) {
       {/* Submit */}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="outline" onClick={onBack}>
-          Batal
+          {t('stockOpnameCountForm.actions.cancel')}
         </Button>
         <Button onClick={handleSubmit} loading={submitting} disabled={submitting || !warehouseId}>
-          {submitting ? 'Menyimpan...' : 'Simpan & Proses'}
+          {submitting ? t('stockOpnameCountForm.actions.saving') : t('stockOpnameCountForm.actions.submit')}
         </Button>
       </div>
     </div>

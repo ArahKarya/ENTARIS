@@ -1,1 +1,912 @@
-{}
+{
+  "batchSelect": {
+    "loading": "Loading batches…",
+    "none": "No batches available for this item in the selected warehouse. The system will use WAC on submit.",
+    "option": "{{date}} · {{qty}} Kg available (@ Rp {{cost}}/Kg) · {{ref}}",
+    "pickFirst": "Select an item and warehouse first to see batches.",
+    "refreshing": "refreshing…",
+    "summary_one": "{{count}} batch · {{total}} Kg available in total (FIFO already absorbed legacy outbound)",
+    "summary_other": "{{count}} batches · {{total}} Kg available in total (FIFO already absorbed legacy outbound)",
+    "useWac": "Use WAC (no batch)"
+  },
+  "filters": {
+    "allItems": "All items",
+    "allWarehouses": "All warehouses",
+    "item": "Item",
+    "searchItem": "Search items…",
+    "searchWarehouse": "Search warehouses…",
+    "warehouse": "Warehouse"
+  },
+  "inventoryItemModal": {
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save item",
+      "saving": "Saving…"
+    },
+    "description": "Inventory item master data.",
+    "errors": {
+      "required": "Required."
+    },
+    "fields": {
+      "account": "Inventory account",
+      "category": "Category",
+      "code": "Item code",
+      "description": "Description",
+      "minimumStock": "Minimum stock",
+      "name": "Item name",
+      "unit": "Unit"
+    },
+    "hints": {
+      "account": "Select an asset account for automatic journals when stock goes in or out.",
+      "minimumStock": "A low stock warning appears when stock falls below this value."
+    },
+    "noAccount": "Not selected",
+    "placeholders": {
+      "account": "Not selected",
+      "category": "Raw material, finished goods, etc.",
+      "code": "Example: BBM-001",
+      "description": "Optional description of this item",
+      "name": "Inventory item name",
+      "unit": "kg, sack, pcs, ton"
+    },
+    "titleCreate": "Add stock item",
+    "titleEdit": "Edit stock item",
+    "toast": {
+      "saveFailed": "Could not save the item.",
+      "saved": "Item saved."
+    }
+  },
+  "inventoryItemsTab": {
+    "actions": {
+      "delete": "Delete item",
+      "edit": "Edit item",
+      "history": "Movement history"
+    },
+    "active": "Active",
+    "activeAndInactive": "Active & inactive",
+    "allCategories": "All categories",
+    "allStock": "All stock",
+    "allWarehousesTotal": "All warehouses (total)",
+    "categoryFilter": "Category",
+    "columns": {
+      "actions": "Actions",
+      "category": "Category",
+      "code": "Code",
+      "minimumStock": "Min. stock",
+      "name": "Item name",
+      "stock": "Stock",
+      "stockStatus": "Stock status",
+      "stockValue": "Stock value",
+      "warehouseStock": "Warehouse stock"
+    },
+    "empty": {
+      "action": "Add the first item",
+      "description": "Add items or import them from Excel to start tracking stock.",
+      "title": "No inventory items yet"
+    },
+    "exportExcel": "Export to Excel",
+    "exportFailed": "Could not export items. Try again.",
+    "exportTruncated": "Export limited to the first {{n}} items. Narrow the filters.",
+    "inactive": "Inactive",
+    "itemLabel": "items",
+    "itemStatusFilter": "Item status",
+    "kpi": {
+      "activeHint": "{{n}} active",
+      "count": "Items",
+      "low": "Low stock",
+      "lowHint": "below minimum stock",
+      "out": "Out of stock",
+      "outHint": "zero or negative stock",
+      "sectionLabel": "Item summary for the current filters",
+      "value": "Inventory value",
+      "valueHint": "stock × average cost",
+      "valueHintWarehouse": "warehouse stock × average cost"
+    },
+    "rowActions": "Actions for {{code}}",
+    "searchLabel": "Search items",
+    "searchPlaceholder": "Search item code or name",
+    "stockStatusFilter": "Stock status",
+    "tableLabel": "Inventory items"
+  },
+  "inventoryPage": {
+    "actions": {
+      "addItem": "Add item",
+      "addService": "Add service",
+      "import": "Import",
+      "productionDraft": "Production draft",
+      "recordMovement": "Record movement"
+    },
+    "cancelMovement": {
+      "description": "Cancel {{number}}? The item stock will be restored.",
+      "fallbackName": "this stock movement",
+      "title": "Cancel stock movement?"
+    },
+    "cancelRun": {
+      "description": "All related stock movements will be reversed.",
+      "title": "Cancel production run?"
+    },
+    "confirm": {
+      "cancel": "Cancel",
+      "no": "No",
+      "yesCancel": "Yes, cancel",
+      "yesDelete": "Yes, delete"
+    },
+    "deleteDraft": {
+      "description": "The draft is discarded and cannot be restored. Stock and journals are not affected.",
+      "title": "Delete {{number}}?"
+    },
+    "deleteItem": {
+      "description": "Delete {{name}}? Items that already have stock movements or are used on invoices cannot be deleted.",
+      "fallbackName": "this item",
+      "title": "Delete stock item?"
+    },
+    "description": {
+      "dashboard": "Summary of stock, movements, and production.",
+      "items": "Manage the item master and track stock per warehouse.",
+      "movements": "History of all stock in, out, adjustment, and transfer movements.",
+      "production": "Record production runs, approvals, cost standards, processes, and machines.",
+      "services": "Services used on sales invoices and quotations."
+    },
+    "draftFallback": "draft",
+    "openDraftsSr_one": ", {{count}} draft not posted yet",
+    "openDraftsSr_other": ", {{count}} drafts not posted yet",
+    "postDraft": {
+      "confirmApproval": "Yes, send for approval",
+      "confirmDirect": "Yes, post",
+      "descriptionApproval": "The draft is sent for manager approval. Stock, journals, and COGS are created only after approval.",
+      "descriptionDirect": "Stock, journals, and COGS will be created now as a production run. Make sure the data is correct.",
+      "title": "Post {{number}}?"
+    },
+    "prodViews": {
+      "approval": "Approvals & requests",
+      "costStandards": "Cost standards",
+      "dashboard": "Dashboard",
+      "data": "Production data",
+      "draft": "Draft",
+      "machines": "Machines",
+      "processes": "Process master"
+    },
+    "prodViewsLabel": "Production sections",
+    "productionRunFallback": "a production run",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "items": "Item master",
+      "movements": "Stock movements",
+      "production": "Production",
+      "services": "Services"
+    },
+    "tabsLabel": "Stock and production sections",
+    "title": "Stock & Production",
+    "toast": {
+      "cancelMovementFailed": "Could not cancel the stock movement.",
+      "cancelRunFailed": "Could not cancel the production run.",
+      "deactivateServiceFailed": "Could not deactivate the service.",
+      "deleteDraftFailed": "Could not delete the production draft.",
+      "deleteItemFailed": "Could not delete the stock item.",
+      "draftDeleted": "{{number}} deleted.",
+      "draftPosted": "{{number}} posted as {{run}}.",
+      "draftSentForApproval": "{{number}} sent for approval. Stock and journals are created once it is approved.",
+      "editPending": "Awaiting approval: a change to this production run has already been submitted.",
+      "itemDeleted": "Stock item deleted.",
+      "movementCancelled": "Stock movement cancelled.",
+      "openDraftFailed": "Could not open the production draft.",
+      "postDraftFailed": "Could not post the production draft.",
+      "runCancelled": "Production run cancelled.",
+      "serviceDeactivated": "Service deactivated."
+    }
+  },
+  "inventoryRows": {
+    "block": {
+      "cancelFromReceipt": "Movements from a goods receipt can only be cancelled on the goods receipt page.",
+      "cancelled": "The movement is already cancelled.",
+      "editFromProduction": "Movements from a production run are changed through that production run.",
+      "editFromReceipt": "Movements from a goods receipt can only be changed on the goods receipt page."
+    },
+    "movementType": {
+      "AdjustmentIn": "Adjustment +",
+      "AdjustmentOut": "Adjustment −",
+      "In": "In",
+      "Out": "Out",
+      "TransferIn": "Transfer in",
+      "TransferOut": "Transfer out"
+    },
+    "referenceType": {
+      "DeliveryOrder": "Delivery Order",
+      "GoodsReceipt": "Goods Receipt",
+      "OpeningBalance": "Opening balance",
+      "ProductionRun": "Production run",
+      "PurchaseInvoice": "Purchase Invoice",
+      "SalesInvoice": "Sales Invoice",
+      "SalesReturn": "Sales Return",
+      "StockOpname": "Stock Count",
+      "StockTransfer": "Stock Transfer"
+    }
+  },
+  "invoiceItemsSection": {
+    "billedFromDos_one": "Billed from {{count}} Delivery Order",
+    "billedFromDos_other": "Billed from {{count}} Delivery Orders",
+    "billedFromOneDo": "Billed from a Delivery Order",
+    "columns": {
+      "amount": "Amount",
+      "discount": "Disc%",
+      "name": "Name",
+      "pph": "WHT%",
+      "qty": "Qty",
+      "rate": "Price",
+      "unit": "Unit",
+      "vat": "VAT%"
+    },
+    "createDeliveryOrder": "Create Delivery Order",
+    "meta": {
+      "quality": "Quality",
+      "refaksi": "Weight deduction: {{qty}} kg",
+      "truckWeight": "Truck: {{qty}} kg",
+      "vehicle": "Vehicle"
+    },
+    "noDeliveryOrder": "This invoice has no Delivery Order yet.",
+    "receivedFromGrs_one": "Goods received from {{count}} Goods Receipt",
+    "receivedFromGrs_other": "Goods received from {{count}} Goods Receipts",
+    "receivedFromOneGr": "Goods received from a Goods Receipt",
+    "serviceBadge": "Service",
+    "tableLabel": "Invoice items and services",
+    "title_one": "Items / services ({{count}} item)",
+    "title_other": "Items / services ({{count}} items)"
+  },
+  "masterData": {
+    "activeFilter": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "errors": {
+      "capacityNegative": "Capacity cannot be negative.",
+      "capacityNotNumber": "Capacity must be a number.",
+      "machineCodeRequired": "Machine code is required.",
+      "machineCodeTooLong": "Code can be at most 50 characters.",
+      "machineNameRequired": "Machine name is required.",
+      "machineNameTooLong": "Name can be at most 150 characters.",
+      "negative": "Cannot be negative.",
+      "notNumber": "Must be a number.",
+      "processNameRequired": "Process name is required.",
+      "processNameTooLong": "Process name can be at most 100 characters.",
+      "rateNegative": "Rate cannot be negative.",
+      "rateNotNumber": "Rate must be a number.",
+      "rateRequired": "Rate is required.",
+      "sortOrderInteger": "Order must be a whole number.",
+      "standardNameRequired": "Standard name is required.",
+      "unitTooLong": "Unit can be at most 20 characters."
+    }
+  },
+  "masterDataKit": {
+    "allStatuses": "All statuses",
+    "cancel": "Cancel",
+    "clearSearch": "Clear search",
+    "filterLabel": "Filter list",
+    "status": "Status"
+  },
+  "movementDetailSheet": {
+    "actions": {
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "openProductionRun": "View production run"
+    },
+    "fields": {
+      "date": "Date",
+      "item": "Item",
+      "notes": "Notes",
+      "offsetAccount": "Offset account",
+      "quantity": "Quantity",
+      "recordedAt": "Recorded",
+      "reference": "Reference",
+      "type": "Type",
+      "unitCost": "Unit cost",
+      "value": "Value",
+      "warehouse": "Warehouse"
+    }
+  },
+  "serviceItemModal": {
+    "actions": {
+      "cancel": "Cancel",
+      "create": "Add service",
+      "saveChanges": "Save changes",
+      "saving": "Saving…"
+    },
+    "description": "Services that can be billed on sales invoices.",
+    "errors": {
+      "required": "Required."
+    },
+    "fields": {
+      "account": "Revenue account",
+      "code": "Code",
+      "defaultRate": "Default rate (Rp)",
+      "description": "Description",
+      "name": "Service name",
+      "unit": "Unit"
+    },
+    "noAccount": "Select account",
+    "placeholders": {
+      "account": "Select account",
+      "description": "Optional",
+      "name": "Toll manufacturing service",
+      "unit": "Service"
+    },
+    "titleCreate": "Add service",
+    "titleEdit": "Edit service",
+    "toast": {
+      "created": "Service added.",
+      "missingFields": "Code, name, and revenue account are required.",
+      "saveFailed": "Could not save the service.",
+      "updated": "Service updated."
+    }
+  },
+  "serviceItemsTab": {
+    "actions": {
+      "deactivate": "Deactivate",
+      "edit": "Edit service",
+      "menuLabel": "Actions for {{name}}"
+    },
+    "columns": {
+      "account": "Revenue account",
+      "actions": "Actions",
+      "code": "Code",
+      "defaultRate": "Default rate",
+      "name": "Service name",
+      "status": "Status",
+      "unit": "Unit"
+    },
+    "empty": {
+      "action": "Add service",
+      "description": "Services are used on sales invoices and quotations.",
+      "title": "No services yet"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "status": "Service status"
+    },
+    "search": {
+      "label": "Search services",
+      "placeholder": "Search service code or name"
+    },
+    "statusFilter": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "table": {
+      "itemLabel": "services",
+      "label": "Service list"
+    }
+  },
+  "stockCategories": {
+    "byProduct": "By-products",
+    "finishedGoods": "Finished goods",
+    "other": "Other",
+    "rawMaterial": "Raw materials",
+    "semiFinished": "Semi-finished goods",
+    "supplies": "Supplies"
+  },
+  "stockMovementModal": {
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save movement",
+      "saveChanges": "Save changes",
+      "saving": "Saving…"
+    },
+    "description": "Stock in, out, or adjustment movements, posted to the chart of accounts.",
+    "errors": {
+      "dateRequired": "Date is required.",
+      "quantityMin": "Quantity must be at least 0.001."
+    },
+    "fields": {
+      "date": "Date",
+      "item": "Item",
+      "movementType": "Movement type",
+      "notes": "Notes",
+      "offsetAccount": "Offset account",
+      "offsetAccountOptional": "Offset account (optional)",
+      "quantity": "Quantity",
+      "referenceNumber": "Reference number",
+      "referenceType": "Reference type",
+      "totalValue": "Total value",
+      "unitCost": "Unit cost",
+      "warehouse": "Warehouse"
+    },
+    "hints": {
+      "offsetMissing": "Select an offset account so the stock value is posted to the chart of accounts.",
+      "offsetPurpose": "For posting to the chart of accounts.",
+      "stockCurrent": "Current stock: {{qty}} {{unit}}",
+      "stockInWarehouse": "Stock in this warehouse: {{qty}} {{unit}}",
+      "warehouseLocked": "The warehouse cannot be changed when editing."
+    },
+    "placeholders": {
+      "item": "Select item",
+      "notes": "Optional notes about this stock movement",
+      "offsetAccount": "Select offset account",
+      "referenceNumber": "Reference document number"
+    },
+    "productionLinked": "Stock movements from production runs cannot be edited directly.",
+    "referenceTypes": {
+      "none": "None",
+      "purchaseInvoice": "Purchase Invoice",
+      "salesInvoice": "Sales Invoice"
+    },
+    "titleCreate": "Record stock movement",
+    "titleEdit": "Edit stock movement",
+    "toast": {
+      "createFailed": "Could not record the stock movement.",
+      "created": "Stock movement recorded.",
+      "updateFailed": "Could not update the stock movement.",
+      "updated": "Stock movement updated."
+    },
+    "types": {
+      "adjustmentIn": "Adjustment in",
+      "adjustmentOut": "Adjustment out",
+      "in": "In",
+      "out": "Out"
+    }
+  },
+  "stockMovementsTab": {
+    "actions": {
+      "cancel": "Cancel movement",
+      "edit": "Edit movement",
+      "fallbackName": "stock movement",
+      "menuLabel": "Actions for {{name}}",
+      "view": "View details"
+    },
+    "columns": {
+      "actions": "Actions",
+      "date": "Date",
+      "item": "Item",
+      "number": "Number",
+      "quantity": "Quantity",
+      "reference": "Reference",
+      "type": "Type",
+      "value": "Value",
+      "warehouse": "Warehouse"
+    },
+    "direction": {
+      "in": "In",
+      "out": "Out"
+    },
+    "empty": {
+      "action": "Record movement",
+      "description": "Movements from goods receipts, delivery orders, production, stock counts, and manual entries appear here.",
+      "title": "No stock movements yet"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types",
+      "status": "Movement status",
+      "type": "Movement type"
+    },
+    "kpi": {
+      "cancelled": "Cancelled",
+      "cancelledHint": "not counted in value",
+      "count": "Movements",
+      "inValue": "Value in",
+      "movementCount_one": "{{formatted}} movement",
+      "movementCount_other": "{{formatted}} movements",
+      "outValue": "Value out",
+      "posted_one": "{{formatted}} posted",
+      "posted_other": "{{formatted}} posted",
+      "sectionLabel": "Stock movement summary for the current filters"
+    },
+    "search": {
+      "label": "Search stock movements",
+      "placeholder": "Search number, item, reference, notes"
+    },
+    "statusFilter": {
+      "active": "Posted",
+      "cancelled": "Cancelled"
+    },
+    "table": {
+      "itemLabel": "movements",
+      "label": "Stock movement history"
+    }
+  },
+  "stockOpnameCountForm": {
+    "actions": {
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "submit": "Save & process"
+    },
+    "description": "Enter the physical stock you counted. Blank fields are treated as equal to system stock.",
+    "fields": {
+      "date": "Date",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional...",
+      "warehouse": "Warehouse",
+      "warehousePlaceholder": "Select warehouse to count..."
+    },
+    "loading": "Loading count sheet…",
+    "pickWarehouseHint": "Select a warehouse first to show system stock for that warehouse.",
+    "search": {
+      "label": "Search items",
+      "placeholder": "Search items..."
+    },
+    "summary": {
+      "changed": "Items changed",
+      "deficit": "Deficit",
+      "label": "Change summary",
+      "surplus": "Surplus"
+    },
+    "table": {
+      "actualStock": "Actual stock",
+      "actualStockAria": "Actual stock {{name}}",
+      "code": "Code",
+      "difference": "Difference",
+      "label": "Items to count",
+      "name": "Item name",
+      "systemStock": "System stock",
+      "unit": "Unit",
+      "unitCost": "Value/unit",
+      "unitCostAria": "Value per unit {{name}}",
+      "unitCostHint": "Leave blank to use the average COGS. Filling it in revalues the inventory.",
+      "varianceValue": "Variance value"
+    },
+    "title": "New stock count",
+    "toast": {
+      "noItems": "There are no items to count.",
+      "saveFailed": "Could not save the stock count.",
+      "saved": "Stock count saved and processed.",
+      "warehouseRequired": "Select the warehouse to count first."
+    }
+  },
+  "stockOpnameDetailView": {
+    "cancel": "Cancel",
+    "companyFallback": "Company",
+    "diffHeading": "Items with differences ({{total}})",
+    "downloadPdf": "Download PDF",
+    "header": {
+      "createdBy": "Created by {{name}}",
+      "warehouse": "Warehouse {{name}}"
+    },
+    "loadError": {
+      "description": "The document may have been deleted or you do not have access.",
+      "retry": "Try again",
+      "title": "The stock count could not be loaded"
+    },
+    "loading": "Loading stock count…",
+    "noDiff": "No differences: physical stock matches system stock.",
+    "notFound": "Stock count not found",
+    "notes": "Notes:",
+    "summary": {
+      "date": "Date",
+      "deficit": "Deficit",
+      "itemsCounted": "Total items counted",
+      "label": "Stock count summary",
+      "surplus": "Surplus"
+    },
+    "table": {
+      "actualStock": "Actual stock",
+      "difference": "Difference",
+      "item": "Item",
+      "systemStock": "System stock",
+      "unitPrice": "Price/unit",
+      "varianceValue": "Variance value"
+    }
+  },
+  "stockOpnamePage": {
+    "cancelDialog": {
+      "confirm": "Yes, cancel",
+      "message": "All stock adjustments and journal entries will be reversed.",
+      "title": "Cancel stock count?"
+    },
+    "columns": {
+      "actions": "Actions",
+      "createdBy": "Created by",
+      "date": "Date",
+      "itemsCounted": "Items counted",
+      "itemsWithDiff": "Items with difference",
+      "number": "Number",
+      "status": "Status",
+      "varianceValue": "Variance value",
+      "warehouse": "Warehouse"
+    },
+    "create": "New stock count",
+    "description": "Count physical stock per warehouse; differences are adjusted into stock and journaled automatically.",
+    "empty": {
+      "action": "Create the first stock count",
+      "description": "Physical count sessions you save will appear here.",
+      "title": "No stock counts yet"
+    },
+    "filters": {
+      "allWarehouses": "All warehouses",
+      "searchLabel": "Search stock counts",
+      "searchPlaceholder": "Search number, notes, or creator",
+      "searchWarehouse": "Search warehouses…",
+      "warehouse": "Warehouse"
+    },
+    "rowActions": {
+      "cancel": "Cancel",
+      "label": "Actions for {{number}}",
+      "view": "View details"
+    },
+    "table": {
+      "itemLabel": "stock counts",
+      "label": "Stock count list"
+    },
+    "title": "Stock Count",
+    "toast": {
+      "cancelFailed": "Could not cancel the stock count.",
+      "cancelled": "Stock count cancelled."
+    }
+  },
+  "stockTransferModal": {
+    "cancel": "Cancel",
+    "description": "Move stock between warehouses and print an SJG for the driver.",
+    "errors": {
+      "createFailed": "Could not create the transfer.",
+      "fromRequired": "Select the source warehouse.",
+      "noItems": "Add at least one item with qty > 0.",
+      "sameWarehouse": "Source and destination warehouses must be different.",
+      "toRequired": "Select the destination warehouse."
+    },
+    "fields": {
+      "date": "Date",
+      "from": "From warehouse",
+      "fromPlaceholder": "Select source warehouse…",
+      "notes": "Notes",
+      "notesPlaceholder": "Reason for transfer…",
+      "to": "To warehouse",
+      "toPlaceholder": "Select destination warehouse…"
+    },
+    "items": {
+      "addRow": "Add row",
+      "batch": "Source batch (optional)",
+      "batchLabel": "Source batch row {{n}}",
+      "itemLabel": "Item row {{n}}",
+      "itemPlaceholder": "Select item…",
+      "qty": "Qty",
+      "qtyWithUnit": "Qty ({{unit}})",
+      "removeRow": "Remove row {{n}}",
+      "split": "Split by batch",
+      "splitHint": "Automatically split into rows per available batch (FIFO, oldest first)",
+      "title": "Items"
+    },
+    "saving": "Saving…",
+    "shipping": {
+      "driver": "Driver",
+      "driverPlaceholder": "Driver name",
+      "hint": "These fields are optional but appear on the printed SJG for verification at handover.",
+      "recipient": "Recipient (destination warehouse)",
+      "recipientPlaceholder": "Receiving PIC name",
+      "title": "Shipping info (for SJG)",
+      "vehicle": "Vehicle no."
+    },
+    "submit": "Submit transfer",
+    "title": "New stock transfer",
+    "toast": {
+      "batchesFailed": "Could not load the batch list.",
+      "created": "Transfer created. Stock has moved and the SJG is ready to print.",
+      "noBatches": "No batches available for this item in the source warehouse.",
+      "shortfall": "{{qty}} exceeds the total available in batches. The remaining row uses average cost (WAC).",
+      "split_one": "Split into {{count}} batch (FIFO).",
+      "split_other": "Split into {{count}} batches (FIFO)."
+    }
+  },
+  "stockTransfers": {
+    "cancelDialog": {
+      "confirm": "Yes, cancel",
+      "description": "Cancel transfer {{number}}? Stock will be returned to the source warehouse.",
+      "title": "Cancel stock transfer"
+    },
+    "columns": {
+      "actions": "Actions",
+      "date": "Date",
+      "driver": "Driver",
+      "items": "Items",
+      "notPrinted": "not printed yet",
+      "number": "Number",
+      "printed": "Printed",
+      "printedTitle": "Inter-warehouse delivery note printed",
+      "route": "From → To",
+      "status": "Status",
+      "vehicle": "Vehicle no."
+    },
+    "create": "New transfer",
+    "description": "Move stock between warehouses and print an inter-warehouse delivery note (SJG) for the driver. Stock moves when the transfer is saved.",
+    "empty": {
+      "action": "Create the first transfer",
+      "description": "Transfers between warehouses that you create will appear here.",
+      "title": "No stock transfers yet"
+    },
+    "filters": {
+      "allWarehouses": "All warehouses",
+      "searchLabel": "Search transfers",
+      "searchPlaceholder": "Search number, warehouse, or driver",
+      "searchWarehouse": "Search warehouses…",
+      "warehouse": "Warehouse (source or destination)"
+    },
+    "route": {
+      "to": "to"
+    },
+    "rowActions": {
+      "cancel": "Cancel",
+      "label": "Actions for {{number}}",
+      "view": "View details & SJG"
+    },
+    "table": {
+      "itemLabel": "transfers",
+      "label": "Stock transfer list"
+    },
+    "title": "Stock Transfer",
+    "toast": {
+      "cancelFailed": "Could not cancel the transfer.",
+      "cancelled": "Transfer cancelled. Stock returned to the source warehouse."
+    }
+  },
+  "transferModal": {
+    "attachments": "Transfer receipt attachments",
+    "description": "Transfer between cash/bank accounts",
+    "done": "Done",
+    "errors": {
+      "sameAccount": "Source and destination accounts cannot be the same.",
+      "saveFailed": "Could not save the transfer."
+    },
+    "fields": {
+      "amount": "Amount (Rp)",
+      "date": "Date",
+      "destination": "Destination account (transfer to)",
+      "destinationPlaceholder": "Select destination account",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional description...",
+      "reference": "Reference no.",
+      "referencePlaceholder": "Check no., transfer no., etc.",
+      "source": "Source account (transfer from)",
+      "sourcePlaceholder": "Select source account"
+    },
+    "saved": "Saved",
+    "submit": "Save transfer",
+    "summary": "Summary:",
+    "title": "Account transfer",
+    "transferAmount": "Transfer",
+    "transferTo": "Transfer to"
+  },
+  "warehouseField": {
+    "placeholder": "Select warehouse..."
+  },
+  "warehouseFilter": {
+    "all": "All warehouses",
+    "label": "Warehouse"
+  },
+  "warehouseSelect": {
+    "none": "None selected",
+    "placeholder": "Select warehouse"
+  },
+  "warehouseSelectField": {
+    "label": "Warehouse",
+    "none": "None selected",
+    "placeholder": "Select warehouse"
+  },
+  "warehouseTransferDrawer": {
+    "audit": {
+      "createdBy": "Created by",
+      "lastPrinted": "Last printed",
+      "title": "Audit"
+    },
+    "bodyLabel": "Stock transfer details",
+    "cancel": "Cancel transfer",
+    "cancelDialog": {
+      "confirm": "Yes, cancel",
+      "description": "Cancel transfer {{number}}? Stock will be returned to the source warehouse.",
+      "title": "Cancel stock transfer"
+    },
+    "cancelledNotice": "This transfer has been cancelled. Stock has been returned to the source warehouse.",
+    "description": "Inter-warehouse delivery note (SJG)",
+    "generating": "Generating…",
+    "items": {
+      "code": "Code",
+      "description": "Description",
+      "label": "Transfer items",
+      "name": "Name",
+      "qty": "Qty",
+      "title": "Items ({{total}})",
+      "unit": "Unit"
+    },
+    "loading": "Loading warehouse transfer…",
+    "loadingShort": "Loading…",
+    "notFound": "Transfer not found.",
+    "notes": "Notes",
+    "print": "Print SJG",
+    "route": {
+      "destination": "Destination warehouse",
+      "from": "Source warehouse",
+      "title": "Transfer route",
+      "to": "to"
+    },
+    "shipping": {
+      "date": "Date",
+      "driver": "Driver",
+      "recipient": "Recipient",
+      "title": "Shipping info",
+      "vehicle": "Vehicle no."
+    },
+    "titleFallback": "Stock Transfer",
+    "toast": {
+      "cancelFailed": "Could not cancel the transfer.",
+      "cancelled": "Transfer cancelled. Stock returned to the source warehouse."
+    }
+  },
+  "warehouses": {
+    "columns": {
+      "actions": "Actions",
+      "itemCount": "Item count",
+      "location": "Location",
+      "status": "Status",
+      "totalStock": "Total stock",
+      "warehouse": "Warehouse"
+    },
+    "create": "Add warehouse",
+    "deactivateDialog": {
+      "confirm": "Yes, deactivate",
+      "defaultNote": "This is the default warehouse. Set another warehouse as default first.",
+      "description": "Warehouse <strong>{{name}}</strong> will no longer appear in warehouse choices and the stock dashboard. Its balances and transaction history are kept, and it can be reactivated at any time.",
+      "title": "Deactivate warehouse?"
+    },
+    "defaultMark": "Default",
+    "deleteDialog": {
+      "confirm": "Yes, delete",
+      "description": "Delete warehouse <strong>{{name}}</strong>? It can only be deleted if it has no stock and has never been used in a transaction.",
+      "title": "Delete warehouse?"
+    },
+    "description": "Master list of physical/logical warehouses to separate stock by location.",
+    "empty": {
+      "action": "Add the first warehouse",
+      "description": "Add warehouses to separate stock by location.",
+      "title": "No warehouses yet"
+    },
+    "filters": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "searchLabel": "Search warehouses",
+      "searchPlaceholder": "Search code, name, or location"
+    },
+    "modal": {
+      "add": "Add",
+      "cancel": "Cancel",
+      "createTitle": "Add warehouse",
+      "description": "The code is used as the short warehouse identifier on stock documents.",
+      "editTitle": "Edit warehouse",
+      "errors": {
+        "codeRequired": "Code is required.",
+        "nameRequired": "Name is required."
+      },
+      "fields": {
+        "active": "Active",
+        "code": "Code",
+        "codeHint": "Letters, numbers, hyphens, underscores.",
+        "codePlaceholder": "E.g. MAIN, TRANSIT",
+        "description": "Description",
+        "isDefault": "Set as default warehouse",
+        "location": "Location",
+        "locationPlaceholder": "Address / area",
+        "name": "Name",
+        "namePlaceholder": "E.g. Main Warehouse"
+      },
+      "save": "Save",
+      "toast": {
+        "created": "Warehouse added.",
+        "saveFailed": "Could not save the warehouse.",
+        "updated": "Warehouse updated."
+      }
+    },
+    "rowActions": {
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "edit": "Edit",
+      "label": "Actions for {{name}}"
+    },
+    "table": {
+      "itemLabel": "warehouses",
+      "label": "Warehouse list"
+    },
+    "title": "Warehouses",
+    "toast": {
+      "activated": "Warehouse activated.",
+      "deactivated": "Warehouse deactivated.",
+      "deleteFailed": "Could not delete the warehouse.",
+      "deleted": "Warehouse deleted.",
+      "toggleFailed": "Could not change the warehouse status."
+    }
+  }
+}

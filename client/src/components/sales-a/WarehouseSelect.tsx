@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { OptionSelect } from './OptionSelect';
 
@@ -31,9 +32,11 @@ export function WarehouseSelect({
   onChange,
   autoDefault = true,
   disabled,
-  label = 'Pilih gudang',
+  label: labelProp,
   className,
 }: WarehouseSelectProps) {
+  const { t } = useTranslation('inventory');
+  const label = labelProp ?? t('warehouseSelect.placeholder');
   const { data } = useQuery({
     queryKey: ['warehouses-active'],
     queryFn: async () => {
@@ -58,7 +61,7 @@ export function WarehouseSelect({
       disabled={disabled}
       className={className}
       placeholder={label}
-      emptyLabel={autoDefault ? undefined : 'Tidak dipilih'}
+      emptyLabel={autoDefault ? undefined : t('warehouseSelect.none')}
       options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
     />
   );

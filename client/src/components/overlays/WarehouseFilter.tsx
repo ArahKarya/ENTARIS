@@ -5,6 +5,7 @@
  */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { ComboboxFilter } from '@/components/shared';
 
@@ -25,10 +26,11 @@ interface WarehouseFilterProps {
 export function WarehouseFilter({
   value,
   onChange,
-  label = 'Gudang',
-  allLabel = 'Semua gudang',
+  label,
+  allLabel,
   className,
 }: WarehouseFilterProps) {
+  const { t } = useTranslation('inventory');
   const { data, isLoading } = useQuery({
     queryKey: ['warehouses-active'],
     queryFn: async () => {
@@ -43,11 +45,11 @@ export function WarehouseFilter({
   );
   return (
     <ComboboxFilter
-      label={label}
+      label={label ?? t('warehouseFilter.label')}
       value={value}
       onChange={onChange}
       options={options}
-      allLabel={allLabel}
+      allLabel={allLabel ?? t('warehouseFilter.all')}
       loading={isLoading}
       className={className}
     />

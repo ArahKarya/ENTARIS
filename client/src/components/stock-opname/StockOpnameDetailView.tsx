@@ -1,6 +1,8 @@
 /** Read-only detail of one stock opname session, with PDF and cancel. */
 import { useQuery } from '@tanstack/react-query';
 import { XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -34,10 +36,10 @@ export interface OpnameDetail {
 }
 
 /** "Gudang X · Dibuat oleh Y", skipping parts that are missing. */
-function headerDescription(detail: OpnameDetail): string | undefined {
+function headerDescription(detail: OpnameDetail, t: TFunction<'inventory'>): string | undefined {
   const parts = [
-    detail.warehouse ? `Gudang ${detail.warehouse.name}` : null,
-    detail.createdBy?.fullName ? `Dibuat oleh ${detail.createdBy.fullName}` : null,
+    detail.warehouse ? t('stockOpnameDetailView.header.warehouse', { name: detail.warehouse.name }) : null,
+    detail.createdBy?.fullName ? t('stockOpnameDetailView.header.createdBy', { name: detail.createdBy.fullName }) : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(' · ') : undefined;
 }
@@ -54,6 +56,7 @@ interface Props {
 }
 
 export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: Props) {
+  const { t } = useTranslation('inventory');
   const companySettings = useCompanySettings();
   const detailQuery = useQuery({
     queryKey: ['stock-opname-detail', id],
@@ -65,8 +68,8 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
     return (
       <div className="space-y-5 pb-8">
         <div className="sm:hidden">{breadcrumb}</div>
-        <PageHeader title="Memuat stok opname…" breadcrumb={breadcrumb} />
-        <LoadingState label="Memuat stok opname…" />
+        <PageHeader title={t('stockOpnameDetailView.loading')} breadcrumb={breadcrumb} />
+        <LoadingState label={t('stockOpnameDetailView.loading')} />
       </div>
     );
   }
@@ -75,14 +78,14 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
     return (
       <div className="space-y-5 pb-8">
         <div className="sm:hidden">{breadcrumb}</div>
-        <PageHeader title="Stok opname tidak ditemukan" breadcrumb={breadcrumb} />
+        <PageHeader title={t('stockOpnameDetailView.notFound')} breadcrumb={breadcrumb} />
         <EmptyState
           kind="error"
-          title="Stok opname tidak dapat dimuat"
-          description="Dokumen mungkin sudah dihapus atau Anda tidak memiliki akses."
+          title={t('stockOpnameDetailView.loadError.title')}
+          description={t('stockOpnameDetailView.loadError.description')}
           action={
             <Button size="sm" variant="outline" onClick={() => detailQuery.refetch()}>
-              Coba lagi
+              {t('stockOpnameDetailView.loadError.retry')}
             </Button>
           }
         />
@@ -106,7 +109,7 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
             <StatusBadge status={detail.status} docType="stock_opname" />
           </span>
         }
-        description={headerDescription(detail)}
+        description={headerDescription(detail, t)}
         actions={
           <>
             <PDFDownloadButton
@@ -128,14 +131,14 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
                     totalValue: num(i.totalValue),
                   }))}
                   company={{
-                    name: companySettings?.companyName || 'Perusahaan',
+                    name: companySettings?.companyName || t('stockOpnameDetailView.companyFallback'),
                     address: companySettings?.address,
                     logoUrl: companySettings?.logoUrl,
                   }}
                 />
               }
               fileName={`stok-opname-${detail.opnameNumber}.pdf`}
-              label="Unduh PDF"
+              label={t('stockOpnameDetailView.downloadPdf')}
             />
             {detail.status === 'Submitted' && canCancel && (
               <Button
@@ -143,48 +146,48 @@ export function StockOpnameDetailView({ id, breadcrumb, canCancel, onCancel }: P
                 onClick={() => onCancel({ id: detail.id, opnameNumber: detail.opnameNumber })}
               >
                 <XCircle aria-hidden />
-                Batalkan
+                {t('stockOpnameDetailView.cancel')}
               </Button>
             )}
           </>
         }
       />
 
-      <section aria-label="Ringkasan stok opname" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Tanggal" value={formatDate(detail.date)} />
-        <StatCard label="Total Item Dihitung" value={formatNumber(detail.items.length)} />
-        <StatCard label="Surplus" value={formatRupiah(totalSurplus)} />
-        <StatCard label="Defisit" value={formatRupiah(totalDeficit)} />
+      <section aria-label={t('stockOpnameDetailView.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('stockOpnameDetailView.summary.date')} value={formatDate(detail.date)} />
+        <StatCard label={t('stockOpnameDetailView.summary.itemsCounted')} value={formatNumber(detail.items.length)} />
+        <StatCard label={t('stockOpnameDetailView.summary.surplus')} value={formatRupiah(totalSurplus)} />
+        <StatCard label={t('stockOpnameDetailView.summary.deficit')} value={formatRupiah(totalDeficit)} />
       </section>
 
       {detail.notes && (
         <p className="rounded-lg border border-border bg-card p-3 text-sm text-foreground">
-          <span className="text-muted-foreground">Catatan:</span> {detail.notes}
+          <span className="text-muted-foreground">{t('stockOpnameDetailView.notes')}</span> {detail.notes}
         </p>
       )}
 
       <section aria-labelledby="opname-diff-heading" className="space-y-3">
         <h2 id="opname-diff-heading" className="text-base font-semibold text-foreground">
-          Item dengan Selisih ({formatNumber(itemsWithDiff.length)})
+          {t('stockOpnameDetailView.diffHeading', { total: formatNumber(itemsWithDiff.length) })}
         </h2>
         {itemsWithDiff.length === 0 ? (
           <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            Tidak ada selisih: stok fisik sama dengan stok sistem.
+            {t('stockOpnameDetailView.noDiff')}
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             <table className="w-full text-sm" aria-labelledby="opname-diff-heading">
               <thead className="border-b border-border bg-muted/50 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-3 py-2">Item</th>
-                  <th scope="col" className="hidden px-3 py-2 text-right md:table-cell">Stok Sistem</th>
-                  <th scope="col" className="hidden px-3 py-2 text-right md:table-cell">Stok Aktual</th>
-                  <th scope="col" className="px-3 py-2 text-right">Selisih</th>
+                  <th scope="col" className="px-3 py-2">{t('stockOpnameDetailView.table.item')}</th>
+                  <th scope="col" className="hidden px-3 py-2 text-right md:table-cell">{t('stockOpnameDetailView.table.systemStock')}</th>
+                  <th scope="col" className="hidden px-3 py-2 text-right md:table-cell">{t('stockOpnameDetailView.table.actualStock')}</th>
+                  <th scope="col" className="px-3 py-2 text-right">{t('stockOpnameDetailView.table.difference')}</th>
                   <th scope="col" className="hidden px-3 py-2 text-right lg:table-cell">
-                    Harga/Unit <span className="normal-case">(Rp)</span>
+                    {t('stockOpnameDetailView.table.unitPrice')} <span className="normal-case">(Rp)</span>
                   </th>
                   <th scope="col" className="px-3 py-2 text-right">
-                    Nilai Selisih <span className="normal-case">(Rp)</span>
+                    {t('stockOpnameDetailView.table.varianceValue')} <span className="normal-case">(Rp)</span>
                   </th>
                 </tr>
               </thead>

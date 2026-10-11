@@ -3,6 +3,7 @@
  */
 import { useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComboboxFilter } from '@/components/shared';
@@ -58,7 +59,8 @@ interface IdFilterProps {
 }
 
 /** Warehouse combobox (shares the cached active-warehouse list with WarehousePicker). */
-export function WarehouseFilter({ value, onChange, className, allLabel = 'Semua gudang' }: IdFilterProps) {
+export function WarehouseFilter({ value, onChange, className, allLabel }: IdFilterProps) {
+  const { t } = useTranslation('inventory');
   const { data, isLoading } = useQuery({
     queryKey: ['warehouses-active'],
     queryFn: async () => {
@@ -70,12 +72,12 @@ export function WarehouseFilter({ value, onChange, className, allLabel = 'Semua 
   const options = (data ?? []).map((w) => ({ value: w.id, label: w.name, hint: w.code }));
   return (
     <ComboboxFilter
-      label="Gudang"
+      label={t('filters.warehouse')}
       value={value}
       onChange={onChange}
       options={options}
-      allLabel={allLabel}
-      searchPlaceholder="Cari gudang…"
+      allLabel={allLabel ?? t('filters.allWarehouses')}
+      searchPlaceholder={t('filters.searchWarehouse')}
       loading={isLoading}
       className={className ?? 'w-[calc(50%-0.25rem)] sm:w-48'}
     />
@@ -84,16 +86,17 @@ export function WarehouseFilter({ value, onChange, className, allLabel = 'Semua 
 
 /** Item combobox (code shown as hint, both searchable). */
 export function ItemFilter({ value, onChange, className }: IdFilterProps) {
+  const { t } = useTranslation('inventory');
   const { data, isLoading } = useItemOptions();
   const options = (data ?? []).map((i) => ({ value: i.id, label: i.name, hint: i.code }));
   return (
     <ComboboxFilter
-      label="Item"
+      label={t('filters.item')}
       value={value}
       onChange={onChange}
       options={options}
-      allLabel="Semua item"
-      searchPlaceholder="Cari item…"
+      allLabel={t('filters.allItems')}
+      searchPlaceholder={t('filters.searchItem')}
       loading={isLoading}
       className={className ?? 'w-[calc(50%-0.25rem)] sm:w-52'}
     />

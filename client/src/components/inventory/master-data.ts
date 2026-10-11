@@ -3,12 +3,38 @@
  * Proses, Mesin): client-side search / status filtering and form validation.
  */
 
+import i18n from '@/i18n';
+import { LOCALE } from '@/lib/format';
+
 export type ActiveFilter = '' | 'active' | 'inactive';
 
-export const ACTIVE_FILTER_OPTIONS: ReadonlyArray<{ value: Exclude<ActiveFilter, ''>; label: string }> = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'inactive', label: 'Nonaktif' },
-];
+const ACTIVE_FILTER_VALUES = ['active', 'inactive'] as const;
+
+/** Status filter options, labelled in the current UI language (call at render time). */
+export function activeFilterOptions(): Array<{ value: Exclude<ActiveFilter, ''>; label: string }> {
+  return ACTIVE_FILTER_VALUES.map((value) => ({ value, label: i18n.t(`masterData.activeFilter.${value}`, { ns: 'inventory' }) }));
+}
+
+type MasterErrorKey =
+  | 'notNumber'
+  | 'negative'
+  | 'standardNameRequired'
+  | 'rateRequired'
+  | 'rateNotNumber'
+  | 'rateNegative'
+  | 'processNameRequired'
+  | 'processNameTooLong'
+  | 'sortOrderInteger'
+  | 'machineCodeRequired'
+  | 'machineCodeTooLong'
+  | 'machineNameRequired'
+  | 'machineNameTooLong'
+  | 'capacityNotNumber'
+  | 'capacityNegative'
+  | 'unitTooLong';
+
+/** Validation message in the current UI language. */
+const msg = (key: MasterErrorKey): string => i18n.t(`masterData.errors.${key}`, { ns: 'inventory' });
 
 export interface MasterRow {
   isActive: boolean;
@@ -20,12 +46,12 @@ export function filterMasterRows<T extends MasterRow>(
   { search, status }: { search?: string; status?: ActiveFilter },
   fields: (row: T) => Array<string | null | undefined>,
 ): T[] {
-  const q = search?.trim().toLocaleLowerCase('id-ID') ?? '';
+  const q = search?.trim().toLocaleLowerCase(LOCALE) ?? '';
   return rows.filter((r) => {
     if (status === 'active' && !r.isActive) return false;
     if (status === 'inactive' && r.isActive) return false;
     if (!q) return true;
-    return fields(r).some((f) => !!f && f.toLocaleLowerCase('id-ID').includes(q));
+    return fields(r).some((f) => !!f && f.toLocaleLowerCase(LOCALE).includes(q));
   });
 }
 
@@ -35,14 +61,21 @@ export function countActive(rows: readonly MasterRow[]): { total: number; active
 
 export type FormErrors<K extends string> = Partial<Record<K, string>>;
 
-/** Optional non-negative number ("" → null). Returns NaN-safe parse result. */
-export function parseOptionalNonNegative(raw: string): { value: number | null; error?: string } {
+type NumberProblem = 'notNumber' | 'negative';
+
+function parseNonNegative(raw: string): { value: number | null; problem?: NumberProblem } {
   const t = raw.trim().replace(',', '.');
   if (!t) return { value: null };
   const n = Number(t);
-  if (!Number.isFinite(n)) return { value: null, error: 'Harus berupa angka.' };
-  if (n < 0) return { value: null, error: 'Tidak boleh negatif.' };
+  if (!Number.isFinite(n)) return { value: null, problem: 'notNumber' };
+  if (n < 0) return { value: null, problem: 'negative' };
   return { value: n };
+}
+
+/** Optional non-negative number ("" → null). Returns NaN-safe parse result. */
+export function parseOptionalNonNegative(raw: string): { value: number | null; error?: string } {
+  const { value, problem } = parseNonNegative(raw);
+  return problem ? { value, error: msg(problem) } : { value };
 }
 
 // Cost standard
@@ -54,10 +87,10 @@ export interface CostStandardForm {
 
 export function validateCostStandard(f: CostStandardForm): FormErrors<'name' | 'defaultRate'> {
   const errors: FormErrors<'name' | 'defaultRate'> = {};
-  if (!f.name.trim()) errors.name = 'Nama standar wajib diisi.';
-  const rate = parseOptionalNonNegative(f.defaultRate);
-  if (rate.error) errors.defaultRate = `Tarif ${rate.error.toLowerCase()}`;
-  else if (rate.value === null) errors.defaultRate = 'Tarif wajib diisi.';
+  if (!f.name.trim()) errors.name = msg('standardNameRequired');
+  const rate = parseNonNegative(f.defaultRate);
+  if (rate.problem) errors.defaultRate = msg(rate.problem === 'negative' ? 'rateNegative' : 'rateNotNumber');
+  else if (rate.value === null) errors.defaultRate = msg('rateRequired');
   return errors;
 }
 
@@ -70,10 +103,10 @@ export interface ProcessForm {
 
 export function validateProcess(f: ProcessForm): FormErrors<'name' | 'sortOrder'> {
   const errors: FormErrors<'name' | 'sortOrder'> = {};
-  if (!f.name.trim()) errors.name = 'Nama proses wajib diisi.';
-  else if (f.name.trim().length > 100) errors.name = 'Nama proses maksimal 100 karakter.';
+  if (!f.name.trim()) errors.name = msg('processNameRequired');
+  else if (f.name.trim().length > 100) errors.name = msg('processNameTooLong');
   const t = f.sortOrder.trim();
-  if (t && !/^-?\d+$/.test(t)) errors.sortOrder = 'Urutan harus bilangan bulat.';
+  if (t && !/^-?\d+$/.test(t)) errors.sortOrder = msg('sortOrderInteger');
   return errors;
 }
 
@@ -88,13 +121,13 @@ export interface MachineForm {
 
 export function validateMachine(f: MachineForm): FormErrors<'code' | 'name' | 'idealRatePerHour' | 'unit'> {
   const errors: FormErrors<'code' | 'name' | 'idealRatePerHour' | 'unit'> = {};
-  if (!f.code.trim()) errors.code = 'Kode mesin wajib diisi.';
-  else if (f.code.trim().length > 50) errors.code = 'Kode maksimal 50 karakter.';
-  if (!f.name.trim()) errors.name = 'Nama mesin wajib diisi.';
-  else if (f.name.trim().length > 150) errors.name = 'Nama maksimal 150 karakter.';
-  const rate = parseOptionalNonNegative(f.idealRatePerHour);
-  if (rate.error) errors.idealRatePerHour = `Kapasitas ${rate.error.toLowerCase()}`;
-  if (f.unit.trim().length > 20) errors.unit = 'Satuan maksimal 20 karakter.';
+  if (!f.code.trim()) errors.code = msg('machineCodeRequired');
+  else if (f.code.trim().length > 50) errors.code = msg('machineCodeTooLong');
+  if (!f.name.trim()) errors.name = msg('machineNameRequired');
+  else if (f.name.trim().length > 150) errors.name = msg('machineNameTooLong');
+  const rate = parseNonNegative(f.idealRatePerHour);
+  if (rate.problem) errors.idealRatePerHour = msg(rate.problem === 'negative' ? 'capacityNegative' : 'capacityNotNumber');
+  if (f.unit.trim().length > 20) errors.unit = msg('unitTooLong');
   return errors;
 }
 

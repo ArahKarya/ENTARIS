@@ -1,1 +1,912 @@
-{}
+{
+  "batchSelect": {
+    "loading": "Memuat batch…",
+    "none": "Tidak ada batch tersedia untuk item ini di gudang terpilih. Sistem akan pakai WAC saat submit.",
+    "option": "{{date}} · {{qty}} Kg tersedia (@ Rp {{cost}}/Kg) · {{ref}}",
+    "pickFirst": "Pilih item & gudang dulu untuk lihat batch.",
+    "refreshing": "memuat ulang…",
+    "summary_one": "{{count}} batch · total {{total}} Kg tersedia (FIFO sudah serap outbound legacy)",
+    "summary_other": "{{count}} batch · total {{total}} Kg tersedia (FIFO sudah serap outbound legacy)",
+    "useWac": "Pakai WAC (tidak pilih batch)"
+  },
+  "filters": {
+    "allItems": "Semua item",
+    "allWarehouses": "Semua gudang",
+    "item": "Item",
+    "searchItem": "Cari item…",
+    "searchWarehouse": "Cari gudang…",
+    "warehouse": "Gudang"
+  },
+  "inventoryItemModal": {
+    "actions": {
+      "cancel": "Batal",
+      "save": "Simpan Item",
+      "saving": "Menyimpan…"
+    },
+    "description": "Data master item persediaan.",
+    "errors": {
+      "required": "Wajib diisi."
+    },
+    "fields": {
+      "account": "Akun Persediaan",
+      "category": "Kategori",
+      "code": "Kode Item",
+      "description": "Deskripsi",
+      "minimumStock": "Stok Minimum",
+      "name": "Nama Item",
+      "unit": "Satuan"
+    },
+    "hints": {
+      "account": "Pilih akun aset untuk jurnal otomatis saat stok masuk atau keluar.",
+      "minimumStock": "Peringatan stok menipis akan muncul jika stok di bawah nilai ini."
+    },
+    "noAccount": "Tidak Dipilih",
+    "placeholders": {
+      "account": "Tidak dipilih",
+      "category": "Bahan baku, produk jadi, dll.",
+      "code": "Contoh: BBM-001",
+      "description": "Deskripsi opsional tentang item ini",
+      "name": "Nama item persediaan",
+      "unit": "kg, sak, pcs, ton"
+    },
+    "titleCreate": "Tambah Item Stok",
+    "titleEdit": "Edit Item Stok",
+    "toast": {
+      "saveFailed": "Gagal menyimpan item.",
+      "saved": "Item disimpan."
+    }
+  },
+  "inventoryItemsTab": {
+    "actions": {
+      "delete": "Hapus item",
+      "edit": "Edit item",
+      "history": "Riwayat gerakan"
+    },
+    "active": "Aktif",
+    "activeAndInactive": "Aktif & nonaktif",
+    "allCategories": "Semua kategori",
+    "allStock": "Semua stok",
+    "allWarehousesTotal": "Semua gudang (total)",
+    "categoryFilter": "Kategori",
+    "columns": {
+      "actions": "Aksi",
+      "category": "Kategori",
+      "code": "Kode",
+      "minimumStock": "Stok Min.",
+      "name": "Nama Item",
+      "stock": "Stok",
+      "stockStatus": "Status Stok",
+      "stockValue": "Nilai Stok",
+      "warehouseStock": "Stok Gudang"
+    },
+    "empty": {
+      "action": "Tambah item pertama",
+      "description": "Tambahkan item atau impor dari Excel untuk mulai mencatat stok.",
+      "title": "Belum ada item persediaan"
+    },
+    "exportExcel": "Ekspor Excel",
+    "exportFailed": "Gagal mengekspor item. Coba lagi.",
+    "exportTruncated": "Ekspor dibatasi {{n}} item pertama. Persempit filter.",
+    "inactive": "Nonaktif",
+    "itemLabel": "item",
+    "itemStatusFilter": "Status item",
+    "kpi": {
+      "activeHint": "{{n}} aktif",
+      "count": "Jumlah Item",
+      "low": "Stok Menipis",
+      "lowHint": "di bawah stok minimum",
+      "out": "Stok Habis",
+      "outHint": "stok nol atau minus",
+      "sectionLabel": "Ringkasan item sesuai filter",
+      "value": "Nilai Persediaan",
+      "valueHint": "stok × harga rata-rata",
+      "valueHintWarehouse": "stok gudang × harga rata-rata"
+    },
+    "rowActions": "Aksi untuk {{code}}",
+    "searchLabel": "Cari item",
+    "searchPlaceholder": "Cari kode atau nama item",
+    "stockStatusFilter": "Status stok",
+    "tableLabel": "Daftar item persediaan"
+  },
+  "inventoryPage": {
+    "actions": {
+      "addItem": "Tambah Item",
+      "addService": "Tambah Layanan",
+      "import": "Impor",
+      "productionDraft": "Draft Produksi",
+      "recordMovement": "Catat Gerakan"
+    },
+    "cancelMovement": {
+      "description": "Batalkan {{number}}? Stok item akan dikembalikan.",
+      "fallbackName": "gerakan stok ini",
+      "title": "Batalkan gerakan stok?"
+    },
+    "cancelRun": {
+      "description": "Semua gerakan stok terkait akan dibalik.",
+      "title": "Batalkan proses produksi?"
+    },
+    "confirm": {
+      "cancel": "Batal",
+      "no": "Tidak",
+      "yesCancel": "Ya, Batalkan",
+      "yesDelete": "Ya, Hapus"
+    },
+    "deleteDraft": {
+      "description": "Draft dibuang dan tidak bisa dikembalikan. Tidak ada efek ke stok atau jurnal.",
+      "title": "Hapus {{number}}?"
+    },
+    "deleteItem": {
+      "description": "Hapus {{name}}? Item yang sudah memiliki mutasi stok atau digunakan di invoice tidak bisa dihapus.",
+      "fallbackName": "item ini",
+      "title": "Hapus item stok?"
+    },
+    "description": {
+      "dashboard": "Ringkasan stok, gerakan, dan produksi.",
+      "items": "Kelola master item dan pantau stok per gudang.",
+      "movements": "Riwayat semua gerakan stok masuk, keluar, penyesuaian, dan transfer.",
+      "production": "Catat proses produksi, persetujuan, standar biaya, proses, dan mesin.",
+      "services": "Daftar layanan (jasa) untuk invoice penjualan dan penawaran."
+    },
+    "draftFallback": "draft",
+    "openDraftsSr_one": ", {{count}} draft belum diposting",
+    "openDraftsSr_other": ", {{count}} draft belum diposting",
+    "postDraft": {
+      "confirmApproval": "Ya, Kirim untuk Persetujuan",
+      "confirmDirect": "Ya, Posting",
+      "descriptionApproval": "Draft dikirim untuk persetujuan manajer. Stok, jurnal, dan HPP baru terbentuk setelah disetujui.",
+      "descriptionDirect": "Stok, jurnal, dan HPP akan terbentuk sekarang sebagai proses produksi. Pastikan data sudah benar.",
+      "title": "Posting {{number}}?"
+    },
+    "prodViews": {
+      "approval": "Approval & Pengajuan",
+      "costStandards": "Standar Biaya",
+      "dashboard": "Dashboard",
+      "data": "Data Produksi",
+      "draft": "Draft",
+      "machines": "Mesin",
+      "processes": "Master Proses"
+    },
+    "prodViewsLabel": "Bagian proses produksi",
+    "productionRunFallback": "proses produksi",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "items": "Master Item",
+      "movements": "Gerakan Stok",
+      "production": "Proses Produksi",
+      "services": "Layanan"
+    },
+    "tabsLabel": "Bagian stok & produksi",
+    "title": "Stok & Produksi",
+    "toast": {
+      "cancelMovementFailed": "Gagal membatalkan gerakan stok.",
+      "cancelRunFailed": "Gagal membatalkan proses produksi.",
+      "deactivateServiceFailed": "Gagal menonaktifkan layanan.",
+      "deleteDraftFailed": "Gagal menghapus draft produksi.",
+      "deleteItemFailed": "Gagal menghapus item stok.",
+      "draftDeleted": "{{number}} dihapus.",
+      "draftPosted": "{{number}} diposting sebagai {{run}}.",
+      "draftSentForApproval": "{{number}} dikirim untuk persetujuan. Stok dan jurnal terbentuk setelah disetujui.",
+      "editPending": "Menunggu persetujuan: sudah ada perubahan yang diajukan untuk proses produksi ini.",
+      "itemDeleted": "Item stok dihapus.",
+      "movementCancelled": "Gerakan stok dibatalkan.",
+      "openDraftFailed": "Gagal membuka draft produksi.",
+      "postDraftFailed": "Gagal memposting draft produksi.",
+      "runCancelled": "Proses produksi dibatalkan.",
+      "serviceDeactivated": "Layanan dinonaktifkan."
+    }
+  },
+  "inventoryRows": {
+    "block": {
+      "cancelFromReceipt": "Gerakan dari STT hanya bisa dibatalkan lewat halaman STT.",
+      "cancelled": "Gerakan sudah dibatalkan.",
+      "editFromProduction": "Gerakan dari proses produksi diubah lewat proses produksinya.",
+      "editFromReceipt": "Gerakan dari STT hanya bisa diubah lewat halaman STT."
+    },
+    "movementType": {
+      "AdjustmentIn": "Penyesuaian +",
+      "AdjustmentOut": "Penyesuaian −",
+      "In": "Masuk",
+      "Out": "Keluar",
+      "TransferIn": "Transfer Masuk",
+      "TransferOut": "Transfer Keluar"
+    },
+    "referenceType": {
+      "DeliveryOrder": "Surat Jalan",
+      "GoodsReceipt": "STT",
+      "OpeningBalance": "Saldo Awal",
+      "ProductionRun": "Proses Produksi",
+      "PurchaseInvoice": "Invoice Pembelian",
+      "SalesInvoice": "Invoice Penjualan",
+      "SalesReturn": "Retur Penjualan",
+      "StockOpname": "Stok Opname",
+      "StockTransfer": "Transfer Stok"
+    }
+  },
+  "invoiceItemsSection": {
+    "billedFromDos_one": "Ditagihkan dari {{count}} Surat Jalan",
+    "billedFromDos_other": "Ditagihkan dari {{count}} Surat Jalan",
+    "billedFromOneDo": "Ditagihkan dari Surat Jalan",
+    "columns": {
+      "amount": "Jumlah",
+      "discount": "Disk%",
+      "name": "Nama",
+      "pph": "PPh%",
+      "qty": "Qty",
+      "rate": "Harga",
+      "unit": "Satuan",
+      "vat": "PPN%"
+    },
+    "createDeliveryOrder": "Buat Surat Jalan",
+    "meta": {
+      "quality": "Kualitas",
+      "refaksi": "Refaksi: {{qty}} kg",
+      "truckWeight": "Truk: {{qty}} kg",
+      "vehicle": "Mobil"
+    },
+    "noDeliveryOrder": "Invoice ini belum punya Surat Jalan.",
+    "receivedFromGrs_one": "Barang diterima dari {{count}} STT/BPB",
+    "receivedFromGrs_other": "Barang diterima dari {{count}} STT/BPB",
+    "receivedFromOneGr": "Barang diterima dari STT/BPB",
+    "serviceBadge": "Jasa",
+    "tableLabel": "Daftar barang dan jasa invoice",
+    "title_one": "Daftar Barang / Jasa ({{count}} item)",
+    "title_other": "Daftar Barang / Jasa ({{count}} item)"
+  },
+  "masterData": {
+    "activeFilter": {
+      "active": "Aktif",
+      "inactive": "Nonaktif"
+    },
+    "errors": {
+      "capacityNegative": "Kapasitas tidak boleh negatif.",
+      "capacityNotNumber": "Kapasitas harus berupa angka.",
+      "machineCodeRequired": "Kode mesin wajib diisi.",
+      "machineCodeTooLong": "Kode maksimal 50 karakter.",
+      "machineNameRequired": "Nama mesin wajib diisi.",
+      "machineNameTooLong": "Nama maksimal 150 karakter.",
+      "negative": "Tidak boleh negatif.",
+      "notNumber": "Harus berupa angka.",
+      "processNameRequired": "Nama proses wajib diisi.",
+      "processNameTooLong": "Nama proses maksimal 100 karakter.",
+      "rateNegative": "Tarif tidak boleh negatif.",
+      "rateNotNumber": "Tarif harus berupa angka.",
+      "rateRequired": "Tarif wajib diisi.",
+      "sortOrderInteger": "Urutan harus bilangan bulat.",
+      "standardNameRequired": "Nama standar wajib diisi.",
+      "unitTooLong": "Satuan maksimal 20 karakter."
+    }
+  },
+  "masterDataKit": {
+    "allStatuses": "Semua status",
+    "cancel": "Batal",
+    "clearSearch": "Hapus pencarian",
+    "filterLabel": "Filter daftar",
+    "status": "Status"
+  },
+  "movementDetailSheet": {
+    "actions": {
+      "cancel": "Batalkan",
+      "edit": "Edit",
+      "openProductionRun": "Lihat proses produksi"
+    },
+    "fields": {
+      "date": "Tanggal",
+      "item": "Item",
+      "notes": "Catatan",
+      "offsetAccount": "Akun lawan",
+      "quantity": "Kuantitas",
+      "recordedAt": "Dicatat",
+      "reference": "Referensi",
+      "type": "Tipe",
+      "unitCost": "Harga satuan",
+      "value": "Nilai",
+      "warehouse": "Gudang"
+    }
+  },
+  "serviceItemModal": {
+    "actions": {
+      "cancel": "Batal",
+      "create": "Tambah Layanan",
+      "saveChanges": "Simpan Perubahan",
+      "saving": "Menyimpan…"
+    },
+    "description": "Layanan jasa yang dapat ditagihkan pada invoice penjualan.",
+    "errors": {
+      "required": "Wajib diisi."
+    },
+    "fields": {
+      "account": "Akun Pendapatan",
+      "code": "Kode",
+      "defaultRate": "Tarif Default (Rp)",
+      "description": "Deskripsi",
+      "name": "Nama Layanan",
+      "unit": "Satuan"
+    },
+    "noAccount": "Pilih Akun",
+    "placeholders": {
+      "account": "Pilih akun",
+      "description": "Opsional",
+      "name": "Jasa Maklon Produksi",
+      "unit": "Jasa"
+    },
+    "titleCreate": "Tambah Layanan",
+    "titleEdit": "Edit Layanan",
+    "toast": {
+      "created": "Layanan ditambahkan.",
+      "missingFields": "Kode, nama, dan akun pendapatan wajib diisi.",
+      "saveFailed": "Gagal menyimpan layanan.",
+      "updated": "Layanan diubah."
+    }
+  },
+  "serviceItemsTab": {
+    "actions": {
+      "deactivate": "Nonaktifkan",
+      "edit": "Edit layanan",
+      "menuLabel": "Aksi untuk {{name}}"
+    },
+    "columns": {
+      "account": "Akun Pendapatan",
+      "actions": "Aksi",
+      "code": "Kode",
+      "defaultRate": "Tarif Default",
+      "name": "Nama Layanan",
+      "status": "Status",
+      "unit": "Satuan"
+    },
+    "empty": {
+      "action": "Tambah layanan",
+      "description": "Layanan (jasa) dipakai di invoice penjualan dan penawaran.",
+      "title": "Belum ada layanan"
+    },
+    "filters": {
+      "allStatuses": "Semua status",
+      "status": "Status layanan"
+    },
+    "search": {
+      "label": "Cari layanan",
+      "placeholder": "Cari kode atau nama layanan"
+    },
+    "statusFilter": {
+      "active": "Aktif",
+      "inactive": "Nonaktif"
+    },
+    "table": {
+      "itemLabel": "layanan",
+      "label": "Daftar layanan"
+    }
+  },
+  "stockCategories": {
+    "byProduct": "Produk Samping",
+    "finishedGoods": "Produk Jadi",
+    "other": "Lainnya",
+    "rawMaterial": "Bahan Baku",
+    "semiFinished": "Barang Setengah Jadi",
+    "supplies": "Perlengkapan"
+  },
+  "stockMovementModal": {
+    "actions": {
+      "cancel": "Batal",
+      "save": "Simpan Gerakan",
+      "saveChanges": "Simpan Perubahan",
+      "saving": "Menyimpan…"
+    },
+    "description": "Pergerakan stok masuk, keluar, atau penyesuaian beserta posting ke COA.",
+    "errors": {
+      "dateRequired": "Tanggal wajib diisi.",
+      "quantityMin": "Kuantitas minimal 0,001."
+    },
+    "fields": {
+      "date": "Tanggal",
+      "item": "Item",
+      "movementType": "Tipe Gerakan",
+      "notes": "Catatan",
+      "offsetAccount": "Akun Lawan",
+      "offsetAccountOptional": "Akun Lawan (opsional)",
+      "quantity": "Kuantitas",
+      "referenceNumber": "Nomor Referensi",
+      "referenceType": "Tipe Referensi",
+      "totalValue": "Total Nilai",
+      "unitCost": "Harga Satuan",
+      "warehouse": "Gudang"
+    },
+    "hints": {
+      "offsetMissing": "Pilih akun lawan agar nilai stok tercatat di COA.",
+      "offsetPurpose": "Untuk posting ke COA.",
+      "stockCurrent": "Stok saat ini: {{qty}} {{unit}}",
+      "stockInWarehouse": "Stok di gudang ini: {{qty}} {{unit}}",
+      "warehouseLocked": "Gudang tidak dapat dipindah lewat edit."
+    },
+    "placeholders": {
+      "item": "Pilih Item",
+      "notes": "Catatan opsional tentang gerakan stok ini",
+      "offsetAccount": "Pilih Akun Lawan",
+      "referenceNumber": "Nomor dokumen referensi"
+    },
+    "productionLinked": "Gerakan stok dari proses produksi tidak dapat diedit langsung.",
+    "referenceTypes": {
+      "none": "Tidak Ada",
+      "purchaseInvoice": "Invoice Pembelian",
+      "salesInvoice": "Invoice Penjualan"
+    },
+    "titleCreate": "Catat Gerakan Stok",
+    "titleEdit": "Edit Gerakan Stok",
+    "toast": {
+      "createFailed": "Gagal mencatat gerakan stok.",
+      "created": "Gerakan stok dicatat.",
+      "updateFailed": "Gagal mengupdate gerakan stok.",
+      "updated": "Gerakan stok diperbarui."
+    },
+    "types": {
+      "adjustmentIn": "Penyesuaian Naik (AdjustmentIn)",
+      "adjustmentOut": "Penyesuaian Turun (AdjustmentOut)",
+      "in": "Masuk (In)",
+      "out": "Keluar (Out)"
+    }
+  },
+  "stockMovementsTab": {
+    "actions": {
+      "cancel": "Batalkan gerakan",
+      "edit": "Edit gerakan",
+      "fallbackName": "gerakan stok",
+      "menuLabel": "Aksi untuk {{name}}",
+      "view": "Lihat detail"
+    },
+    "columns": {
+      "actions": "Aksi",
+      "date": "Tanggal",
+      "item": "Item",
+      "number": "Nomor",
+      "quantity": "Kuantitas",
+      "reference": "Referensi",
+      "type": "Tipe",
+      "value": "Nilai",
+      "warehouse": "Gudang"
+    },
+    "direction": {
+      "in": "Masuk",
+      "out": "Keluar"
+    },
+    "empty": {
+      "action": "Catat gerakan",
+      "description": "Gerakan dari STT, surat jalan, produksi, opname, dan input manual muncul di sini.",
+      "title": "Belum ada gerakan stok"
+    },
+    "filters": {
+      "allStatuses": "Semua status",
+      "allTypes": "Semua tipe",
+      "status": "Status gerakan",
+      "type": "Tipe gerakan"
+    },
+    "kpi": {
+      "cancelled": "Dibatalkan",
+      "cancelledHint": "tidak dihitung di nilai",
+      "count": "Jumlah Gerakan",
+      "inValue": "Nilai Masuk",
+      "movementCount_one": "{{formatted}} gerakan",
+      "movementCount_other": "{{formatted}} gerakan",
+      "outValue": "Nilai Keluar",
+      "posted_one": "{{formatted}} diposting",
+      "posted_other": "{{formatted}} diposting",
+      "sectionLabel": "Ringkasan gerakan stok sesuai filter"
+    },
+    "search": {
+      "label": "Cari gerakan stok",
+      "placeholder": "Cari nomor, item, referensi, catatan"
+    },
+    "statusFilter": {
+      "active": "Diposting",
+      "cancelled": "Dibatalkan"
+    },
+    "table": {
+      "itemLabel": "gerakan",
+      "label": "Riwayat gerakan stok"
+    }
+  },
+  "stockOpnameCountForm": {
+    "actions": {
+      "cancel": "Batal",
+      "saving": "Menyimpan...",
+      "submit": "Simpan & Proses"
+    },
+    "description": "Isi stok fisik hasil hitung. Kolom kosong dianggap sama dengan stok sistem.",
+    "fields": {
+      "date": "Tanggal",
+      "notes": "Catatan",
+      "notesPlaceholder": "Opsional...",
+      "warehouse": "Gudang",
+      "warehousePlaceholder": "Pilih gudang opname..."
+    },
+    "loading": "Memuat lembar hitung…",
+    "pickWarehouseHint": "Pilih gudang dulu untuk menampilkan stok sistem per gudang.",
+    "search": {
+      "label": "Cari item",
+      "placeholder": "Cari item..."
+    },
+    "summary": {
+      "changed": "Item Berubah",
+      "deficit": "Defisit",
+      "label": "Ringkasan perubahan",
+      "surplus": "Surplus"
+    },
+    "table": {
+      "actualStock": "Stok Aktual",
+      "actualStockAria": "Stok aktual {{name}}",
+      "code": "Kode",
+      "difference": "Selisih",
+      "label": "Daftar item untuk dihitung",
+      "name": "Nama Item",
+      "systemStock": "Stok Sistem",
+      "unit": "Satuan",
+      "unitCost": "Nilai/Satuan",
+      "unitCostAria": "Nilai per satuan {{name}}",
+      "unitCostHint": "Kosongkan untuk memakai HPP rata-rata. Diisi = revaluasi nilai persediaan.",
+      "varianceValue": "Nilai Selisih"
+    },
+    "title": "Buat Stok Opname",
+    "toast": {
+      "noItems": "Tidak ada item untuk stok opname.",
+      "saveFailed": "Gagal menyimpan stok opname.",
+      "saved": "Stok opname disimpan dan diproses.",
+      "warehouseRequired": "Pilih gudang opname terlebih dahulu."
+    }
+  },
+  "stockOpnameDetailView": {
+    "cancel": "Batalkan",
+    "companyFallback": "Perusahaan",
+    "diffHeading": "Item dengan Selisih ({{total}})",
+    "downloadPdf": "Unduh PDF",
+    "header": {
+      "createdBy": "Dibuat oleh {{name}}",
+      "warehouse": "Gudang {{name}}"
+    },
+    "loadError": {
+      "description": "Dokumen mungkin sudah dihapus atau Anda tidak memiliki akses.",
+      "retry": "Coba lagi",
+      "title": "Stok opname tidak dapat dimuat"
+    },
+    "loading": "Memuat stok opname…",
+    "noDiff": "Tidak ada selisih: stok fisik sama dengan stok sistem.",
+    "notFound": "Stok opname tidak ditemukan",
+    "notes": "Catatan:",
+    "summary": {
+      "date": "Tanggal",
+      "deficit": "Defisit",
+      "itemsCounted": "Total Item Dihitung",
+      "label": "Ringkasan stok opname",
+      "surplus": "Surplus"
+    },
+    "table": {
+      "actualStock": "Stok Aktual",
+      "difference": "Selisih",
+      "item": "Item",
+      "systemStock": "Stok Sistem",
+      "unitPrice": "Harga/Unit",
+      "varianceValue": "Nilai Selisih"
+    }
+  },
+  "stockOpnamePage": {
+    "cancelDialog": {
+      "confirm": "Ya, Batalkan",
+      "message": "Semua penyesuaian stok dan jurnal akan dibalik.",
+      "title": "Batalkan Stok Opname?"
+    },
+    "columns": {
+      "actions": "Aksi",
+      "createdBy": "Dibuat Oleh",
+      "date": "Tanggal",
+      "itemsCounted": "Item Dihitung",
+      "itemsWithDiff": "Item Selisih",
+      "number": "Nomor",
+      "status": "Status",
+      "varianceValue": "Nilai Selisih",
+      "warehouse": "Gudang"
+    },
+    "create": "Buat Stok Opname",
+    "description": "Hitung fisik per gudang; selisih disesuaikan ke stok dan dijurnal otomatis.",
+    "empty": {
+      "action": "Buat stok opname pertama",
+      "description": "Sesi hitung fisik yang Anda simpan akan muncul di sini.",
+      "title": "Belum ada stok opname"
+    },
+    "filters": {
+      "allWarehouses": "Semua gudang",
+      "searchLabel": "Cari stok opname",
+      "searchPlaceholder": "Cari nomor, catatan, atau pembuat",
+      "searchWarehouse": "Cari gudang…",
+      "warehouse": "Gudang"
+    },
+    "rowActions": {
+      "cancel": "Batalkan",
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail"
+    },
+    "table": {
+      "itemLabel": "stok opname",
+      "label": "Daftar stok opname"
+    },
+    "title": "Stok Opname",
+    "toast": {
+      "cancelFailed": "Gagal membatalkan stok opname.",
+      "cancelled": "Stok opname dibatalkan."
+    }
+  },
+  "stockTransferModal": {
+    "cancel": "Batal",
+    "description": "Stok pindah antar gudang + cetak SJG untuk supir.",
+    "errors": {
+      "createFailed": "Gagal buat transfer.",
+      "fromRequired": "Pilih gudang asal.",
+      "noItems": "Tambahkan minimal satu item dengan qty > 0.",
+      "sameWarehouse": "Gudang asal dan tujuan harus berbeda.",
+      "toRequired": "Pilih gudang tujuan."
+    },
+    "fields": {
+      "date": "Tanggal",
+      "from": "Dari Gudang",
+      "fromPlaceholder": "Pilih gudang asal…",
+      "notes": "Catatan",
+      "notesPlaceholder": "Alasan transfer…",
+      "to": "Ke Gudang",
+      "toPlaceholder": "Pilih gudang tujuan…"
+    },
+    "items": {
+      "addRow": "Tambah baris",
+      "batch": "Batch sumber (opsional)",
+      "batchLabel": "Batch sumber baris {{n}}",
+      "itemLabel": "Item baris {{n}}",
+      "itemPlaceholder": "Pilih item…",
+      "qty": "Qty",
+      "qtyWithUnit": "Qty ({{unit}})",
+      "removeRow": "Hapus baris {{n}}",
+      "split": "Bagi Batch",
+      "splitHint": "Pecah otomatis jadi beberapa baris sesuai batch tersedia (FIFO, tertua dulu)",
+      "title": "Item"
+    },
+    "saving": "Menyimpan…",
+    "shipping": {
+      "driver": "Supir",
+      "driverPlaceholder": "Nama supir",
+      "hint": "Field-field ini opsional, tetapi muncul di cetakan SJG untuk verifikasi waktu serah-terima.",
+      "recipient": "Penerima (Gudang Tujuan)",
+      "recipientPlaceholder": "Nama PIC penerima",
+      "title": "Info Pengiriman (untuk SJG)",
+      "vehicle": "No. Mobil"
+    },
+    "submit": "Submit Transfer",
+    "title": "Buat Transfer Stok",
+    "toast": {
+      "batchesFailed": "Gagal mengambil daftar batch.",
+      "created": "Transfer dibuat. Stok sudah pindah, SJG siap dicetak.",
+      "noBatches": "Tidak ada batch tersedia untuk item ini di gudang asal.",
+      "shortfall": "{{qty}} melebihi total batch tersedia. Baris sisa memakai biaya rata-rata (WAC).",
+      "split_one": "Dibagi ke {{count}} batch (FIFO).",
+      "split_other": "Dibagi ke {{count}} batch (FIFO)."
+    }
+  },
+  "stockTransfers": {
+    "cancelDialog": {
+      "confirm": "Ya, Batalkan",
+      "description": "Batalkan transfer {{number}}? Stok akan dikembalikan ke gudang asal.",
+      "title": "Batalkan Transfer Stok"
+    },
+    "columns": {
+      "actions": "Aksi",
+      "date": "Tanggal",
+      "driver": "Supir",
+      "items": "Item",
+      "notPrinted": "belum dicetak",
+      "number": "Nomor",
+      "printed": "Dicetak",
+      "printedTitle": "Surat Jalan Antar Gudang dicetak",
+      "route": "Dari → Tujuan",
+      "status": "Status",
+      "vehicle": "No. Mobil"
+    },
+    "create": "Buat Transfer",
+    "description": "Pindahkan stok antar gudang dan cetak Surat Jalan Antar Gudang (SJG) untuk supir. Stok pindah saat transfer disimpan.",
+    "empty": {
+      "action": "Buat transfer pertama",
+      "description": "Transfer antar gudang yang Anda buat akan muncul di sini.",
+      "title": "Belum ada transfer stok"
+    },
+    "filters": {
+      "allWarehouses": "Semua gudang",
+      "searchLabel": "Cari transfer",
+      "searchPlaceholder": "Cari nomor, gudang, atau supir",
+      "searchWarehouse": "Cari gudang…",
+      "warehouse": "Gudang (asal atau tujuan)"
+    },
+    "route": {
+      "to": "ke"
+    },
+    "rowActions": {
+      "cancel": "Batalkan",
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail & SJG"
+    },
+    "table": {
+      "itemLabel": "transfer",
+      "label": "Daftar transfer stok"
+    },
+    "title": "Transfer Stok",
+    "toast": {
+      "cancelFailed": "Gagal membatalkan transfer.",
+      "cancelled": "Transfer dibatalkan. Stok dikembalikan ke gudang asal."
+    }
+  },
+  "transferModal": {
+    "attachments": "Lampiran Bukti Transfer",
+    "description": "Transfer antar rekening kas/bank",
+    "done": "Selesai",
+    "errors": {
+      "sameAccount": "Akun asal dan tujuan tidak boleh sama.",
+      "saveFailed": "Gagal menyimpan transfer."
+    },
+    "fields": {
+      "amount": "Jumlah (Rp)",
+      "date": "Tanggal",
+      "destination": "Akun Tujuan (Transfer Ke)",
+      "destinationPlaceholder": "Pilih Akun Tujuan",
+      "notes": "Catatan",
+      "notesPlaceholder": "Keterangan opsional...",
+      "reference": "No. Referensi",
+      "referencePlaceholder": "No. cek, transfer, dll.",
+      "source": "Akun Asal (Transfer Dari)",
+      "sourcePlaceholder": "Pilih Akun Asal"
+    },
+    "saved": "Tersimpan",
+    "submit": "Simpan Transfer",
+    "summary": "Ringkasan:",
+    "title": "Pemindahbukuan (Pinbuk)",
+    "transferAmount": "Transfer",
+    "transferTo": "Transfer ke"
+  },
+  "warehouseField": {
+    "placeholder": "Pilih gudang..."
+  },
+  "warehouseFilter": {
+    "all": "Semua gudang",
+    "label": "Gudang"
+  },
+  "warehouseSelect": {
+    "none": "Tidak dipilih",
+    "placeholder": "Pilih gudang"
+  },
+  "warehouseSelectField": {
+    "label": "Gudang",
+    "none": "Tidak dipilih",
+    "placeholder": "Pilih gudang"
+  },
+  "warehouseTransferDrawer": {
+    "audit": {
+      "createdBy": "Dibuat oleh",
+      "lastPrinted": "Dicetak terakhir",
+      "title": "Audit"
+    },
+    "bodyLabel": "Isi detail transfer stok",
+    "cancel": "Batalkan Transfer",
+    "cancelDialog": {
+      "confirm": "Ya, Batalkan",
+      "description": "Batalkan transfer {{number}}? Stok akan dikembalikan ke gudang asal.",
+      "title": "Batalkan Transfer Stok"
+    },
+    "cancelledNotice": "Transfer ini sudah dibatalkan. Stok telah dikembalikan ke gudang asal.",
+    "description": "Surat Jalan Antar Gudang (SJG)",
+    "generating": "Membuat…",
+    "items": {
+      "code": "Kode",
+      "description": "Keterangan",
+      "label": "Daftar item transfer",
+      "name": "Nama",
+      "qty": "Qty",
+      "title": "Item ({{total}})",
+      "unit": "Sat"
+    },
+    "loading": "Memuat transfer gudang…",
+    "loadingShort": "Memuat…",
+    "notFound": "Transfer tidak ditemukan.",
+    "notes": "Catatan",
+    "print": "Cetak SJG",
+    "route": {
+      "destination": "Gudang Tujuan",
+      "from": "Gudang Asal",
+      "title": "Rute Transfer",
+      "to": "menuju"
+    },
+    "shipping": {
+      "date": "Tanggal",
+      "driver": "Supir",
+      "recipient": "Penerima",
+      "title": "Info Pengiriman",
+      "vehicle": "No. Mobil"
+    },
+    "titleFallback": "Transfer Stok",
+    "toast": {
+      "cancelFailed": "Gagal membatalkan transfer.",
+      "cancelled": "Transfer dibatalkan. Stok dikembalikan ke gudang asal."
+    }
+  },
+  "warehouses": {
+    "columns": {
+      "actions": "Aksi",
+      "itemCount": "Jumlah Item",
+      "location": "Lokasi",
+      "status": "Status",
+      "totalStock": "Total Stok",
+      "warehouse": "Gudang"
+    },
+    "create": "Tambah Gudang",
+    "deactivateDialog": {
+      "confirm": "Ya, nonaktifkan",
+      "defaultNote": "Gudang ini adalah gudang default. Tetapkan gudang lain sebagai default terlebih dahulu.",
+      "description": "Gudang <strong>{{name}}</strong> tidak akan muncul lagi di pilihan gudang dan dashboard stok. Saldo dan riwayat transaksinya tetap tersimpan, dan gudang bisa diaktifkan kembali kapan saja.",
+      "title": "Nonaktifkan gudang?"
+    },
+    "defaultMark": "Default",
+    "deleteDialog": {
+      "confirm": "Ya, hapus",
+      "description": "Yakin hapus gudang <strong>{{name}}</strong>? Hanya bisa dihapus kalau tidak ada stok & belum pernah dipakai transaksi.",
+      "title": "Hapus gudang?"
+    },
+    "description": "Master gudang fisik/logis untuk pemisahan stok per lokasi.",
+    "empty": {
+      "action": "Tambah gudang pertama",
+      "description": "Tambahkan gudang untuk memisahkan stok per lokasi.",
+      "title": "Belum ada gudang"
+    },
+    "filters": {
+      "active": "Aktif",
+      "inactive": "Nonaktif",
+      "searchLabel": "Cari gudang",
+      "searchPlaceholder": "Cari kode, nama, atau lokasi"
+    },
+    "modal": {
+      "add": "Tambah",
+      "cancel": "Batal",
+      "createTitle": "Tambah Gudang",
+      "description": "Kode dipakai sebagai pengenal singkat gudang di dokumen stok.",
+      "editTitle": "Edit Gudang",
+      "errors": {
+        "codeRequired": "Kode wajib diisi.",
+        "nameRequired": "Nama wajib diisi."
+      },
+      "fields": {
+        "active": "Aktif",
+        "code": "Kode",
+        "codeHint": "Huruf, angka, tanda hubung, garis bawah.",
+        "codePlaceholder": "Mis: UTAMA, TRANSIT",
+        "description": "Deskripsi",
+        "isDefault": "Jadikan gudang default",
+        "location": "Lokasi",
+        "locationPlaceholder": "Alamat / area",
+        "name": "Nama",
+        "namePlaceholder": "Mis: Gudang Utama"
+      },
+      "save": "Simpan",
+      "toast": {
+        "created": "Gudang ditambahkan.",
+        "saveFailed": "Gagal simpan gudang.",
+        "updated": "Gudang diperbarui."
+      }
+    },
+    "rowActions": {
+      "activate": "Aktifkan",
+      "deactivate": "Nonaktifkan",
+      "delete": "Hapus",
+      "edit": "Edit",
+      "label": "Aksi untuk {{name}}"
+    },
+    "table": {
+      "itemLabel": "gudang",
+      "label": "Daftar gudang"
+    },
+    "title": "Daftar Gudang",
+    "toast": {
+      "activated": "Gudang diaktifkan.",
+      "deactivated": "Gudang dinonaktifkan.",
+      "deleteFailed": "Gagal hapus gudang.",
+      "deleted": "Gudang dihapus.",
+      "toggleFailed": "Gagal mengubah status gudang."
+    }
+  }
+}

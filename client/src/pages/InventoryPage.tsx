@@ -6,6 +6,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Plus, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -53,15 +54,8 @@ type ProdView = 'dashboard' | 'data' | 'draft' | 'approval' | 'costStandards' | 
 const TAB_PARAM = 'tab';
 const VIEW_PARAM = 'view';
 const TABS: readonly Tab[] = ['dashboard', 'items', 'movements', 'production', 'services'];
-const PROD_VIEWS: ReadonlyArray<{ value: ProdView; label: string }> = [
-  { value: 'dashboard', label: 'Dashboard' },
-  { value: 'data', label: 'Data Produksi' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'approval', label: 'Approval & Pengajuan' },
-  { value: 'costStandards', label: 'Standar Biaya' },
-  { value: 'processes', label: 'Master Proses' },
-  { value: 'machines', label: 'Mesin' },
-];
+/** Label key: inventory:inventoryPage.prodViews.<value>. */
+const PROD_VIEWS: readonly ProdView[] = ['dashboard', 'data', 'draft', 'approval', 'costStandards', 'processes', 'machines'];
 /** Production master-data views carry their own "create" action. */
 const MASTER_VIEWS = new Set<ProdView>(['costStandards', 'processes', 'machines']);
 /** List params owned by the active list (cleared on tab / view switch). */
@@ -80,21 +74,14 @@ const LIST_KEYS = [
   ]),
 ];
 
-const DESCRIPTION: Record<Tab, string> = {
-  dashboard: 'Ringkasan stok, gerakan, dan produksi.',
-  items: 'Kelola master item dan pantau stok per gudang.',
-  movements: 'Riwayat semua gerakan stok masuk, keluar, penyesuaian, dan transfer.',
-  production: 'Catat proses produksi, persetujuan, standar biaya, proses, dan mesin.',
-  services: 'Daftar layanan (jasa) untuk faktur penjualan dan penawaran.',
-};
-
 export function InventoryPage() {
+  const { t } = useTranslation('inventory');
   const [searchParams, setSearchParams] = useSearchParams();
   const canViewProduction = can('production');
   const rawTab = searchParams.get(TAB_PARAM) as Tab | null;
   const tab: Tab = rawTab && TABS.includes(rawTab) && (rawTab !== 'production' || canViewProduction) ? rawTab : 'dashboard';
   const rawView = searchParams.get(VIEW_PARAM) as ProdView | null;
-  const prodView: ProdView = PROD_VIEWS.some((v) => v.value === rawView) ? (rawView as ProdView) : 'dashboard';
+  const prodView: ProdView = PROD_VIEWS.some((v) => v === rawView) ? (rawView as ProdView) : 'dashboard';
 
   const canEditInventory = can('inventory', 'edit');
   const canEditProduction = can('production', 'edit');
@@ -177,13 +164,13 @@ export function InventoryPage() {
     try {
       const { data } = await api.get('/approvals/pending', { params: { documentType: 'ProductionRunEdit', documentId: run.id } });
       if (data?.pending) {
-        toast.error('Menunggu persetujuan: sudah ada perubahan yang diajukan untuk proses produksi ini.');
+        toast.error(t('inventoryPage.toast.editPending'));
         return;
       }
     } catch { /* server tetap menolak duplikat (409) */ }
     setEditProdRun(run);
     setProductionModalOpen(true);
-  }, []);
+  }, [t]);
   const askCancelRun = useCallback((run: ProductionRunRow) => setCancelProdTarget(run.id), []);
   const openServiceEdit = useCallback((svc: ServiceItemRow) => setServiceModal({ edit: svc }), []);
 
@@ -210,9 +197,9 @@ export function InventoryPage() {
       setEditDraft({ id: data.id, draftNumber: data.draftNumber, lastError: data.lastError });
       setProductionModalOpen(true);
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal membuka draft produksi.'));
+      toast.error(errorMessage(err, t('inventoryPage.toast.openDraftFailed')));
     }
-  }, []);
+  }, [t]);
   const askPostDraft = useCallback((d: ProductionDraftRow) => setPostDraftTarget(d), []);
   const askDeleteDraft = useCallback((d: ProductionDraftRow) => setDeleteDraftTarget(d), []);
   const canManageDraft = useCallback(
@@ -230,11 +217,14 @@ export function InventoryPage() {
       const { data } = await api.post(`${PRODUCTION_DRAFTS_ENDPOINT}/${postDraftTarget.id}/post`);
       toast.success(
         data?.pendingApproval
-          ? `${postDraftTarget.draftNumber} dikirim untuk persetujuan. Stok dan jurnal terbentuk setelah disetujui.`
-          : `${postDraftTarget.draftNumber} diposting sebagai ${data?.runNumber ?? 'proses produksi'}.`,
+          ? t('inventoryPage.toast.draftSentForApproval', { number: postDraftTarget.draftNumber })
+          : t('inventoryPage.toast.draftPosted', {
+              number: postDraftTarget.draftNumber,
+              run: data?.runNumber ?? t('inventoryPage.productionRunFallback'),
+            }),
       );
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal memposting draft produksi.'));
+      toast.error(errorMessage(err, t('inventoryPage.toast.postDraftFailed')));
     } finally {
       invalidateAfterPost();
       setPostDraftTarget(null);
@@ -244,9 +234,9 @@ export function InventoryPage() {
     if (!deleteDraftTarget) return;
     try {
       await api.delete(`${PRODUCTION_DRAFTS_ENDPOINT}/${deleteDraftTarget.id}`);
-      toast.success(`${deleteDraftTarget.draftNumber} dihapus.`);
+      toast.success(t('inventoryPage.toast.draftDeleted', { number: deleteDraftTarget.draftNumber }));
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal menghapus draft produksi.'));
+      toast.error(errorMessage(err, t('inventoryPage.toast.deleteDraftFailed')));
     } finally {
       queryClient.invalidateQueries({ queryKey: ['production-runs', 'drafts'] });
       setDeleteDraftTarget(null);
@@ -258,9 +248,9 @@ export function InventoryPage() {
     try {
       await api.delete(`/inventory/items/${deleteItemTarget.id}`);
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Item stok dihapus.');
+      toast.success(t('inventoryPage.toast.itemDeleted'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal menghapus item stok.'));
+      toast.error(errorMessage(err, t('inventoryPage.toast.deleteItemFailed')));
     } finally {
       setDeleteItemTarget(null);
     }
@@ -272,9 +262,9 @@ export function InventoryPage() {
       await api.put(`/inventory/movements/${cancelMovementTarget.id}/cancel`);
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Gerakan stok dibatalkan.');
+      toast.success(t('inventoryPage.toast.movementCancelled'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal membatalkan gerakan stok.'));
+      toast.error(errorMessage(err, t('inventoryPage.toast.cancelMovementFailed')));
     } finally {
       setCancelMovementTarget(null);
     }
@@ -287,9 +277,9 @@ export function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ['production-runs'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast.success('Proses produksi dibatalkan.');
+      toast.success(t('inventoryPage.toast.runCancelled'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal membatalkan proses produksi.'));
+      toast.error(errorMessage(err, t('inventoryPage.toast.cancelRunFailed')));
     } finally {
       setCancelProdTarget(null);
     }
@@ -300,12 +290,12 @@ export function InventoryPage() {
       try {
         await api.delete(`/service-items/${svc.id}`);
         queryClient.invalidateQueries({ queryKey: ['service-items'] });
-        toast.success('Layanan dinonaktifkan.');
+        toast.success(t('inventoryPage.toast.serviceDeactivated'));
       } catch (err) {
-        toast.error(errorMessage(err, 'Gagal menonaktifkan layanan.'));
+        toast.error(errorMessage(err, t('inventoryPage.toast.deactivateServiceFailed')));
       }
     },
-    [queryClient],
+    [queryClient, t],
   );
 
   let actions: ReactNode = null;
@@ -314,11 +304,11 @@ export function InventoryPage() {
       <>
         <Button variant="outline" onClick={() => setIsImportOpen(true)}>
           <Upload aria-hidden />
-          <span className="sr-only sm:not-sr-only">Impor</span>
+          <span className="sr-only sm:not-sr-only">{t('inventoryPage.actions.import')}</span>
         </Button>
         <Button onClick={openItemCreate}>
           <Plus aria-hidden />
-          Tambah Item
+          {t('inventoryPage.actions.addItem')}
         </Button>
       </>
     );
@@ -326,21 +316,21 @@ export function InventoryPage() {
     actions = (
       <Button onClick={openMovementCreate}>
         <Plus aria-hidden />
-        Catat Gerakan
+        {t('inventoryPage.actions.recordMovement')}
       </Button>
     );
   } else if (tab === 'production' && canEditProduction && !MASTER_VIEWS.has(prodView)) {
     actions = (
       <Button onClick={openRunCreate}>
         <Plus aria-hidden />
-        Draft Produksi
+        {t('inventoryPage.actions.productionDraft')}
       </Button>
     );
   } else if (tab === 'services' && canEditServices) {
     actions = (
       <Button onClick={() => setServiceModal({ edit: null })}>
         <Plus aria-hidden />
-        Tambah Layanan
+        {t('inventoryPage.actions.addService')}
       </Button>
     );
   }
@@ -349,13 +339,13 @@ export function InventoryPage() {
     // Manual activation: with automatic activation Radix fires onValueChange on
     // mousedown AND focus before the URL-driven value updates → two history entries.
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
-      <PageHeader title="Stok & Produksi" description={DESCRIPTION[tab]} actions={actions}>
-        <TabsList variant="underline" aria-label="Bagian stok & produksi">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="items">Master Item</TabsTrigger>
-          <TabsTrigger value="movements">Gerakan Stok</TabsTrigger>
-          {canViewProduction && <TabsTrigger value="production">Proses Produksi</TabsTrigger>}
-          <TabsTrigger value="services">Layanan</TabsTrigger>
+      <PageHeader title={t('inventoryPage.title')} description={t(`inventoryPage.description.${tab}`)} actions={actions}>
+        <TabsList variant="underline" aria-label={t('inventoryPage.tabsLabel')}>
+          <TabsTrigger value="dashboard">{t('inventoryPage.tabs.dashboard')}</TabsTrigger>
+          <TabsTrigger value="items">{t('inventoryPage.tabs.items')}</TabsTrigger>
+          <TabsTrigger value="movements">{t('inventoryPage.tabs.movements')}</TabsTrigger>
+          {canViewProduction && <TabsTrigger value="production">{t('inventoryPage.tabs.production')}</TabsTrigger>}
+          <TabsTrigger value="services">{t('inventoryPage.tabs.services')}</TabsTrigger>
         </TabsList>
       </PageHeader>
 
@@ -388,14 +378,14 @@ export function InventoryPage() {
         <TabsContent value="production" className="mt-0">
           <Tabs value={prodView} onValueChange={changeView} activationMode="manual" className="space-y-4">
             <div className="max-w-full overflow-x-auto">
-              <TabsList aria-label="Bagian proses produksi">
+              <TabsList aria-label={t('inventoryPage.prodViewsLabel')}>
                 {PROD_VIEWS.map((v) => (
-                  <TabsTrigger key={v.value} value={v.value}>
-                    {v.label}
-                    {v.value === 'draft' && openDrafts > 0 && (
+                  <TabsTrigger key={v} value={v}>
+                    {t(`inventoryPage.prodViews.${v}`)}
+                    {v === 'draft' && openDrafts > 0 && (
                       <span className="num ml-1.5 rounded-sm bg-primary-subtle px-1.5 text-xs font-medium text-primary-subtle-foreground">
                         <span aria-hidden>{openDrafts}</span>
-                        <span className="sr-only">, {openDrafts} draft belum diposting</span>
+                        <span className="sr-only">{t('inventoryPage.openDraftsSr', { count: openDrafts })}</span>
                       </span>
                     )}
                   </TabsTrigger>
@@ -514,9 +504,9 @@ export function InventoryPage() {
         open={deleteItemTarget !== null}
         onOpenChange={(open) => !open && setDeleteItemTarget(null)}
         tone="danger"
-        title="Hapus item stok?"
-        description={`Hapus ${deleteItemTarget?.name ?? 'item ini'}? Item yang sudah memiliki mutasi stok atau digunakan di invoice tidak bisa dihapus.`}
-        confirmLabel="Ya, Hapus"
+        title={t('inventoryPage.deleteItem.title')}
+        description={t('inventoryPage.deleteItem.description', { name: deleteItemTarget?.name ?? t('inventoryPage.deleteItem.fallbackName') })}
+        confirmLabel={t('inventoryPage.confirm.yesDelete')}
         onConfirm={handleDeleteItem}
       />
 
@@ -524,10 +514,12 @@ export function InventoryPage() {
         open={cancelMovementTarget !== null}
         onOpenChange={(open) => !open && setCancelMovementTarget(null)}
         tone="danger"
-        title="Batalkan gerakan stok?"
-        description={`Batalkan ${cancelMovementTarget?.movementNumber ?? 'gerakan stok ini'}? Stok item akan dikembalikan.`}
-        confirmLabel="Ya, Batalkan"
-        cancelLabel="Tidak"
+        title={t('inventoryPage.cancelMovement.title')}
+        description={t('inventoryPage.cancelMovement.description', {
+          number: cancelMovementTarget?.movementNumber ?? t('inventoryPage.cancelMovement.fallbackName'),
+        })}
+        confirmLabel={t('inventoryPage.confirm.yesCancel')}
+        cancelLabel={t('inventoryPage.confirm.no')}
         onConfirm={handleCancelMovement}
       />
 
@@ -535,24 +527,22 @@ export function InventoryPage() {
         open={cancelProdTarget !== null}
         onOpenChange={(open) => !open && setCancelProdTarget(null)}
         tone="danger"
-        title="Batalkan proses produksi?"
-        description="Semua gerakan stok terkait akan dibalik."
-        confirmLabel="Ya, Batalkan"
-        cancelLabel="Tidak"
+        title={t('inventoryPage.cancelRun.title')}
+        description={t('inventoryPage.cancelRun.description')}
+        confirmLabel={t('inventoryPage.confirm.yesCancel')}
+        cancelLabel={t('inventoryPage.confirm.no')}
         onConfirm={handleCancelProduction}
       />
 
       <ConfirmDialog
         open={postDraftTarget !== null}
         onOpenChange={(open) => !open && setPostDraftTarget(null)}
-        title={`Posting ${postDraftTarget?.draftNumber ?? 'draft'}?`}
+        title={t('inventoryPage.postDraft.title', { number: postDraftTarget?.draftNumber ?? t('inventoryPage.draftFallback') })}
         description={
-          cap('approval.bypass')
-            ? 'Stok, jurnal, dan HPP akan terbentuk sekarang sebagai proses produksi. Pastikan data sudah benar.'
-            : 'Draft dikirim untuk persetujuan manajer. Stok, jurnal, dan HPP baru terbentuk setelah disetujui.'
+          cap('approval.bypass') ? t('inventoryPage.postDraft.descriptionDirect') : t('inventoryPage.postDraft.descriptionApproval')
         }
-        confirmLabel={cap('approval.bypass') ? 'Ya, Posting' : 'Ya, Kirim untuk Persetujuan'}
-        cancelLabel="Batal"
+        confirmLabel={cap('approval.bypass') ? t('inventoryPage.postDraft.confirmDirect') : t('inventoryPage.postDraft.confirmApproval')}
+        cancelLabel={t('inventoryPage.confirm.cancel')}
         onConfirm={handlePostDraft}
       />
 
@@ -560,10 +550,10 @@ export function InventoryPage() {
         open={deleteDraftTarget !== null}
         onOpenChange={(open) => !open && setDeleteDraftTarget(null)}
         tone="danger"
-        title={`Hapus ${deleteDraftTarget?.draftNumber ?? 'draft'}?`}
-        description="Draft dibuang dan tidak bisa dikembalikan. Tidak ada efek ke stok atau jurnal."
-        confirmLabel="Ya, Hapus"
-        cancelLabel="Batal"
+        title={t('inventoryPage.deleteDraft.title', { number: deleteDraftTarget?.draftNumber ?? t('inventoryPage.draftFallback') })}
+        description={t('inventoryPage.deleteDraft.description')}
+        confirmLabel={t('inventoryPage.confirm.yesDelete')}
+        cancelLabel={t('inventoryPage.confirm.cancel')}
         onConfirm={handleDeleteDraft}
       />
 

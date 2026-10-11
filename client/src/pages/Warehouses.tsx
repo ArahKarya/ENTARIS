@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Loader2, Pause, Pencil, Play, Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { formatNumber } from '@/lib/format';
 import { can, cap } from '@/lib/permissions';
@@ -46,10 +47,6 @@ interface WarehousePayload {
 }
 
 const FILTER_KEYS = ['status'] as const;
-const STATUS_FILTER = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'inactive', label: 'Nonaktif' },
-];
 
 const errorMessage = (e: unknown, fallback: string) =>
   (e as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback;
@@ -59,15 +56,24 @@ const matches = (w: Warehouse, q: string) =>
 
 /** "Default" marker with text, so it does not rely on the star colour alone. */
 function DefaultMark() {
+  const { t } = useTranslation('inventory');
   return (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-sm bg-warning-subtle px-1.5 py-0.5 text-[11px] font-medium leading-none text-warning-text">
       <Star className="size-3 fill-current" aria-hidden />
-      Default
+      {t('warehouses.defaultMark')}
     </span>
   );
 }
 
 export const Warehouses = () => {
+  const { t } = useTranslation('inventory');
+  const statusFilter = useMemo(
+    () => [
+      { value: 'active', label: t('warehouses.filters.active') },
+      { value: 'inactive', label: t('warehouses.filters.inactive') },
+    ],
+    [t],
+  );
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS });
   const [density, setDensity] = useTableDensity();
@@ -87,21 +93,21 @@ export const Warehouses = () => {
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/warehouses/${id}`),
     onSuccess: () => {
-      toast.success('Gudang dihapus.');
+      toast.success(t('warehouses.toast.deleted'));
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       setDeleteTarget(null);
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal hapus gudang.')),
+    onError: (e) => toast.error(errorMessage(e, t('warehouses.toast.deleteFailed'))),
   });
 
   const toggleMut = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => api.put(`/warehouses/${id}`, { isActive }),
     onSuccess: (_res, vars) => {
-      toast.success(vars.isActive ? 'Gudang diaktifkan.' : 'Gudang dinonaktifkan.');
+      toast.success(vars.isActive ? t('warehouses.toast.activated') : t('warehouses.toast.deactivated'));
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       setDeactivateTarget(null);
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal mengubah status gudang.')),
+    onError: (e) => toast.error(errorMessage(e, t('warehouses.toast.toggleFailed'))),
   });
 
   const openCreate = () => {
@@ -126,7 +132,7 @@ export const Warehouses = () => {
       {
         id: 'name',
         accessorFn: (w) => w.name,
-        header: 'Gudang',
+        header: t('warehouses.columns.warehouse'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-40 max-w-52 sm:max-w-96' },
         cell: ({ row }) => {
@@ -154,7 +160,7 @@ export const Warehouses = () => {
       {
         id: 'location',
         accessorFn: (w) => w.location ?? '',
-        header: 'Lokasi',
+        header: t('warehouses.columns.location'),
         enableSorting: true,
         meta: {
           hideBelow: 'md',
@@ -165,7 +171,7 @@ export const Warehouses = () => {
       {
         id: 'itemCount',
         accessorFn: (w) => w.itemCount ?? 0,
-        header: 'Jumlah Item',
+        header: t('warehouses.columns.itemCount'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -174,7 +180,7 @@ export const Warehouses = () => {
       {
         id: 'totalStock',
         accessorFn: (w) => Number(w.totalStock ?? 0),
-        header: 'Total Stok',
+        header: t('warehouses.columns.totalStock'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'lg' },
@@ -183,13 +189,13 @@ export const Warehouses = () => {
       {
         id: 'status',
         accessorFn: (w) => (w.isActive ? 0 : 1),
-        header: 'Status',
+        header: t('warehouses.columns.status'),
         enableSorting: true,
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'Active' : 'Inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('warehouses.columns.actions')}</span>,
         meta: {
           align: 'right',
           headerClassName: 'w-12',
@@ -199,16 +205,16 @@ export const Warehouses = () => {
           const w = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${w.name}`}
+              label={t('warehouses.rowActions.label', { name: w.name })}
               actions={[
                 {
-                  label: 'Edit',
+                  label: t('warehouses.rowActions.edit'),
                   icon: Pencil,
                   hidden: !canEdit,
                   onSelect: () => openEdit(w),
                 },
                 {
-                  label: w.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                  label: w.isActive ? t('warehouses.rowActions.deactivate') : t('warehouses.rowActions.activate'),
                   icon: w.isActive ? Pause : Play,
                   hidden: !canEdit,
                   disabled: toggleMut.isPending,
@@ -216,7 +222,7 @@ export const Warehouses = () => {
                     w.isActive ? setDeactivateTarget(w) : toggleMut.mutate({ id: w.id, isActive: true }),
                 },
                 {
-                  label: 'Hapus',
+                  label: t('warehouses.rowActions.delete'),
                   icon: Trash2,
                   tone: 'danger',
                   // The default warehouse cannot be deleted (server rule).
@@ -231,19 +237,19 @@ export const Warehouses = () => {
     ],
     // Setters/openEdit are stable enough; re-create when pending flags flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, canDelete, toggleMut.isPending],
+    [canEdit, canDelete, toggleMut.isPending, t],
   );
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Daftar Gudang"
-        description="Master gudang fisik/logis untuk pemisahan stok per lokasi."
+        title={t('warehouses.title')}
+        description={t('warehouses.description')}
         actions={
           canEdit && (
             <Button onClick={openCreate}>
               <Plus aria-hidden />
-              Tambah Gudang
+              {t('warehouses.create')}
             </Button>
           )
         }
@@ -252,14 +258,14 @@ export const Warehouses = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari gudang"
-          searchPlaceholder="Cari kode, nama, atau lokasi"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('warehouses.filters.searchLabel')}
+          searchPlaceholder={t('warehouses.filters.searchPlaceholder')}
+          status={{ options: statusFilter }}
         />
 
         <DataTable
-          label="Daftar gudang"
-          itemLabel="gudang"
+          label={t('warehouses.table.label')}
+          itemLabel={t('warehouses.table.itemLabel')}
           columns={columns}
           data={warehousesQuery.data ? rows : undefined}
           getRowId={(row) => row.id}
@@ -273,12 +279,12 @@ export const Warehouses = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada gudang',
-            description: 'Tambahkan gudang untuk memisahkan stok per lokasi.',
+            title: t('warehouses.empty.title'),
+            description: t('warehouses.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
-                Tambah gudang pertama
+                {t('warehouses.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -297,19 +303,21 @@ export const Warehouses = () => {
       <ConfirmDialog
         open={deactivateTarget !== null}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
-        title="Nonaktifkan gudang?"
+        title={t('warehouses.deactivateDialog.title')}
         description={
           deactivateTarget ? (
             <>
-              Gudang <strong>{deactivateTarget.name}</strong> tidak akan muncul lagi di pilihan gudang dan dashboard
-              stok. Saldo dan riwayat transaksinya tetap tersimpan, dan gudang bisa diaktifkan kembali kapan saja.
-              {deactivateTarget.isDefault && (
-                <> Gudang ini adalah gudang default. Tetapkan gudang lain sebagai default terlebih dahulu.</>
-              )}
+              <Trans
+                t={t}
+                i18nKey="warehouses.deactivateDialog.description"
+                values={{ name: deactivateTarget.name }}
+                components={{ strong: <strong /> }}
+              />
+              {deactivateTarget.isDefault && <> {t('warehouses.deactivateDialog.defaultNote')}</>}
             </>
           ) : null
         }
-        confirmLabel="Ya, nonaktifkan"
+        confirmLabel={t('warehouses.deactivateDialog.confirm')}
         loading={toggleMut.isPending}
         onConfirm={() =>
           deactivateTarget
@@ -325,16 +333,20 @@ export const Warehouses = () => {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus gudang?"
+        title={t('warehouses.deleteDialog.title')}
         description={
           deleteTarget ? (
             <>
-              Yakin hapus gudang <strong>{deleteTarget.name}</strong>? Hanya bisa dihapus kalau tidak ada stok &amp;
-              belum pernah dipakai transaksi.
+              <Trans
+                t={t}
+                i18nKey="warehouses.deleteDialog.description"
+                values={{ name: deleteTarget.name }}
+                components={{ strong: <strong /> }}
+              />
             </>
           ) : null
         }
-        confirmLabel="Ya, hapus"
+        confirmLabel={t('warehouses.deleteDialog.confirm')}
         loading={deleteMut.isPending}
         onConfirm={() => (deleteTarget ? deleteMut.mutateAsync(deleteTarget.id) : undefined)}
       />
@@ -352,6 +364,7 @@ interface ModalProps {
 }
 
 function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
+  const { t } = useTranslation('inventory');
   const isEdit = Boolean(editTarget?.id);
   const queryClient = useQueryClient();
 
@@ -400,19 +413,19 @@ function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
       return res.data;
     },
     onSuccess: () => {
-      toast.success(isEdit ? 'Gudang diperbarui.' : 'Gudang ditambahkan.');
+      toast.success(isEdit ? t('warehouses.modal.toast.updated') : t('warehouses.modal.toast.created'));
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       onClose();
     },
-    onError: (e) => setError(errorMessage(e, 'Gagal simpan gudang.')),
+    onError: (e) => setError(errorMessage(e, t('warehouses.modal.toast.saveFailed'))),
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError('');
     const nextErrors = {
-      code: code.trim() ? undefined : 'Kode wajib diisi.',
-      name: name.trim() ? undefined : 'Nama wajib diisi.',
+      code: code.trim() ? undefined : t('warehouses.modal.errors.codeRequired'),
+      name: name.trim() ? undefined : t('warehouses.modal.errors.nameRequired'),
     };
     setFieldErrors(nextErrors);
     if (nextErrors.code || nextErrors.name) return;
@@ -432,37 +445,37 @@ function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
       <DialogContent size="sm">
         <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Gudang' : 'Tambah Gudang'}</DialogTitle>
-            <DialogDescription>Kode dipakai sebagai pengenal singkat gudang di dokumen stok.</DialogDescription>
+            <DialogTitle>{isEdit ? t('warehouses.modal.editTitle') : t('warehouses.modal.createTitle')}</DialogTitle>
+            <DialogDescription>{t('warehouses.modal.description')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
-            <Field label="Kode" required error={fieldErrors.code} hint="Huruf, angka, tanda hubung, garis bawah.">
+            <Field label={t('warehouses.modal.fields.code')} required error={fieldErrors.code} hint={t('warehouses.modal.fields.codeHint')}>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="Mis: UTAMA, TRANSIT"
+                placeholder={t('warehouses.modal.fields.codePlaceholder')}
                 maxLength={30}
                 autoComplete="off"
               />
             </Field>
-            <Field label="Nama" required error={fieldErrors.name}>
+            <Field label={t('warehouses.modal.fields.name')} required error={fieldErrors.name}>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Mis: Gudang Utama"
+                placeholder={t('warehouses.modal.fields.namePlaceholder')}
                 maxLength={100}
               />
             </Field>
-            <Field label="Lokasi">
+            <Field label={t('warehouses.modal.fields.location')}>
               <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Alamat / area"
+                placeholder={t('warehouses.modal.fields.locationPlaceholder')}
                 maxLength={200}
               />
             </Field>
-            <Field label="Deskripsi">
+            <Field label={t('warehouses.modal.fields.description')}>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={500} />
             </Field>
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -473,7 +486,7 @@ function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
                   onChange={(e) => setIsActive(e.target.checked)}
                   className="size-4 rounded accent-primary"
                 />
-                Aktif
+                {t('warehouses.modal.fields.active')}
               </label>
               <label className="inline-flex items-center gap-2 text-foreground">
                 <input
@@ -482,7 +495,7 @@ function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
                   onChange={(e) => setIsDefault(e.target.checked)}
                   className="size-4 rounded accent-primary"
                 />
-                Jadikan gudang default
+                {t('warehouses.modal.fields.isDefault')}
               </label>
             </div>
             {error && (
@@ -497,11 +510,11 @@ function WarehouseModal({ isOpen, onClose, editTarget }: ModalProps) {
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Batal
+              {t('warehouses.modal.cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 className="animate-spin" aria-hidden />}
-              {isEdit ? 'Simpan' : 'Tambah'}
+              {isEdit ? t('warehouses.modal.save') : t('warehouses.modal.add')}
             </Button>
           </DialogFooter>
         </form>
