@@ -3,7 +3,7 @@ import {
   Document, Page, View, Text, StyleSheet, Font,
 } from '@react-pdf/renderer';
 import { C, BADGE, FOOTER_SPACE } from './theme';
-import { pdfDate, pdfNum, pdfRp } from './pdfFormat';
+import { pdfDate, pdfNum, pdfRp, pdfT, type PdfT } from './pdfFormat';
 import { PdfFooter, PdfHeader, PdfSignatureBlock } from './kit';
 
 // Register fonts (Helvetica is built-in: no download needed)
@@ -187,15 +187,15 @@ export interface InvoicePDFProps {
     logoUrl?: string | null;
   };
   invoiceSettings?: InvoiceFormatSettings | null;
-  // Payments allocated to this invoice (for "Rincian Pembayaran" section).
+  // Payments allocated to this invoice (for the payment breakdown section).
   // When provided and non-empty, renders the per-payment / per-split breakdown
   // below the totals panel. Does not change grand_total — it is read-only info.
   payments?: PaymentBreakdown[];
 }
 
-const STATUS_ID: Record<string, string> = {
-  Draft: 'Draf', Submitted: 'Terbit', PartiallyPaid: 'Sebagian Dibayar', Paid: 'Lunas', Overdue: 'Jatuh Tempo', Cancelled: 'Dibatalkan',
-};
+const STATUS_KEYS = ['Draft', 'Submitted', 'PartiallyPaid', 'Paid', 'Overdue', 'Cancelled'] as const;
+const statusLabel = (t: PdfT, status: string): string =>
+  (STATUS_KEYS as readonly string[]).includes(status) ? t(`invoice.status.${status as (typeof STATUS_KEYS)[number]}`) : status;
 
 // Status color
 function statusStyle(status: string) {
@@ -216,15 +216,16 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
     payments,
   } = props;
 
+  const t = pdfT();
   const isSales = type === 'sales';
-  const title = isSales ? 'FAKTUR PENJUALAN' : 'FAKTUR PEMBELIAN';
-  const partyLabel = isSales ? 'Kepada Yth.' : 'Dari Supplier';
+  const title = isSales ? t('invoice.titleSales') : t('invoice.titlePurchase');
+  const partyLabel = isSales ? t('invoice.partySales') : t('invoice.partyPurchase');
 
   const fmt = isSales ? invoiceSettings?.sales : invoiceSettings?.purchase;
   const showSignature = fmt?.showSignature !== false;
   const sigLabels = fmt?.signatureLabels?.length
     ? fmt.signatureLabels
-    : ['Disiapkan oleh', 'Disetujui oleh', 'Diterima oleh'];
+    : [t('invoice.signatures.prepared'), t('invoice.signatures.approved'), t('invoice.signatures.received')];
   const footerNote = fmt?.footerNote || null;
   const bankAccounts = isSales ? (invoiceSettings?.sales?.bankAccounts || null) : null;
 
@@ -259,8 +260,8 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           company={company}
           title={title}
           number={invoiceNumber}
-          dateLine={`Tanggal: ${tgl(date)}`}
-          status={STATUS_ID[status] ?? status}
+          dateLine={t('common.dateLine', { date: tgl(date) })}
+          status={statusLabel(t, status)}
           statusColor={pill.text}
         />
 
@@ -271,34 +272,34 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
             <Text style={S.metaLabel}>{partyLabel}</Text>
             <Text style={S.metaBold}>{party.name}</Text>
             {party.address && <Text style={S.metaValue}>{party.address}</Text>}
-            {party.phone   && <Text style={S.metaValue}>Telp: {party.phone}</Text>}
+            {party.phone   && <Text style={S.metaValue}>{t('common.phone', { phone: party.phone })}</Text>}
             {party.email   && <Text style={S.metaValue}>{party.email}</Text>}
-            {party.taxId   && <Text style={S.metaValue}>NPWP: {party.taxId}</Text>}
+            {party.taxId   && <Text style={S.metaValue}>{t('common.taxId', { taxId: party.taxId })}</Text>}
           </View>
 
           {/* Right — invoice details grid */}
           <View style={S.metaCol}>
-            <Text style={S.metaLabel}>Informasi Invoice</Text>
+            <Text style={S.metaLabel}>{t('invoice.infoTitle')}</Text>
             <View style={{ gap: 4 }}>
               <View style={S.metaGrid}>
                 <View style={S.metaItem}>
-                  <Text style={S.metaItemLabel}>Tanggal</Text>
+                  <Text style={S.metaItemLabel}>{t('common.date')}</Text>
                   <Text style={S.metaItemValue}>{tgl(date)}</Text>
                 </View>
                 <View style={S.metaItem}>
-                  <Text style={S.metaItemLabel}>Jatuh Tempo</Text>
+                  <Text style={S.metaItemLabel}>{t('invoice.dueDate')}</Text>
                   <Text style={S.metaItemValue}>{tgl(dueDate)}</Text>
                 </View>
               </View>
               {terms && (
                 <View style={S.metaItem}>
-                  <Text style={S.metaItemLabel}>Termin</Text>
+                  <Text style={S.metaItemLabel}>{t('invoice.terms')}</Text>
                   <Text style={S.metaItemValue}>{terms}</Text>
                 </View>
               )}
               {customerRefNo && (
                 <View style={S.metaItem}>
-                  <Text style={S.metaItemLabel}>No. Ref. PO / Penawaran</Text>
+                  <Text style={S.metaItemLabel}>{t('invoice.customerRef')}</Text>
                   <Text style={S.metaItemValue}>{customerRefNo}</Text>
                 </View>
               )}
@@ -311,14 +312,14 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           {/* Table header */}
           <View style={S.tableHeader} fixed minPresenceAhead={44}>
             <Text style={[S.tableHeaderText, S.colNo]}>#</Text>
-            <Text style={[S.tableHeaderText, S.colDesc]}>Nama Barang / Jasa</Text>
-            <Text style={[S.tableHeaderText, S.colQty]}>Qty</Text>
-            <Text style={[S.tableHeaderText, S.colUnit]}>Sat.</Text>
-            <Text style={[S.tableHeaderText, S.colRate]}>Harga Sat.</Text>
-            <Text style={[S.tableHeaderText, S.colDisc]}>Disk%</Text>
-            <Text style={[S.tableHeaderText, S.colTax]}>PPN%</Text>
-            {hasPerItemPph && <Text style={[S.tableHeaderText, S.colTax]}>PPh%</Text>}
-            <Text style={[S.tableHeaderText, S.colAmount]}>Jumlah</Text>
+            <Text style={[S.tableHeaderText, S.colDesc]}>{t('invoice.columns.description')}</Text>
+            <Text style={[S.tableHeaderText, S.colQty]}>{t('invoice.columns.qty')}</Text>
+            <Text style={[S.tableHeaderText, S.colUnit]}>{t('invoice.columns.unit')}</Text>
+            <Text style={[S.tableHeaderText, S.colRate]}>{t('invoice.columns.rate')}</Text>
+            <Text style={[S.tableHeaderText, S.colDisc]}>{t('invoice.columns.discount')}</Text>
+            <Text style={[S.tableHeaderText, S.colTax]}>{t('invoice.columns.vat')}</Text>
+            {hasPerItemPph && <Text style={[S.tableHeaderText, S.colTax]}>{t('invoice.columns.wht')}</Text>}
+            <Text style={[S.tableHeaderText, S.colAmount]}>{t('invoice.columns.amount')}</Text>
           </View>
 
           {/* Table rows */}
@@ -332,16 +333,16 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                 )}
                 {!isSales && (() => {
                   const parts: string[] = [];
-                  if (item.nomorMobil) parts.push(`Mobil: ${item.nomorMobil}`);
-                  if (item.kualitas) parts.push(`Kualitas: ${item.kualitas}`);
+                  if (item.nomorMobil) parts.push(t('invoice.weighing.vehicle', { value: item.nomorMobil }));
+                  if (item.kualitas) parts.push(t('invoice.weighing.quality', { value: item.kualitas }));
                   const truk = Number(item.timbanganTruk ?? 0);
                   const refaksi = Number(item.refaksi ?? 0);
                   const diterima = Number(item.timbanganDiterima ?? 0);
                   if (truk > 0 || refaksi > 0) {
-                    parts.push(`Timbangan: ${pdfNum(truk, 3)} - ${pdfNum(refaksi, 3)} = ${pdfNum(diterima, 3)} kg`);
+                    parts.push(t('invoice.weighing.scale', { gross: pdfNum(truk, 3), deduction: pdfNum(refaksi, 3), net: pdfNum(diterima, 3) }));
                   }
                   const pot = Number(item.potonganItem ?? 0);
-                  if (pot > 0) parts.push(`Potongan: ${idr(pot)}`);
+                  if (pot > 0) parts.push(t('invoice.weighing.deduction', { value: idr(pot) }));
                   if (parts.length === 0) return null;
                   return (
                     <Text style={[S.tableCell, { color: C.muted, fontSize: 7, marginTop: 1 }]}>
@@ -379,32 +380,32 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         <View style={S.summaryRow}>
           <View style={{ width: 260 }}>
             <View style={[S.summaryRight, { borderTopWidth: 0.5, borderTopColor: C.border }]}>
-              <Text style={S.summaryLabel}>Subtotal</Text>
+              <Text style={S.summaryLabel}>{t('common.subtotal')}</Text>
               <Text style={S.summaryValue}>{idr(subtotal)}</Text>
             </View>
             {showTax && (
               <View style={S.summaryRight}>
-                <Text style={S.summaryLabel}>{hasPerItemTax ? 'PPN (per item)' : `PPN ${numTax}%`}</Text>
+                <Text style={S.summaryLabel}>{hasPerItemTax ? t('invoice.vatPerItem') : t('invoice.vatPct', { pct: numTax })}</Text>
                 <Text style={S.summaryValue}>{idr(taxAmount)}</Text>
               </View>
             )}
             {showPph && (
               <View style={S.summaryRight}>
-                <Text style={[S.summaryLabel, { color: C.orange }]}>PPh (per item) (-)</Text>
+                <Text style={[S.summaryLabel, { color: C.orange }]}>{t('invoice.whtPerItem')}</Text>
                 <Text style={[S.summaryValue, { color: C.orange }]}>({idr(pphAmount)})</Text>
               </View>
             )}
             {showPot && (
               <View style={S.summaryRight}>
                 <Text style={[S.summaryLabel, { color: C.red }]}>
-                  {labelPotongan || 'Potongan'} (-)
+                  {labelPotongan || t('common.deduction')} (-)
                 </Text>
                 <Text style={[S.summaryValue, { color: C.red }]}>({idr(numPot)})</Text>
               </View>
             )}
             {showBiaya && (
               <View style={S.summaryRight}>
-                <Text style={S.summaryLabel}>{labelBiaya || 'Biaya Lain'} (+)</Text>
+                <Text style={S.summaryLabel}>{labelBiaya || t('common.otherCosts')} (+)</Text>
                 <Text style={S.summaryValue}>{idr(numBiaya)}</Text>
               </View>
             )}
@@ -412,7 +413,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         </View>
         <View style={S.summaryTotalRow}>
           <View style={S.summaryTotal}>
-            <Text style={S.summaryTotalLabel}>TOTAL</Text>
+            <Text style={S.summaryTotalLabel}>{t('common.totalUpper')}</Text>
             <Text style={S.summaryTotalValue}>{idr(numGT)}</Text>
           </View>
         </View>
@@ -448,7 +449,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
               ))}
               <View style={[S.summaryTotalRow, { marginTop: 2 }]}>
                 <View style={[S.summaryTotal, { backgroundColor: C.amberLt, borderColor: BADGE.amberBorder }]}>
-                  <Text style={[S.summaryTotalLabel, { color: BADGE.amberText }]}>NET TOTAL</Text>
+                  <Text style={[S.summaryTotalLabel, { color: BADGE.amberText }]}>{t('invoice.netTotal')}</Text>
                   <Text style={[S.summaryTotalValue, { color: C.amberDk }]}>{idr(netTotal)}</Text>
                 </View>
               </View>
@@ -466,22 +467,22 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
           if (!hasPaymentInfo) return null;
           return (
             <View style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: C.border }}>
-              <Text style={{ fontSize: 8, fontWeight: 600, color: C.muted, marginBottom: 3 }}>STATUS PEMBAYARAN</Text>
+              <Text style={{ fontSize: 8, fontWeight: 600, color: C.muted, marginBottom: 3 }}>{t('invoice.paymentStatus')}</Text>
               {numCash > 0 && (
                 <View style={S.summaryRight}>
-                  <Text style={S.summaryLabel}>Bayar Tunai/Bank</Text>
+                  <Text style={S.summaryLabel}>{t('invoice.paidCash')}</Text>
                   <Text style={S.summaryValue}>{idr(numCash)}</Text>
                 </View>
               )}
               {numDep > 0 && (
                 <View style={S.summaryRight}>
-                  <Text style={S.summaryLabel}>Bayar Uang Muka</Text>
+                  <Text style={S.summaryLabel}>{t('invoice.paidDeposit')}</Text>
                   <Text style={S.summaryValue}>{idr(numDep)}</Text>
                 </View>
               )}
               <View style={S.summaryRight}>
                 <Text style={[S.summaryLabel, { color: numOut > 0 ? C.red : C.greenDk, fontWeight: 600 }]}>
-                  {numOut > 0 ? 'Sisa Tagihan' : 'LUNAS'}
+                  {numOut > 0 ? t('invoice.outstanding') : t('invoice.paidInFull')}
                 </Text>
                 <Text style={[S.summaryValue, { color: numOut > 0 ? C.red : C.greenDk, fontWeight: 600 }]}>
                   {idr(numOut)}
@@ -489,7 +490,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
               </View>
               {numBal > 0 && (
                 <View style={S.summaryRight}>
-                  <Text style={[S.summaryLabel, { fontStyle: 'italic' }]}>Saldo Uang Muka {isSales ? 'Pelanggan' : 'Supplier'}</Text>
+                  <Text style={[S.summaryLabel, { fontStyle: 'italic' }]}>{isSales ? t('invoice.depositBalanceCustomer') : t('invoice.depositBalanceSupplier')}</Text>
                   <Text style={[S.summaryValue, { fontStyle: 'italic' }]}>{idr(numBal)}</Text>
                 </View>
               )}
@@ -501,14 +502,14 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         {payments && payments.length > 0 && (
           <View style={{ marginTop: 10, padding: 6, borderWidth: 0.5, borderColor: C.border, borderRadius: 3 }}>
             <Text style={{ fontSize: 8, fontWeight: 600, color: C.muted, marginBottom: 4, letterSpacing: 0.5 }}>
-              RINCIAN PEMBAYARAN
+              {t('invoice.paymentBreakdown')}
             </Text>
             {payments.map((p, idx) => (
               <View key={idx} style={{ marginBottom: idx < payments.length - 1 ? 5 : 0, paddingBottom: idx < payments.length - 1 ? 4 : 0, borderBottomWidth: idx < payments.length - 1 ? 0.3 : 0, borderBottomColor: C.border }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1 }}>
                   <Text style={{ fontSize: 7.5, fontWeight: 600, color: C.dark }}>
                     {tgl(p.date)} · {p.paymentNumber}
-                    {p.referenceNo ? ` (Ref: ${p.referenceNo})` : ''}
+                    {p.referenceNo ? ` ${t('invoice.refShort', { ref: p.referenceNo })}` : ''}
                   </Text>
                   <Text style={{ fontSize: 7.5, fontWeight: 600, color: C.dark }}>{idr(Number(p.allocatedAmount))}</Text>
                 </View>
@@ -554,11 +555,11 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
               return (
                 <View style={{ marginTop: 4, paddingTop: 3, borderTopWidth: 0.3, borderTopColor: C.border }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 7.5, color: C.muted }}>Diterima cash / bank</Text>
+                    <Text style={{ fontSize: 7.5, color: C.muted }}>{t('invoice.receivedCash')}</Text>
                     <Text style={{ fontSize: 7.5, color: C.muted }}>{idr(cashTotal)}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 7.5, color: C.muted }}>Potongan / alokasi lain</Text>
+                    <Text style={{ fontSize: 7.5, color: C.muted }}>{t('invoice.otherAllocation')}</Text>
                     <Text style={{ fontSize: 7.5, color: C.muted }}>{idr(nonCashTotal)}</Text>
                   </View>
                 </View>
@@ -570,7 +571,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         {/* Bank accounts (sales only) */}
         {bankAccounts && (
           <View style={S.notesBox}>
-            <Text style={S.notesLabel}>INFORMASI PEMBAYARAN</Text>
+            <Text style={S.notesLabel}>{t('invoice.paymentInfo')}</Text>
             <Text style={S.notesText}>{bankAccounts}</Text>
           </View>
         )}
@@ -578,7 +579,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
         {/* Notes */}
         {notes && (
           <View style={S.notesBox}>
-            <Text style={S.notesLabel}>CATATAN</Text>
+            <Text style={S.notesLabel}>{t('common.notesUpper')}</Text>
             <Text style={S.notesText}>{notes}</Text>
           </View>
         )}

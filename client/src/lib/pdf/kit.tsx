@@ -7,9 +7,12 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { BRAND, C, CARBON, F } from './theme';
-import { pdfNow } from './pdfFormat';
+import { loadPdfStrings, pdfNow, pdfT } from './pdfFormat';
 
 Font.registerHyphenationCallback((word) => [word]);
+
+// Every template imports the kit, so its strings are ready well before the user prints.
+void loadPdfStrings();
 
 export type PdfTone = 'color' | 'mono';
 
@@ -58,7 +61,7 @@ const S = StyleSheet.create({
 
 export interface PdfHeaderProps {
   company: PdfCompany;
-  /** Judul dokumen, mis. "FAKTUR PENJUALAN". */
+  /** Document title, e.g. "INVOICE PENJUALAN". */
   title: string;
   /** Padanan bahasa lain / keterangan di bawah judul (opsional). */
   subtitle?: string;
@@ -81,7 +84,8 @@ export const PdfHeader: React.FC<PdfHeaderProps> = ({
   company, title, subtitle, number, dateLine, status, statusColor, tone = 'color', extraLines, fixed = true, pageMeta = false,
 }) => {
   const p = palette(tone);
-  const contact = [company.phone && `Telp: ${company.phone}`, company.email].filter(Boolean).join('  •  ');
+  const t = pdfT();
+  const contact = [company.phone && t('common.phone', { phone: company.phone }), company.email].filter(Boolean).join('  •  ');
   return (
     <View fixed={fixed}>
       <View style={S.headerRow}>
@@ -91,7 +95,7 @@ export const PdfHeader: React.FC<PdfHeaderProps> = ({
             <Text style={[S.companyName, { color: p.head }]}>{company.name}</Text>
             {company.address ? <Text style={[S.companyMeta, { color: p.soft }]}>{company.address}</Text> : null}
             {contact ? <Text style={[S.companyMeta, { color: p.soft }]}>{contact}</Text> : null}
-            {company.taxId ? <Text style={[S.companyMeta, { color: p.soft }]}>NPWP: {company.taxId}</Text> : null}
+            {company.taxId ? <Text style={[S.companyMeta, { color: p.soft }]}>{t('common.taxId', { taxId: company.taxId })}</Text> : null}
           </View>
         </View>
         <View style={S.docBlock}>
@@ -105,7 +109,7 @@ export const PdfHeader: React.FC<PdfHeaderProps> = ({
           {pageMeta ? (
             <Text
               style={[S.docMeta, { color: p.ink }]}
-              render={({ pageNumber, totalPages }) => `Dicetak ${pdfNow()}  •  Halaman ${pageNumber} dari ${totalPages}`}
+              render={({ pageNumber, totalPages }) => t('common.printedPageMeta', { date: pdfNow(), page: pageNumber, total: totalPages })}
               fixed
             />
           ) : null}
@@ -310,8 +314,6 @@ export const PdfSection: React.FC<{ title: string; children: React.ReactNode; to
 
 // Footer
 
-export const CONFIDENTIAL_LINE = 'Dokumen rahasia, hanya untuk pihak yang berkepentingan.';
-
 export interface PdfFooterProps {
   company: string;
   /** Referensi dokumen (nomor/judul) di kiri-bawah. */
@@ -327,6 +329,7 @@ export const PdfFooter: React.FC<PdfFooterProps> = ({
   company, docRef, tone = 'color', paddingHorizontal = 32, printedAt,
 }) => {
   const p = palette(tone);
+  const t = pdfT();
   const stamp = printedAt ?? pdfNow();
   return (
     <View fixed style={[S.footerWrap, { left: paddingHorizontal, right: paddingHorizontal }]}>
@@ -335,12 +338,12 @@ export const PdfFooter: React.FC<PdfFooterProps> = ({
         <Text style={[S.footerText, { color: p.soft }]}>{[company, docRef].filter(Boolean).join(' · ')}</Text>
         <Text
           style={[S.footerText, { color: p.ink, fontFamily: F.bold }]}
-          render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} dari ${totalPages}`}
+          render={({ pageNumber, totalPages }) => t('common.pageOf', { page: pageNumber, total: totalPages })}
         />
       </View>
       <View style={S.footerRow}>
-        <Text style={[S.footerText, { color: p.soft }]}>Dicetak {stamp}</Text>
-        <Text style={[S.footerText, { color: p.soft }]}>{CONFIDENTIAL_LINE}</Text>
+        <Text style={[S.footerText, { color: p.soft }]}>{t('common.printed', { date: stamp })}</Text>
+        <Text style={[S.footerText, { color: p.soft }]}>{t('common.confidential')}</Text>
       </View>
     </View>
   );

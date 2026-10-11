@@ -2,6 +2,7 @@
 // portrait A4 page) into one downloadable PDF.
 
 import { PDFDocument, PageSizes } from 'pdf-lib';
+import { pdfT } from './pdfFormat';
 
 export interface AttachmentRef {
   id: string;
@@ -73,16 +74,16 @@ export async function mergeInvoicePdfWithAttachments(
         height: drawH,
       });
     } catch (err) {
-      console.warn(`Gagal merge lampiran ${att.fileName}:`, err);
-      failures.push(`${att.fileName}: ${(err as Error)?.message || 'unknown'}`);
+      console.warn(`Failed to merge attachment ${att.fileName}:`, err);
+      failures.push(`${att.fileName}: ${(err as Error)?.message || pdfT()('merge.unknownError')}`);
     }
   }
 
   if (failures.length === attachments.length && attachments.length > 0) {
-    throw new Error(`Semua lampiran gagal di-merge:\n${failures.join('\n')}`);
+    throw new Error(pdfT()('merge.allFailed', { details: failures.join('\n') }));
   }
   if (failures.length > 0) {
-    console.error('Sebagian lampiran gagal:', failures);
+    console.error('Some attachments failed to merge:', failures);
   }
 
   const out = await merged.save();
@@ -103,7 +104,7 @@ async function webpToPng(webpBytes: ArrayBuffer): Promise<Uint8Array> {
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context tidak tersedia');
+    if (!ctx) throw new Error('Canvas 2D context unavailable');
     ctx.drawImage(img, 0, 0);
     const pngBlob: Blob = await new Promise((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');

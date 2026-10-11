@@ -29,7 +29,7 @@ export function buildPurchaseInvoiceWhere(query: Record<string, unknown>): Purch
 
   const status = firstString(query.status);
   if (status) {
-    if (!STATUSES.has(status)) return { ok: false, error: 'Status faktur tidak dikenal.' };
+    if (!STATUSES.has(status)) return { ok: false, error: 'Status invoice tidak dikenal.' };
     where.status = status as InvoiceStatus;
   }
 

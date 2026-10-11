@@ -132,7 +132,7 @@ router.get('/supplier-performance', async (req, res) => {
     }));
     return res.json({ rows: buildSupplierPerformance(input) });
   } catch (error) {
-    return handleRouteError(res, error, 'GET /reports/supplier-performance', 'Gagal mengambil laporan kinerja pemasok.');
+    return handleRouteError(res, error, 'GET /reports/supplier-performance', 'Gagal mengambil laporan kinerja supplier.');
   }
 });
 

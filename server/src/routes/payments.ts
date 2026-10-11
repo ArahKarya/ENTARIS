@@ -185,10 +185,10 @@ router.post('/:id/cancel', requireCap('doc.cancel'), async (req: AuthRequest, re
       // Deposits must be cancelled via their own endpoints (vendor-deposits / customer-deposits
       // PATCH /:id/cancel); cancelling here too causes a double cancel and GL drift.
       if (payment.paymentType === 'VendorDeposit') {
-        throw new BusinessError('Gunakan endpoint Uang Muka Vendor untuk membatalkan deposit.');
+        throw new BusinessError('Gunakan endpoint Uang Muka Supplier untuk membatalkan deposit.');
       }
       if (payment.paymentType === 'CustomerDeposit') {
-        throw new BusinessError('Gunakan endpoint Uang Muka Pelanggan untuk membatalkan deposit.');
+        throw new BusinessError('Gunakan endpoint Uang Muka Customer untuk membatalkan deposit.');
       }
       if (payment.paymentType === 'VendorRefund' || payment.paymentType === 'CustomerRefund') {
         throw new BusinessError(

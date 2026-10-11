@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { renderToBuffer } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
 import InvoicePDF from './InvoicePDF';
@@ -15,7 +15,8 @@ import { DailyReportPDF } from './DailyReportPDF';
 import { TrialBalancePDF, ProfitLossPDF, BalanceSheetPDF, CashFlowPDF, AgingPDF } from './ReportPDF';
 import VehicleReportPDF from './VehicleReportPDF';
 import InspectionDetailPDF from './InspectionDetailPDF';
-import { pdfDate, pdfMoneyAuto, pdfNum, pdfRp, pdfRpAuto } from './pdfFormat';
+import i18n from '@/i18n';
+import { pdfDate, pdfMoneyAuto, pdfMonthShort, pdfNum, pdfRp, pdfRpAuto, pdfT } from './pdfFormat';
 
 const company = { name: 'PT Contoh Pangan', address: 'Bandar Lampung', phone: null, email: null, taxId: null, logoUrl: null };
 const co = { ...company, invoiceSettings: null };
@@ -110,4 +111,29 @@ describe('pdfFormat', () => {
     expect(pdfDate('2026-10-04')).toBe('4 Oktober 2026');
     expect(pdfDate(null)).toBe('—');
   });
+});
+
+describe('PDF language follows the printing user', () => {
+  afterAll(async () => {
+    await i18n.changeLanguage('id');
+  });
+
+  it('translates template strings at generation time', async () => {
+    await i18n.changeLanguage('id');
+    expect(pdfT()('invoice.titleSales')).toBe('INVOICE PENJUALAN');
+    expect(pdfT()('common.pageOf', { page: 1, total: 3 })).toBe('Halaman 1 dari 3');
+    expect(pdfMonthShort('2026-10')).toBe('Okt 26');
+
+    await i18n.changeLanguage('en');
+    expect(pdfT()('invoice.titleSales')).toBe('SALES INVOICE');
+    expect(pdfT()('common.pageOf', { page: 1, total: 3 })).toBe('Page 1 of 3');
+    expect(pdfT()('common.itemCount', { count: 2 })).toBe('2 items');
+    expect(pdfMonthShort('2026-10')).toBe('Oct 26');
+  });
+
+  it.each(cases)('%s renders in English', async (_name, build) => {
+    await i18n.changeLanguage('en');
+    const buf = await renderToBuffer(build() as never);
+    expect(buf.subarray(0, 5).toString()).toBe('%PDF-');
+  }, 30000);
 });

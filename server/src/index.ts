@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { authMiddleware, requireAnyPerm, requirePerm, requireWrite } from './middleware/auth';
 import { auditTrailMiddleware } from './middleware/auditTrail';
+import { responseLanguage } from './middleware/responseLanguage';
 import { logger } from './lib/logger';
 
 // Route handlers
@@ -171,6 +172,10 @@ const apiRateLimit = rateLimit({
 
 // Health Check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+
+// English error/message text for clients that ask for it (X-Entaris-Lang / Accept-Language).
+// Registered first so rate-limit and auth rejections are translated too.
+app.use('/api', responseLanguage);
 
 // Rate-limit ALL /api routes (including /api/auth/*)
 app.use('/api', apiRateLimit);

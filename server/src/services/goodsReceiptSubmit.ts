@@ -144,7 +144,7 @@ export async function submitGoodsReceiptInTx(
     if (!isCustomerOwned && unitCost.lte(0)) {
       throw new BusinessError(
         `Harga satuan untuk '${invItem.name}' belum ada (nilai 0). ` +
-          `Isi harga di STT, atau tandai STT ini sebagai Barang Titipan Pelanggan ` +
+          `Isi harga di STT, atau tandai STT ini sebagai Barang Titipan Customer ` +
           `bila barang bukan milik perusahaan.`,
       );
     }

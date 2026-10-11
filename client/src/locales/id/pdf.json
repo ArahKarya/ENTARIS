@@ -1,1 +1,666 @@
-{}
+{
+  "common": {
+    "phone": "Telp: {{phone}}",
+    "taxId": "NPWP: {{taxId}}",
+    "date": "Tanggal",
+    "dateLine": "Tanggal: {{date}}",
+    "printed": "Dicetak {{date}}",
+    "printedLine": "Dicetak: {{date}}",
+    "printedBy": "{{date}} oleh {{name}}",
+    "pageOf": "Halaman {{page}} dari {{total}}",
+    "printedPageMeta": "Dicetak {{date}}  •  Halaman {{page}} dari {{total}}",
+    "confidential": "Dokumen rahasia, hanya untuk pihak yang berkepentingan.",
+    "asOf": "Per {{date}}",
+    "notes": "Catatan",
+    "notesUpper": "CATATAN",
+    "terms": "Syarat & Ketentuan",
+    "status": "Status",
+    "total": "Total",
+    "totalUpper": "TOTAL",
+    "subtotal": "Subtotal",
+    "subtotalOf": "Subtotal {{name}}",
+    "grandTotal": "Grand Total",
+    "grandTotalUpper": "GRAND TOTAL",
+    "qty": "Qty",
+    "item": "Item",
+    "code": "Kode",
+    "itemName": "Nama Item",
+    "unitShort": "Sat.",
+    "unit": "Satuan",
+    "stock": "Stok",
+    "avgCost": "Avg Cost",
+    "value": "Nilai",
+    "amount": "Jumlah",
+    "price": "Harga",
+    "vat": "PPN",
+    "wht": "PPh",
+    "deduction": "Potongan",
+    "otherCosts": "Biaya Lain",
+    "otherCostsLower": "Biaya lain",
+    "discount": "Diskon",
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "driver": "Supir",
+    "vehicleNo": "No. Mobil",
+    "to": "Kepada",
+    "recipient": "Penerima",
+    "approvedBy": "Disetujui oleh",
+    "preparedBy": "Disiapkan oleh",
+    "receivedBy": "Diterima oleh",
+    "createdBy": "Dibuat oleh",
+    "remaining": "Sisa",
+    "defaultMark": "(default)",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} item",
+    "cashTerm": "Tunai",
+    "dayTerm_one": "{{count}} hari",
+    "dayTerm_other": "{{count}} hari"
+  },
+  "status": {
+    "Draft": "Draft",
+    "Submitted": "Disubmit",
+    "PartiallyDelivered": "Sebagian Terkirim",
+    "FullyDelivered": "Selesai",
+    "Cancelled": "Dibatalkan",
+    "Paid": "Lunas",
+    "PartiallyPaid": "Sebagian",
+    "Overdue": "Jatuh Tempo"
+  },
+  "ncr": {
+    "columns": {
+      "no": "NO",
+      "code": "KODE",
+      "name": "NAMA BARANG",
+      "qty": "QTY",
+      "unit": "SAT",
+      "description": "KETERANGAN"
+    }
+  },
+  "invoice": {
+    "titleSales": "INVOICE PENJUALAN",
+    "titlePurchase": "INVOICE PEMBELIAN",
+    "partySales": "Kepada Yth.",
+    "partyPurchase": "Dari Supplier",
+    "signatures": {
+      "prepared": "Disiapkan oleh",
+      "approved": "Disetujui oleh",
+      "received": "Diterima oleh"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Submitted": "Terbit",
+      "PartiallyPaid": "Sebagian Dibayar",
+      "Paid": "Lunas",
+      "Overdue": "Jatuh Tempo",
+      "Cancelled": "Dibatalkan"
+    },
+    "infoTitle": "Informasi Invoice",
+    "dueDate": "Jatuh Tempo",
+    "terms": "Termin",
+    "customerRef": "No. Ref. PO / Penawaran",
+    "columns": {
+      "description": "Nama Barang / Jasa",
+      "qty": "Qty",
+      "unit": "Sat.",
+      "rate": "Harga Sat.",
+      "discount": "Disk%",
+      "vat": "PPN%",
+      "wht": "PPh%",
+      "amount": "Jumlah"
+    },
+    "weighing": {
+      "vehicle": "Mobil: {{value}}",
+      "quality": "Kualitas: {{value}}",
+      "scale": "Timbangan: {{gross}} - {{deduction}} = {{net}} kg",
+      "deduction": "Potongan: {{value}}"
+    },
+    "vatPerItem": "PPN (per item)",
+    "vatPct": "PPN {{pct}}%",
+    "whtPerItem": "PPh (per item) (-)",
+    "netTotal": "NET TOTAL",
+    "paymentStatus": "STATUS PEMBAYARAN",
+    "paidCash": "Bayar Tunai/Bank",
+    "paidDeposit": "Bayar Uang Muka",
+    "outstanding": "Sisa Tagihan",
+    "paidInFull": "LUNAS",
+    "depositBalanceCustomer": "Saldo Uang Muka Customer",
+    "depositBalanceSupplier": "Saldo Uang Muka Supplier",
+    "paymentBreakdown": "RINCIAN PEMBAYARAN",
+    "refShort": "(Ref: {{ref}})",
+    "receivedCash": "Diterima cash / bank",
+    "otherAllocation": "Potongan / alokasi lain",
+    "paymentInfo": "INFORMASI PEMBAYARAN"
+  },
+  "deliveryOrder": {
+    "title": "SURAT JALAN",
+    "poNo": "No. PO",
+    "soNo": "No. SO",
+    "signatures": {
+      "recipient": "PENERIMA",
+      "driver": "SUPIR",
+      "security": "VERIFIKASI FISIK (SECURITY)",
+      "sender": "PENGIRIM"
+    }
+  },
+  "goodsReceipt": {
+    "docTitle": "Bukti Penerimaan Barang {{number}}",
+    "title": "BUKTI PENERIMAAN BARANG",
+    "receivedDate": "Tanggal Terima",
+    "from": "Dari (Supplier)",
+    "poRef": "Ref PO: {{number}}",
+    "driver": "Supir (Supplier)",
+    "receivedBy": "Diterima Oleh",
+    "signatures": {
+      "sender": "PENGIRIM (SUPPLIER)",
+      "driver": "SUPIR",
+      "recipient": "PENERIMA (KAMI)"
+    }
+  },
+  "transfer": {
+    "docTitle": "Surat Jalan Antar Gudang {{number}}",
+    "title": "SURAT JALAN ANTAR GUDANG",
+    "from": "GUDANG ASAL",
+    "to": "GUDANG TUJUAN",
+    "recipient": "Penerima di Gudang Tujuan",
+    "signatures": {
+      "sender": "PENGIRIM (GUDANG ASAL)",
+      "driver": "SUPIR",
+      "recipient": "PENERIMA (GUDANG TUJUAN)"
+    }
+  },
+  "salesOrder": {
+    "docTitle": "Sales Order {{number}}",
+    "title": "SALES ORDER",
+    "items": "Item Pesanan",
+    "columns": {
+      "item": "Barang",
+      "sent": "Terkirim",
+      "doNo": "No. Surat Jalan",
+      "invoiceNo": "No. Invoice"
+    },
+    "depositReceived": "Uang Muka Diterima",
+    "depositApplied": "Uang Muka Terpakai",
+    "depositRemaining": "Sisa Uang Muka",
+    "outstanding": "Sisa Tagihan",
+    "deliveries": "Pengiriman / Surat Jalan ({{count}})",
+    "noDeliveries": "Belum ada pengiriman.",
+    "invoices": "Invoice Terkait ({{count}})",
+    "noInvoices": "Belum ada invoice."
+  },
+  "quotation": {
+    "docTitle": "Penawaran Harga {{number}}",
+    "title": "PENAWARAN HARGA",
+    "subtitle": "Bukan Faktur Resmi / Not a Tax Invoice",
+    "validUntilLine": "Berlaku sampai: {{date}}",
+    "number": "No. Penawaran",
+    "validUntil": "Berlaku Sampai",
+    "status": {
+      "Draft": "Draft",
+      "Sent": "Terkirim",
+      "Accepted": "Diterima",
+      "Rejected": "Ditolak",
+      "Expired": "Kadaluarsa",
+      "Cancelled": "Dibatalkan"
+    },
+    "columns": {
+      "no": "No"
+    },
+    "regards": "Hormat Kami,",
+    "approvedBy": "Disetujui Oleh,",
+    "disclaimer": "Penawaran ini berlaku sampai dengan tanggal yang tertera di atas. Harga dapat berubah sewaktu-waktu setelah masa berlaku berakhir. Untuk konfirmasi pemesanan, silakan menghubungi sales kami."
+  },
+  "purchaseOrder": {
+    "docTitle": "Purchase Order {{number}}",
+    "title": "PURCHASE ORDER",
+    "columns": {
+      "no": "No",
+      "item": "Barang",
+      "rate": "Harga (Rp)",
+      "discount": "Disk %",
+      "vat": "PPN %",
+      "amount": "Jumlah (Rp)"
+    },
+    "mark": {
+      "Draft": "DRAFT: BELUM DIPESAN",
+      "PendingApproval": "MENUNGGU PERSETUJUAN",
+      "Cancelled": "DIBATALKAN"
+    },
+    "to": "Kepada (Supplier)",
+    "generalPo": "PO Umum",
+    "anySupplier": "Dapat dipenuhi supplier mana saja",
+    "expectedDelivery": "Tanggal Kirim Diharapkan",
+    "paymentTerms": "Termin Pembayaran",
+    "dueOn": " (jatuh tempo {{date}})",
+    "shipTo": "Kirim ke Gudang",
+    "supplierQuote": "No. Penawaran Supplier",
+    "finalPriceNote": "Harga final mengikuti invoice supplier.",
+    "signatures": {
+      "createdBy": "Dibuat oleh",
+      "approvedBy": "Disetujui oleh",
+      "supplier": "Supplier"
+    },
+    "buildFailed": "Gagal membuat PDF PO."
+  },
+  "stockOpname": {
+    "docTitle": "Laporan Stok Opname {{number}}",
+    "title": "LAPORAN STOK OPNAME",
+    "completed": "Selesai",
+    "createdBy": "Dibuat Oleh",
+    "totalItems": "Total Item",
+    "totalItemsValue": "{{count}} item ({{diff}} selisih)",
+    "surplus": "Surplus",
+    "deficit": "Defisit",
+    "netDiff": "Selisih Bersih",
+    "deficitSuffix": " (defisit)",
+    "noDiff": "Tidak ada selisih stok.",
+    "columns": {
+      "system": "Sistem",
+      "actual": "Aktual",
+      "diff": "Selisih",
+      "diffValue": "Nilai Selisih"
+    },
+    "signatures": {
+      "checkedBy": "Diperiksa oleh",
+      "approvedBy": "Disetujui oleh",
+      "acknowledgedBy": "Mengetahui"
+    }
+  },
+  "production": {
+    "docTitle": "Proses Produksi {{number}}",
+    "title": "PROSES PRODUKSI",
+    "columns": {
+      "name": "NAMA",
+      "unitCost": "HARGA/UNIT",
+      "description": "KETERANGAN",
+      "side": "SISI",
+      "rate": "RATE",
+      "basis": "BASIS"
+    },
+    "basis": {
+      "InputQty": "per kg in",
+      "OutputQty": "per kg out",
+      "Fixed": "flat"
+    },
+    "side": {
+      "InputSide": "Input",
+      "OutputSide": "Output"
+    },
+    "batch": "Batch: {{ref}}",
+    "warehouse": "Gudang Produksi",
+    "reference": "Referensi",
+    "yield": "Yield",
+    "processes": "Proses Dijalankan",
+    "inputs": "Bahan Input ({{count}})",
+    "outputs": "Hasil Output Utama ({{count}})",
+    "byproducts": "Produk Samping ({{count}})",
+    "costs": "Komponen Biaya Produksi ({{count}})",
+    "hppTitle": "HPP LOADED {{mode}}",
+    "hppManual": "(Override Manual)",
+    "hppAuto": "(Auto-Calculated)",
+    "materialCost": "Biaya Material",
+    "inputSideCost": "+ Biaya Sisi Input",
+    "outputSideCost": "+ Biaya Sisi Output",
+    "byproductValue": "− Nilai Produk Samping (NRV)",
+    "hppPerKg": "HPP / Kg main output ({{qty}} kg)",
+    "signatures": {
+      "staff": "STAFF PRODUKSI",
+      "supervisor": "SUPERVISOR",
+      "manager": "MANAJER"
+    }
+  },
+  "warehouseStock": {
+    "title": "LAPORAN STOK PER GUDANG",
+    "positionAsOf": "Posisi per {{date}}",
+    "totalWarehouses": "Total Gudang",
+    "totalItemLines": "Total Baris Item",
+    "negativeItems": "Item Stok Negatif",
+    "grandTotalValue": "Grand Total Nilai",
+    "empty": "Tidak ada stok (semua nol).",
+    "docRef": "Stok per Gudang"
+  },
+  "report": {
+    "trialBalance": {
+      "title": "NERACA SALDO",
+      "docRef": "Neraca Saldo",
+      "accountName": "Nama Akun",
+      "debit": "Debit",
+      "credit": "Kredit",
+      "balanced": "Neraca Saldo Seimbang",
+      "unbalanced": "Neraca Saldo Tidak Seimbang"
+    },
+    "profitLoss": {
+      "title": "LAPORAN LABA RUGI",
+      "docRef": "Laporan Laba Rugi",
+      "revenue": "PENDAPATAN",
+      "totalRevenue": "Total Pendapatan",
+      "expense": "BEBAN",
+      "totalExpense": "Total Beban",
+      "netProfit": "LABA BERSIH"
+    },
+    "balanceSheet": {
+      "title": "NERACA",
+      "docRef": "Neraca",
+      "assets": "ASET",
+      "totalAssets": "Total Aset",
+      "liabilities": "LIABILITAS",
+      "totalLiabilities": "Total Liabilitas",
+      "equity": "EKUITAS",
+      "totalEquity": "Total Ekuitas",
+      "totalLiabilitiesEquity": "Total Liabilitas + Ekuitas",
+      "balanced": "Neraca Seimbang",
+      "unbalanced": "Neraca Tidak Seimbang"
+    },
+    "cashFlow": {
+      "title": "LAPORAN ARUS KAS",
+      "docRef": "Laporan Arus Kas",
+      "operating": "AKTIVITAS OPERASIONAL",
+      "investing": "AKTIVITAS INVESTASI",
+      "financing": "AKTIVITAS PENDANAAN",
+      "operatingSubtotal": "Subtotal Operasional",
+      "investingSubtotal": "Subtotal Investasi",
+      "financingSubtotal": "Subtotal Pendanaan",
+      "netChange": "Perubahan Kas Bersih",
+      "openingBalance": "Saldo Awal Periode",
+      "closingBalance": "SALDO AKHIR KAS & BANK",
+      "noTransactions": "Tidak ada transaksi"
+    },
+    "aging": {
+      "titleCustomer": "AGING PIUTANG",
+      "titleSupplier": "AGING HUTANG",
+      "docRefCustomer": "Aging Piutang",
+      "docRefSupplier": "Aging Hutang",
+      "partner": "Nama Mitra",
+      "current": "Belum JT"
+    }
+  },
+  "daily": {
+    "title": "LAPORAN HARIAN",
+    "docRef": "Laporan Harian",
+    "sales": {
+      "title": "PENJUALAN",
+      "invoiceCount": "Jumlah Invoice",
+      "totalQty": "Total Qty",
+      "revenue": "Total Omzet",
+      "newReceivables": "Piutang Baru",
+      "outstanding": "Sisa Piutang",
+      "empty": "Tidak ada penjualan hari ini"
+    },
+    "purchases": {
+      "title": "PEMBELIAN",
+      "spend": "Total Belanja",
+      "newPayables": "Hutang Baru",
+      "outstanding": "Sisa Hutang",
+      "empty": "Tidak ada pembelian hari ini"
+    },
+    "invoiceNo": "No. Invoice",
+    "production": {
+      "title": "PRODUKSI",
+      "runCount": "Jumlah Run",
+      "totalInput": "Total Input (kg)",
+      "totalOutput": "Total Output (kg)",
+      "avgYield": "Yield Rata-rata",
+      "runNo": "No. Run",
+      "input": "Input",
+      "inputQty": "Qty Input",
+      "output": "Output",
+      "outputQty": "Qty Output",
+      "yield": "Yield",
+      "empty": "Tidak ada produksi hari ini"
+    },
+    "stock": {
+      "title": "KONDISI STOK",
+      "warehouseCount": "Jumlah Gudang",
+      "itemLines": "Total Baris Item",
+      "negativeItems": "Item Stok Negatif",
+      "totalValue": "Total Nilai Stok",
+      "empty": "Tidak ada stok pada tanggal ini"
+    },
+    "finance": {
+      "title": "KEUANGAN",
+      "cashIn": "Penerimaan",
+      "cashOut": "Pengeluaran",
+      "netCashFlow": "Arus Kas Bersih",
+      "manualJournals": "Jurnal Manual",
+      "paymentNo": "No. Pembayaran",
+      "party": "Pihak",
+      "account": "Akun",
+      "type": "Tipe",
+      "in": "Masuk",
+      "out": "Keluar"
+    },
+    "receivables": {
+      "title": "PIUTANG USAHA",
+      "total": "Total Piutang",
+      "empty": "Tidak ada piutang"
+    },
+    "payables": {
+      "title": "HUTANG USAHA",
+      "total": "Total Hutang",
+      "empty": "Tidak ada hutang"
+    },
+    "aging": {
+      "overdue": "Jatuh Tempo",
+      "current": "Lancar",
+      "d1_30": "1-30 hari",
+      "d31_60": "31-60 hari",
+      "d61_90": "61-90 hari",
+      "d90plus": ">90 hari"
+    },
+    "deposits": {
+      "title": "DEPOSIT SUPPLIER",
+      "total": "Total Deposit",
+      "applied": "Sudah Dialokasi",
+      "remaining": "Sisa Belum Dialokasi",
+      "amount": "Jumlah Deposit",
+      "allocated": "Dialokasi",
+      "empty": "Tidak ada deposit supplier aktif"
+    }
+  },
+  "inspection": {
+    "docTitle": "Inspeksi {{vehicle}} {{date}}",
+    "docRef": "Inspeksi {{vehicle}}",
+    "title": "HASIL INSPEKSI KENDARAAN",
+    "result": {
+      "BAIK": "Baik",
+      "PERLU_PERHATIAN": "Perlu Perhatian",
+      "TIDAK_LAYAK": "Tidak Layak"
+    },
+    "state": {
+      "OK": "OK",
+      "PERLU_PERHATIAN": "Perlu Perhatian",
+      "RUSAK": "Rusak"
+    },
+    "fuel": {
+      "KOSONG": "Kosong (E)",
+      "SEPEREMPAT": "Seperempat (1/4)",
+      "SETENGAH": "Setengah (1/2)",
+      "TIGA_PEREMPAT": "Tiga Perempat (3/4)",
+      "PENUH": "Penuh (F)"
+    },
+    "checkpoints": {
+      "ban": "Ban",
+      "rem": "Rem",
+      "oli": "Oli",
+      "lampu": "Lampu",
+      "klakson": "Klakson",
+      "wiper": "Wiper",
+      "kaca_spion": "Kaca Spion",
+      "sabuk_pengaman": "Sabuk Pengaman",
+      "ac": "AC",
+      "aki": "Aki",
+      "radiator": "Radiator",
+      "kelengkapan_p3k_apar": "Kelengkapan P3K/APAR",
+      "oli_mesin": "Oli Mesin",
+      "oli_rem": "Oli Rem",
+      "air_radiator": "Air Radiator / Coolant",
+      "air_aki": "Air Aki",
+      "air_wiper": "Air Wiper",
+      "lampu_depan": "Lampu Depan",
+      "lampu_belakang": "Lampu Belakang",
+      "lampu_sein": "Lampu Sein",
+      "lampu_rem": "Lampu Rem",
+      "lampu_mundur": "Lampu Mundur",
+      "rem_depan": "Rem Depan",
+      "rem_belakang": "Rem Belakang",
+      "rem_tangan": "Rem Tangan",
+      "kemudi_suspensi": "Kemudi / Suspensi",
+      "ban_depan": "Ban Depan",
+      "ban_belakang": "Ban Belakang",
+      "ban_serep": "Ban Serep",
+      "tekanan_ban": "Tekanan Ban",
+      "velg": "Velg",
+      "p3k": "P3K",
+      "apar": "APAR",
+      "segitiga_pengaman": "Segitiga Pengaman",
+      "dongkrak": "Dongkrak",
+      "kunci_roda": "Kunci Roda",
+      "kaca_depan": "Kaca Depan",
+      "kaca_belakang": "Kaca Belakang",
+      "body_cat": "Body / Cat",
+      "dashboard_indikator": "Dashboard / Indikator"
+    },
+    "legacyChecklist": "Checklist (format lama)",
+    "overallResult": "HASIL KESELURUHAN",
+    "dateLine": "Tanggal {{date}}",
+    "odometer": "ODOMETER",
+    "atInspection": "Saat inspeksi",
+    "fuelLevel": "LEVEL BBM",
+    "tankGauge": "Indikator tangki",
+    "nextInspection": "INSPEKSI BERIKUTNYA",
+    "dueSchedule": "Jadwal jatuh tempo",
+    "identity": "Identitas Kendaraan",
+    "fields": {
+      "assetCode": "Kode Aset",
+      "vehicleName": "Nama Kendaraan",
+      "plate": "Nomor Plat",
+      "brandType": "Merek / Tipe",
+      "category": "Kategori",
+      "inspector": "Inspektor",
+      "inspectionDate": "Tanggal Inspeksi",
+      "nextInspection": "Inspeksi Berikutnya"
+    },
+    "checklist": "Checklist Pemeriksaan",
+    "checkItem": "ITEM PEMERIKSAAN",
+    "statusUpper": "STATUS",
+    "noChecklist": "Checklist tidak tersedia untuk inspeksi ini.",
+    "noNotes": "Tidak ada catatan tambahan.",
+    "photos": "Foto Bukti ({{count}})"
+  },
+  "vehicle": {
+    "docTitle": "Report Kendaraan {{code}}",
+    "title": "REPORT KENDARAAN",
+    "periodLine": "Periode: {{from}} s.d. {{to}}",
+    "category": {
+      "service": "Service & Perawatan",
+      "fuel": "Bahan Bakar",
+      "tax": "Pajak Kendaraan",
+      "insurance": "Asuransi",
+      "incident": "Insiden & Perbaikan"
+    },
+    "enum": {
+      "ACTIVE": "Aktif",
+      "IN_REPAIR": "Dalam Perbaikan",
+      "RETIRED": "Pensiun",
+      "LOST": "Hilang",
+      "GOOD": "Baik",
+      "FAIR": "Cukup",
+      "POOR": "Kurang",
+      "BROKEN": "Rusak",
+      "PERLU_PERHATIAN": "Perlu Perhatian",
+      "BAIK": "Baik",
+      "TIDAK_LAYAK": "Tidak Layak",
+      "KIR": "KIR",
+      "TLO": "TLO",
+      "STNK_TAHUNAN": "STNK Tahunan",
+      "STNK_5_TAHUNAN": "STNK 5 Tahunan",
+      "ALL_RISK": "All Risk",
+      "KECELAKAAN_DIRI": "Kecelakaan Diri",
+      "DALAM_PROSES": "Dalam Proses"
+    },
+    "state": {
+      "EXPIRED": "Lewat Tempo",
+      "EXPIRING": "Segera",
+      "OK": "Aman"
+    },
+    "totalCost": "TOTAL BIAYA (TCO)",
+    "perMonth": "{{amount}} / bulan",
+    "costPerKm": "BIAYA PER KM",
+    "kmRecorded": "{{km}} km tercatat",
+    "notEnoughOdometer": "Data odometer belum cukup",
+    "fuelConsumption": "KONSUMSI BBM",
+    "liters": "{{value}} liter",
+    "complianceIssues": "ISU KEPATUHAN",
+    "needsFollowUp": "Perlu tindak lanjut",
+    "allDocsOk": "Semua dokumen aman",
+    "identity": "Identitas Kendaraan",
+    "fields": {
+      "assetCode": "Kode Aset",
+      "vehicleName": "Nama Kendaraan",
+      "plate": "Nomor Plat",
+      "brandType": "Merek / Tipe",
+      "year": "Tahun Produksi",
+      "category": "Kategori",
+      "status": "Status",
+      "condition": "Kondisi",
+      "lastOdometer": "Odometer Terakhir"
+    },
+    "costBreakdown": "Rincian Biaya Periode",
+    "columns": {
+      "category": "KATEGORI",
+      "transactions": "TRANSAKSI",
+      "share": "PORSI",
+      "amount": "JUMLAH",
+      "month": "BULAN",
+      "service": "SERVICE",
+      "fuel": "BBM",
+      "tax": "PAJAK",
+      "insurance": "ASURANSI",
+      "incident": "INSIDEN",
+      "total": "TOTAL",
+      "document": "DOKUMEN",
+      "description": "KETERANGAN",
+      "dueDate": "JATUH TEMPO",
+      "daysLeft": "SISA HARI",
+      "status": "STATUS",
+      "value": "NILAI",
+      "date": "TANGGAL",
+      "details": "DESKRIPSI",
+      "severity": "TINGKAT",
+      "cost": "BIAYA",
+      "position": "POSISI",
+      "brandSerial": "MEREK / SERIAL",
+      "installed": "DIPASANG",
+      "usage": "PEMAKAIAN"
+    },
+    "monthlyTrend": "Trend Biaya Bulanan",
+    "noCosts": "Belum ada biaya tercatat pada periode ini.",
+    "compliance": "Kepatuhan Dokumen",
+    "noDocs": "Belum ada dokumen aktif.",
+    "tax": "Pajak",
+    "insurance": "Asuransi",
+    "taxYear": "{{type}} · TA {{year}}",
+    "openIncidents": "Insiden Belum Selesai",
+    "physicalCondition": "Kondisi Fisik",
+    "lastInspection": "Inspeksi terakhir: {{value}}",
+    "lastInspectionValue": "{{date}}, hasil {{result}}",
+    "atKm": " pada {{km}} km",
+    "noInspection": "belum ada catatan.",
+    "lastOil": "Ganti oli terakhir: {{value}}",
+    "lastOilValue": "{{date}} pada {{km}} km",
+    "nextOil": ". Jadwal berikutnya {{km}} km",
+    "remainingKm": ", sisa {{km}} km",
+    "oilDue": ". Sudah jatuh tempo.",
+    "noOilLog": "belum ada log.",
+    "activeTires": "Ban Terpasang ({{count}})"
+  },
+  "export": {
+    "failed": "Gagal mengekspor data. Coba lagi."
+  },
+  "merge": {
+    "allFailed": "Semua lampiran gagal di-merge:\n{{details}}",
+    "unknownError": "unknown"
+  },
+  "company": {
+    "fallbackName": "Perusahaan"
+  }
+}

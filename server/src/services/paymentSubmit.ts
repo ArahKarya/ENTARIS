@@ -157,7 +157,7 @@ export async function submitPaymentInTx(
   // CustomerDeposit
   if (body.paymentType === 'CustomerDeposit') {
     if (party.partyType !== 'Customer' && party.partyType !== 'Both') {
-      throw new BusinessError('Uang muka pelanggan hanya dapat dibuat untuk Customer.');
+      throw new BusinessError('Uang muka customer hanya dapat dibuat untuk Customer.');
     }
     const depositAccount = await systemAccounts.getAccount('CUSTOMER_DEPOSIT');
     const isOpening = body.isOpeningBalance === true;
@@ -211,10 +211,10 @@ export async function submitPaymentInTx(
   if (body.paymentType === 'VendorRefund' || body.paymentType === 'CustomerRefund') {
     const isVendorRefund = body.paymentType === 'VendorRefund';
     if (isVendorRefund && party.partyType !== 'Supplier' && party.partyType !== 'Both') {
-      throw new BusinessError('Refund vendor hanya berlaku untuk Supplier.');
+      throw new BusinessError('Refund supplier hanya berlaku untuk Supplier.');
     }
     if (!isVendorRefund && party.partyType !== 'Customer' && party.partyType !== 'Both') {
-      throw new BusinessError('Refund pelanggan hanya berlaku untuk Customer.');
+      throw new BusinessError('Refund customer hanya berlaku untuk Customer.');
     }
 
     const liabAssetAccount = isVendorRefund

@@ -133,6 +133,6 @@ d('submitSalesInvoiceInTx — service-only line (no inventory)', () => {
           userId,
         );
       }),
-    ).rejects.toThrow(/pelanggan tidak ditemukan/i);
+    ).rejects.toThrow(/customer tidak ditemukan/i);
   });
 });

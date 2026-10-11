@@ -45,10 +45,10 @@ export async function submitDeliveryOrderInTx(
   const fiscalYear = await getOpenFiscalYear(tx, parsedDate);
 
   const party = await tx.party.findUnique({ where: { id: body.partyId } });
-  if (!party) throw new BusinessError('Pelanggan tidak ditemukan.');
-  if (!party.isActive) throw new BusinessError(`Pelanggan '${party.name}' tidak aktif.`);
+  if (!party) throw new BusinessError('Customer tidak ditemukan.');
+  if (!party.isActive) throw new BusinessError(`Customer '${party.name}' tidak aktif.`);
   if (party.partyType !== 'Customer' && party.partyType !== 'Both') {
-    throw new BusinessError(`Party '${party.name}' bukan pelanggan.`);
+    throw new BusinessError(`Party '${party.name}' bukan customer.`);
   }
 
   const doNumber = await generateDocumentNumber(tx, 'DO', parsedDate, fiscalYear.id);

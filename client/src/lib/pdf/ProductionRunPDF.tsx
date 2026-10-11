@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { CARBON as C, F, FOOTER_SPACE, NCR_PAGE } from './theme';
-import { pdfDate, pdfFixed, pdfNum, pdfRp, pdfRpAuto } from './pdfFormat';
+import { pdfDate, pdfFixed, pdfNum, pdfRp, pdfRpAuto, pdfT, type PdfT } from './pdfFormat';
 import { PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfSignatureBlock, PdfTable, type PdfColumn } from './kit';
 import { NcrNotes } from './ncrParts';
 
@@ -20,21 +20,21 @@ const S = StyleSheet.create({
 const fmtNum = (n: number) => pdfNum(n, 3);
 const fmtRp = (n: number, dec = 0) => (dec > 0 ? pdfRpAuto(n) : pdfRp(n));
 
-const ITEM_COLS: PdfColumn[] = [
-  { key: 'no', label: 'NO', width: 0.45, align: 'center' },
-  { key: 'code', label: 'KODE', width: 1.5 },
-  { key: 'name', label: 'NAMA', width: 3.2 },
-  { key: 'qty', label: 'QTY', width: 1.2, align: 'right' },
-  { key: 'unit', label: 'SAT', width: 0.7, align: 'center' },
-  { key: 'cost', label: 'HARGA/UNIT', width: 1.7, align: 'right' },
-  { key: 'total', label: 'TOTAL', width: 1.9, align: 'right' },
+const itemCols = (t: PdfT): PdfColumn[] => [
+  { key: 'no', label: t('ncr.columns.no'), width: 0.45, align: 'center' },
+  { key: 'code', label: t('ncr.columns.code'), width: 1.5 },
+  { key: 'name', label: t('production.columns.name'), width: 3.2 },
+  { key: 'qty', label: t('ncr.columns.qty'), width: 1.2, align: 'right' },
+  { key: 'unit', label: t('ncr.columns.unit'), width: 0.7, align: 'center' },
+  { key: 'cost', label: t('production.columns.unitCost'), width: 1.7, align: 'right' },
+  { key: 'total', label: t('common.totalUpper'), width: 1.9, align: 'right' },
 ];
-const COST_COLS: PdfColumn[] = [
-  { key: 'desc', label: 'KETERANGAN', width: 3.2 },
-  { key: 'side', label: 'SISI', width: 0.9 },
-  { key: 'rate', label: 'RATE', width: 1.6, align: 'right' },
-  { key: 'basis', label: 'BASIS', width: 1.1 },
-  { key: 'total', label: 'TOTAL', width: 1.9, align: 'right' },
+const costCols = (t: PdfT): PdfColumn[] => [
+  { key: 'desc', label: t('production.columns.description'), width: 3.2 },
+  { key: 'side', label: t('production.columns.side'), width: 0.9 },
+  { key: 'rate', label: t('production.columns.rate'), width: 1.6, align: 'right' },
+  { key: 'basis', label: t('production.columns.basis'), width: 1.1 },
+  { key: 'total', label: t('common.totalUpper'), width: 1.9, align: 'right' },
 ];
 
 export interface ProductionRunPDFItem {
@@ -82,27 +82,26 @@ export interface ProductionRunPDFProps {
   createdByName?: string | null;
 }
 
-const basisShort = (b: ProductionRunPDFCost['basis']) =>
-  b === 'InputQty' ? 'per kg in' : b === 'OutputQty' ? 'per kg out' : 'flat';
 
 const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
   runNumber, date, warehouseName, referenceNumber, notes, yieldPct, processes,
   inputs, outputs, byproducts, costs, totals, company, createdByName,
 }) => {
+  const t = pdfT();
   const itemTable = (rows: ProductionRunPDFItem[]) => (
     <PdfTable
       tone="mono"
       zebra={false}
       fontSize={10}
       repeatHeader={false}
-      columns={ITEM_COLS}
+      columns={itemCols(t)}
       rows={rows.map((it, i) => ({
         no: String(i + 1),
         code: it.code || '—',
         name: (
           <View>
             <Text style={{ fontSize: 10 }}>{it.name}</Text>
-            {it.batchRef ? <Text style={{ fontSize: 8.5, color: C.grey }}>Batch: {it.batchRef}</Text> : null}
+            {it.batchRef ? <Text style={{ fontSize: 8.5, color: C.grey }}>{t('production.batch', { ref: it.batchRef })}</Text> : null}
           </View>
         ),
         qty: <Text style={{ fontSize: 10, fontFamily: F.bold, textAlign: 'right' }}>{fmtNum(it.qty)}</Text>,
@@ -116,47 +115,47 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
   );
 
   return (
-    <Document title={`Proses Produksi ${runNumber}`} author={company.name}>
+    <Document title={t('production.docTitle', { number: runNumber })} author={company.name}>
       <Page size="A4" style={{ ...NCR_PAGE, paddingBottom: FOOTER_SPACE }} wrap>
-        <PdfHeader company={company} title="PROSES PRODUKSI" number={runNumber} tone="mono" pageMeta />
+        <PdfHeader company={company} title={t('production.title')} number={runNumber} tone="mono" pageMeta />
 
         <PdfMetaRow gap={16}>
           <View style={{ flex: 1 }}>
-            <PdfMetaField tone="mono" label="Tanggal" value={pdfDate(date)} bold />
-            <PdfMetaField tone="mono" label="Gudang Produksi" value={warehouseName} bold />
+            <PdfMetaField tone="mono" label={t('common.date')} value={pdfDate(date)} bold />
+            <PdfMetaField tone="mono" label={t('production.warehouse')} value={warehouseName} bold />
           </View>
           <View style={{ flex: 1 }}>
-            <PdfMetaField tone="mono" label="Referensi" value={referenceNumber} bold />
-            <PdfMetaField tone="mono" label="Yield" value={yieldPct != null ? `${pdfFixed(yieldPct, 1)}%` : null} bold />
+            <PdfMetaField tone="mono" label={t('production.reference')} value={referenceNumber} bold />
+            <PdfMetaField tone="mono" label={t('production.yield')} value={yieldPct != null ? `${pdfFixed(yieldPct, 1)}%` : null} bold />
           </View>
         </PdfMetaRow>
 
         {processes && processes.length > 0 && (
-          <PdfMetaField tone="mono" label="Proses Dijalankan" value={processes.join('  >  ')} bold />
+          <PdfMetaField tone="mono" label={t('production.processes')} value={processes.join('  >  ')} bold />
         )}
 
-        <Text style={S.sectionTitle} minPresenceAhead={60}>Bahan Input ({inputs.length})</Text>
+        <Text style={S.sectionTitle} minPresenceAhead={60}>{t('production.inputs', { count: inputs.length })}</Text>
         {itemTable(inputs)}
 
-        <Text style={S.sectionTitle} minPresenceAhead={60}>Hasil Output Utama ({outputs.length})</Text>
+        <Text style={S.sectionTitle} minPresenceAhead={60}>{t('production.outputs', { count: outputs.length })}</Text>
         {itemTable(outputs)}
 
         {byproducts.length > 0 && (
           <>
-            <Text style={S.sectionTitle} minPresenceAhead={60}>Produk Samping ({byproducts.length})</Text>
+            <Text style={S.sectionTitle} minPresenceAhead={60}>{t('production.byproducts', { count: byproducts.length })}</Text>
             {itemTable(byproducts)}
           </>
         )}
 
         {costs.length > 0 && (
           <>
-            <Text style={S.sectionTitle} minPresenceAhead={60}>Komponen Biaya Produksi ({costs.length})</Text>
+            <Text style={S.sectionTitle} minPresenceAhead={60}>{t('production.costs', { count: costs.length })}</Text>
             <PdfTable
               tone="mono"
               zebra={false}
               fontSize={10}
               repeatHeader={false}
-              columns={COST_COLS}
+              columns={costCols(t)}
               rows={costs.map((c) => ({
                 desc: (
                   <View>
@@ -164,9 +163,9 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
                     {c.accountLabel ? <Text style={{ fontSize: 8.5, color: C.grey }}>{c.accountLabel}</Text> : null}
                   </View>
                 ),
-                side: c.costSide === 'InputSide' ? 'Input' : 'Output',
+                side: t(`production.side.${c.costSide}`),
                 rate: fmtRp(c.rate, 2),
-                basis: basisShort(c.basis),
+                basis: t(`production.basis.${c.basis}`),
                 total: <Text style={{ fontSize: 10, fontFamily: F.bold, textAlign: 'right' }}>{fmtRp(c.totalAmount, 0)}</Text>,
               }))}
             />
@@ -176,14 +175,14 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
         {totals.computedHpp != null && (
           <View style={S.hppBox} wrap={false}>
             <Text style={S.hppHeader}>
-              HPP LOADED {totals.hppManualOverride ? '(Override Manual)' : '(Auto-Calculated)'}
+              {t('production.hppTitle', { mode: totals.hppManualOverride ? t('production.hppManual') : t('production.hppAuto') })}
             </Text>
-            <View style={S.hppRow}><Text style={S.hppLabel}>Biaya Material</Text><Text style={S.hppVal}>{fmtRp(totals.totalMaterialCost, 0)}</Text></View>
-            <View style={S.hppRow}><Text style={S.hppLabel}>+ Biaya Sisi Input</Text><Text style={S.hppVal}>{fmtRp(totals.totalCostInputSide, 0)}</Text></View>
-            <View style={S.hppRow}><Text style={S.hppLabel}>+ Biaya Sisi Output</Text><Text style={S.hppVal}>{fmtRp(totals.totalCostOutputSide, 0)}</Text></View>
-            <View style={S.hppRow}><Text style={S.hppLabel}>− Nilai Produk Samping (NRV)</Text><Text style={S.hppVal}>{fmtRp(totals.totalByproductValue, 0)}</Text></View>
+            <View style={S.hppRow}><Text style={S.hppLabel}>{t('production.materialCost')}</Text><Text style={S.hppVal}>{fmtRp(totals.totalMaterialCost, 0)}</Text></View>
+            <View style={S.hppRow}><Text style={S.hppLabel}>{t('production.inputSideCost')}</Text><Text style={S.hppVal}>{fmtRp(totals.totalCostInputSide, 0)}</Text></View>
+            <View style={S.hppRow}><Text style={S.hppLabel}>{t('production.outputSideCost')}</Text><Text style={S.hppVal}>{fmtRp(totals.totalCostOutputSide, 0)}</Text></View>
+            <View style={S.hppRow}><Text style={S.hppLabel}>{t('production.byproductValue')}</Text><Text style={S.hppVal}>{fmtRp(totals.totalByproductValue, 0)}</Text></View>
             <View style={S.hppFinalRow}>
-              <Text style={S.hppFinalLabel}>HPP / Kg main output ({fmtNum(totals.mainOutputQty)} kg)</Text>
+              <Text style={S.hppFinalLabel}>{t('production.hppPerKg', { qty: fmtNum(totals.mainOutputQty) })}</Text>
               <Text style={S.hppFinalVal}>{fmtRp(totals.computedHpp, 2)}</Text>
             </View>
           </View>
@@ -193,7 +192,11 @@ const ProductionRunPDF: React.FC<ProductionRunPDFProps> = ({
 
         <PdfSignatureBlock
           tone="mono"
-          signatures={[{ label: 'STAFF PRODUKSI', name: createdByName }, { label: 'SUPERVISOR' }, { label: 'MANAJER' }]}
+          signatures={[
+            { label: t('production.signatures.staff'), name: createdByName },
+            { label: t('production.signatures.supervisor') },
+            { label: t('production.signatures.manager') },
+          ]}
         />
 
         <PdfFooter tone="mono" company={company.name} docRef={runNumber} />

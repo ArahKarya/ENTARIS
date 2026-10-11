@@ -72,10 +72,10 @@ async function validateAndResolveItems(tx: Tx, items: TdnItemInput[]) {
 
 async function validateParty(tx: Tx, partyId: string) {
   const party = await tx.party.findUnique({ where: { id: partyId } });
-  if (!party) throw new BusinessError('Pelanggan tidak ditemukan.');
-  if (!party.isActive) throw new BusinessError(`Pelanggan '${party.name}' tidak aktif.`);
+  if (!party) throw new BusinessError('Customer tidak ditemukan.');
+  if (!party.isActive) throw new BusinessError(`Customer '${party.name}' tidak aktif.`);
   if (party.partyType !== 'Customer' && party.partyType !== 'Both') {
-    throw new BusinessError(`Party '${party.name}' bukan pelanggan.`);
+    throw new BusinessError(`Party '${party.name}' bukan customer.`);
   }
 }
 
@@ -149,7 +149,7 @@ export async function linkTemporaryNotesToDoInTx(tx: Tx, doId: string, partyId: 
     SELECT id, number, status, party_id FROM temporary_delivery_notes WHERE id = ANY(${uniq}::text[]) FOR UPDATE`;
   if (rows.length !== uniq.length) throw new BusinessError('Ada surat jalan sementara yang tidak ditemukan.');
   for (const r of rows) {
-    if (r.party_id !== partyId) throw new BusinessError(`Surat jalan sementara ${r.number} milik pelanggan lain.`);
+    if (r.party_id !== partyId) throw new BusinessError(`Surat jalan sementara ${r.number} milik customer lain.`);
     if (r.status !== 'Open') throw new BusinessError(`Surat jalan sementara ${r.number} sudah tidak berstatus Terbuka.`);
   }
   await tx.$executeRaw`

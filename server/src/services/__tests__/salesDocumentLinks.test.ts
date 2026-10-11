@@ -27,7 +27,7 @@ describe('assertQuotationLinkable', () => {
     await expect(assertQuotationLinkable(quotationTx(null), 'q1', 'c1')).rejects.toThrow('tidak ditemukan');
     await expect(
       assertQuotationLinkable(quotationTx({ quotationNumber: 'QTN-1', partyId: 'c2', status: 'Accepted' }), 'q1', 'c1'),
-    ).rejects.toThrow('pelanggan lain');
+    ).rejects.toThrow('customer lain');
     await expect(
       assertQuotationLinkable(quotationTx({ quotationNumber: 'QTN-1', partyId: 'c1', status: 'Sent' }), 'q1', 'c1'),
     ).rejects.toThrow('belum diterima');
@@ -45,7 +45,7 @@ describe('resolveSalesOrderQuotationId', () => {
   });
   it('validates a new link and a customer change', async () => {
     await expect(resolveSalesOrderQuotationId(tx, 'q2', 'q1', 'c1')).rejects.toThrow('belum diterima');
-    await expect(resolveSalesOrderQuotationId(tx, 'q1', 'q1', 'c9')).rejects.toThrow('pelanggan lain');
+    await expect(resolveSalesOrderQuotationId(tx, 'q1', 'q1', 'c9')).rejects.toThrow('customer lain');
   });
 });
 
@@ -53,7 +53,7 @@ describe('assertSalesOrderLinkable', () => {
   it('rejects other-customer and cancelled SOs, unless the link is kept', async () => {
     await expect(assertSalesOrderLinkable(soTx({ soNumber: 'PSN-1', partyId: 'c1', status: 'Submitted' }), 's1', 'c1')).resolves.toBeUndefined();
     await expect(assertSalesOrderLinkable(soTx(null), 's1', 'c1')).rejects.toThrow('tidak ditemukan');
-    await expect(assertSalesOrderLinkable(soTx({ soNumber: 'PSN-1', partyId: 'c2', status: 'Submitted' }), 's1', 'c1')).rejects.toThrow('pelanggan lain');
+    await expect(assertSalesOrderLinkable(soTx({ soNumber: 'PSN-1', partyId: 'c2', status: 'Submitted' }), 's1', 'c1')).rejects.toThrow('customer lain');
     const cancelled = soTx({ soNumber: 'PSN-1', partyId: 'c1', status: 'Cancelled' });
     await expect(assertSalesOrderLinkable(cancelled, 's1', 'c1')).rejects.toThrow('dibatalkan');
     await expect(assertSalesOrderLinkable(cancelled, 's1', 'c1', { keptLink: true })).resolves.toBeUndefined();
@@ -98,7 +98,7 @@ describe('temporary delivery note sales order link', () => {
 
   it('rejects an SO of another customer on create', async () => {
     const { tx } = tdnTx({ soNumber: 'PSN-9', partyId: 'c2', status: 'Submitted' });
-    await expect(createTemporaryNoteInTx(tx, body, 'u1')).rejects.toThrow('pelanggan lain');
+    await expect(createTemporaryNoteInTx(tx, body, 'u1')).rejects.toThrow('customer lain');
   });
 
   it('keeps a link to an SO cancelled later when editing', async () => {

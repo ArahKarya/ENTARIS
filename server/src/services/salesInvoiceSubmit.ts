@@ -63,8 +63,8 @@ export async function submitSalesInvoiceInTx(
   const fiscalYear = await getOpenFiscalYear(tx, parsedDate);
 
   const party = await tx.party.findUnique({ where: { id: body.partyId } });
-  if (!party) throw new BusinessError('Data pelanggan tidak ditemukan.');
-  if (!party.isActive) throw new BusinessError('Pelanggan sudah tidak aktif.');
+  if (!party) throw new BusinessError('Data customer tidak ditemukan.');
+  if (!party.isActive) throw new BusinessError('Customer sudah tidak aktif.');
 
   const arAccount = await systemAccounts.getAccount('AR');
   const salesAccount = await systemAccounts.getAccount('SALES');

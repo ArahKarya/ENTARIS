@@ -829,7 +829,7 @@ router.patch('/assets/:id/taxes/:tid', async (req, res) => {
           ? 'sudah punya faktur pembelian'
           : 'sudah masuk antrian Tagihan GA (IN_PROCESS)';
       return res.status(409).json({
-        error: `Status tidak bisa diubah ke ${input.status}: data pajak ini ${alasan}. Batalkan dulu jurnal/faktur terkait di menu Tagihan GA, baru status bisa diubah.`,
+        error: `Status tidak bisa diubah ke ${input.status}: data pajak ini ${alasan}. Batalkan dulu jurnal/invoice terkait di menu Tagihan GA, baru status bisa diubah.`,
       });
     }
 

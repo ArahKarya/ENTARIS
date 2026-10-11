@@ -10,9 +10,9 @@ export async function assertQuotationLinkable(tx: Tx, quotationId: string, party
     select: { quotationNumber: true, partyId: true, status: true },
   });
   if (!q) throw new BusinessError('Penawaran tidak ditemukan.');
-  if (q.partyId !== partyId) throw new BusinessError(`Penawaran ${q.quotationNumber} milik pelanggan lain.`);
+  if (q.partyId !== partyId) throw new BusinessError(`Penawaran ${q.quotationNumber} milik customer lain.`);
   if (q.status !== 'Accepted') {
-    throw new BusinessError(`Penawaran ${q.quotationNumber} belum diterima pelanggan (status ${q.status}).`);
+    throw new BusinessError(`Penawaran ${q.quotationNumber} belum diterima customer (status ${q.status}).`);
   }
 }
 
@@ -34,7 +34,7 @@ export async function resolveSalesOrderQuotationId(
   }
   // Same link kept: only the customer must still match.
   const q = await tx.quotation.findUnique({ where: { id: requested }, select: { quotationNumber: true, partyId: true } });
-  if (q && q.partyId !== partyId) throw new BusinessError(`Penawaran ${q.quotationNumber} milik pelanggan lain.`);
+  if (q && q.partyId !== partyId) throw new BusinessError(`Penawaran ${q.quotationNumber} milik customer lain.`);
   return requested;
 }
 
@@ -50,7 +50,7 @@ export async function assertSalesOrderLinkable(
     select: { soNumber: true, partyId: true, status: true },
   });
   if (!so) throw new BusinessError('Pesanan penjualan tidak ditemukan.');
-  if (so.partyId !== partyId) throw new BusinessError(`Pesanan ${so.soNumber} milik pelanggan lain.`);
+  if (so.partyId !== partyId) throw new BusinessError(`Pesanan ${so.soNumber} milik customer lain.`);
   // A link kept on edit is not blocked by later SO status changes.
   if (!keptLink && so.status === 'Cancelled') throw new BusinessError(`Pesanan ${so.soNumber} sudah dibatalkan.`);
 }

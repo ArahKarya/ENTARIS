@@ -174,7 +174,7 @@ router.get('/top-customers', async (req, res) => {
     return res.json(data);
   } catch (error) {
     logger.error({ error }, 'GET /dashboard/top-customers error');
-    return res.status(500).json({ error: 'Gagal mengambil data pelanggan teratas.' });
+    return res.status(500).json({ error: 'Gagal mengambil data customer teratas.' });
   }
 });
 
@@ -259,7 +259,7 @@ router.get('/upcoming-due', async (_req, res) => {
     return res.json(data);
   } catch (error) {
     logger.error({ error }, 'GET /dashboard/upcoming-due error');
-    return res.status(500).json({ error: 'Gagal mengambil faktur akan jatuh tempo.' });
+    return res.status(500).json({ error: 'Gagal mengambil invoice akan jatuh tempo.' });
   }
 });
 
@@ -674,7 +674,7 @@ router.get('/top-vendors', async (_req, res) => {
     return res.json(data);
   } catch (error) {
     logger.error({ error }, 'GET /dashboard/top-vendors error');
-    return res.status(500).json({ error: 'Gagal mengambil data vendor teratas.' });
+    return res.status(500).json({ error: 'Gagal mengambil data supplier teratas.' });
   }
 });
 

@@ -1,1 +1,666 @@
-{}
+{
+  "common": {
+    "phone": "Phone: {{phone}}",
+    "taxId": "Tax ID (NPWP): {{taxId}}",
+    "date": "Date",
+    "dateLine": "Date: {{date}}",
+    "printed": "Printed {{date}}",
+    "printedLine": "Printed: {{date}}",
+    "printedBy": "{{date}} by {{name}}",
+    "pageOf": "Page {{page}} of {{total}}",
+    "printedPageMeta": "Printed {{date}}  •  Page {{page}} of {{total}}",
+    "confidential": "Confidential document, for authorized parties only.",
+    "asOf": "As of {{date}}",
+    "notes": "Notes",
+    "notesUpper": "NOTES",
+    "terms": "Terms & Conditions",
+    "status": "Status",
+    "total": "Total",
+    "totalUpper": "TOTAL",
+    "subtotal": "Subtotal",
+    "subtotalOf": "Subtotal {{name}}",
+    "grandTotal": "Grand Total",
+    "grandTotalUpper": "GRAND TOTAL",
+    "qty": "Qty",
+    "item": "Item",
+    "code": "Code",
+    "itemName": "Item Name",
+    "unitShort": "Unit",
+    "unit": "Unit",
+    "stock": "Stock",
+    "avgCost": "Avg Cost",
+    "value": "Value",
+    "amount": "Amount",
+    "price": "Price",
+    "vat": "VAT",
+    "wht": "WHT",
+    "deduction": "Deduction",
+    "otherCosts": "Other Costs",
+    "otherCostsLower": "Other costs",
+    "discount": "Discount",
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "driver": "Driver",
+    "vehicleNo": "Vehicle No.",
+    "to": "To",
+    "recipient": "Recipient",
+    "approvedBy": "Approved by",
+    "preparedBy": "Prepared by",
+    "receivedBy": "Received by",
+    "createdBy": "Created by",
+    "remaining": "Remaining",
+    "defaultMark": "(default)",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "cashTerm": "Cash",
+    "dayTerm_one": "{{count}} day",
+    "dayTerm_other": "{{count}} days"
+  },
+  "status": {
+    "Draft": "Draft",
+    "Submitted": "Submitted",
+    "PartiallyDelivered": "Partially Delivered",
+    "FullyDelivered": "Completed",
+    "Cancelled": "Cancelled",
+    "Paid": "Paid",
+    "PartiallyPaid": "Partial",
+    "Overdue": "Overdue"
+  },
+  "ncr": {
+    "columns": {
+      "no": "NO",
+      "code": "CODE",
+      "name": "ITEM NAME",
+      "qty": "QTY",
+      "unit": "UNIT",
+      "description": "DESCRIPTION"
+    }
+  },
+  "invoice": {
+    "titleSales": "SALES INVOICE",
+    "titlePurchase": "PURCHASE INVOICE",
+    "partySales": "Bill to",
+    "partyPurchase": "From supplier",
+    "signatures": {
+      "prepared": "Prepared by",
+      "approved": "Approved by",
+      "received": "Received by"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Submitted": "Issued",
+      "PartiallyPaid": "Partially Paid",
+      "Paid": "Paid",
+      "Overdue": "Overdue",
+      "Cancelled": "Cancelled"
+    },
+    "infoTitle": "Invoice Details",
+    "dueDate": "Due Date",
+    "terms": "Terms",
+    "customerRef": "PO / Quotation Ref. No.",
+    "columns": {
+      "description": "Goods / Service",
+      "qty": "Qty",
+      "unit": "Unit",
+      "rate": "Unit Price",
+      "discount": "Disc%",
+      "vat": "VAT%",
+      "wht": "WHT%",
+      "amount": "Amount"
+    },
+    "weighing": {
+      "vehicle": "Vehicle: {{value}}",
+      "quality": "Quality: {{value}}",
+      "scale": "Weighing: {{gross}} - {{deduction}} = {{net}} kg",
+      "deduction": "Deduction: {{value}}"
+    },
+    "vatPerItem": "VAT (per item)",
+    "vatPct": "VAT {{pct}}%",
+    "whtPerItem": "WHT (per item) (-)",
+    "netTotal": "NET TOTAL",
+    "paymentStatus": "PAYMENT STATUS",
+    "paidCash": "Paid by cash/bank",
+    "paidDeposit": "Paid from deposit",
+    "outstanding": "Amount Due",
+    "paidInFull": "PAID",
+    "depositBalanceCustomer": "Customer Deposit Balance",
+    "depositBalanceSupplier": "Supplier Deposit Balance",
+    "paymentBreakdown": "PAYMENT BREAKDOWN",
+    "refShort": "(Ref: {{ref}})",
+    "receivedCash": "Received in cash / bank",
+    "otherAllocation": "Deductions / other allocations",
+    "paymentInfo": "PAYMENT INFORMATION"
+  },
+  "deliveryOrder": {
+    "title": "DELIVERY ORDER",
+    "poNo": "PO No.",
+    "soNo": "SO No.",
+    "signatures": {
+      "recipient": "RECIPIENT",
+      "driver": "DRIVER",
+      "security": "PHYSICAL CHECK (SECURITY)",
+      "sender": "SENDER"
+    }
+  },
+  "goodsReceipt": {
+    "docTitle": "Goods Receipt {{number}}",
+    "title": "GOODS RECEIPT",
+    "receivedDate": "Received Date",
+    "from": "From (Supplier)",
+    "poRef": "PO Ref: {{number}}",
+    "driver": "Driver (Supplier)",
+    "receivedBy": "Received By",
+    "signatures": {
+      "sender": "SENDER (SUPPLIER)",
+      "driver": "DRIVER",
+      "recipient": "RECIPIENT (US)"
+    }
+  },
+  "transfer": {
+    "docTitle": "Inter-Warehouse Delivery Order {{number}}",
+    "title": "INTER-WAREHOUSE DELIVERY ORDER",
+    "from": "SOURCE WAREHOUSE",
+    "to": "DESTINATION WAREHOUSE",
+    "recipient": "Recipient at Destination",
+    "signatures": {
+      "sender": "SENDER (SOURCE WAREHOUSE)",
+      "driver": "DRIVER",
+      "recipient": "RECIPIENT (DESTINATION WAREHOUSE)"
+    }
+  },
+  "salesOrder": {
+    "docTitle": "Sales Order {{number}}",
+    "title": "SALES ORDER",
+    "items": "Order Items",
+    "columns": {
+      "item": "Item",
+      "sent": "Delivered",
+      "doNo": "Delivery Order No.",
+      "invoiceNo": "Invoice No."
+    },
+    "depositReceived": "Deposit Received",
+    "depositApplied": "Deposit Applied",
+    "depositRemaining": "Deposit Remaining",
+    "outstanding": "Amount Due",
+    "deliveries": "Deliveries / Delivery Orders ({{count}})",
+    "noDeliveries": "No deliveries yet.",
+    "invoices": "Related Invoices ({{count}})",
+    "noInvoices": "No invoices yet."
+  },
+  "quotation": {
+    "docTitle": "Quotation {{number}}",
+    "title": "QUOTATION",
+    "subtitle": "Not a tax invoice",
+    "validUntilLine": "Valid until: {{date}}",
+    "number": "Quotation No.",
+    "validUntil": "Valid Until",
+    "status": {
+      "Draft": "Draft",
+      "Sent": "Sent",
+      "Accepted": "Accepted",
+      "Rejected": "Rejected",
+      "Expired": "Expired",
+      "Cancelled": "Cancelled"
+    },
+    "columns": {
+      "no": "No"
+    },
+    "regards": "Sincerely,",
+    "approvedBy": "Approved by,",
+    "disclaimer": "This quotation is valid until the date stated above. Prices may change after the validity period ends. To confirm an order, please contact our sales team."
+  },
+  "purchaseOrder": {
+    "docTitle": "Purchase Order {{number}}",
+    "title": "PURCHASE ORDER",
+    "columns": {
+      "no": "No",
+      "item": "Item",
+      "rate": "Price (IDR)",
+      "discount": "Disc %",
+      "vat": "VAT %",
+      "amount": "Amount (IDR)"
+    },
+    "mark": {
+      "Draft": "DRAFT: NOT YET ORDERED",
+      "PendingApproval": "PENDING APPROVAL",
+      "Cancelled": "CANCELLED"
+    },
+    "to": "To (Supplier)",
+    "generalPo": "General PO",
+    "anySupplier": "Can be fulfilled by any supplier",
+    "expectedDelivery": "Expected Delivery Date",
+    "paymentTerms": "Payment Terms",
+    "dueOn": " (due {{date}})",
+    "shipTo": "Ship to Warehouse",
+    "supplierQuote": "Supplier Quotation No.",
+    "finalPriceNote": "Final prices follow the supplier invoice.",
+    "signatures": {
+      "createdBy": "Created by",
+      "approvedBy": "Approved by",
+      "supplier": "Supplier"
+    },
+    "buildFailed": "Could not create the PO PDF."
+  },
+  "stockOpname": {
+    "docTitle": "Stock Count Report {{number}}",
+    "title": "STOCK COUNT REPORT",
+    "completed": "Completed",
+    "createdBy": "Created By",
+    "totalItems": "Total Items",
+    "totalItemsValue": "{{count}} items ({{diff}} with differences)",
+    "surplus": "Surplus",
+    "deficit": "Deficit",
+    "netDiff": "Net Difference",
+    "deficitSuffix": " (deficit)",
+    "noDiff": "No stock differences.",
+    "columns": {
+      "system": "System",
+      "actual": "Actual",
+      "diff": "Difference",
+      "diffValue": "Difference Value"
+    },
+    "signatures": {
+      "checkedBy": "Checked by",
+      "approvedBy": "Approved by",
+      "acknowledgedBy": "Acknowledged by"
+    }
+  },
+  "production": {
+    "docTitle": "Production Run {{number}}",
+    "title": "PRODUCTION RUN",
+    "columns": {
+      "name": "NAME",
+      "unitCost": "UNIT COST",
+      "description": "DESCRIPTION",
+      "side": "SIDE",
+      "rate": "RATE",
+      "basis": "BASIS"
+    },
+    "basis": {
+      "InputQty": "per kg in",
+      "OutputQty": "per kg out",
+      "Fixed": "flat"
+    },
+    "side": {
+      "InputSide": "Input",
+      "OutputSide": "Output"
+    },
+    "batch": "Batch: {{ref}}",
+    "warehouse": "Production Warehouse",
+    "reference": "Reference",
+    "yield": "Yield",
+    "processes": "Processes Run",
+    "inputs": "Input Materials ({{count}})",
+    "outputs": "Main Outputs ({{count}})",
+    "byproducts": "By-products ({{count}})",
+    "costs": "Production Cost Components ({{count}})",
+    "hppTitle": "LOADED COGS {{mode}}",
+    "hppManual": "(Manual Override)",
+    "hppAuto": "(Auto-Calculated)",
+    "materialCost": "Material Cost",
+    "inputSideCost": "+ Input-Side Costs",
+    "outputSideCost": "+ Output-Side Costs",
+    "byproductValue": "− By-product Value (NRV)",
+    "hppPerKg": "COGS / kg main output ({{qty}} kg)",
+    "signatures": {
+      "staff": "PRODUCTION STAFF",
+      "supervisor": "SUPERVISOR",
+      "manager": "MANAGER"
+    }
+  },
+  "warehouseStock": {
+    "title": "STOCK BY WAREHOUSE REPORT",
+    "positionAsOf": "Position as of {{date}}",
+    "totalWarehouses": "Total Warehouses",
+    "totalItemLines": "Total Item Lines",
+    "negativeItems": "Negative Stock Items",
+    "grandTotalValue": "Grand Total Value",
+    "empty": "No stock (all zero).",
+    "docRef": "Stock by Warehouse"
+  },
+  "report": {
+    "trialBalance": {
+      "title": "TRIAL BALANCE",
+      "docRef": "Trial Balance",
+      "accountName": "Account Name",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balanced": "Trial balance is balanced",
+      "unbalanced": "Trial balance is not balanced"
+    },
+    "profitLoss": {
+      "title": "PROFIT AND LOSS STATEMENT",
+      "docRef": "Profit and Loss Statement",
+      "revenue": "REVENUE",
+      "totalRevenue": "Total Revenue",
+      "expense": "EXPENSES",
+      "totalExpense": "Total Expenses",
+      "netProfit": "NET PROFIT"
+    },
+    "balanceSheet": {
+      "title": "BALANCE SHEET",
+      "docRef": "Balance Sheet",
+      "assets": "ASSETS",
+      "totalAssets": "Total Assets",
+      "liabilities": "LIABILITIES",
+      "totalLiabilities": "Total Liabilities",
+      "equity": "EQUITY",
+      "totalEquity": "Total Equity",
+      "totalLiabilitiesEquity": "Total Liabilities + Equity",
+      "balanced": "Balance sheet is balanced",
+      "unbalanced": "Balance sheet is not balanced"
+    },
+    "cashFlow": {
+      "title": "CASH FLOW STATEMENT",
+      "docRef": "Cash Flow Statement",
+      "operating": "OPERATING ACTIVITIES",
+      "investing": "INVESTING ACTIVITIES",
+      "financing": "FINANCING ACTIVITIES",
+      "operatingSubtotal": "Subtotal Operating",
+      "investingSubtotal": "Subtotal Investing",
+      "financingSubtotal": "Subtotal Financing",
+      "netChange": "Net Change in Cash",
+      "openingBalance": "Opening Balance",
+      "closingBalance": "CLOSING CASH & BANK BALANCE",
+      "noTransactions": "No transactions"
+    },
+    "aging": {
+      "titleCustomer": "RECEIVABLES AGING",
+      "titleSupplier": "PAYABLES AGING",
+      "docRefCustomer": "Receivables Aging",
+      "docRefSupplier": "Payables Aging",
+      "partner": "Partner Name",
+      "current": "Not Due"
+    }
+  },
+  "daily": {
+    "title": "DAILY REPORT",
+    "docRef": "Daily Report",
+    "sales": {
+      "title": "SALES",
+      "invoiceCount": "Invoices",
+      "totalQty": "Total Qty",
+      "revenue": "Total Revenue",
+      "newReceivables": "New Receivables",
+      "outstanding": "Outstanding Receivable",
+      "empty": "No sales today"
+    },
+    "purchases": {
+      "title": "PURCHASES",
+      "spend": "Total Spend",
+      "newPayables": "New Payables",
+      "outstanding": "Outstanding Payable",
+      "empty": "No purchases today"
+    },
+    "invoiceNo": "Invoice No.",
+    "production": {
+      "title": "PRODUCTION",
+      "runCount": "Runs",
+      "totalInput": "Total Input (kg)",
+      "totalOutput": "Total Output (kg)",
+      "avgYield": "Average Yield",
+      "runNo": "Run No.",
+      "input": "Input",
+      "inputQty": "Input Qty",
+      "output": "Output",
+      "outputQty": "Output Qty",
+      "yield": "Yield",
+      "empty": "No production today"
+    },
+    "stock": {
+      "title": "STOCK POSITION",
+      "warehouseCount": "Warehouses",
+      "itemLines": "Total Item Lines",
+      "negativeItems": "Negative Stock Items",
+      "totalValue": "Total Stock Value",
+      "empty": "No stock on this date"
+    },
+    "finance": {
+      "title": "FINANCE",
+      "cashIn": "Cash In",
+      "cashOut": "Cash Out",
+      "netCashFlow": "Net Cash Flow",
+      "manualJournals": "Manual Journals",
+      "paymentNo": "Payment No.",
+      "party": "Party",
+      "account": "Account",
+      "type": "Type",
+      "in": "In",
+      "out": "Out"
+    },
+    "receivables": {
+      "title": "ACCOUNTS RECEIVABLE",
+      "total": "Total Receivables",
+      "empty": "No receivables"
+    },
+    "payables": {
+      "title": "ACCOUNTS PAYABLE",
+      "total": "Total Payables",
+      "empty": "No payables"
+    },
+    "aging": {
+      "overdue": "Overdue",
+      "current": "Current",
+      "d1_30": "1-30 days",
+      "d31_60": "31-60 days",
+      "d61_90": "61-90 days",
+      "d90plus": ">90 days"
+    },
+    "deposits": {
+      "title": "SUPPLIER DEPOSITS",
+      "total": "Total Deposits",
+      "applied": "Applied",
+      "remaining": "Unapplied Balance",
+      "amount": "Deposit Amount",
+      "allocated": "Applied",
+      "empty": "No active supplier deposits"
+    }
+  },
+  "inspection": {
+    "docTitle": "Inspection {{vehicle}} {{date}}",
+    "docRef": "Inspection {{vehicle}}",
+    "title": "VEHICLE INSPECTION RESULT",
+    "result": {
+      "BAIK": "Good",
+      "PERLU_PERHATIAN": "Needs Attention",
+      "TIDAK_LAYAK": "Not Roadworthy"
+    },
+    "state": {
+      "OK": "OK",
+      "PERLU_PERHATIAN": "Needs Attention",
+      "RUSAK": "Damaged"
+    },
+    "fuel": {
+      "KOSONG": "Empty (E)",
+      "SEPEREMPAT": "Quarter (1/4)",
+      "SETENGAH": "Half (1/2)",
+      "TIGA_PEREMPAT": "Three Quarters (3/4)",
+      "PENUH": "Full (F)"
+    },
+    "checkpoints": {
+      "ban": "Tires",
+      "rem": "Brakes",
+      "oli": "Oil",
+      "lampu": "Lights",
+      "klakson": "Horn",
+      "wiper": "Wipers",
+      "kaca_spion": "Mirrors",
+      "sabuk_pengaman": "Seat Belts",
+      "ac": "Air Conditioning",
+      "aki": "Battery",
+      "radiator": "Radiator",
+      "kelengkapan_p3k_apar": "First Aid Kit / Fire Extinguisher",
+      "oli_mesin": "Engine Oil",
+      "oli_rem": "Brake Fluid",
+      "air_radiator": "Radiator Water / Coolant",
+      "air_aki": "Battery Water",
+      "air_wiper": "Washer Fluid",
+      "lampu_depan": "Headlights",
+      "lampu_belakang": "Tail Lights",
+      "lampu_sein": "Turn Signals",
+      "lampu_rem": "Brake Lights",
+      "lampu_mundur": "Reverse Lights",
+      "rem_depan": "Front Brakes",
+      "rem_belakang": "Rear Brakes",
+      "rem_tangan": "Handbrake",
+      "kemudi_suspensi": "Steering / Suspension",
+      "ban_depan": "Front Tires",
+      "ban_belakang": "Rear Tires",
+      "ban_serep": "Spare Tire",
+      "tekanan_ban": "Tire Pressure",
+      "velg": "Wheels",
+      "p3k": "First Aid Kit",
+      "apar": "Fire Extinguisher",
+      "segitiga_pengaman": "Warning Triangle",
+      "dongkrak": "Jack",
+      "kunci_roda": "Wheel Wrench",
+      "kaca_depan": "Windshield",
+      "kaca_belakang": "Rear Window",
+      "body_cat": "Body / Paint",
+      "dashboard_indikator": "Dashboard / Indicators"
+    },
+    "legacyChecklist": "Checklist (old format)",
+    "overallResult": "OVERALL RESULT",
+    "dateLine": "Date {{date}}",
+    "odometer": "ODOMETER",
+    "atInspection": "At inspection",
+    "fuelLevel": "FUEL LEVEL",
+    "tankGauge": "Tank gauge",
+    "nextInspection": "NEXT INSPECTION",
+    "dueSchedule": "Due schedule",
+    "identity": "Vehicle Details",
+    "fields": {
+      "assetCode": "Asset Code",
+      "vehicleName": "Vehicle Name",
+      "plate": "Plate Number",
+      "brandType": "Brand / Type",
+      "category": "Category",
+      "inspector": "Inspector",
+      "inspectionDate": "Inspection Date",
+      "nextInspection": "Next Inspection"
+    },
+    "checklist": "Inspection Checklist",
+    "checkItem": "CHECK ITEM",
+    "statusUpper": "STATUS",
+    "noChecklist": "No checklist available for this inspection.",
+    "noNotes": "No additional notes.",
+    "photos": "Photo Evidence ({{count}})"
+  },
+  "vehicle": {
+    "docTitle": "Vehicle Report {{code}}",
+    "title": "VEHICLE REPORT",
+    "periodLine": "Period: {{from}} to {{to}}",
+    "category": {
+      "service": "Service & Maintenance",
+      "fuel": "Fuel",
+      "tax": "Vehicle Tax",
+      "insurance": "Insurance",
+      "incident": "Incidents & Repairs"
+    },
+    "enum": {
+      "ACTIVE": "Active",
+      "IN_REPAIR": "In Repair",
+      "RETIRED": "Retired",
+      "LOST": "Lost",
+      "GOOD": "Good",
+      "FAIR": "Fair",
+      "POOR": "Poor",
+      "BROKEN": "Broken",
+      "PERLU_PERHATIAN": "Needs Attention",
+      "BAIK": "Good",
+      "TIDAK_LAYAK": "Not Roadworthy",
+      "KIR": "KIR",
+      "TLO": "TLO",
+      "STNK_TAHUNAN": "Annual STNK",
+      "STNK_5_TAHUNAN": "5-Year STNK",
+      "ALL_RISK": "All Risk",
+      "KECELAKAAN_DIRI": "Personal Accident",
+      "DALAM_PROSES": "In Progress"
+    },
+    "state": {
+      "EXPIRED": "Expired",
+      "EXPIRING": "Due Soon",
+      "OK": "OK"
+    },
+    "totalCost": "TOTAL COST (TCO)",
+    "perMonth": "{{amount}} / month",
+    "costPerKm": "COST PER KM",
+    "kmRecorded": "{{km}} km recorded",
+    "notEnoughOdometer": "Not enough odometer data",
+    "fuelConsumption": "FUEL CONSUMPTION",
+    "liters": "{{value}} liters",
+    "complianceIssues": "COMPLIANCE ISSUES",
+    "needsFollowUp": "Needs follow-up",
+    "allDocsOk": "All documents in order",
+    "identity": "Vehicle Details",
+    "fields": {
+      "assetCode": "Asset Code",
+      "vehicleName": "Vehicle Name",
+      "plate": "Plate Number",
+      "brandType": "Brand / Type",
+      "year": "Production Year",
+      "category": "Category",
+      "status": "Status",
+      "condition": "Condition",
+      "lastOdometer": "Last Odometer"
+    },
+    "costBreakdown": "Cost Breakdown for the Period",
+    "columns": {
+      "category": "CATEGORY",
+      "transactions": "TRANSACTIONS",
+      "share": "SHARE",
+      "amount": "AMOUNT",
+      "month": "MONTH",
+      "service": "SERVICE",
+      "fuel": "FUEL",
+      "tax": "TAX",
+      "insurance": "INSURANCE",
+      "incident": "INCIDENTS",
+      "total": "TOTAL",
+      "document": "DOCUMENT",
+      "description": "DESCRIPTION",
+      "dueDate": "DUE DATE",
+      "daysLeft": "DAYS LEFT",
+      "status": "STATUS",
+      "value": "VALUE",
+      "date": "DATE",
+      "details": "DESCRIPTION",
+      "severity": "SEVERITY",
+      "cost": "COST",
+      "position": "POSITION",
+      "brandSerial": "BRAND / SERIAL",
+      "installed": "INSTALLED",
+      "usage": "USAGE"
+    },
+    "monthlyTrend": "Monthly Cost Trend",
+    "noCosts": "No costs recorded in this period.",
+    "compliance": "Document Compliance",
+    "noDocs": "No active documents yet.",
+    "tax": "Tax",
+    "insurance": "Insurance",
+    "taxYear": "{{type}} · FY {{year}}",
+    "openIncidents": "Open Incidents",
+    "physicalCondition": "Physical Condition",
+    "lastInspection": "Last inspection: {{value}}",
+    "lastInspectionValue": "{{date}}, result {{result}}",
+    "atKm": " at {{km}} km",
+    "noInspection": "no records yet.",
+    "lastOil": "Last oil change: {{value}}",
+    "lastOilValue": "{{date}} at {{km}} km",
+    "nextOil": ". Next due at {{km}} km",
+    "remainingKm": ", {{km}} km remaining",
+    "oilDue": ". Already due.",
+    "noOilLog": "no log yet.",
+    "activeTires": "Installed Tires ({{count}})"
+  },
+  "export": {
+    "failed": "Could not export the data. Try again."
+  },
+  "merge": {
+    "allFailed": "None of the attachments could be merged:\n{{details}}",
+    "unknownError": "unknown"
+  },
+  "company": {
+    "fallbackName": "Company"
+  }
+}

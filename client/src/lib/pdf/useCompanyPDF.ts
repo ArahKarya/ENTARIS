@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
+import { pdfT } from './pdfFormat';
 
 export interface InvoiceFormatSettings {
   sales?: {
@@ -25,15 +26,15 @@ export interface CompanyPDF {
   invoiceSettings: InvoiceFormatSettings | null;
 }
 
-const FALLBACK: CompanyPDF = {
-  name: 'Perusahaan',
+const fallback = (): CompanyPDF => ({
+  name: pdfT()('company.fallbackName'),
   address: null,
   phone: null,
   email: null,
   taxId: null,
   logoUrl: null,
   invoiceSettings: null,
-};
+});
 
 /**
  * Returns company info suitable for use in PDF headers.
@@ -49,10 +50,10 @@ export function useCompanyPDF(): CompanyPDF {
     staleTime: 5 * 60 * 1000,
   });
 
-  if (!data) return FALLBACK;
+  if (!data) return fallback();
 
   return {
-    name:    data.companyName  || FALLBACK.name,
+    name:    data.companyName  || fallback().name,
     address: data.address      || null,
     phone:   data.phone        || null,
     email:   data.email        || null,

@@ -32,7 +32,7 @@ export async function cancelSalesReturnInTx(
     });
     if (appliedCount > 0) {
       throw new BusinessError(
-        'Kredit pelanggan dari retur ini sudah dipakai di faktur lain. Batalkan penggunaan kredit terlebih dahulu.',
+        'Kredit customer dari retur ini sudah dipakai di invoice lain. Batalkan penggunaan kredit terlebih dahulu.',
       );
     }
   }

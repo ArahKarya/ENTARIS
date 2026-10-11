@@ -89,7 +89,7 @@ router.get('/', async (req, res) => {
     return res.json({ data: deposits.map(enrichDeposit) });
   } catch (error) {
     logger.error({ error }, 'GET /vendor-deposits error');
-    return res.status(500).json({ error: 'Gagal mengambil data uang muka vendor.' });
+    return res.status(500).json({ error: 'Gagal mengambil data uang muka supplier.' });
   }
 });
 
@@ -127,7 +127,7 @@ router.get('/summary', async (req, res) => {
     return res.json(summarizeVendorDeposits(filterVendorByUsage(light, filter.usage)));
   } catch (error) {
     logger.error({ error }, 'GET /vendor-deposits/summary error');
-    return res.status(500).json({ error: 'Gagal menghitung ringkasan uang muka vendor.' });
+    return res.status(500).json({ error: 'Gagal menghitung ringkasan uang muka supplier.' });
   }
 });
 
@@ -191,12 +191,12 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
         },
       });
       if (!deposit) throw new BusinessError('Deposit tidak ditemukan.');
-      if (deposit.paymentType !== 'VendorDeposit') throw new BusinessError('Bukan tipe uang muka vendor.');
+      if (deposit.paymentType !== 'VendorDeposit') throw new BusinessError('Bukan tipe uang muka supplier.');
       if (deposit.status === 'Cancelled') throw new BusinessError('Deposit sudah dibatalkan.');
 
       // Check if any applications exist
       if (deposit.depositApplications.length > 0) {
-        throw new BusinessError('Deposit sudah digunakan untuk faktur. Batalkan penggunaan terlebih dahulu.');
+        throw new BusinessError('Deposit sudah digunakan untuk invoice. Batalkan penggunaan terlebih dahulu.');
       }
 
       const depositAmount = Number(deposit.amount);
@@ -248,9 +248,9 @@ router.patch('/:id/cancel', async (req: AuthRequest, res) => {
       });
     }, { timeout: 15000 });
 
-    return res.json({ message: 'Uang muka vendor dibatalkan.' });
+    return res.json({ message: 'Uang muka supplier dibatalkan.' });
   } catch (error: any) {
-    return handleRouteError(res, error, 'PATCH /vendor-deposits/:id/cancel', 'Gagal membatalkan uang muka vendor.');
+    return handleRouteError(res, error, 'PATCH /vendor-deposits/:id/cancel', 'Gagal membatalkan uang muka supplier.');
   }
 });
 
@@ -270,7 +270,7 @@ router.post('/apply', async (req: AuthRequest, res) => {
         include: { depositApplications: { where: { isCancelled: false } } },
       });
       if (!deposit) throw new BusinessError('Deposit tidak ditemukan.');
-      if (deposit.paymentType !== 'VendorDeposit') throw new BusinessError('Pembayaran bukan tipe Uang Muka Vendor.');
+      if (deposit.paymentType !== 'VendorDeposit') throw new BusinessError('Pembayaran bukan tipe Uang Muka Supplier.');
       if (deposit.status !== 'Submitted') throw new BusinessError('Deposit sudah dibatalkan.');
 
       const invoice = await tx.purchaseInvoice.findUnique({
@@ -460,7 +460,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
         },
       });
       if (!deposit) throw new BusinessError('Uang muka tidak ditemukan.');
-      if (deposit.paymentType !== 'VendorDeposit') throw new BusinessError('Bukan tipe uang muka vendor.');
+      if (deposit.paymentType !== 'VendorDeposit') throw new BusinessError('Bukan tipe uang muka supplier.');
       if (deposit.status !== 'Submitted') throw new BusinessError('Uang muka sudah dibatalkan.');
 
       const totalApplied = deposit.depositApplications.reduce(
@@ -566,7 +566,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
 
         if (remainingOffset.gt(new Decimal('0.01'))) {
           throw new BusinessError(
-            `Hutang vendor tidak cukup untuk offset. Sisa offset yang tidak teralokasi: Rp ${remainingOffset.toFixed(2)}.`,
+            `Hutang supplier tidak cukup untuk offset. Sisa offset yang tidak teralokasi: Rp ${remainingOffset.toFixed(2)}.`,
           );
         }
         await recalcPartyOutstanding(tx, deposit.partyId);
@@ -622,7 +622,7 @@ router.post('/:id/refund', async (req: AuthRequest, res) => {
       }
 
       return {
-        message: 'Uang muka vendor diselesaikan.',
+        message: 'Uang muka supplier diselesaikan.',
         offsetApplied: offsetReq.toNumber(),
         cashRefunded: cashReq.toNumber(),
         applications: createdApplications,

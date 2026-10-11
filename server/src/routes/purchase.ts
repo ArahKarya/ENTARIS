@@ -111,7 +111,7 @@ router.post('/match-preview', async (req, res) => {
   try {
     return res.json(await matchPurchaseInvoiceLines(prisma, body.items));
   } catch (error) {
-    return handleRouteError(res, error, 'POST /purchase/invoices/match-preview', 'Gagal mencocokkan PO–STT–faktur.');
+    return handleRouteError(res, error, 'POST /purchase/invoices/match-preview', 'Gagal mencocokkan PO–STT–invoice.');
   }
 });
 

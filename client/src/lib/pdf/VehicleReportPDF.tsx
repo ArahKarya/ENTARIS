@@ -5,7 +5,7 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { VehicleReport, ComplianceState } from '../../components/GaVehicleReportTab';
 import { C, FOOTER_SPACE } from './theme';
-import { pdfDateShort, pdfDateTime, pdfFixed, pdfRp } from './pdfFormat';
+import { pdfDateShort, pdfDateTime, pdfFixed, pdfMonthShort, pdfRp, pdfT, type PdfT } from './pdfFormat';
 import { PdfFooter, PdfHeader } from './kit';
 
 const S = StyleSheet.create({
@@ -65,43 +65,42 @@ const S = StyleSheet.create({
 const rp = (v: number) => pdfRp(Math.round(v));
 const num = (v: number, digits = 0) => pdfFixed(v, digits);
 const dt = (v: string | Date | null | undefined) => pdfDateShort(v);
-const monthLabel = (key: string) => {
-  const [y, m] = key.split('-');
-  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${names[Number(m) - 1] ?? m} ${String(y).slice(2)}`;
-};
-
-const CAT_LABEL: Record<string, string> = {
-  service: 'Service & Perawatan',
-  fuel: 'Bahan Bakar',
-  tax: 'Pajak Kendaraan',
-  insurance: 'Asuransi',
-  incident: 'Insiden & Perbaikan',
-};
 const CAT_ORDER = ['service', 'fuel', 'tax', 'insurance', 'incident'] as const;
 
-/** Label enum server (UPPER_SNAKE) -> teks Indonesia; yang tak dikenal diubah ke Title Case. */
-const ENUM_LABEL: Record<string, string> = {
-  ACTIVE: 'Aktif', IN_REPAIR: 'Dalam Perbaikan', RETIRED: 'Pensiun', LOST: 'Hilang',
-  GOOD: 'Baik', FAIR: 'Cukup', POOR: 'Kurang', BROKEN: 'Rusak',
-  PERLU_PERHATIAN: 'Perlu Perhatian', BAIK: 'Baik', TIDAK_LAYAK: 'Tidak Layak',
-  KIR: 'KIR', TLO: 'TLO', STNK_TAHUNAN: 'STNK Tahunan', STNK_5_TAHUNAN: 'STNK 5 Tahunan',
-  ALL_RISK: 'All Risk', KECELAKAAN_DIRI: 'Kecelakaan Diri', DALAM_PROSES: 'Dalam Proses',
-};
-const lbl = (v: string | null | undefined): string => {
+/** Server enum labels (UPPER_SNAKE); unknown values fall back to Title Case. */
+const ENUM_KEYS = [
+  'ACTIVE', 'IN_REPAIR', 'RETIRED', 'LOST', 'GOOD', 'FAIR', 'POOR', 'BROKEN',
+  'PERLU_PERHATIAN', 'BAIK', 'TIDAK_LAYAK', 'KIR', 'TLO', 'STNK_TAHUNAN', 'STNK_5_TAHUNAN',
+  'ALL_RISK', 'KECELAKAAN_DIRI', 'DALAM_PROSES',
+] as const;
+const lbl = (t: PdfT, v: string | null | undefined): string => {
   if (!v) return '—';
   if (!/^[A-Z0-9_]+$/.test(v)) return v;
-  return ENUM_LABEL[v] ?? v.toLowerCase().split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  if ((ENUM_KEYS as readonly string[]).includes(v)) return t(`vehicle.enum.${v as (typeof ENUM_KEYS)[number]}`);
+  return v.toLowerCase().split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };
 
-const STATE_LABEL: Record<ComplianceState, string> = {
-  EXPIRED: 'Lewat Tempo',
-  EXPIRING: 'Segera',
-  OK: 'Aman',
-  NONE: '—',
-};
+const stateLabel = (t: PdfT, s: ComplianceState): string => (s === 'NONE' ? '—' : t(`vehicle.state.${s}`));
 const stateColor = (s: ComplianceState) =>
   s === 'EXPIRED' ? C.red : s === 'EXPIRING' ? C.amber : s === 'OK' ? C.green : C.faint;
+
+type Condition = VehicleReport['condition'];
+
+function describeLastInspection(t: PdfT, ins: Condition['lastInspection']): string {
+  if (!ins) return t('vehicle.noInspection');
+  const at = ins.odometer != null ? t('vehicle.atKm', { km: num(ins.odometer) }) : '';
+  const notes = ins.notes ? `. ${ins.notes}` : '';
+  return `${t('vehicle.lastInspectionValue', { date: dt(ins.tanggal), result: lbl(t, ins.overallResult) })}${at}${notes}`;
+}
+
+function describeLastOil(t: PdfT, oil: Condition['lastOil']): string {
+  if (!oil) return t('vehicle.noOilLog');
+  const brand = oil.brand ? ` (${oil.brand})` : '';
+  const remaining = oil.remainingKm != null ? t('vehicle.remainingKm', { km: num(oil.remainingKm) }) : '';
+  return `${t('vehicle.lastOilValue', { date: dt(oil.tanggal), km: num(oil.odometer) })}${brand}${t('vehicle.nextOil', {
+    km: num(oil.nextOdometerDue),
+  })}${remaining}${oil.isDue ? t('vehicle.oilDue') : '.'}`;
+}
 
 interface Props {
   report: VehicleReport;
@@ -110,62 +109,65 @@ interface Props {
 }
 
 export default function VehicleReportPDF({ report, company, generatedAt }: Props) {
+  const t = pdfT();
   const { asset, tco, compliance, condition, period } = report;
   const trendRows = report.monthlyTrend.filter((m) => m.total > 0);
+  const lastInspectionText = describeLastInspection(t, condition.lastInspection);
+  const lastOilText = describeLastOil(t, condition.lastOil);
 
   return (
-    <Document title={`Report Kendaraan ${asset.code}`}>
+    <Document title={t('vehicle.docTitle', { code: asset.code })}>
       <Page size="A4" style={S.page}>
         <PdfHeader
           company={company}
-          title="REPORT KENDARAAN"
+          title={t('vehicle.title')}
           number={asset.noPlat ?? asset.code}
-          dateLine={`Periode: ${dt(period.from)} s.d. ${dt(period.to)}`}
+          dateLine={t('vehicle.periodLine', { from: dt(period.from), to: dt(period.to) })}
         />
 
         {/* Ringkasan */}
         <View style={S.summaryRow}>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>TOTAL BIAYA (TCO)</Text>
+            <Text style={S.summaryLabel}>{t('vehicle.totalCost')}</Text>
             <Text style={[S.summaryValue, { color: C.primary }]}>{rp(tco.totalCost)}</Text>
-            <Text style={S.summarySub}>{rp(tco.costPerMonth)} / bulan</Text>
+            <Text style={S.summarySub}>{t('vehicle.perMonth', { amount: rp(tco.costPerMonth) })}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>BIAYA PER KM</Text>
+            <Text style={S.summaryLabel}>{t('vehicle.costPerKm')}</Text>
             <Text style={S.summaryValue}>{tco.costPerKm != null ? rp(tco.costPerKm) : '—'}</Text>
             <Text style={S.summarySub}>
-              {tco.distanceKm != null ? `${num(tco.distanceKm)} km tercatat` : 'Data odometer belum cukup'}
+              {tco.distanceKm != null ? t('vehicle.kmRecorded', { km: num(tco.distanceKm) }) : t('vehicle.notEnoughOdometer')}
             </Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>KONSUMSI BBM</Text>
+            <Text style={S.summaryLabel}>{t('vehicle.fuelConsumption')}</Text>
             <Text style={S.summaryValue}>{tco.kmPerLiter != null ? `${num(tco.kmPerLiter, 1)} km/L` : '—'}</Text>
-            <Text style={S.summarySub}>{num(tco.totalLiters, 1)} liter</Text>
+            <Text style={S.summarySub}>{t('vehicle.liters', { value: num(tco.totalLiters, 1) })}</Text>
           </View>
           <View style={S.summaryBox}>
-            <Text style={S.summaryLabel}>ISU KEPATUHAN</Text>
+            <Text style={S.summaryLabel}>{t('vehicle.complianceIssues')}</Text>
             <Text style={[S.summaryValue, { color: compliance.issueCount > 0 ? C.red : C.green }]}>
               {compliance.issueCount}
             </Text>
             <Text style={S.summarySub}>
-              {compliance.issueCount > 0 ? 'Perlu tindak lanjut' : 'Semua dokumen aman'}
+              {compliance.issueCount > 0 ? t('vehicle.needsFollowUp') : t('vehicle.allDocsOk')}
             </Text>
           </View>
         </View>
 
         {/* Identitas */}
-        <Text style={S.sectionTitle} minPresenceAhead={70}>Identitas Kendaraan</Text>
+        <Text style={S.sectionTitle} minPresenceAhead={70}>{t('vehicle.identity')}</Text>
         <View style={S.idGrid}>
           {[
-            ['Kode Aset', asset.code],
-            ['Nama Kendaraan', asset.name || '—'],
-            ['Nomor Plat', asset.noPlat ?? '—'],
-            ['Merek / Tipe', [asset.brand, asset.tipe].filter(Boolean).join(' ') || '—'],
-            ['Tahun Produksi', asset.tahunProduksi != null ? String(asset.tahunProduksi) : '—'],
-            ['Kategori', asset.categoryName ?? '—'],
-            ['Status', lbl(asset.status)],
-            ['Kondisi', lbl(asset.condition)],
-            ['Odometer Terakhir', asset.odometerTerakhir != null ? `${num(asset.odometerTerakhir)} km` : '—'],
+            [t('vehicle.fields.assetCode'), asset.code],
+            [t('vehicle.fields.vehicleName'), asset.name || '—'],
+            [t('vehicle.fields.plate'), asset.noPlat ?? '—'],
+            [t('vehicle.fields.brandType'), [asset.brand, asset.tipe].filter(Boolean).join(' ') || '—'],
+            [t('vehicle.fields.year'), asset.tahunProduksi != null ? String(asset.tahunProduksi) : '—'],
+            [t('vehicle.fields.category'), asset.categoryName ?? '—'],
+            [t('vehicle.fields.status'), lbl(t, asset.status)],
+            [t('vehicle.fields.condition'), lbl(t, asset.condition)],
+            [t('vehicle.fields.lastOdometer'), asset.odometerTerakhir != null ? `${num(asset.odometerTerakhir)} km` : '—'],
           ].map(([label, value]) => (
             <View key={label} style={S.idCell}>
               <Text style={S.idLabel}>{label.toUpperCase()}</Text>
@@ -175,19 +177,19 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
         </View>
 
         {/* Rincian biaya */}
-        <Text style={S.sectionTitle} minPresenceAhead={70}>Rincian Biaya Periode</Text>
+        <Text style={S.sectionTitle} minPresenceAhead={70}>{t('vehicle.costBreakdown')}</Text>
         <View style={S.tableHeader}>
-          <Text style={[S.tableHeaderText, S.colCat]}>KATEGORI</Text>
-          <Text style={[S.tableHeaderText, S.colCount]}>TRANSAKSI</Text>
-          <Text style={[S.tableHeaderText, S.colPct]}>PORSI</Text>
-          <Text style={[S.tableHeaderText, S.colAmt]}>JUMLAH</Text>
+          <Text style={[S.tableHeaderText, S.colCat]}>{t('vehicle.columns.category')}</Text>
+          <Text style={[S.tableHeaderText, S.colCount]}>{t('vehicle.columns.transactions')}</Text>
+          <Text style={[S.tableHeaderText, S.colPct]}>{t('vehicle.columns.share')}</Text>
+          <Text style={[S.tableHeaderText, S.colAmt]}>{t('vehicle.columns.amount')}</Text>
         </View>
         {CAT_ORDER.map((k, i) => {
           const amount = tco.breakdown[k];
           const pct = tco.totalCost > 0 ? (amount / tco.totalCost) * 100 : 0;
           return (
             <View key={k} style={i % 2 === 1 ? [S.row, S.rowAlt] : S.row}>
-              <Text style={[S.cell, S.colCat]}>{CAT_LABEL[k]}</Text>
+              <Text style={[S.cell, S.colCat]}>{t(`vehicle.category.${k}`)}</Text>
               <Text style={[S.cell, S.colCount]}>{tco.counts[k]}</Text>
               <Text style={[S.cell, S.colPct]}>{num(pct, 1)}%</Text>
               <Text style={[S.cell, S.colAmt]}>{rp(amount)}</Text>
@@ -195,29 +197,29 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
           );
         })}
         <View style={S.totalRow}>
-          <Text style={[S.cellBold, S.colCat]}>TOTAL</Text>
+          <Text style={[S.cellBold, S.colCat]}>{t('vehicle.columns.total')}</Text>
           <Text style={[S.cellBold, S.colCount]} />
           <Text style={[S.cellBold, S.colPct]} />
           <Text style={[S.cellBold, S.colAmt, { color: C.primary }]}>{rp(tco.totalCost)}</Text>
         </View>
 
         {/* Trend bulanan */}
-        <Text style={S.sectionTitle} minPresenceAhead={70}>Trend Biaya Bulanan</Text>
+        <Text style={S.sectionTitle} minPresenceAhead={70}>{t('vehicle.monthlyTrend')}</Text>
         <View style={S.tableHeader}>
-          <Text style={[S.tableHeaderText, S.colMonth]}>BULAN</Text>
-          <Text style={[S.tableHeaderText, S.colTrendNum]}>SERVICE</Text>
-          <Text style={[S.tableHeaderText, S.colTrendNum]}>BBM</Text>
-          <Text style={[S.tableHeaderText, S.colTrendNum]}>PAJAK</Text>
-          <Text style={[S.tableHeaderText, S.colTrendNum]}>ASURANSI</Text>
-          <Text style={[S.tableHeaderText, S.colTrendNum]}>INSIDEN</Text>
-          <Text style={[S.tableHeaderText, S.colTrendNum]}>TOTAL</Text>
+          <Text style={[S.tableHeaderText, S.colMonth]}>{t('vehicle.columns.month')}</Text>
+          <Text style={[S.tableHeaderText, S.colTrendNum]}>{t('vehicle.columns.service')}</Text>
+          <Text style={[S.tableHeaderText, S.colTrendNum]}>{t('vehicle.columns.fuel')}</Text>
+          <Text style={[S.tableHeaderText, S.colTrendNum]}>{t('vehicle.columns.tax')}</Text>
+          <Text style={[S.tableHeaderText, S.colTrendNum]}>{t('vehicle.columns.insurance')}</Text>
+          <Text style={[S.tableHeaderText, S.colTrendNum]}>{t('vehicle.columns.incident')}</Text>
+          <Text style={[S.tableHeaderText, S.colTrendNum]}>{t('vehicle.columns.total')}</Text>
         </View>
         {trendRows.length === 0 ? (
-          <Text style={S.emptyText}>Belum ada biaya tercatat pada periode ini.</Text>
+          <Text style={S.emptyText}>{t('vehicle.noCosts')}</Text>
         ) : (
           trendRows.map((m, i) => (
             <View key={m.month} style={i % 2 === 1 ? [S.row, S.rowAlt] : S.row} wrap={false}>
-              <Text style={[S.cell, S.colMonth]}>{monthLabel(m.month)}</Text>
+              <Text style={[S.cell, S.colMonth]}>{pdfMonthShort(m.month)}</Text>
               <Text style={[S.cell, S.colTrendNum]}>{m.service ? rp(m.service) : '—'}</Text>
               <Text style={[S.cell, S.colTrendNum]}>{m.fuel ? rp(m.fuel) : '—'}</Text>
               <Text style={[S.cell, S.colTrendNum]}>{m.tax ? rp(m.tax) : '—'}</Text>
@@ -229,36 +231,36 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
         )}
 
         {/* Kepatuhan */}
-        <Text style={S.sectionTitle} minPresenceAhead={70} break={trendRows.length > 14}>Kepatuhan Dokumen</Text>
+        <Text style={S.sectionTitle} minPresenceAhead={70} break={trendRows.length > 14}>{t('vehicle.compliance')}</Text>
         <View style={S.tableHeader}>
-          <Text style={[S.tableHeaderText, S.colDoc]}>DOKUMEN</Text>
-          <Text style={[S.tableHeaderText, S.colDesc]}>KETERANGAN</Text>
-          <Text style={[S.tableHeaderText, S.colDate]}>JATUH TEMPO</Text>
-          <Text style={[S.tableHeaderText, S.colDays]}>SISA HARI</Text>
-          <Text style={[S.tableHeaderText, S.colState]}>STATUS</Text>
-          <Text style={[S.tableHeaderText, S.colAmt]}>NILAI</Text>
+          <Text style={[S.tableHeaderText, S.colDoc]}>{t('vehicle.columns.document')}</Text>
+          <Text style={[S.tableHeaderText, S.colDesc]}>{t('vehicle.columns.description')}</Text>
+          <Text style={[S.tableHeaderText, S.colDate]}>{t('vehicle.columns.dueDate')}</Text>
+          <Text style={[S.tableHeaderText, S.colDays]}>{t('vehicle.columns.daysLeft')}</Text>
+          <Text style={[S.tableHeaderText, S.colState]}>{t('vehicle.columns.status')}</Text>
+          <Text style={[S.tableHeaderText, S.colAmt]}>{t('vehicle.columns.value')}</Text>
         </View>
         {compliance.taxes.length === 0 && compliance.insurances.length === 0 ? (
-          <Text style={S.emptyText}>Belum ada dokumen aktif.</Text>
+          <Text style={S.emptyText}>{t('vehicle.noDocs')}</Text>
         ) : (
           <>
-            {compliance.taxes.map((t, i) => (
+            {compliance.taxes.map((tax, i) => (
               <View key={`tax-${i}`} style={i % 2 === 1 ? [S.row, S.rowAlt] : S.row} wrap={false}>
-                <Text style={[S.cell, S.colDoc]}>Pajak</Text>
-                <Text style={[S.cell, S.colDesc]}>{lbl(t.type)} · TA {t.periodYear}</Text>
-                <Text style={[S.cell, S.colDate]}>{dt(t.dueDate)}</Text>
-                <Text style={[S.cell, S.colDays]}>{t.daysRemaining ?? '—'}</Text>
-                <Text style={[S.cell, S.colState, { color: stateColor(t.state) }]}>{STATE_LABEL[t.state]}</Text>
-                <Text style={[S.cell, S.colAmt]}>{rp(t.amount)}</Text>
+                <Text style={[S.cell, S.colDoc]}>{t('vehicle.tax')}</Text>
+                <Text style={[S.cell, S.colDesc]}>{t('vehicle.taxYear', { type: lbl(t, tax.type), year: tax.periodYear })}</Text>
+                <Text style={[S.cell, S.colDate]}>{dt(tax.dueDate)}</Text>
+                <Text style={[S.cell, S.colDays]}>{tax.daysRemaining ?? '—'}</Text>
+                <Text style={[S.cell, S.colState, { color: stateColor(tax.state) }]}>{stateLabel(t, tax.state)}</Text>
+                <Text style={[S.cell, S.colAmt]}>{rp(tax.amount)}</Text>
               </View>
             ))}
             {compliance.insurances.map((ins, i) => (
               <View key={`ins-${i}`} style={(compliance.taxes.length + i) % 2 === 1 ? [S.row, S.rowAlt] : S.row} wrap={false}>
-                <Text style={[S.cell, S.colDoc]}>Asuransi</Text>
-                <Text style={[S.cell, S.colDesc]}>{lbl(ins.type)}{ins.provider ? ` · ${ins.provider}` : ''}</Text>
+                <Text style={[S.cell, S.colDoc]}>{t('vehicle.insurance')}</Text>
+                <Text style={[S.cell, S.colDesc]}>{lbl(t, ins.type)}{ins.provider ? ` · ${ins.provider}` : ''}</Text>
                 <Text style={[S.cell, S.colDate]}>{dt(ins.endDate)}</Text>
                 <Text style={[S.cell, S.colDays]}>{ins.daysRemaining ?? '—'}</Text>
-                <Text style={[S.cell, S.colState, { color: stateColor(ins.state) }]}>{STATE_LABEL[ins.state]}</Text>
+                <Text style={[S.cell, S.colState, { color: stateColor(ins.state) }]}>{stateLabel(t, ins.state)}</Text>
                 <Text style={[S.cell, S.colAmt]}>{rp(ins.premium)}</Text>
               </View>
             ))}
@@ -268,20 +270,20 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
         {/* Insiden terbuka */}
         {compliance.openIncidents.length > 0 && (
           <>
-            <Text style={S.sectionTitle} minPresenceAhead={70}>Insiden Belum Selesai</Text>
+            <Text style={S.sectionTitle} minPresenceAhead={70}>{t('vehicle.openIncidents')}</Text>
             <View style={S.tableHeader}>
-              <Text style={[S.tableHeaderText, S.colDate]}>TANGGAL</Text>
-              <Text style={[S.tableHeaderText, S.colDesc]}>DESKRIPSI</Text>
-              <Text style={[S.tableHeaderText, S.colState]}>TINGKAT</Text>
-              <Text style={[S.tableHeaderText, S.colState]}>STATUS</Text>
-              <Text style={[S.tableHeaderText, S.colAmt]}>BIAYA</Text>
+              <Text style={[S.tableHeaderText, S.colDate]}>{t('vehicle.columns.date')}</Text>
+              <Text style={[S.tableHeaderText, S.colDesc]}>{t('vehicle.columns.details')}</Text>
+              <Text style={[S.tableHeaderText, S.colState]}>{t('vehicle.columns.severity')}</Text>
+              <Text style={[S.tableHeaderText, S.colState]}>{t('vehicle.columns.status')}</Text>
+              <Text style={[S.tableHeaderText, S.colAmt]}>{t('vehicle.columns.cost')}</Text>
             </View>
             {compliance.openIncidents.map((inc, i) => (
               <View key={i} style={i % 2 === 1 ? [S.row, S.rowAlt] : S.row} wrap={false}>
                 <Text style={[S.cell, S.colDate]}>{dt(inc.tanggal)}</Text>
                 <Text style={[S.cell, S.colDesc]}>{inc.description ?? '—'}</Text>
-                <Text style={[S.cell, S.colState]}>{lbl(inc.severity)}</Text>
-                <Text style={[S.cell, S.colState]}>{lbl(inc.status)}</Text>
+                <Text style={[S.cell, S.colState]}>{lbl(t, inc.severity)}</Text>
+                <Text style={[S.cell, S.colState]}>{lbl(t, inc.status)}</Text>
                 <Text style={[S.cell, S.colAmt]}>{rp(inc.cost)}</Text>
               </View>
             ))}
@@ -289,49 +291,33 @@ export default function VehicleReportPDF({ report, company, generatedAt }: Props
         )}
 
         {/* Kondisi fisik */}
-        <Text style={S.sectionTitle} minPresenceAhead={70}>Kondisi Fisik</Text>
-        <Text style={S.noteText}>
-          Inspeksi terakhir:{' '}
-          {condition.lastInspection
-            ? `${dt(condition.lastInspection.tanggal)}, hasil ${lbl(condition.lastInspection.overallResult)}${
-                condition.lastInspection.odometer != null ? ` pada ${num(condition.lastInspection.odometer)} km` : ''
-              }${condition.lastInspection.notes ? `. ${condition.lastInspection.notes}` : ''}`
-            : 'belum ada catatan.'}
-        </Text>
-        <Text style={S.noteText}>
-          Ganti oli terakhir:{' '}
-          {condition.lastOil
-            ? `${dt(condition.lastOil.tanggal)} pada ${num(condition.lastOil.odometer)} km${
-                condition.lastOil.brand ? ` (${condition.lastOil.brand})` : ''
-              }. Jadwal berikutnya ${num(condition.lastOil.nextOdometerDue)} km${
-                condition.lastOil.remainingKm != null ? `, sisa ${num(condition.lastOil.remainingKm)} km` : ''
-              }${condition.lastOil.isDue ? '. Sudah jatuh tempo.' : '.'}`
-            : 'belum ada log.'}
-        </Text>
+        <Text style={S.sectionTitle} minPresenceAhead={70}>{t('vehicle.physicalCondition')}</Text>
+        <Text style={S.noteText}>{t('vehicle.lastInspection', { value: lastInspectionText })}</Text>
+        <Text style={S.noteText}>{t('vehicle.lastOil', { value: lastOilText })}</Text>
 
         {condition.activeTires.length > 0 && (
           <>
-            <Text style={[S.sectionTitle, { marginTop: 8 }]} minPresenceAhead={70}>Ban Terpasang ({condition.activeTireCount})</Text>
+            <Text style={[S.sectionTitle, { marginTop: 8 }]} minPresenceAhead={70}>{t('vehicle.activeTires', { count: condition.activeTireCount })}</Text>
             <View style={S.tableHeader}>
-              <Text style={[S.tableHeaderText, S.colDoc]}>POSISI</Text>
-              <Text style={[S.tableHeaderText, S.colDesc]}>MEREK / SERIAL</Text>
-              <Text style={[S.tableHeaderText, S.colDate]}>DIPASANG</Text>
-              <Text style={[S.tableHeaderText, S.colAmt]}>PEMAKAIAN</Text>
+              <Text style={[S.tableHeaderText, S.colDoc]}>{t('vehicle.columns.position')}</Text>
+              <Text style={[S.tableHeaderText, S.colDesc]}>{t('vehicle.columns.brandSerial')}</Text>
+              <Text style={[S.tableHeaderText, S.colDate]}>{t('vehicle.columns.installed')}</Text>
+              <Text style={[S.tableHeaderText, S.colAmt]}>{t('vehicle.columns.usage')}</Text>
             </View>
-            {condition.activeTires.map((t, i) => (
+            {condition.activeTires.map((tire, i) => (
               <View key={i} style={i % 2 === 1 ? [S.row, S.rowAlt] : S.row} wrap={false}>
-                <Text style={[S.cell, S.colDoc]}>{lbl(t.position)}</Text>
+                <Text style={[S.cell, S.colDoc]}>{lbl(t, tire.position)}</Text>
                 <Text style={[S.cell, S.colDesc]}>
-                  {t.brand ?? '—'}{t.serialNumber ? ` · ${t.serialNumber}` : ''}
+                  {tire.brand ?? '—'}{tire.serialNumber ? ` · ${tire.serialNumber}` : ''}
                 </Text>
-                <Text style={[S.cell, S.colDate]}>{dt(t.installedAt)}</Text>
-                <Text style={[S.cell, S.colAmt]}>{t.usageKm != null ? `${num(t.usageKm)} km` : '—'}</Text>
+                <Text style={[S.cell, S.colDate]}>{dt(tire.installedAt)}</Text>
+                <Text style={[S.cell, S.colAmt]}>{tire.usageKm != null ? `${num(tire.usageKm)} km` : '—'}</Text>
               </View>
             ))}
           </>
         )}
 
-        <PdfFooter company={company.name} docRef={`Report Kendaraan ${asset.code}`} paddingHorizontal={36} printedAt={pdfDateTime(generatedAt)} />
+        <PdfFooter company={company.name} docRef={t('vehicle.docTitle', { code: asset.code })} paddingHorizontal={36} printedAt={pdfDateTime(generatedAt)} />
       </Page>
     </Document>
   );
