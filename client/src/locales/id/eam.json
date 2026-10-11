@@ -2451,5 +2451,16 @@
         "spare": "Cadangan"
       }
     }
+  },
+  "fleetPresets": {
+    "last12": "12 bulan terakhir",
+    "thisQuarter": "Kuartal ini",
+    "ytd": "Tahun berjalan",
+    "lastYear": "Tahun lalu",
+    "custom": "Rentang khusus"
+  },
+  "itemImage": {
+    "noPhoto": "Tanpa foto",
+    "photo": "Foto item inventaris"
   }
 }

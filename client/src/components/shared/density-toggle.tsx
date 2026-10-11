@@ -1,6 +1,7 @@
 import { Rows3, Rows4 } from 'lucide-react';
 import type { TableDensity } from '@/hooks/useTableDensity';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface DensityToggleProps {
   value: TableDensity;
@@ -9,21 +10,22 @@ export interface DensityToggleProps {
 }
 
 const OPTIONS = [
-  { value: 'comfortable', label: 'Tampilan nyaman', icon: Rows3 },
-  { value: 'compact', label: 'Tampilan ringkas', icon: Rows4 },
+  { value: 'comfortable', labelKey: 'density.comfortable', icon: Rows3 },
+  { value: 'compact', labelKey: 'density.compact', icon: Rows4 },
 ] as const;
 
 /** Two-button segmented control: Nyaman (44px rows) / Ringkas (36px rows). */
 export function DensityToggle({ value, onChange, className }: DensityToggleProps) {
+  const { t } = useTranslation();
   return (
-    <div role="group" aria-label="Kerapatan tabel" className={cn('inline-flex rounded-md border border-border bg-card p-0.5', className)}>
-      {OPTIONS.map(({ value: v, label, icon: Icon }) => (
+    <div role="group" aria-label={t('density.groupLabel')} className={cn('inline-flex rounded-md border border-border bg-card p-0.5', className)}>
+      {OPTIONS.map(({ value: v, labelKey, icon: Icon }) => (
         <button
           key={v}
           type="button"
           aria-pressed={value === v}
-          aria-label={label}
-          title={label}
+          aria-label={t(labelKey)}
+          title={t(labelKey)}
           onClick={() => onChange(v)}
           className={cn(
             'inline-flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors md:size-7',

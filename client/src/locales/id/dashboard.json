@@ -730,5 +730,8 @@
       "empty": "Tidak ada data untuk ditampilkan pada periode ini.",
       "viewAll": "Lihat semua"
     }
+  },
+  "sectionNav": {
+    "label": "Bagian dasbor"
   }
 }

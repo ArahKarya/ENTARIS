@@ -730,5 +730,8 @@
       "empty": "No data to show for this period.",
       "viewAll": "View all"
     }
+  },
+  "sectionNav": {
+    "label": "Dashboard sections"
   }
 }

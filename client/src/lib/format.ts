@@ -193,8 +193,8 @@ export function formatDateRange(start: DateInput, end: DateInput): string {
   const b = parseDate(end);
   const full = (d: Date) => `${d.getDate()} ${monthShort(d)} ${d.getFullYear()}`;
   if (!a && !b) return EMPTY_VALUE;
-  if (a && !b) return `Sejak ${full(a)}`;
-  if (!a && b) return `Sampai ${full(b)}`;
+  if (a && !b) return LOCALE.startsWith('en') ? `From ${full(a)}` : `Sejak ${full(a)}`;
+  if (!a && b) return LOCALE.startsWith('en') ? `Until ${full(b)}` : `Sampai ${full(b)}`;
   const from = a as Date;
   const to = b as Date;
   const sameYear = from.getFullYear() === to.getFullYear();

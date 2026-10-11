@@ -261,5 +261,40 @@
   },
   "statCard": {
     "viewDetail": "View details"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "accountant": "Accountant",
+    "staffProduksi": "Production Staff",
+    "viewer": "Viewer",
+    "user": "User"
+  },
+  "paymentTerm": {
+    "cash": "Cash",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
+  },
+  "density": {
+    "groupLabel": "Table density",
+    "comfortable": "Comfortable view",
+    "compact": "Compact view"
+  },
+  "dueState": {
+    "overdue": "Overdue",
+    "dueSoon": "Due soon",
+    "valid": "Valid",
+    "overdueShort": "Overdue",
+    "dueSoonShort": "Soon",
+    "validShort": "Valid",
+    "nearShort": "Due soon"
+  },
+  "pdfButton": {
+    "download": "Download PDF",
+    "generating": "Generating PDF…"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Reload the page or try again.",
+    "retry": "Try again"
   }
 }

@@ -1,13 +1,14 @@
 /** Period presets of the fleet report (URL: ?period=…&startDate=…&endDate=…). */
 import { formatDateRange } from '@/lib/format';
+import i18n from '@/i18n';
 
 export type ReportPreset = 'last12' | 'ytd' | 'lastYear' | 'thisQuarter' | 'custom';
 export const REPORT_PRESETS: ReadonlyArray<{ value: ReportPreset; label: string }> = [
-  { value: 'last12', label: '12 bulan terakhir' },
-  { value: 'thisQuarter', label: 'Kuartal ini' },
-  { value: 'ytd', label: 'Tahun berjalan' },
-  { value: 'lastYear', label: 'Tahun lalu' },
-  { value: 'custom', label: 'Rentang khusus' },
+  { value: 'last12', get label() { return i18n.t('eam:fleetPresets.last12'); } },
+  { value: 'thisQuarter', get label() { return i18n.t('eam:fleetPresets.thisQuarter'); } },
+  { value: 'ytd', get label() { return i18n.t('eam:fleetPresets.ytd'); } },
+  { value: 'lastYear', get label() { return i18n.t('eam:fleetPresets.lastYear'); } },
+  { value: 'custom', get label() { return i18n.t('eam:fleetPresets.custom'); } },
 ];
 export const DEFAULT_REPORT_PRESET: ReportPreset = 'last12';
 

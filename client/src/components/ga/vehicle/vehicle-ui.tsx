@@ -9,11 +9,12 @@ import { formatDate } from '@/lib/format';
 import type { StatusTone } from '@/lib/status';
 import { cn } from '@/lib/utils';
 import type { DueState } from './vehicle-model';
+import i18n from '@/i18n';
 
-const DUE_META: Record<DueState, { label: string; short: string; icon: typeof Clock; className: string }> = {
-  overdue: { label: 'Lewat jatuh tempo', short: 'Lewat tempo', icon: AlertTriangle, className: 'text-danger-text' },
-  dueSoon: { label: 'Segera jatuh tempo', short: 'Segera', icon: Clock, className: 'text-warning-text' },
-  ok: { label: 'Masih berlaku', short: 'Berlaku', icon: CheckCircle2, className: 'text-success-text' },
+const DUE_META: Record<DueState, { readonly label: string; readonly short: string; icon: typeof Clock; className: string }> = {
+  overdue: { get label() { return i18n.t('dueState.overdue'); }, get short() { return i18n.t('dueState.overdueShort'); }, icon: AlertTriangle, className: 'text-danger-text' },
+  dueSoon: { get label() { return i18n.t('dueState.dueSoon'); }, get short() { return i18n.t('dueState.dueSoonShort'); }, icon: Clock, className: 'text-warning-text' },
+  ok: { get label() { return i18n.t('dueState.valid'); }, get short() { return i18n.t('dueState.validShort'); }, icon: CheckCircle2, className: 'text-success-text' },
 };
 
 interface DueMarkerProps {

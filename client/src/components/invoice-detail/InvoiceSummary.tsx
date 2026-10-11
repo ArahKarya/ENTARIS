@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { formatRupiah } from '@/lib/format';
 import type { DeductionsSummary } from '@/lib/invoiceDeductions';
+import i18n from '@/i18n';
 
 interface InvoiceSummaryProps {
   invoice: any;
@@ -39,7 +40,7 @@ export function InvoiceSummary({
         <div className="w-full space-y-2 sm:w-72">
           {totalQtyLabel && (
             <div className="flex justify-between gap-3 text-sm">
-              <span className="text-muted-foreground">Total Qty</span>
+              <span className="text-muted-foreground">{i18n.t('sales:invoiceExtras.totalQty')}</span>
               <span className="tabular-nums text-foreground">{totalQtyLabel}</span>
             </div>
           )}

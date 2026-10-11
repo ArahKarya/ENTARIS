@@ -55,8 +55,12 @@ const GoodsReceiptDetailDrawer: React.FC<Props> = ({ sttId, onClose }) => {
     },
     onError: (err: any) => {
       const msg = err.response?.data?.error || t('receiptDetail.errorCancel');
-      // Insufficient stock (goods already issued): offer a forced retry with a reason.
-      if (/tidak mencukupi|stok/i.test(msg) && /tidak dapat membatalkan/i.test(msg)) {
+      // Insufficient stock (goods already issued): offer a forced retry with a reason. The server's
+      // code is language-independent; the text check covers servers older than the code.
+      const insufficient =
+        err.response?.data?.code === 'GR_CANCEL_INSUFFICIENT_STOCK' ||
+        (/tidak mencukupi|stok/i.test(msg) && /tidak dapat membatalkan/i.test(msg));
+      if (insufficient) {
         setOverrideMessage(msg);
         return;
       }

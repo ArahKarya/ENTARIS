@@ -2,6 +2,7 @@
  * Mirrors server/src/services/purchaseOrderCalc.ts: net = qty × rate × (1 − disc%); amount = net + net × taxPct%;
  * grand total = Σ amount + other costs. Every step rounds half-up to 2 decimals (decimal.js ROUND_HALF_UP).
  */
+import i18n from '@/i18n';
 
 /** Half-up rounding to 2 dp without binary float drift (33.335 → 33.34). */
 export function round2(value: number): number {
@@ -66,7 +67,7 @@ export const PAYMENT_TERM_PRESETS = [0, 7, 14, 30, 45, 60] as const;
 
 export function paymentTermLabel(days: number | null | undefined): string {
   if (days == null) return '—';
-  return days === 0 ? 'Tunai' : `${days} hari`;
+  return days === 0 ? i18n.t('paymentTerm.cash') : i18n.t('paymentTerm.days', { count: days });
 }
 
 /** Due date (YYYY-MM-DD) = PO date + term days; null when either is missing. */

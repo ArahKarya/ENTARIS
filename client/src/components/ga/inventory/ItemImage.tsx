@@ -7,6 +7,7 @@ import { Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { itemImageUrl, type GaItemRow } from './ga-inventory-model';
+import i18n from '@/i18n';
 
 interface ItemThumbProps {
   item: Pick<GaItemRow, 'id' | 'name' | 'imagePath'>;
@@ -23,7 +24,7 @@ export function ItemThumb({ item, onPreview, className }: ItemThumbProps) {
     return (
       <span className={cn(BOX, 'flex items-center justify-center border-dashed bg-muted text-muted-foreground', className)}>
         <Package className="size-4" aria-hidden />
-        <span className="sr-only">Tanpa foto</span>
+        <span className="sr-only">{i18n.t('eam:itemImage.noPhoto')}</span>
       </span>
     );
   }
@@ -61,7 +62,7 @@ export function ItemImageDialog({ item, onClose }: ItemImageDialogProps) {
         {item && (
           <>
             <DialogTitle className="pr-8">{item.name}</DialogTitle>
-            <DialogDescription className="sr-only">Foto item inventaris</DialogDescription>
+            <DialogDescription className="sr-only">{i18n.t('eam:itemImage.photo')}</DialogDescription>
             <img
               src={itemImageUrl(item.id, item.imagePath)}
               alt={`Foto ${item.name}`}

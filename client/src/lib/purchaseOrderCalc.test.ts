@@ -53,3 +53,17 @@ describe('payment terms', () => {
     expect(poDueDate('2026-10-04', null)).toBeNull();
   });
 });
+
+describe('paymentTermLabel in English', () => {
+  it('follows the UI language', async () => {
+    const { default: i18n } = await import('@/i18n');
+    await i18n.changeLanguage('en');
+    try {
+      expect(paymentTermLabel(0)).toBe('Cash');
+      expect(paymentTermLabel(1)).toBe('1 day');
+      expect(paymentTermLabel(30)).toBe('30 days');
+    } finally {
+      await i18n.changeLanguage('id');
+    }
+  });
+});

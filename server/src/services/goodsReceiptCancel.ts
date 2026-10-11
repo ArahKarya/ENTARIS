@@ -5,6 +5,9 @@ import { updateAccountBalance } from '../utils/accountBalance';
 import { logger } from '../lib/logger';
 import { recomputeAverageCostFromReplay } from './averageCostRecompute';
 
+/** Error code: reversal would drive stock negative; the client offers a forced cancel. */
+export const GOODS_RECEIPT_CANCEL_INSUFFICIENT_STOCK = 'GR_CANCEL_INSUFFICIENT_STOCK';
+
 type Tx = Prisma.TransactionClient;
 
 interface CancelOptions {
@@ -93,6 +96,7 @@ export async function cancelGoodsReceiptInTx(
         throw new BusinessError(
           `Tidak dapat membatalkan STT ${stt.sttNumber}: stok '${grItem.inventoryItem?.name ?? grItem.inventoryItemId}' tidak mencukupi untuk pembalikan (tersedia ${available}, perlu ${qty}). ` +
             'Barang sudah keluar (terjual/produksi). Batalkan transaksi tersebut dulu.',
+          GOODS_RECEIPT_CANCEL_INSUFFICIENT_STOCK,
         );
       }
       logger.warn(

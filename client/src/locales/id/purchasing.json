@@ -669,5 +669,6 @@
       "message": "Apakah Anda yakin ingin membatalkan uang muka {{number}}? Saldo akun dan deposit supplier akan dikembalikan.",
       "confirm": "Ya, Batalkan"
     }
-  }
+  },
+  "documentDetails": "Rincian dokumen"
 }

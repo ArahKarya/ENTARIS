@@ -1,18 +1,19 @@
 import { AlertTriangle, Clock } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import i18n from '@/i18n';
 
 /** Server-derived (`dueState` on paged rows): open guarantee past / near its expected return date. */
 export type GuaranteeDueState = 'overdue' | 'dueSoon';
 
 const DUE_LABEL: Record<GuaranteeDueState, string> = {
-  overdue: 'Lewat jatuh tempo',
-  dueSoon: 'Segera jatuh tempo',
+  get overdue() { return i18n.t('dueState.overdue'); },
+  get dueSoon() { return i18n.t('dueState.dueSoon'); },
 };
 /** Narrow-screen variant (mobile stack under the amount). */
 const DUE_LABEL_SHORT: Record<GuaranteeDueState, string> = {
-  overdue: 'Lewat tempo',
-  dueSoon: 'Dekat tempo',
+  get overdue() { return i18n.t('dueState.overdueShort'); },
+  get dueSoon() { return i18n.t('dueState.nearShort'); },
 };
 
 interface DueDateProps {

@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import i18n from '@/i18n';
 
 export interface DetailSheetProps {
   open: boolean;
@@ -52,7 +53,7 @@ export function DetailSheet({
           {description ? (
             <SheetDescription>{description}</SheetDescription>
           ) : (
-            <SheetDescription className="sr-only">Rincian dokumen</SheetDescription>
+            <SheetDescription className="sr-only">{i18n.t('purchasing:documentDetails')}</SheetDescription>
           )}
           {headerActions && <div className={cn('flex flex-wrap items-center gap-2 pt-1')}>{headerActions}</div>}
         </SheetHeader>

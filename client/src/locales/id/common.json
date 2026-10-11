@@ -261,5 +261,40 @@
   },
   "statCard": {
     "viewDetail": "Lihat detail"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "accountant": "Akuntan",
+    "staffProduksi": "Staf Produksi",
+    "viewer": "Peninjau",
+    "user": "Pengguna"
+  },
+  "paymentTerm": {
+    "cash": "Tunai",
+    "days_one": "{{count}} hari",
+    "days_other": "{{count}} hari"
+  },
+  "density": {
+    "groupLabel": "Kerapatan tabel",
+    "comfortable": "Tampilan nyaman",
+    "compact": "Tampilan ringkas"
+  },
+  "dueState": {
+    "overdue": "Lewat jatuh tempo",
+    "dueSoon": "Segera jatuh tempo",
+    "valid": "Masih berlaku",
+    "overdueShort": "Lewat tempo",
+    "dueSoonShort": "Segera",
+    "validShort": "Berlaku",
+    "nearShort": "Dekat tempo"
+  },
+  "pdfButton": {
+    "download": "Unduh PDF",
+    "generating": "Membuat PDF…"
+  },
+  "errorBoundary": {
+    "title": "Terjadi kesalahan tak terduga",
+    "body": "Silakan muat ulang halaman atau coba lagi.",
+    "retry": "Coba lagi"
   }
 }

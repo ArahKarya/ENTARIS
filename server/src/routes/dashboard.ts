@@ -1,8 +1,12 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { prisma } from '../lib/prisma';
 import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import fixedAssetsRouter from './dashboard/fixedAssets';
+import { requestLanguage } from '../middleware/responseLanguage';
+
+/** Chart month labels follow the UI language the client sends. */
+const monthLocale = (req: Pick<Request, 'get'>): string => (requestLanguage(req) === 'en' ? 'en-US' : 'id-ID');
 
 const router = Router();
 
@@ -120,7 +124,7 @@ router.get('/charts', async (req, res) => {
     while (cursor <= endCap) {
       months.push({
         key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
-        name: cursor.toLocaleString('id-ID', { month: 'short', year: '2-digit' }),
+        name: cursor.toLocaleString(monthLocale(req), { month: 'short', year: '2-digit' }),
       });
       cursor.setMonth(cursor.getMonth() + 1);
     }
@@ -536,7 +540,7 @@ router.get('/monthly-profit', async (req, res) => {
     while (cursor <= endCap) {
       months.push({
         key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
-        name: cursor.toLocaleString('id-ID', { month: 'short', year: '2-digit' }),
+        name: cursor.toLocaleString(monthLocale(req), { month: 'short', year: '2-digit' }),
       });
       cursor.setMonth(cursor.getMonth() + 1);
     }

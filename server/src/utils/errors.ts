@@ -2,9 +2,12 @@ import { Response } from 'express';
 import { logger } from '../lib/logger';
 
 export class BusinessError extends Error {
-  constructor(message: string) {
+  /** Stable machine-readable code for clients; the message may be translated. */
+  readonly code?: string;
+  constructor(message: string, code?: string) {
     super(message);
     this.name = 'BusinessError';
+    this.code = code;
   }
 }
 
@@ -14,7 +17,7 @@ export class BusinessError extends Error {
  */
 export function handleRouteError(res: Response, error: any, context: string, fallbackMsg: string) {
   if (error instanceof BusinessError) {
-    return res.status(400).json({ error: error.message });
+    return res.status(400).json(error.code ? { error: error.message, code: error.code } : { error: error.message });
   }
   if (error?.code === 'P2025') {
     return res.status(400).json({ error: 'Data terkait tidak ditemukan. Periksa referensi yang dipilih.' });

@@ -8,6 +8,7 @@ import { formatRupiah } from '@/lib/format';
 import {
   TableRegion,
 } from '@/components/sales-a/overlay-parts';
+import i18n from '@/i18n';
 
 export function InvoiceMarginAnalysis({ items }: { items: any[] }) {
   const productLines = items.filter((i: any) => i.inventoryItemId);
@@ -33,7 +34,7 @@ export function InvoiceMarginAnalysis({ items }: { items: any[] }) {
       <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-success-text">
         Margin Analysis ({lineWithLoaded.length}/{productLines.length} line tracked)
       </h3>
-      <TableRegion label="Analisis margin" className="border-success/30 bg-success-subtle/30">
+      <TableRegion label={i18n.t('sales:invoiceExtras.marginAnalysis')} className="border-success/30 bg-success-subtle/30">
         <table className="w-full min-w-[420px] text-xs">
           <thead>
             <tr className="border-b border-success/30 bg-success-subtle text-success-text">
