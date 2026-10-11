@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { useCompanySettings } from '@/contexts/CompanySettingsContext';
@@ -38,13 +39,6 @@ interface OnboardingWizardProps {
 
 const COMPANY_KEY = ['company-settings'] as const;
 
-const STEP_COPY: Record<StepId, { title: string; description: string }> = {
-  welcome: { title: 'Selamat datang di Entaris', description: 'Siapkan perusahaan Anda dalam beberapa menit.' },
-  company: { title: 'Profil perusahaan', description: 'Data ini tampil di kop faktur, surat jalan, dan laporan.' },
-  fiscal: { title: 'Tahun buku', description: 'Periode akuntansi tempat transaksi dicatat.' },
-  security: { title: 'Keamanan akun', description: 'Ganti kata sandi bawaan akun admin sebelum tim mulai bekerja.' },
-  done: { title: 'Penyiapan selesai', description: 'Anda bisa mulai menggunakan Entaris.' },
-};
 
 function errorMessage(err: unknown, fallback: string): string {
   const data = (err as { response?: { data?: { error?: unknown } } })?.response?.data;
@@ -69,6 +63,7 @@ const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
 };
 
 function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClose: () => void }) {
+  const { t } = useTranslation(['shell', 'common']);
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -115,7 +110,7 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
       markDoneLocally();
       return true;
     } catch {
-      toast.error('Status penyiapan gagal disimpan. Panduan ini akan muncul lagi saat Anda masuk berikutnya.');
+      toast.error(t('onboarding.persistFailed'));
       return false;
     }
   };
@@ -130,7 +125,7 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
 
   const saveCompany = async (): Promise<boolean> => {
     if (!companyForm.companyName.trim()) {
-      setCompanyError('Nama perusahaan wajib diisi.');
+      setCompanyError(t('onboarding.company.nameRequired'));
       return false;
     }
     setCompanyError(undefined);
@@ -139,7 +134,7 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
       await queryClient.invalidateQueries({ queryKey: COMPANY_KEY });
       return true;
     } catch (err) {
-      setCompanyError(errorMessage(err, 'Gagal menyimpan profil perusahaan.'));
+      setCompanyError(errorMessage(err, t('onboarding.company.saveFailed')));
       return false;
     }
   };
@@ -149,8 +144,8 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
     const { currentPassword, newPassword, confirmPassword } = passwordForm;
     if (!currentPassword && !newPassword && !confirmPassword) return true;
     const problem = !currentPassword
-      ? 'Isi kata sandi saat ini.'
-      : passwordProblem(newPassword) ?? (newPassword !== confirmPassword ? 'Ulangan kata sandi baru tidak cocok.' : null);
+      ? t('onboarding.security.currentRequired')
+      : passwordProblem(newPassword) ?? (newPassword !== confirmPassword ? t('onboarding.security.mismatch') : null);
     if (problem) {
       setPasswordError(problem);
       return false;
@@ -161,10 +156,10 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
     try {
       await api.put('/users/me/password', { currentPassword, newPassword });
     } catch (err) {
-      setPasswordError(errorMessage(err, 'Gagal mengganti kata sandi.'));
+      setPasswordError(errorMessage(err, t('onboarding.security.failed')));
       return false;
     }
-    toast.success('Kata sandi diganti. Silakan masuk lagi dengan kata sandi baru.');
+    toast.success(t('onboarding.security.changed'));
     localStorage.removeItem('user');
     queryClient.clear();
     window.location.assign('/login');
@@ -184,13 +179,16 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
 
   const wantsPasswordChange = Object.values(passwordForm).some(Boolean);
   const primaryLabel: Record<StepId, string> = {
-    welcome: 'Mulai penyiapan',
-    company: 'Simpan & lanjut',
-    fiscal: 'Lanjut',
-    security: wantsPasswordChange ? 'Ganti kata sandi' : 'Lanjut tanpa mengganti',
-    done: 'Mulai gunakan Entaris',
+    welcome: t('onboarding.primary.welcome'),
+    company: t('onboarding.primary.company'),
+    fiscal: t('onboarding.primary.fiscal'),
+    security: wantsPasswordChange ? t('onboarding.primary.securityChange') : t('onboarding.primary.securitySkip'),
+    done: t('onboarding.primary.done'),
   };
-  const copy = STEP_COPY[stepId];
+  const copy = {
+    title: t(`onboarding.stepCopy.${stepId}.title`),
+    description: t(`onboarding.stepCopy.${stepId}.description`),
+  };
 
   return (
     <Dialog open onOpenChange={(open) => !open && void finish()}>
@@ -209,10 +207,10 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
           <div className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <BrandMark size={20} variant="auto" title="" aria-hidden />
-              Penyiapan awal
+              {t('onboarding.header')}
             </span>
             <span className="text-xs text-muted-foreground tabular-nums">
-              Langkah {step + 1} dari {STEPS.length}
+              {t('onboarding.stepOf', { current: step + 1, total: STEPS.length })}
             </span>
           </div>
           <Stepper current={step} />
@@ -233,7 +231,7 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
         <DialogFooter className="items-stretch border-t border-border pt-4 sm:items-center sm:justify-between">
           {stepId !== 'done' ? (
             <Button variant="ghost" size="md" onClick={() => void finish()} disabled={busy} className="text-muted-foreground">
-              Lewati penyiapan
+              {t('onboarding.skip')}
             </Button>
           ) : (
             <span aria-hidden />
@@ -241,7 +239,7 @@ function WizardDialog({ company, onClose }: { company: OnboardingCompany; onClos
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             {step > 0 && stepId !== 'done' && (
               <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={busy}>
-                Kembali
+                {t('common:actions.back')}
               </Button>
             )}
             <Button ref={primaryRef} onClick={() => void next()} loading={busy}>

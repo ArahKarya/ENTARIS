@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatNumber } from '@/lib/format';
 import { PAGE_SIZE_OPTIONS, getPageCount, getPageItems, getRowRange } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface PaginationProps {
   /** 1-based current page. */
@@ -44,6 +45,7 @@ export function Pagination({
   extra,
   className,
 }: PaginationProps) {
+  const { t } = useTranslation('common');
   const sizeId = useId();
   const pageCount = getPageCount(total, pageSize);
   const { from, to } = getRowRange(page, pageSize, total);
@@ -53,11 +55,16 @@ export function Pagination({
     if (!disabled && !loading && total > 0 && page > pageCount) onPageChange(pageCount);
   }, [disabled, loading, total, page, pageCount, onPageChange]);
 
+  const range = { from: formatNumber(from), to: formatNumber(to), total: formatNumber(total) };
   const summary = loading
-    ? 'Memuat…'
+    ? t('states.loading')
     : total === 0
-      ? `Tidak ada ${itemLabel ?? 'data'}`
-      : `Menampilkan ${formatNumber(from)}–${formatNumber(to)} dari ${formatNumber(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
+      ? itemLabel
+        ? t('pagination.noneOf', { item: itemLabel })
+        : t('pagination.none')
+      : itemLabel
+        ? t('pagination.summaryOf', { ...range, item: itemLabel })
+        : t('pagination.summary', range);
 
   return (
     <div
@@ -75,7 +82,7 @@ export function Pagination({
         {onPageSizeChange && (
           <div className="hidden items-center gap-2 sm:flex">
             <label htmlFor={sizeId} className="whitespace-nowrap text-muted-foreground">
-              Baris per halaman
+              {t('pagination.rowsPerPage')}
             </label>
             <Select
               value={String(pageSize)}
@@ -96,13 +103,13 @@ export function Pagination({
           </div>
         )}
 
-        <nav aria-label="Paginasi" className="flex items-center gap-1">
+        <nav aria-label={t('pagination.label')} className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={() => onPageChange(page - 1)}
             disabled={disabled || loading || page <= 1}
-            aria-label="Halaman sebelumnya"
+            aria-label={t('pagination.previous')}
           >
             <ChevronLeft aria-hidden />
           </Button>
@@ -124,7 +131,7 @@ export function Pagination({
                     )}
                     onClick={() => onPageChange(item)}
                     disabled={disabled || loading}
-                    aria-label={`Halaman ${item}`}
+                    aria-label={t('pagination.page', { page: item })}
                     aria-current={item === page ? 'page' : undefined}
                   >
                     {item}
@@ -143,7 +150,7 @@ export function Pagination({
             size="icon-sm"
             onClick={() => onPageChange(page + 1)}
             disabled={disabled || loading || page >= pageCount}
-            aria-label="Halaman berikutnya"
+            aria-label={t('pagination.next')}
           >
             <ChevronRight aria-hidden />
           </Button>
