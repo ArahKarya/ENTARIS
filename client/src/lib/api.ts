@@ -1,5 +1,10 @@
 import axios from 'axios';
 import { queryClient } from './queryClient';
+import i18n from '@/i18n';
+import { normalizeLanguage } from '@/i18n/language';
+
+/** Header that tells the server which language to answer in (messages, PDFs, exports). */
+export const LANGUAGE_HEADER = 'X-Entaris-Lang';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -7,6 +12,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  config.headers[LANGUAGE_HEADER] = normalizeLanguage(i18n.language);
   // Add CSRF token for state-changing requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
     const csrfToken = document.cookie

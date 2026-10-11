@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { BrandMark } from '@/components/shared/brand-mark';
-import { AUTH_COPY, VENDOR_NAME, type AuthProduct } from './auth-copy';
+import { setUiLanguage } from '@/i18n';
+import { LANGUAGE_OPTIONS, normalizeLanguage } from '@/i18n/language';
+import { authCopy, VENDOR_NAME, type AuthProduct } from './auth-copy';
 
 /**
  * Concept A "Quiet split" (plan §3.2): flat navy brand panel (≥1024px) + a
@@ -37,11 +40,12 @@ function WordmarkText({ onDark }: { onDark: boolean }) {
 }
 
 function BrandPanel({ product }: { product: AuthProduct }) {
-  const copy = AUTH_COPY[product];
+  const { t } = useTranslation('auth');
+  const copy = authCopy(product);
   const year = new Date().getFullYear();
   return (
     <aside
-      aria-label="Tentang Entaris"
+      aria-label={t('layout.about')}
       className="relative hidden overflow-hidden bg-(--brand-navy) px-12 py-12 text-white lg:flex lg:flex-col dark:border-r dark:border-(--border)"
     >
       {/* Static ∇ watermark, cropped at the bottom-right corner. */}
@@ -84,17 +88,52 @@ function BrandPanel({ product }: { product: AuthProduct }) {
   );
 }
 
+/**
+ * Language choice before sign-in. Stored on this device only (setUiLanguage); after
+ * sign-in the account's language wins. Two square-cornered buttons, no pills (DESIGN.md).
+ */
+function LanguageToggle() {
+  const { t, i18n } = useTranslation('auth');
+  const current = normalizeLanguage(i18n.language);
+  return (
+    <div role="group" aria-label={t('languageToggle.label')} className="inline-flex rounded-sm border border-(--border) p-0.5">
+      {LANGUAGE_OPTIONS.map((option) => {
+        const active = option.id === current;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            lang={option.id}
+            aria-pressed={active}
+            onClick={() => setUiLanguage(option.id)}
+            className={
+              'rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ' +
+              (active
+                ? 'bg-(--surface-sunken) text-(--text)'
+                : 'text-(--text-muted) hover:text-(--text)') +
+              ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--surface)'
+            }
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function FooterLinks({ onHelp }: { onHelp: () => void }) {
+  const { t } = useTranslation('auth');
   return (
     <p className="flex items-center gap-2 text-xs text-(--text-muted)">
       <button type="button" onClick={onHelp} className={footerLink}>
-        Bantuan
+        {t('layout.help')}
       </button>
       {PRIVACY_URL && (
         <>
           <span aria-hidden>·</span>
           <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className={footerLink}>
-            Kebijakan Privasi
+            {t('layout.privacy')}
           </a>
         </>
       )}
@@ -124,7 +163,10 @@ export function AuthLayout({ product = 'ERP', children, onHelp }: AuthLayoutProp
           <p className="text-xs text-(--text-muted) lg:hidden">
             © {year} {VENDOR_NAME}
           </p>
-          <FooterLinks onHelp={onHelp} />
+          <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-center lg:gap-4">
+            <FooterLinks onHelp={onHelp} />
+            <LanguageToggle />
+          </div>
         </footer>
       </main>
     </div>

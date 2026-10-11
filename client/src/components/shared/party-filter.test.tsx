@@ -77,7 +77,7 @@ describe('PartyFilter', () => {
     await waitFor(() => expect(screen.getByRole('combobox')).toHaveTextContent('Pemasok Terpilih'));
 
     fireEvent.click(screen.getByRole('combobox'));
-    fireEvent.change(screen.getByPlaceholderText('Cari pemasok…'), { target: { value: 'zulu' } });
+    fireEvent.change(screen.getByPlaceholderText('Cari supplier…'), { target: { value: 'zulu' } });
     const option = await screen.findByRole('option', { name: 'Zulu Makmur' });
     expect(get).toHaveBeenCalledWith('/parties', {
       params: { type: 'Supplier', search: 'zulu', isActive: undefined, sort: 'name', limit: 500 },

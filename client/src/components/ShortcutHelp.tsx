@@ -1,4 +1,5 @@
 import { Fragment, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SHORTCUTS, SHORTCUT_GROUPS, comboKeycaps, type ShortcutDef } from '@/hooks/shortcuts';
 import { allowedGoToShortcuts } from '@/hooks/useHotkeys';
@@ -14,6 +15,7 @@ const kbdClass =
 
 /** Keycaps for every combo of a shortcut: "Ctrl K", "G lalu D", "↑ / ↓". */
 function Combo({ combos }: { combos: readonly string[] }) {
+  const { t } = useTranslation('shell');
   return (
     <span className="flex shrink-0 flex-wrap items-center justify-end gap-1">
       {combos.map((combo, ci) => (
@@ -21,7 +23,7 @@ function Combo({ combos }: { combos: readonly string[] }) {
           {ci > 0 && <span className="text-xs text-muted-foreground">/</span>}
           {comboKeycaps(combo).map((step, si) => (
             <Fragment key={si}>
-              {si > 0 && <span className="text-xs text-muted-foreground">lalu</span>}
+              {si > 0 && <span className="text-xs text-muted-foreground">{t('shortcuts.then')}</span>}
               {step.map((k) => (
                 <kbd key={k} className={kbdClass}>
                   {k}
@@ -37,6 +39,7 @@ function Combo({ combos }: { combos: readonly string[] }) {
 
 /** "Pintasan Keyboard" dialog. Lists the shared shortcut map (hooks/shortcuts.ts). */
 export function ShortcutHelp({ isOpen, onClose }: ShortcutHelpProps) {
+  const { t } = useTranslation('shell');
   // Go-to shortcuts appear only for pages the user may open (same rule as the sidebar).
   const groups = useMemo(() => {
     if (!isOpen) return [];
@@ -58,14 +61,14 @@ export function ShortcutHelp({ isOpen, onClose }: ShortcutHelpProps) {
         onCloseAutoFocus={returnFocus.onCloseAutoFocus}
       >
         <DialogHeader>
-          <DialogTitle>Pintasan Keyboard</DialogTitle>
-          <DialogDescription>Bekerja lebih cepat tanpa mouse. Pintasan huruf tidak aktif saat Anda sedang mengetik.</DialogDescription>
+          <DialogTitle>{t('shortcuts.title')}</DialogTitle>
+          <DialogDescription>{t('shortcuts.description')}</DialogDescription>
         </DialogHeader>
 
         {groups.map(({ group, items }, gi) => (
           <section key={group} aria-labelledby={`shortcut-group-${gi}`}>
             <h3 id={`shortcut-group-${gi}`} className="mb-1 text-xs font-medium text-muted-foreground">
-              {group}
+              {t(`shortcuts.groups.${group}`)}
             </h3>
             <dl className="divide-y divide-border">
               {items.map((s: ShortcutDef) => (
