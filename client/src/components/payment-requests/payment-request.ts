@@ -3,9 +3,18 @@
  * Server contract: server/src/routes/paymentRequests.ts.
  */
 import api from '@/lib/api';
+import i18n from '@/i18n';
 import { formatRupiah, toNumber, type NumericInput } from '@/lib/format';
 
 export const PR_ENDPOINT = '/payment-requests';
+
+/** A label map whose values are looked up on every read, so they follow the UI language. */
+function lazyLabels<K extends string>(keys: readonly K[], label: (key: K) => string): Readonly<Record<K, string>> {
+  return Object.defineProperties(
+    {} as Record<K, string>,
+    Object.fromEntries(keys.map((k) => [k, { enumerable: true, get: () => label(k) }])),
+  );
+}
 
 export type PrStatus =
   | 'DRAFT'
@@ -32,13 +41,11 @@ export const PR_STATUSES: readonly PrStatus[] = [
 
 export type PrKind = 'REIMBURSEMENT' | 'VENDOR_PAYMENT' | 'CASH_ADVANCE' | 'TRAVEL' | 'OTHER';
 
-export const KIND_LABEL: Record<PrKind, string> = {
-  REIMBURSEMENT: 'Reimbursement',
-  VENDOR_PAYMENT: 'Pembayaran vendor',
-  CASH_ADVANCE: 'Uang muka',
-  TRAVEL: 'Perjalanan dinas',
-  OTHER: 'Lainnya',
-};
+const PR_KINDS: readonly PrKind[] = ['REIMBURSEMENT', 'VENDOR_PAYMENT', 'CASH_ADVANCE', 'TRAVEL', 'OTHER'];
+
+export const KIND_LABEL: Readonly<Record<PrKind, string>> = lazyLabels(PR_KINDS, (k) =>
+  i18n.t(`finance:paymentRequest.kind.${k}`),
+);
 
 export type SettlementStatus = 'OPEN' | 'SUBMITTED' | 'PENDING_FINANCE' | 'REVISION' | 'SETTLED';
 
@@ -51,13 +58,9 @@ export type TravelCategory = 'TRANSPORT' | 'LODGING' | 'PER_DIEM' | 'MEALS' | 'O
 
 export const TRAVEL_CATEGORIES: readonly TravelCategory[] = ['TRANSPORT', 'LODGING', 'PER_DIEM', 'MEALS', 'OTHER'];
 
-export const TRAVEL_CATEGORY_LABEL: Record<TravelCategory, string> = {
-  TRANSPORT: 'Transportasi',
-  LODGING: 'Penginapan',
-  PER_DIEM: 'Uang Saku/Harian',
-  MEALS: 'Konsumsi',
-  OTHER: 'Lain-lain',
-};
+export const TRAVEL_CATEGORY_LABEL: Readonly<Record<TravelCategory, string>> = lazyLabels(TRAVEL_CATEGORIES, (c) =>
+  i18n.t(`finance:paymentRequest.travelCategory.${c}`),
+);
 
 /** Inclusive number of days between two YYYY-MM-DD dates (same day = 1); null when unusable. */
 export function tripDays(start: string | null | undefined, end: string | null | undefined): number | null {
@@ -285,29 +288,33 @@ export interface PaymentRequestSummary {
   badges: { approvals: number; payable: number };
 }
 
-export const HISTORY_LABEL: Record<string, string> = {
-  CREATE: 'Dibuat',
-  UPDATE: 'Diubah',
-  SUBMIT: 'Diajukan',
-  APPROVE: 'Disetujui',
-  REJECT: 'Ditolak',
-  RETURN: 'Dikembalikan untuk revisi',
-  CANCEL: 'Dibatalkan',
-  VERIFY: 'Akun biaya diverifikasi',
-  PAY: 'Dibayar',
-  CANCEL_PAYMENT: 'Pembayaran dibatalkan',
-  SETTLE_SUBMIT: 'Pertanggungjawaban diajukan',
-  SETTLE_APPROVE: 'Pertanggungjawaban disetujui atasan',
-  SETTLE_RETURN: 'Pertanggungjawaban dikembalikan untuk revisi',
-  SETTLE_POST: 'Pertanggungjawaban diposting',
-  SETTLE_CANCEL: 'Posting pertanggungjawaban dibatalkan',
-};
+const HISTORY_ACTIONS = [
+  'CREATE',
+  'UPDATE',
+  'SUBMIT',
+  'APPROVE',
+  'REJECT',
+  'RETURN',
+  'CANCEL',
+  'VERIFY',
+  'PAY',
+  'CANCEL_PAYMENT',
+  'SETTLE_SUBMIT',
+  'SETTLE_APPROVE',
+  'SETTLE_RETURN',
+  'SETTLE_POST',
+  'SETTLE_CANCEL',
+] as const;
 
-export const STEP_LABEL: Record<'SUPERVISOR' | 'FINANCE' | 'DIRECTOR', string> = {
-  SUPERVISOR: 'atasan langsung',
-  FINANCE: 'Keuangan',
-  DIRECTOR: 'Direktur',
-};
+export const HISTORY_LABEL: Readonly<Record<string, string>> = lazyLabels(HISTORY_ACTIONS, (a) =>
+  i18n.t(`finance:paymentRequest.history.${a}`),
+);
+
+const STEPS = ['SUPERVISOR', 'FINANCE', 'DIRECTOR'] as const;
+
+export const STEP_LABEL: Readonly<Record<(typeof STEPS)[number], string>> = lazyLabels(STEPS, (s) =>
+  i18n.t(`finance:paymentRequest.step.${s}`),
+);
 
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

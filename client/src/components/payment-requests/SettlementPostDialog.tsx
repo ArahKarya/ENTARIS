@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -29,6 +30,7 @@ interface SettlementPostDialogProps {
 const today = () => new Date().toLocaleDateString('sv-SE');
 
 export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, onClose, onPosted }: SettlementPostDialogProps) {
+  const { t } = useTranslation('finance');
   const [settlementDate, setSettlementDate] = useState(today);
   const [accounts, setAccounts] = useState<Record<string, string>>(() =>
     Object.fromEntries(request.settlementLines.map((l) => [l.id, l.expenseAccountId ?? ''])),
@@ -61,26 +63,26 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
         note: note.trim() || null,
       }),
     onSuccess: () => {
-      toast.success('Pertanggungjawaban diposting ke jurnal.');
+      toast.success(t('settlementPostDialog.posted'));
       onPosted();
     },
-    onError: (e) => setError(apiError(e, 'Gagal memposting pertanggungjawaban.')),
+    onError: (e) => setError(apiError(e, t('settlementPostDialog.postFailed'))),
   });
 
   const previewLines: JournalPreviewLine[] = (preview?.lines ?? []).map((l) => ({
     side: l.side,
-    account: l.accountLabel ?? <span className="text-warning-text">Akun belum dipilih</span>,
+    account: l.accountLabel ?? <span className="text-warning-text">{t('settlementPostDialog.accountMissing')}</span>,
     amount: formatMoney(l.amount),
   }));
 
   const cashLabel =
     preview?.mode === 'RETURN'
-      ? `Kas/bank penerima pengembalian sisa ${formatMoney(Math.abs(preview.difference))}`
-      : `Kas/bank untuk membayar kekurangan ${formatMoney(preview?.difference ?? 0)}`;
+      ? t('settlementPostDialog.cashReturn', { amount: formatMoney(Math.abs(preview.difference)) })
+      : t('settlementPostDialog.cashReimburse', { amount: formatMoney(preview?.difference ?? 0) });
 
   const submit = () => {
     setError('');
-    if (!settlementDate) return setError('Isi tanggal pertanggungjawaban.');
+    if (!settlementDate) return setError(t('settlementPostDialog.errors.date'));
     if (preview && preview.problems.length > 0) return setError(preview.problems[0] as string);
     post.mutate();
   };
@@ -89,14 +91,18 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
     <Dialog open onOpenChange={(o) => !o && !post.isPending && onClose()}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Verifikasi & posting {request.number}</DialogTitle>
+          <DialogTitle>{t('settlementPostDialog.title', { number: request.number })}</DialogTitle>
           <DialogDescription>
-            {request.payeeName} · uang muka {formatMoney(preview?.advance ?? Number(request.totalAmount))} · realisasi {formatMoney(preview?.realized ?? 0)}
+            {t('settlementPostDialog.description', {
+              payee: request.payeeName,
+              advance: formatMoney(preview?.advance ?? Number(request.totalAmount)),
+              realized: formatMoney(preview?.realized ?? 0),
+            })}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <fieldset className="grid gap-3">
-            <legend className="mb-1 text-sm font-medium text-foreground">Akun biaya per baris realisasi</legend>
+            <legend className="mb-1 text-sm font-medium text-foreground">{t('settlementPostDialog.linesLegend')}</legend>
             {request.settlementLines.map((l, i) => (
               <div key={l.id} className="grid gap-1 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] sm:items-start sm:gap-3">
                 <p className="text-sm text-foreground">
@@ -106,7 +112,7 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
                   {l.expenseDate && <span className="block text-xs text-muted-foreground">{formatDate(l.expenseDate)}</span>}
                 </p>
                 <AccountPicker
-                  label={`Akun biaya baris ${i + 1}`}
+                  label={t('settlementPostDialog.lineAccount', { n: i + 1 })}
                   value={accounts[l.id] ?? ''}
                   onChange={(v) => setAccounts((a) => ({ ...a, [l.id]: v }))}
                   accounts={expenseAccounts}
@@ -117,11 +123,11 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
           </fieldset>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tanggal pertanggungjawaban" required hint="Tanggal di tahun buku yang sudah ditutup ditolak.">
+            <Field label={t('settlementPostDialog.date')} required hint={t('settlementPostDialog.dateHint')}>
               {(control) => <DateInput id={control.id} value={settlementDate} min={request.paymentDate?.slice(0, 10)} onChange={setSettlementDate} />}
             </Field>
             {preview?.cashRequired && (
-              <Field label="Referensi" hint="Opsional, mis. no. bukti setor/transfer.">
+              <Field label={t('settlementPostDialog.reference')} hint={t('settlementPostDialog.referenceHint')}>
                 <Input maxLength={100} value={reference} onChange={(e) => setReference(e.target.value)} />
               </Field>
             )}
@@ -131,7 +137,7 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
             <AccountPicker label={cashLabel} required value={cashAccountId} onChange={setCashAccountId} accounts={cashAccounts} />
           )}
 
-          <Field label="Catatan Keuangan" hint="Opsional.">
+          <Field label={t('settlementPostDialog.note')} hint={t('settlementPostDialog.optional')}>
             <Textarea rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
 
@@ -139,14 +145,14 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
             lines={previewLines}
             note={
               preview?.mode === 'RETURN'
-                ? 'Sisa uang muka dikembalikan pengaju: kas/bank bertambah, uang muka dilunasi penuh.'
+                ? t('settlementPostDialog.mode.return')
                 : preview?.mode === 'REIMBURSE'
-                  ? 'Realisasi melebihi uang muka: kekurangan dibayar perusahaan dari kas/bank.'
-                  : 'Realisasi sama dengan uang muka: tidak ada baris kas/bank.'
+                  ? t('settlementPostDialog.mode.reimburse')
+                  : t('settlementPostDialog.mode.exact')
             }
           />
           {preview && preview.problems.length > 0 && (
-            <ul className="space-y-1 text-sm text-warning-text" aria-label="Yang perlu dilengkapi">
+            <ul className="space-y-1 text-sm text-warning-text" aria-label={t('settlementPostDialog.problems')}>
               {preview.problems.map((p) => (
                 <li key={p} className="flex items-start gap-2 text-foreground">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
@@ -164,10 +170,10 @@ export function SettlementPostDialog({ request, expenseAccounts, cashAccounts, o
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={post.isPending}>
-            Batal
+            {t('settlementPostDialog.cancel')}
           </Button>
           <Button onClick={submit} loading={post.isPending} disabled={!preview || preview.problems.length > 0}>
-            Posting
+            {t('settlementPostDialog.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

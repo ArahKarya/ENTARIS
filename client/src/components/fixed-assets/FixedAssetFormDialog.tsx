@@ -1,7 +1,9 @@
 /** New fixed asset dialog; the server generates the asset number and straight-line depreciation schedule. */
 import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { formatRupiah } from '@/lib/format';
 import { Button } from '@/components/ui/button';
@@ -56,20 +58,21 @@ const numberClass = `${controlBase} h-10 px-3 md:h-9`;
 
 function validate(f: FormState): Errors {
   const e: Errors = {};
-  if (!f.name.trim()) e.name = 'Nama aset wajib diisi.';
-  if (!f.category.trim()) e.category = 'Kategori wajib diisi.';
-  if (!f.acquisitionDate) e.acquisitionDate = 'Tanggal perolehan wajib diisi.';
-  if (!(Number(f.acquisitionCost) > 0)) e.acquisitionCost = 'Harga perolehan harus lebih dari 0.';
+  if (!f.name.trim()) e.name = i18n.t('finance:fixedAssetFormDialog.errors.name');
+  if (!f.category.trim()) e.category = i18n.t('finance:fixedAssetFormDialog.errors.category');
+  if (!f.acquisitionDate) e.acquisitionDate = i18n.t('finance:fixedAssetFormDialog.errors.acquisitionDate');
+  if (!(Number(f.acquisitionCost) > 0)) e.acquisitionCost = i18n.t('finance:fixedAssetFormDialog.errors.acquisitionCost');
   if (!(Number(f.usefulLifeMonths) >= 1) || !Number.isInteger(Number(f.usefulLifeMonths)))
-    e.usefulLifeMonths = 'Masa manfaat minimal 1 bulan (bilangan bulat).';
-  if (Number(f.salvageValue || 0) < 0) e.salvageValue = 'Nilai sisa tidak boleh negatif.';
-  if (!f.assetAccountId) e.assetAccountId = 'Pilih akun aset.';
-  if (!f.depreciationAccountId) e.depreciationAccountId = 'Pilih akun beban penyusutan.';
-  if (!f.accumulatedDepAccountId) e.accumulatedDepAccountId = 'Pilih akun akumulasi penyusutan.';
+    e.usefulLifeMonths = i18n.t('finance:fixedAssetFormDialog.errors.usefulLife');
+  if (Number(f.salvageValue || 0) < 0) e.salvageValue = i18n.t('finance:fixedAssetFormDialog.errors.salvageValue');
+  if (!f.assetAccountId) e.assetAccountId = i18n.t('finance:fixedAssetFormDialog.errors.assetAccount');
+  if (!f.depreciationAccountId) e.depreciationAccountId = i18n.t('finance:fixedAssetFormDialog.errors.depreciationAccount');
+  if (!f.accumulatedDepAccountId) e.accumulatedDepAccountId = i18n.t('finance:fixedAssetFormDialog.errors.accumulatedAccount');
   return e;
 }
 
 export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: FixedAssetFormDialogProps) {
+  const { t } = useTranslation('finance');
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
@@ -111,14 +114,14 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
         })
       ).data,
     onSuccess: () => {
-      toast.success('Aset tetap dibuat.');
+      toast.success(t('fixedAssetFormDialog.created'));
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['ga-assets'] });
       qc.invalidateQueries({ queryKey: ['ga-asset-detail'] });
       onOpenChange(false);
     },
-    onError: (err) => toast.error(apiError(err, 'Gagal membuat aset tetap')),
+    onError: (err) => toast.error(apiError(err, t('fixedAssetFormDialog.createFailed'))),
   });
 
   const submit = (e: FormEvent) => {
@@ -138,25 +141,25 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
       <DialogContent size="lg" hideClose={createMut.isPending}>
         <form onSubmit={submit} noValidate className="flex min-w-0 flex-col gap-5">
           <DialogHeader>
-            <DialogTitle>Tambah Aset Tetap</DialogTitle>
+            <DialogTitle>{t('fixedAssetFormDialog.title')}</DialogTitle>
             <DialogDescription>
-              Jadwal penyusutan garis lurus dibuat otomatis per bulan setelah tanggal perolehan.
+              {t('fixedAssetFormDialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Nama aset" required error={errors.name}>
+            <Field label={t('fixedAssetFormDialog.fields.name')} required error={errors.name}>
               <Input value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={200} />
             </Field>
-            <Field label="Kategori" required error={errors.category}>
+            <Field label={t('fixedAssetFormDialog.fields.category')} required error={errors.category}>
               <Input
                 value={form.category}
                 onChange={(e) => set('category', e.target.value)}
-                placeholder="Kendaraan, Mesin, Gedung, dll"
+                placeholder={t('fixedAssetFormDialog.fields.categoryPlaceholder')}
                 maxLength={100}
               />
             </Field>
-            <Field label="Tanggal perolehan" required error={errors.acquisitionDate}>
+            <Field label={t('fixedAssetFormDialog.fields.acquisitionDate')} required error={errors.acquisitionDate}>
               {(control) => (
                 <DateInput
                   id={control.id}
@@ -166,7 +169,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
                 />
               )}
             </Field>
-            <Field label="Harga perolehan (Rp)" required error={errors.acquisitionCost}>
+            <Field label={t('fixedAssetFormDialog.fields.acquisitionCost')} required error={errors.acquisitionCost}>
               <NumberInput
                 className={numberClass}
                 min={0}
@@ -175,7 +178,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
                 onChange={(e) => set('acquisitionCost', e.target.value)}
               />
             </Field>
-            <Field label="Masa manfaat (bulan)" required error={errors.usefulLifeMonths}>
+            <Field label={t('fixedAssetFormDialog.fields.usefulLife')} required error={errors.usefulLifeMonths}>
               <NumberInput
                 className={numberClass}
                 min={1}
@@ -186,9 +189,9 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
               />
             </Field>
             <Field
-              label="Nilai sisa (Rp)"
+              label={t('fixedAssetFormDialog.fields.salvageValue')}
               error={errors.salvageValue}
-              hint={monthly !== null ? `Penyusutan ± ${formatRupiah(monthly)} per bulan` : undefined}
+              hint={monthly !== null ? t('fixedAssetFormDialog.fields.monthlyHint', { amount: formatRupiah(monthly) }) : undefined}
             >
               <NumberInput
                 className={numberClass}
@@ -199,7 +202,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
               />
             </Field>
             <AccountPicker
-              label="Akun aset"
+              label={t('fixedAssetFormDialog.fields.assetAccount')}
               required
               value={form.assetAccountId}
               onChange={(v) => set('assetAccountId', v)}
@@ -208,7 +211,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
               error={errors.assetAccountId}
             />
             <AccountPicker
-              label="Akun beban penyusutan"
+              label={t('fixedAssetFormDialog.fields.depreciationAccount')}
               required
               value={form.depreciationAccountId}
               onChange={(v) => set('depreciationAccountId', v)}
@@ -217,7 +220,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
               error={errors.depreciationAccountId}
             />
             <AccountPicker
-              label="Akun akumulasi penyusutan"
+              label={t('fixedAssetFormDialog.fields.accumulatedAccount')}
               required
               value={form.accumulatedDepAccountId}
               onChange={(v) => set('accumulatedDepAccountId', v)}
@@ -225,7 +228,7 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
               loading={coaLoading}
               error={errors.accumulatedDepAccountId}
             />
-            <Field label="Keterangan">
+            <Field label={t('fixedAssetFormDialog.fields.description')}>
               <Input value={form.description} onChange={(e) => set('description', e.target.value)} maxLength={500} />
             </Field>
             <div className="sm:col-span-2">
@@ -235,10 +238,10 @@ export function FixedAssetFormDialog({ open, onOpenChange, coa, coaLoading }: Fi
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createMut.isPending}>
-              Batal
+              {t('fixedAssetFormDialog.cancel')}
             </Button>
             <Button type="submit" loading={createMut.isPending}>
-              Simpan aset
+              {t('fixedAssetFormDialog.save')}
             </Button>
           </DialogFooter>
         </form>

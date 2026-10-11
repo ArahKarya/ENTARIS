@@ -4,7 +4,9 @@
  */
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import { AlertTriangle, ArrowLeft, Building2, Check, CheckCircle2, Circle, CreditCard, Link2, Plus, Trash2, Unlink } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -41,7 +43,7 @@ export interface LedgerEntry {
 function ledgerEntryLabel(entry: LedgerEntry): string {
   if (entry.description) return entry.description;
   if (entry.referenceNumber) return entry.referenceNumber;
-  return entry.referenceType === 'JournalEntry' ? 'Jurnal umum' : entry.referenceType;
+  return entry.referenceType === 'JournalEntry' ? i18n.t('finance:reconciliationWorkspace.generalJournal') : entry.referenceType;
 }
 
 export interface ReconciliationDetail {
@@ -83,6 +85,7 @@ interface Props {
 }
 
 export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const formId = useId();
   const [confirmComplete, setConfirmComplete] = useState(false);
@@ -101,18 +104,18 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
       api.patch(`/reconciliation/${id}/match`, { itemId, ledgerEntryId }),
     onSuccess: () => {
       invalidateDetail();
-      toast.success('Item dicocokkan.');
+      toast.success(t('reconciliationWorkspace.toast.matched'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal mencocokkan.')),
+    onError: (e) => toast.error(errorMessage(e, t('reconciliationWorkspace.toast.matchFailed'))),
   });
 
   const unmatchMutation = useMutation({
     mutationFn: async (itemId: string) => api.patch(`/reconciliation/${id}/unmatch`, { itemId }),
     onSuccess: () => {
       invalidateDetail();
-      toast.success('Pencocokan dibatalkan.');
+      toast.success(t('reconciliationWorkspace.toast.unmatched'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal membatalkan pencocokan.')),
+    onError: (e) => toast.error(errorMessage(e, t('reconciliationWorkspace.toast.unmatchFailed'))),
   });
 
   const completeMutation = useMutation({
@@ -120,9 +123,9 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
     onSuccess: () => {
       invalidateDetail();
       queryClient.invalidateQueries({ queryKey: ['reconciliations'] });
-      toast.success('Rekonsiliasi selesai.');
+      toast.success(t('reconciliationWorkspace.toast.completed'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal menyelesaikan rekonsiliasi.')),
+    onError: (e) => toast.error(errorMessage(e, t('reconciliationWorkspace.toast.completeFailed'))),
   });
 
   const addItemsMutation = useMutation({
@@ -133,9 +136,9 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
       invalidateDetail();
       setAddingItems(false);
       setNewItems([EMPTY_ROW]);
-      toast.success('Item statement ditambahkan.');
+      toast.success(t('reconciliationWorkspace.toast.itemsAdded'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal menambah item.')),
+    onError: (e) => toast.error(errorMessage(e, t('reconciliationWorkspace.toast.itemsFailed'))),
   });
 
   const updateRow = (idx: number, patch: Partial<NewItemRow>) =>
@@ -144,7 +147,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
   const handleAddItems = () => {
     const valid = newItems.filter((i) => i.amount !== '');
     if (valid.length === 0) {
-      toast.error('Minimal satu item harus diisi.');
+      toast.error(t('reconciliationWorkspace.toast.itemRequired'));
       return;
     }
     addItemsMutation.mutate(
@@ -159,16 +162,16 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
   const backButton = (
     <Button variant="outline" onClick={onBack}>
       <ArrowLeft aria-hidden />
-      Kembali
+      {t('reconciliationWorkspace.back')}
     </Button>
   );
-  const crumbs = [{ label: 'Rekonsiliasi Bank', href: '/reconciliation' }, { label: 'Pencocokan' }];
+  const crumbs = [{ label: t('reconciliationWorkspace.breadcrumb'), href: '/reconciliation' }, { label: t('reconciliationWorkspace.matching') }];
 
   if (detailQuery.isLoading) {
     return (
       <div className="space-y-5 pb-8">
-        <PageHeader title="Pencocokan Rekonsiliasi" breadcrumbs={crumbs} actions={backButton} />
-        <LoadingState label="Memuat rekonsiliasi…" />
+        <PageHeader title={t('reconciliationWorkspace.title')} breadcrumbs={crumbs} actions={backButton} />
+        <LoadingState label={t('reconciliationWorkspace.loading')} />
       </div>
     );
   }
@@ -177,15 +180,15 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
   if (!detail) {
     return (
       <div className="space-y-5 pb-8">
-        <PageHeader title="Pencocokan Rekonsiliasi" breadcrumbs={crumbs} actions={backButton} />
+        <PageHeader title={t('reconciliationWorkspace.title')} breadcrumbs={crumbs} actions={backButton} />
         <EmptyState
           kind={detailQuery.isError ? 'error' : 'empty'}
-          title={detailQuery.isError ? undefined : 'Rekonsiliasi tidak ditemukan.'}
-          description={detailQuery.isError ? undefined : 'Sesi mungkin sudah dihapus.'}
+          title={detailQuery.isError ? undefined : t('reconciliationWorkspace.notFound.title')}
+          description={detailQuery.isError ? undefined : t('reconciliationWorkspace.notFound.description')}
           action={
             detailQuery.isError ? (
               <Button variant="outline" size="sm" onClick={() => detailQuery.refetch()}>
-                Coba lagi
+                {t('reconciliationWorkspace.retry')}
               </Button>
             ) : undefined
           }
@@ -208,16 +211,16 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
     if (unmatched) {
       matchMutation.mutate({ itemId: unmatched.id, ledgerEntryId: entryId });
     } else {
-      toast.error('Tidak ada item statement yang belum dicocokkan. Tambahkan item statement terlebih dahulu.');
+      toast.error(t('reconciliationWorkspace.toast.noUnmatched'));
     }
   };
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        breadcrumbs={[{ label: 'Rekonsiliasi Bank', href: '/reconciliation' }, { label: detail.account.name }]}
+        breadcrumbs={[{ label: t('reconciliationWorkspace.breadcrumb'), href: '/reconciliation' }, { label: detail.account.name }]}
         title={`${detail.account.accountNumber} - ${detail.account.name}`}
-        description={`Statement per ${formatDate(detail.statementDate)}`}
+        description={t('reconciliationWorkspace.statementAsOf', { date: formatDate(detail.statementDate) })}
         actions={
           <>
             <StatusBadge status={detail.status} />
@@ -225,24 +228,29 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
             {editable && (
               <Button onClick={() => setConfirmComplete(true)} loading={completeMutation.isPending}>
                 <Check aria-hidden />
-                Selesai
+                {t('reconciliationWorkspace.complete')}
               </Button>
             )}
           </>
         }
       />
 
-      <section aria-label="Ringkasan rekonsiliasi" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Saldo Buku" icon={CreditCard} value={formatRupiah(detail.bookBalance, { compact: true })} valueTitle={formatRupiah(detail.bookBalance)} hint={formatRupiah(detail.bookBalance)} />
-        <StatCard label="Saldo Statement" icon={Building2} value={formatRupiah(detail.statementBalance, { compact: true })} valueTitle={formatRupiah(detail.statementBalance)} hint={formatRupiah(detail.statementBalance)} />
+      <section aria-label={t('reconciliationWorkspace.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('reconciliationWorkspace.summary.book')} icon={CreditCard} value={formatRupiah(detail.bookBalance, { compact: true })} valueTitle={formatRupiah(detail.bookBalance)} hint={formatRupiah(detail.bookBalance)} />
+        <StatCard label={t('reconciliationWorkspace.summary.statement')} icon={Building2} value={formatRupiah(detail.statementBalance, { compact: true })} valueTitle={formatRupiah(detail.statementBalance)} hint={formatRupiah(detail.statementBalance)} />
         <StatCard
-          label="Selisih"
+          label={t('reconciliationWorkspace.summary.difference')}
           icon={AlertTriangle}
           value={<span className={balanced ? 'text-success-text' : 'text-warning-text'}>{formatRupiah(difference, { compact: true })}</span>}
           valueTitle={formatRupiah(difference)}
-          hint={balanced ? 'Seimbang' : formatRupiah(difference)}
+          hint={balanced ? t('reconciliationWorkspace.summary.balanced') : formatRupiah(difference)}
         />
-        <StatCard label="Item Tercocokkan" icon={CheckCircle2} value={`${formatNumber(matchedCount)} / ${formatNumber(items.length)}`} hint="item statement" />
+        <StatCard
+          label={t('reconciliationWorkspace.summary.matched')}
+          icon={CheckCircle2}
+          value={`${formatNumber(matchedCount)} / ${formatNumber(items.length)}`}
+          hint={t('reconciliationWorkspace.summary.matchedHint')}
+        />
       </section>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -250,24 +258,24 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
         <section aria-labelledby={`${formId}-book`} className="overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-1)]">
           <header className="border-b border-border px-4 py-3">
             <h2 id={`${formId}-book`} className="text-sm font-semibold text-foreground">
-              Transaksi Buku
+              {t('reconciliationWorkspace.book.title')}
             </h2>
-            <p className="text-xs text-muted-foreground">{formatNumber(ledger.length)} transaksi belum dicocokkan</p>
+            <p className="text-xs text-muted-foreground">{t('reconciliationWorkspace.book.unmatched', { count: ledger.length })}</p>
           </header>
           {ledger.length === 0 ? (
-            <EmptyState compact title="Semua transaksi sudah dicocokkan" description="Tidak ada transaksi buku yang tersisa." />
+            <EmptyState compact title={t('reconciliationWorkspace.book.empty.title')} description={t('reconciliationWorkspace.book.empty.description')} />
           ) : (
             // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-            <div role="region" aria-label="Transaksi buku belum dicocokkan" tabIndex={0} className="max-h-96 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
+            <div role="region" aria-label={t('reconciliationWorkspace.book.region')} tabIndex={0} className="max-h-96 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
               <table className="w-full border-collapse text-sm">
                 <TableHeader className="sticky top-0 z-[1]">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="hidden bg-muted sm:table-cell">Tanggal</TableHead>
-                    <TableHead className="bg-muted">Keterangan</TableHead>
-                    <AmountHead label="Jumlah" />
+                    <TableHead className="hidden bg-muted sm:table-cell">{t('reconciliationWorkspace.columns.date')}</TableHead>
+                    <TableHead className="bg-muted">{t('reconciliationWorkspace.columns.description')}</TableHead>
+                    <AmountHead label={t('reconciliationWorkspace.columns.amount')} />
                     {editable && (
                       <TableHead className="w-px bg-muted">
-                        <span className="sr-only">Aksi</span>
+                        <span className="sr-only">{t('reconciliationWorkspace.columns.actions')}</span>
                       </TableHead>
                     )}
                   </TableRow>
@@ -295,11 +303,11 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                               size="sm"
                               onClick={() => matchEntry(entry.id)}
                               disabled={matchMutation.isPending}
-                              aria-label={`Cocokkan ${ledgerEntryLabel(entry)} ${formatDate(entry.date)}`}
+                              aria-label={t('reconciliationWorkspace.matchLabel', { entry: ledgerEntryLabel(entry), date: formatDate(entry.date) })}
                               className="text-primary-hover"
                             >
                               <Link2 aria-hidden />
-                              <span className="hidden sm:inline">Cocokkan</span>
+                              <span className="hidden sm:inline">{t('reconciliationWorkspace.match')}</span>
                             </Button>
                           </TableCell>
                         )}
@@ -317,14 +325,14 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
           <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div>
               <h2 id={`${formId}-bank`} className="text-sm font-semibold text-foreground">
-                Mutasi Bank
+                {t('reconciliationWorkspace.bank.title')}
               </h2>
-              <p className="text-xs text-muted-foreground">{formatNumber(items.length)} item statement</p>
+              <p className="text-xs text-muted-foreground">{t('reconciliationWorkspace.bank.count', { count: items.length })}</p>
             </div>
             {editable && !addingItems && (
               <Button variant="outline" size="sm" onClick={() => setAddingItems(true)}>
                 <Plus aria-hidden />
-                Tambah Item
+                {t('reconciliationWorkspace.bank.add')}
               </Button>
             )}
           </header>
@@ -333,17 +341,17 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
             <div className="space-y-2 border-b border-border bg-muted px-4 py-3">
               {newItems.map((item, idx) => (
                 <fieldset key={idx} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-                  <legend className="sr-only">Item statement {idx + 1}</legend>
+                  <legend className="sr-only">{t('reconciliationWorkspace.bank.item', { n: idx + 1 })}</legend>
                   <label htmlFor={`${formId}-date-${idx}`} className="sr-only">
-                    Tanggal
+                    {t('reconciliationWorkspace.columns.date')}
                   </label>
                   <DateInput id={`${formId}-date-${idx}`} value={item.date} onChange={(v) => updateRow(idx, { date: v })} className="w-36 shrink-0" />
                   <label htmlFor={`${formId}-desc-${idx}`} className="sr-only">
-                    Keterangan
+                    {t('reconciliationWorkspace.columns.description')}
                   </label>
-                  <Input id={`${formId}-desc-${idx}`} value={item.desc} onChange={(e) => updateRow(idx, { desc: e.target.value })} placeholder="Keterangan" className="min-w-0 flex-1" />
+                  <Input id={`${formId}-desc-${idx}`} value={item.desc} onChange={(e) => updateRow(idx, { desc: e.target.value })} placeholder={t('reconciliationWorkspace.columns.description')} className="min-w-0 flex-1" />
                   <label htmlFor={`${formId}-amount-${idx}`} className="sr-only">
-                    Jumlah (Rp)
+                    {t('reconciliationWorkspace.bank.amountRp')}
                   </label>
                   <Input
                     id={`${formId}-amount-${idx}`}
@@ -351,7 +359,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                     inputMode="decimal"
                     value={item.amount}
                     onChange={(e) => updateRow(idx, { amount: e.target.value })}
-                    placeholder="Jumlah"
+                    placeholder={t('reconciliationWorkspace.columns.amount')}
                     className="num w-32 text-right"
                   />
                   {newItems.length > 1 && (
@@ -359,7 +367,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => setNewItems((rows) => rows.filter((_, i) => i !== idx))}
-                      aria-label={`Hapus baris ${idx + 1}`}
+                      aria-label={t('reconciliationWorkspace.bank.removeRow', { n: idx + 1 })}
                       className="text-danger-text hover:bg-danger-subtle"
                     >
                       <Trash2 aria-hidden />
@@ -370,7 +378,7 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="link" size="sm" onClick={() => setNewItems((rows) => [...rows, EMPTY_ROW])}>
                   <Plus aria-hidden />
-                  Baris baru
+                  {t('reconciliationWorkspace.bank.newRow')}
                 </Button>
                 <div className="flex-1" />
                 <Button
@@ -381,31 +389,31 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                     setNewItems([EMPTY_ROW]);
                   }}
                 >
-                  Batal
+                  {t('reconciliationWorkspace.cancel')}
                 </Button>
                 <Button size="sm" onClick={handleAddItems} loading={addItemsMutation.isPending}>
-                  Simpan
+                  {t('reconciliationWorkspace.save')}
                 </Button>
               </div>
             </div>
           )}
 
           {items.length === 0 ? (
-            <EmptyState compact title="Belum ada item statement" description={editable ? 'Tambahkan mutasi dari rekening koran.' : undefined} />
+            <EmptyState compact title={t('reconciliationWorkspace.bank.empty.title')} description={editable ? t('reconciliationWorkspace.bank.empty.description') : undefined} />
           ) : (
             // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-            <div role="region" aria-label="Item mutasi bank" tabIndex={0} className="max-h-96 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
+            <div role="region" aria-label={t('reconciliationWorkspace.bank.region')} tabIndex={0} className="max-h-96 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
               <table className="w-full border-collapse text-sm">
                 <TableHeader className="sticky top-0 z-[1]">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="w-10 bg-muted">
-                      <span className="sr-only">Status</span>
+                      <span className="sr-only">{t('reconciliationWorkspace.columns.status')}</span>
                     </TableHead>
-                    <TableHead className="bg-muted">Keterangan</TableHead>
-                    <AmountHead label="Jumlah" />
+                    <TableHead className="bg-muted">{t('reconciliationWorkspace.columns.description')}</TableHead>
+                    <AmountHead label={t('reconciliationWorkspace.columns.amount')} />
                     {editable && (
                       <TableHead className="w-px bg-muted">
-                        <span className="sr-only">Aksi</span>
+                        <span className="sr-only">{t('reconciliationWorkspace.columns.actions')}</span>
                       </TableHead>
                     )}
                   </TableRow>
@@ -415,13 +423,13 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                     <TableRow key={item.id}>
                       <TableCell className="py-2">
                         {item.isMatched ? (
-                          <CheckCircle2 className="size-4 text-success-text" aria-label="Sudah dicocokkan" />
+                          <CheckCircle2 className="size-4 text-success-text" aria-label={t('reconciliationWorkspace.matched')} />
                         ) : (
-                          <Circle className="size-4 text-muted-foreground" aria-label="Belum dicocokkan" />
+                          <Circle className="size-4 text-muted-foreground" aria-label={t('reconciliationWorkspace.notMatched')} />
                         )}
                       </TableCell>
                       <TableCell className="max-w-40 py-2 sm:max-w-56">
-                        <p className="truncate text-foreground">{item.statementDesc || 'Tanpa keterangan'}</p>
+                        <p className="truncate text-foreground">{item.statementDesc || t('reconciliationWorkspace.noDescription')}</p>
                         {item.statementDate && <p className="num text-xs text-muted-foreground">{formatDate(item.statementDate)}</p>}
                       </TableCell>
                       <TableCell numeric className="py-2 font-medium text-foreground">
@@ -435,11 +443,11 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
                               size="sm"
                               onClick={() => unmatchMutation.mutate(item.id)}
                               disabled={unmatchMutation.isPending}
-                              aria-label={`Batalkan pencocokan ${item.statementDesc || 'item'}`}
+                              aria-label={t('reconciliationWorkspace.unmatchLabel', { item: item.statementDesc || t('reconciliationWorkspace.itemFallback') })}
                               className="text-danger-text hover:bg-danger-subtle"
                             >
                               <Unlink aria-hidden />
-                              <span className="hidden sm:inline">Batalkan</span>
+                              <span className="hidden sm:inline">{t('reconciliationWorkspace.unmatch')}</span>
                             </Button>
                           )}
                         </TableCell>
@@ -456,9 +464,9 @@ export function ReconciliationWorkspace({ id, canEdit, onBack }: Props) {
       <ConfirmDialog
         open={confirmComplete}
         onOpenChange={setConfirmComplete}
-        title="Selesaikan Rekonsiliasi"
-        description="Apakah Anda yakin ingin menyelesaikan rekonsiliasi ini? Status akan berubah menjadi Selesai dan tidak dapat diubah kembali."
-        confirmLabel="Selesaikan"
+        title={t('reconciliationWorkspace.completeDialog.title')}
+        description={t('reconciliationWorkspace.completeDialog.description')}
+        confirmLabel={t('reconciliationWorkspace.completeDialog.confirm')}
         tone="danger"
         onConfirm={() => {
           completeMutation.mutate();

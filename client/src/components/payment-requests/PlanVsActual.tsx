@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { TRAVEL_CATEGORIES, TRAVEL_CATEGORY_LABEL, formatMoney, type TravelCategory } from './payment-request';
 import { totalsByCategory } from './lines';
@@ -12,6 +13,7 @@ interface PlanVsActualProps {
 
 /** Rencana vs realisasi per travel category, with the overall difference. */
 export function PlanVsActual({ planned, actual, className }: PlanVsActualProps) {
+  const { t } = useTranslation('finance');
   const plan = totalsByCategory(planned);
   const real = totalsByCategory(actual);
   const rows = TRAVEL_CATEGORIES.filter((c) => (plan.get(c) ?? 0) > 0 || (real.get(c) ?? 0) > 0);
@@ -23,15 +25,15 @@ export function PlanVsActual({ planned, actual, className }: PlanVsActualProps) 
   return (
     // Scrollable region must be keyboard-focusable (axe: scrollable-region-focusable).
     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <div role="region" aria-label="Rencana vs realisasi per kategori" tabIndex={0} className={cn('relative overflow-x-auto rounded-lg border border-border', className)}>
+    <div role="region" aria-label={t('planVsActual.label')} tabIndex={0} className={cn('relative overflow-x-auto rounded-lg border border-border', className)}>
       <table className="w-full min-w-[26rem] text-sm">
-        <caption className="sr-only">Rencana dan realisasi biaya per kategori</caption>
+        <caption className="sr-only">{t('planVsActual.caption')}</caption>
         <thead>
           <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-            <th scope="col" className="px-3 py-2 text-left font-medium">Kategori</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Rencana</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Realisasi</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Selisih</th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">{t('planVsActual.category')}</th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">{t('planVsActual.planned')}</th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">{t('planVsActual.actual')}</th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">{t('planVsActual.difference')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -50,7 +52,7 @@ export function PlanVsActual({ planned, actual, className }: PlanVsActualProps) 
         </tbody>
         <tfoot>
           <tr className="border-t border-border bg-muted/30 font-semibold">
-            <th scope="row" className="px-3 py-2 text-left">Total</th>
+            <th scope="row" className="px-3 py-2 text-left">{t('planVsActual.total')}</th>
             <td className="num px-3 py-2 text-right">{formatMoney(planTotal)}</td>
             <td className="num px-3 py-2 text-right">{formatMoney(realTotal)}</td>
             <td className={cn('num px-3 py-2 text-right', diffClass(realTotal - planTotal))}>{diffText(Math.round((realTotal - planTotal) * 100) / 100)}</td>

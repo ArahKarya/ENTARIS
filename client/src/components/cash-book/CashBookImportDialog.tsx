@@ -7,6 +7,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ export function CashBookImportDialog({ open, onOpenChange, onCreated }: Props) {
 }
 
 function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
+  const { t } = useTranslation('finance');
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
@@ -75,22 +77,22 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
         })
       ).data,
     onSuccess: (draft) => {
-      toast.success(`Draft ${draft.draftNumber} dibuat (${draft.rows.length} baris). Tinjau sebelum posting.`);
+      toast.success(t('cashBookImportDialog.created', { number: draft.draftNumber, count: draft.rows.length }));
       void qc.invalidateQueries({ queryKey: ['cash-book-drafts'] });
       onOpenChange(false);
       onCreated(draft.id);
     },
-    onError: (err) => setErrors(errorLines(err, 'Gagal membuat draft buku kas.')),
+    onError: (err) => setErrors(errorLines(err, t('cashBookImportDialog.createFailed'))),
   });
 
   const readFile = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
-      setErrors(['Berkas terlalu besar (maksimal 512 KB). Pecah menjadi beberapa berkas.']);
+      setErrors([t('cashBookImportDialog.fileTooLarge')]);
       return;
     }
     if (/\.xlsx?$/i.test(file.name)) {
-      setErrors(['Berkas Excel belum dibaca langsung. Salin sel dari Excel lalu tempel di kotak, atau simpan sebagai CSV.']);
+      setErrors([t('cashBookImportDialog.excelNotSupported')]);
       return;
     }
     setErrors([]);
@@ -103,38 +105,38 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
     <>
       <DialogContent size="lg" className={dialogShellClass} aria-describedby="cb-import-desc">
         <OverlayHeader>
-          <DialogTitle>Buat Draft dari Tempel / CSV</DialogTitle>
+          <DialogTitle>{t('cashBookImportDialog.title')}</DialogTitle>
           <DialogDescription id="cb-import-desc">
-            Kolom: tanggal, keterangan, masuk, keluar (maksimal {CB_ROW_LIMIT} baris). Draft belum menjadi jurnal; Anda meninjau akun tiap baris di langkah berikutnya.
+            {t('cashBookImportDialog.description', { max: CB_ROW_LIMIT })}
           </DialogDescription>
         </OverlayHeader>
         <OverlayBody className="grid-cols-[minmax(0,1fr)]">
           <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
             <ComboField
-              label="Akun kas / bank"
+              label={t('cashBookImportDialog.cashAccount')}
               required
               value={cashAccountId}
               onChange={setPickedCash}
               options={cashOptions}
               loading={accountsQuery.isLoading}
-              placeholder="Pilih akun kas…"
-              searchPlaceholder="Cari akun kas…"
+              placeholder={t('cashBookImportDialog.cashPlaceholder')}
+              searchPlaceholder={t('cashBookImportDialog.cashSearch')}
             />
-            <Field label="Tanggal halaman" required hint="Dipakai untuk baris tanpa tanggal.">
+            <Field label={t('cashBookImportDialog.pageDate')} required hint={t('cashBookImportDialog.pageDateHint')}>
               {(c) => <DateInput id={c.id} required={c.required} value={entryDate} onChange={setEntryDate} />}
             </Field>
-            <Field label="Judul (opsional)">
-              <Input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Buku kas Oktober minggu 1" />
+            <Field label={t('cashBookImportDialog.titleField')}>
+              <Input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder={t('cashBookImportDialog.titlePlaceholder')} />
             </Field>
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-              <Field label="Saldo awal">{(c) => <MoneyInput id={c.id} value={opening} onChange={setOpening} />}</Field>
-              <Field label="Saldo akhir">{(c) => <MoneyInput id={c.id} value={closing} onChange={setClosing} />}</Field>
+              <Field label={t('cashBookImportDialog.opening')}>{(c) => <MoneyInput id={c.id} value={opening} onChange={setOpening} />}</Field>
+              <Field label={t('cashBookImportDialog.closing')}>{(c) => <MoneyInput id={c.id} value={closing} onChange={setClosing} />}</Field>
             </div>
           </div>
 
           <Field
-            label="Tempel baris atau isi CSV"
-            hint="Dari Excel: blok sel (dengan baris judul Tanggal, Keterangan, Masuk, Keluar), salin, lalu tempel di sini."
+            label={t('cashBookImportDialog.paste')}
+            hint={t('cashBookImportDialog.pasteHint')}
           >
             <Textarea
               value={text}
@@ -151,7 +153,7 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
               type="file"
               accept=".csv,.tsv,.txt,text/csv,text/plain"
               className="sr-only"
-              aria-label="Pilih berkas CSV"
+              aria-label={t('cashBookImportDialog.chooseFile')}
               onChange={(e) => {
                 void readFile(e.target.files?.[0]);
                 e.target.value = '';
@@ -159,16 +161,19 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
             />
             <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
               <FileUp aria-hidden />
-              Pilih berkas CSV
+              {t('cashBookImportDialog.chooseFile')}
             </Button>
           </div>
 
           {text.trim() !== '' && (
-            <section aria-label="Pratinjau baris" className="space-y-2">
+            <section aria-label={t('cashBookImportDialog.preview')} className="space-y-2">
               <p role="status" className="text-sm text-muted-foreground">
-                {parsed.rows.length} baris terbaca
+                {t('cashBookImportDialog.rowsRead', { count: parsed.rows.length })}
                 {parsed.rows.filter((r) => r.error).length > 0 && (
-                  <span className="font-medium text-danger-text"> · {parsed.rows.filter((r) => r.error).length} baris bermasalah</span>
+                  <span className="font-medium text-danger-text">
+                    {' · '}
+                    {t('cashBookImportDialog.rowsWithErrors', { count: parsed.rows.filter((r) => r.error).length })}
+                  </span>
                 )}
                 .
               </p>
@@ -176,17 +181,17 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
                 <p key={p} role="alert" className="text-sm font-medium text-danger-text">{p}</p>
               ))}
               {parsed.rows.length > 0 && (
-                <ScrollRegion label="Pratinjau baris tempel" className="border border-border">
+                <ScrollRegion label={t('cashBookImportDialog.previewTable')} className="border border-border">
                   <table className="w-full min-w-[34rem] text-sm">
-                    <caption className="sr-only">Pratinjau {Math.min(parsed.rows.length, PREVIEW_LIMIT)} baris pertama</caption>
+                    <caption className="sr-only">{t('cashBookImportDialog.previewCaption', { count: Math.min(parsed.rows.length, PREVIEW_LIMIT) })}</caption>
                     <thead>
                       <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                        <th scope="col" className="px-3 py-2 text-left font-medium">Baris</th>
-                        <th scope="col" className="px-3 py-2 text-left font-medium">Tanggal</th>
-                        <th scope="col" className="px-3 py-2 text-left font-medium">Keterangan</th>
-                        <th scope="col" className="px-3 py-2 text-right font-medium">Masuk</th>
-                        <th scope="col" className="px-3 py-2 text-right font-medium">Keluar</th>
-                        <th scope="col" className="px-3 py-2 text-left font-medium">Catatan</th>
+                        <th scope="col" className="px-3 py-2 text-left font-medium">{t('cashBookImportDialog.columns.line')}</th>
+                        <th scope="col" className="px-3 py-2 text-left font-medium">{t('cashBookImportDialog.columns.date')}</th>
+                        <th scope="col" className="px-3 py-2 text-left font-medium">{t('cashBookImportDialog.columns.description')}</th>
+                        <th scope="col" className="px-3 py-2 text-right font-medium">{t('cashBookImportDialog.columns.in')}</th>
+                        <th scope="col" className="px-3 py-2 text-right font-medium">{t('cashBookImportDialog.columns.out')}</th>
+                        <th scope="col" className="px-3 py-2 text-left font-medium">{t('cashBookImportDialog.columns.note')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -212,16 +217,16 @@ function ImportForm({ onOpenChange, onCreated }: Omit<Props, 'open'>) {
               {errors.slice(0, 8).map((e) => (
                 <li key={e}>{e}</li>
               ))}
-              {errors.length > 8 && <li>… dan {errors.length - 8} kesalahan lain.</li>}
+              {errors.length > 8 && <li>{t('cashBookImportDialog.moreErrors', { count: errors.length - 8 })}</li>}
             </ul>
           )}
         </OverlayBody>
         <OverlayFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Batal
+            {t('cashBookImportDialog.cancel')}
           </Button>
           <Button type="button" onClick={() => create.mutate()} loading={create.isPending} disabled={!canSubmit}>
-            Buat Draft{parsed.rows.length > 0 && !blocked ? ` (${parsed.rows.length} baris)` : ''}
+            {parsed.rows.length > 0 && !blocked ? t('cashBookImportDialog.submitCount', { count: parsed.rows.length }) : t('cashBookImportDialog.submit')}
           </Button>
         </OverlayFooter>
       </DialogContent>

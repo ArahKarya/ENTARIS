@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { NumberInput } from '@/components/ui/number-input';
@@ -19,6 +20,7 @@ interface ApplyDepositModalProps {
 const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
   isOpen, onClose, purchaseInvoiceId, partyId, invoiceOutstanding,
 }) => {
+  const { t } = useTranslation('finance');
   const [selectedDepositId, setSelectedDepositId] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
   const [error, setError] = useState('');
@@ -58,7 +60,7 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal mengaplikasikan uang muka.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('applyDepositModal.applyFailed')),
   });
 
   const numAmount = Number(amount) || 0;
@@ -78,26 +80,31 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Gunakan Uang Muka"
-      description="Aplikasikan deposit ke invoice ini"
+      title={t('applyDepositModal.title')}
+      description={t('applyDepositModal.description')}
       busy={mutation.isPending}
-      submitLabel="Aplikasikan"
-      busyLabel="Memproses…"
+      submitLabel={t('applyDepositModal.submit')}
+      busyLabel={t('applyDepositModal.busy')}
       onSubmit={handleSubmit}
       submitDisabled={!canSubmit}
     >
       <Callout tone="info">
-        Sisa tagihan invoice: <span className="num font-bold">{formatRupiah(invoiceOutstanding)}</span>
+        <Trans
+          t={t}
+          i18nKey="applyDepositModal.outstanding"
+          values={{ amount: formatRupiah(invoiceOutstanding) }}
+          components={{ num: <span className="num font-bold" /> }}
+        />
       </Callout>
 
       {isLoading ? (
-        <LoadingState label="Memuat deposit…" />
+        <LoadingState label={t('applyDepositModal.loading')} />
       ) : availableDeposits.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada deposit aktif untuk supplier ini.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">{t('applyDepositModal.empty')}</p>
       ) : (
         <>
           <fieldset className="space-y-2">
-            <legend className="mb-2 text-sm font-medium text-foreground">Pilih Deposit</legend>
+            <legend className="mb-2 text-sm font-medium text-foreground">{t('applyDepositModal.choose')}</legend>
             {availableDeposits.map((dep: any) => (
               // eslint-disable-next-line jsx-a11y/control-has-associated-label -- accessible name comes from the button's text children
               <button
@@ -121,7 +128,7 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="num text-sm font-bold text-foreground">{formatRupiah(dep.remaining)}</p>
-                    <p className="text-xs text-muted-foreground">dari {formatRupiah(dep.amount)}</p>
+                    <p className="text-xs text-muted-foreground">{t('applyDepositModal.ofAmount', { amount: formatRupiah(dep.amount) })}</p>
                   </div>
                 </div>
               </button>
@@ -129,7 +136,7 @@ const ApplyDepositModal: React.FC<ApplyDepositModalProps> = ({
           </fieldset>
 
           {selectedDepositId && (
-            <Field label="Jumlah yang diaplikasikan (Rp)">
+            <Field label={t('applyDepositModal.amount')}>
               <NumberInput
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}

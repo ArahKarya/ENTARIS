@@ -3,7 +3,9 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pause, Pencil, Play, Plus, Zap } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { can } from '@/lib/permissions';
@@ -29,44 +31,30 @@ interface RecurringTemplate {
   updatedAt: string;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  journal: 'Jurnal',
-  sales_invoice: 'Invoice Penjualan',
-  purchase_invoice: 'Invoice Pembelian',
-};
-
-// One schedule period, used to explain how a manual run moves the next run.
-const PERIOD_LABELS: Record<string, string> = {
-  daily: '1 hari',
-  weekly: '1 minggu',
-  monthly: '1 bulan',
-  quarterly: '3 bulan',
-  yearly: '1 tahun',
-};
-const FREQUENCY_LABELS: Record<string, string> = {
-  daily: 'Harian',
-  weekly: 'Mingguan',
-  monthly: 'Bulanan',
-  quarterly: 'Triwulan',
-  yearly: 'Tahunan',
-};
+const TEMPLATE_TYPES = ['journal', 'sales_invoice', 'purchase_invoice'] as const;
+type TemplateType = (typeof TEMPLATE_TYPES)[number];
+const FREQUENCIES = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'] as const;
+type Frequency = (typeof FREQUENCIES)[number];
+const isFrequency = (v: string): v is Frequency => (FREQUENCIES as readonly string[]).includes(v);
 
 const FILTER_KEYS = ['status', 'templateType'] as const;
-const STATUS_FILTER = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'inactive', label: 'Nonaktif' },
-];
-const TYPE_FILTER = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
-const typeLabel = (t: string) => TYPE_LABELS[t] ?? TYPE_LABELS.journal;
-const frequencyLabel = (t: RecurringTemplate) => {
-  const base = FREQUENCY_LABELS[t.frequency] ?? t.frequency;
-  return t.dayOfMonth && t.frequency === 'monthly' ? `${base} (tgl ${t.dayOfMonth})` : base;
+const typeLabel = (type: string) =>
+  i18n.t(`finance:recurringTransactions.type.${(TEMPLATE_TYPES as readonly string[]).includes(type) ? (type as TemplateType) : 'journal'}`);
+const frequencyLabel = (tpl: RecurringTemplate) => {
+  const base = isFrequency(tpl.frequency) ? i18n.t(`finance:recurringTransactions.frequency.${tpl.frequency}`) : tpl.frequency;
+  return tpl.dayOfMonth && tpl.frequency === 'monthly'
+    ? i18n.t('finance:recurringTransactions.frequencyDay', { frequency: base, day: tpl.dayOfMonth })
+    : base;
 };
+/** One schedule period, used to explain how a manual run moves the next run. */
+const periodLabel = (frequency: string) =>
+  isFrequency(frequency) ? i18n.t(`finance:recurringTransactions.period.${frequency}`) : i18n.t('finance:recurringTransactions.period.fallback');
 const errorMessage = (e: unknown, fallback: string) =>
   (e as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback;
 
 export const RecurringTransactions = () => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS });
   const [density, setDensity] = useTableDensity();
@@ -85,19 +73,19 @@ export const RecurringTransactions = () => {
     mutationFn: (id: string) => api.post(`/recurring/${id}/execute`),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-      if (res.data.success) toast.success('Template dijalankan.');
-      else toast.error(res.data.error || 'Gagal mengeksekusi template.');
+      if (res.data.success) toast.success(t('recurringTransactions.toast.executed'));
+      else toast.error(res.data.error || t('recurringTransactions.toast.executeFailed'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal mengeksekusi template.')),
+    onError: (e) => toast.error(errorMessage(e, t('recurringTransactions.toast.executeFailed'))),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => api.put(`/recurring/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-      toast.success('Status template diperbarui.');
+      toast.success(t('recurringTransactions.toast.statusUpdated'));
     },
-    onError: (e) => toast.error(errorMessage(e, 'Gagal mengubah status template.')),
+    onError: (e) => toast.error(errorMessage(e, t('recurringTransactions.toast.statusFailed'))),
   });
 
   const openCreate = () => {
@@ -117,10 +105,10 @@ export const RecurringTransactions = () => {
   const rows = useMemo(() => {
     const q = search.toLowerCase();
     return (templatesQuery.data ?? []).filter(
-      (t) =>
-        (!q || t.name.toLowerCase().includes(q)) &&
-        (!filters.status || (filters.status === 'active') === t.isActive) &&
-        (!filters.templateType || t.templateType === filters.templateType),
+      (tpl) =>
+        (!q || tpl.name.toLowerCase().includes(q)) &&
+        (!filters.status || (filters.status === 'active') === tpl.isActive) &&
+        (!filters.templateType || tpl.templateType === filters.templateType),
     );
   }, [templatesQuery.data, search, filters]);
 
@@ -128,8 +116,8 @@ export const RecurringTransactions = () => {
     () => [
       {
         id: 'name',
-        accessorFn: (t) => t.name,
-        header: 'Nama',
+        accessorFn: (tpl) => tpl.name,
+        header: t('recurringTransactions.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36 max-w-44 sm:max-w-80' },
         cell: ({ row }) => (
@@ -144,26 +132,26 @@ export const RecurringTransactions = () => {
       },
       {
         id: 'templateType',
-        accessorFn: (t) => typeLabel(t.templateType),
-        header: 'Tipe',
+        accessorFn: (tpl) => typeLabel(tpl.templateType),
+        header: t('recurringTransactions.columns.type'),
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap text-muted-foreground' },
         cell: ({ getValue }) => getValue<string>(),
       },
       {
         id: 'frequency',
-        accessorFn: (t) => frequencyLabel(t),
-        header: 'Frekuensi',
+        accessorFn: (tpl) => frequencyLabel(tpl),
+        header: t('recurringTransactions.columns.frequency'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap text-muted-foreground' },
         cell: ({ getValue }) => getValue<string>(),
       },
       {
         id: 'nextRunDate',
-        accessorFn: (t) => new Date(t.nextRunDate).getTime(),
+        accessorFn: (tpl) => new Date(tpl.nextRunDate).getTime(),
         header: () => (
           <>
-            <span className="sm:hidden">Jadwal</span>
-            <span className="hidden sm:inline">Jadwal Berikutnya</span>
+            <span className="sm:hidden">{t('recurringTransactions.columns.nextShort')}</span>
+            <span className="hidden sm:inline">{t('recurringTransactions.columns.next')}</span>
           </>
         ),
         enableSorting: true,
@@ -178,44 +166,44 @@ export const RecurringTransactions = () => {
       },
       {
         id: 'lastRunDate',
-        accessorFn: (t) => (t.lastRunDate ? new Date(t.lastRunDate).getTime() : 0),
-        header: 'Terakhir Dijalankan',
+        accessorFn: (tpl) => (tpl.lastRunDate ? new Date(tpl.lastRunDate).getTime() : 0),
+        header: t('recurringTransactions.columns.last'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => (row.original.lastRunDate ? formatDate(row.original.lastRunDate) : '—'),
       },
       {
         id: 'status',
-        accessorFn: (t) => (t.isActive ? 0 : 1),
-        header: 'Status',
+        accessorFn: (tpl) => (tpl.isActive ? 0 : 1),
+        header: t('recurringTransactions.columns.status'),
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.isActive ? 'Active' : 'Inactive'} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('recurringTransactions.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
-          const t = row.original;
+          const tpl = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${t.name}`}
+              label={t('recurringTransactions.rowActions', { name: tpl.name })}
               actions={[
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => openEdit(t) },
+                { label: t('recurringTransactions.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => openEdit(tpl) },
                 {
-                  label: 'Jalankan sekarang',
+                  label: t('recurringTransactions.actions.run'),
                   icon: Zap,
                   hidden: !canEdit,
                   disabled: executeMutation.isPending,
-                  onSelect: () => setRunTarget(t),
+                  onSelect: () => setRunTarget(tpl),
                 },
                 {
-                  label: t.isActive ? 'Nonaktifkan' : 'Aktifkan',
-                  icon: t.isActive ? Pause : Play,
+                  label: tpl.isActive ? t('recurringTransactions.actions.deactivate') : t('recurringTransactions.actions.activate'),
+                  icon: tpl.isActive ? Pause : Play,
                   hidden: !canEdit,
                   disabled: toggleMutation.isPending,
-                  onSelect: () => toggleMutation.mutate({ id: t.id, isActive: !t.isActive }),
+                  onSelect: () => toggleMutation.mutate({ id: tpl.id, isActive: !tpl.isActive }),
                 },
               ]}
             />
@@ -225,19 +213,19 @@ export const RecurringTransactions = () => {
     ],
     // Mutations/openEdit are stable enough; re-create when pending flags flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, executeMutation.isPending, toggleMutation.isPending],
+    [canEdit, executeMutation.isPending, toggleMutation.isPending, t],
   );
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Transaksi Berulang"
-        description="Kelola template transaksi otomatis berdasarkan jadwal."
+        title={t('recurringTransactions.title')}
+        description={t('recurringTransactions.description')}
         actions={
           canEdit && (
             <Button onClick={openCreate}>
               <Plus aria-hidden />
-              Buat Template
+              {t('recurringTransactions.create')}
             </Button>
           )
         }
@@ -246,24 +234,29 @@ export const RecurringTransactions = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari template"
-          searchPlaceholder="Cari nama template"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('recurringTransactions.filters.searchLabel')}
+          searchPlaceholder={t('recurringTransactions.filters.searchPlaceholder')}
+          status={{
+            options: [
+              { value: 'active', label: t('recurringTransactions.filters.active') },
+              { value: 'inactive', label: t('recurringTransactions.filters.inactive') },
+            ],
+          }}
         >
           <ComboboxFilter
-            label="Filter tipe template"
-            allLabel="Semua tipe"
-            searchPlaceholder="Cari tipe…"
+            label={t('recurringTransactions.filters.type')}
+            allLabel={t('recurringTransactions.filters.allTypes')}
+            searchPlaceholder={t('recurringTransactions.filters.typeSearch')}
             value={list.filters.templateType}
             onChange={(v) => list.setFilter('templateType', v)}
-            options={TYPE_FILTER}
+            options={TEMPLATE_TYPES.map((value) => ({ value, label: typeLabel(value) }))}
             className="w-[calc(50%-0.25rem)] sm:w-52"
           />
         </FilterBar>
 
         <DataTable
-          label="Daftar template transaksi berulang"
-          itemLabel="template"
+          label={t('recurringTransactions.table.label')}
+          itemLabel={t('recurringTransactions.table.itemLabel')}
           columns={columns}
           data={templatesQuery.data ? rows : undefined}
           getRowId={(row) => row.id}
@@ -277,12 +270,12 @@ export const RecurringTransactions = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada template transaksi berulang',
-            description: 'Template jurnal yang dijadwalkan akan muncul di sini.',
+            title: t('recurringTransactions.empty.title'),
+            description: t('recurringTransactions.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
-                Buat template pertama
+                {t('recurringTransactions.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -294,18 +287,22 @@ export const RecurringTransactions = () => {
       <ConfirmDialog
         open={runTarget !== null}
         onOpenChange={(open) => !open && setRunTarget(null)}
-        title="Jalankan template sekarang?"
+        title={t('recurringTransactions.runDialog.title')}
         description={
           runTarget ? (
-            <>
-              Template <strong>{runTarget.name}</strong> akan langsung membuat jurnal bertanggal hari ini yang
-              terposting ke buku besar. Jadwal berikutnya dihitung ulang menjadi{' '}
-              <strong>{PERIOD_LABELS[runTarget.frequency] ?? 'satu periode'}</strong> setelah hari ini (jadwal
-              saat ini: {formatDate(runTarget.nextRunDate)}).
-            </>
+            <Trans
+              t={t}
+              i18nKey="recurringTransactions.runDialog.description"
+              values={{
+                name: runTarget.name,
+                period: periodLabel(runTarget.frequency),
+                current: formatDate(runTarget.nextRunDate),
+              }}
+              components={{ b: <strong /> }}
+            />
           ) : null
         }
-        confirmLabel="Ya, jalankan"
+        confirmLabel={t('recurringTransactions.runDialog.confirm')}
         loading={executeMutation.isPending}
         onConfirm={() => (runTarget ? executeMutation.mutateAsync(runTarget.id) : undefined)}
       />

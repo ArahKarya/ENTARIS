@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import {
   FileText,
   ImageIcon,
@@ -51,6 +52,7 @@ export function AttachmentPicker({
   error,
   readOnly,
 }: AttachmentPickerProps) {
+  const { t } = useTranslation("finance");
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState("");
@@ -60,13 +62,11 @@ export function AttachmentPicker({
     const files = Array.from(list);
     const bad = files.find((f) => !ACCEPTED_TYPES.includes(f.type));
     if (bad)
-      return setLocalError(`"${bad.name}" bukan JPG, PNG, WebP, atau PDF.`);
+      return setLocalError(t("attachmentPicker.errors.type", { name: bad.name }));
     const big = files.find((f) => f.size > MAX_FILE_BYTES);
-    if (big) return setLocalError(`"${big.name}" lebih dari 5 MB.`);
+    if (big) return setLocalError(t("attachmentPicker.errors.size", { name: big.name }));
     if (saved.length + pending.length + files.length > MAX_ATTACHMENTS) {
-      return setLocalError(
-        `Maksimal ${MAX_ATTACHMENTS} lampiran per pengajuan.`,
-      );
+      return setLocalError(t("attachmentPicker.errors.max", { max: MAX_ATTACHMENTS }));
     }
     setLocalError("");
     onPendingChange([...pending, ...files]);
@@ -94,18 +94,22 @@ export function AttachmentPicker({
         >
           <UploadCloud className="size-6 text-muted-foreground" aria-hidden />
           <p className="text-sm text-foreground">
-            Tarik nota/kuitansi ke sini atau{" "}
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => inputRef.current?.click()}
-            >
-              pilih file
-            </Button>
+            <Trans
+              t={t}
+              i18nKey="attachmentPicker.drop"
+              components={{
+                pick: (
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => inputRef.current?.click()}
+                  />
+                ),
+              }}
+            />
           </p>
           <p className="text-xs text-muted-foreground">
-            JPG, PNG, WebP, atau PDF · maks. 5 MB per file
-            {required ? " · wajib untuk jenis ini" : ""}
+            {required ? t("attachmentPicker.hintRequired") : t("attachmentPicker.hint")}
           </p>
           <input
             ref={inputRef}
@@ -113,7 +117,7 @@ export function AttachmentPicker({
             multiple
             accept={ACCEPTED_TYPES.join(",")}
             className="sr-only"
-            aria-label="Pilih file lampiran"
+            aria-label={t("attachmentPicker.input")}
             tabIndex={-1}
             onChange={(e) => {
               addFiles(e.target.files);
@@ -126,7 +130,7 @@ export function AttachmentPicker({
       {(saved.length > 0 || pending.length > 0) && (
         <ul
           className="divide-y divide-border rounded-lg border border-border"
-          aria-label="Lampiran"
+          aria-label={t("attachmentPicker.list")}
         >
           {saved.map((a) => {
             const Icon = iconFor(a.mimeType);
@@ -155,7 +159,7 @@ export function AttachmentPicker({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Hapus ${a.fileName}`}
+                    aria-label={t("attachmentPicker.remove", { name: a.fileName })}
                     loading={removingId === a.id}
                     onClick={() => onRemoveSaved(a.id)}
                   >
@@ -176,13 +180,13 @@ export function AttachmentPicker({
               />
               <span className="min-w-0 flex-1 truncate">{f.name}</span>
               <span className="shrink-0 text-xs text-muted-foreground">
-                belum diunggah · {formatFileSize(f.size)}
+                {t("attachmentPicker.notUploaded", { size: formatFileSize(f.size) })}
               </span>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Batalkan ${f.name}`}
+                aria-label={t("attachmentPicker.cancel", { name: f.name })}
                 onClick={() =>
                   onPendingChange(pending.filter((_, j) => j !== i))
                 }

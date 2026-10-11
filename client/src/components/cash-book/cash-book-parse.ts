@@ -4,6 +4,7 @@
  * (synonyms: debit = masuk, kredit = keluar). Amount/date strings are passed
  * through as typed; the server normalises them ("1.250.000,50", "05/10/2026").
  */
+import i18n from '@/i18n';
 import { CB_ROW_LIMIT } from './cash-book';
 
 export interface ParsedRow {
@@ -93,9 +94,9 @@ export const isBlankAmount = (s: string): boolean => /^[\s\-–.,0]*$/.test(s);
 
 export function parseCashBookText(text: string): ParseResult {
   const input = text.trim();
-  if (!input) return { rows: [], problems: ['Belum ada data. Tempel baris dari Excel atau pilih berkas CSV.'], hasHeader: false };
+  if (!input) return { rows: [], problems: [i18n.t('finance:cashBookParse.noInput')], hasHeader: false };
   const table = tokenize(input, detectDelimiter(input));
-  if (table.length === 0) return { rows: [], problems: ['Data kosong.'], hasHeader: false };
+  if (table.length === 0) return { rows: [], problems: [i18n.t('finance:cashBookParse.empty')], hasHeader: false };
 
   const header = mapHeader(table[0]);
   const cols: Record<Field, number> = header
@@ -103,7 +104,7 @@ export function parseCashBookText(text: string): ParseResult {
     : { date: 0, description: 1, masuk: 2, keluar: 3 };
   const body = header ? table.slice(1) : table;
   const problems: string[] = [];
-  if (!header && table[0].length < 3) problems.push('Kolom tidak dikenali. Pakai urutan: tanggal, keterangan, masuk, keluar (atau beri baris judul).');
+  if (!header && table[0].length < 3) problems.push(i18n.t('finance:cashBookParse.unknownColumns'));
 
   const cell = (r: string[], i: number): string => (i >= 0 ? (r[i] ?? '').trim() : '');
   const rows: ParsedRow[] = body.map((r, i) => {
@@ -112,13 +113,13 @@ export function parseCashBookText(text: string): ParseResult {
     const masuk = cell(r, cols.masuk);
     const keluar = cell(r, cols.keluar);
     let error: string | null = null;
-    if (!description) error = 'Keterangan kosong';
-    else if (isBlankAmount(masuk) && isBlankAmount(keluar)) error = 'Isi nominal masuk atau keluar';
-    else if (!isBlankAmount(masuk) && !isBlankAmount(keluar)) error = 'Isi salah satu saja: masuk atau keluar';
+    if (!description) error = i18n.t('finance:cashBookParse.row.noDescription');
+    else if (isBlankAmount(masuk) && isBlankAmount(keluar)) error = i18n.t('finance:cashBookParse.row.noAmount');
+    else if (!isBlankAmount(masuk) && !isBlankAmount(keluar)) error = i18n.t('finance:cashBookParse.row.bothAmounts');
     return { line, date: cell(r, cols.date), description, masuk: isBlankAmount(masuk) ? '' : masuk, keluar: isBlankAmount(keluar) ? '' : keluar, error };
   });
-  if (rows.length === 0) problems.push('Tidak ada baris data setelah baris judul.');
-  if (rows.length > CB_ROW_LIMIT) problems.push(`Maksimal ${CB_ROW_LIMIT} baris per draft (ada ${rows.length}). Pecah menjadi beberapa draft.`);
+  if (rows.length === 0) problems.push(i18n.t('finance:cashBookParse.noRows'));
+  if (rows.length > CB_ROW_LIMIT) problems.push(i18n.t('finance:cashBookParse.tooMany', { max: CB_ROW_LIMIT, count: rows.length }));
   return { rows, problems, hasHeader: !!header };
 }
 

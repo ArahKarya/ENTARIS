@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Save, Send } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, toNumber } from '@/lib/format';
@@ -55,17 +56,19 @@ function initialLines(pr: PaymentRequestDetail): DraftLine[] {
 }
 
 export const PaymentRequestSettlementPage = () => {
+  const { t } = useTranslation('finance');
   const { id } = useParams<{ id: string }>();
   const detailQuery = useQuery({
     queryKey: ['payment-requests', 'detail', id],
     queryFn: async () => (await api.get<PaymentRequestDetail>(`${PR_ENDPOINT}/${id}`)).data,
     enabled: !!id,
   });
-  if (detailQuery.isLoading || !detailQuery.data) return <LoadingState label="Memuat pengajuan…" />;
+  if (detailQuery.isLoading || !detailQuery.data) return <LoadingState label={t('paymentRequestSettlement.loading')} />;
   return <SettlementBody key={id} pr={detailQuery.data} />;
 };
 
 function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
+  const { t } = useTranslation('finance');
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [lines, setLines] = useState<DraftLine[]>(() => initialLines(pr));
@@ -86,7 +89,7 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
   const removeAttachment = useMutation({
     mutationFn: (attId: string) => api.delete(`${detailUrl}/attachments/${attId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-requests', 'detail', pr.id] }),
-    onError: (e) => toast.error(apiError(e, 'Gagal menghapus lampiran.')),
+    onError: (e) => toast.error(apiError(e, t('paymentRequestSettlement.toast.deleteAttachmentFailed'))),
   });
 
   const save = useMutation({
@@ -115,12 +118,12 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
       return submit;
     },
     onSuccess: (submit) => {
-      toast.success(submit ? 'Pertanggungjawaban diajukan.' : 'Draf pertanggungjawaban disimpan.');
+      toast.success(submit ? t('paymentRequestSettlement.toast.submitted') : t('paymentRequestSettlement.toast.draftSaved'));
       qc.invalidateQueries({ queryKey: ['payment-requests'] });
       navigate(detailUrl);
     },
     onError: (e) => {
-      setError(apiError(e, 'Gagal menyimpan pertanggungjawaban.'));
+      setError(apiError(e, t('paymentRequestSettlement.toast.saveFailed')));
       qc.invalidateQueries({ queryKey: ['payment-requests'] });
     },
   });
@@ -129,8 +132,8 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
     setError('');
     const filled = lines.filter((l) => l.description.trim() || l.amount);
     let message = '';
-    if (filled.some((l) => !l.description.trim() || !l.amount || l.amount <= 0)) message = 'Setiap baris wajib berisi uraian dan nominal lebih dari 0.';
-    else if (submit && filled.length === 0) message = 'Tambahkan minimal satu rincian realisasi.';
+    if (filled.some((l) => !l.description.trim() || !l.amount || l.amount <= 0)) message = t('paymentRequestSettlement.errors.lineIncomplete');
+    else if (submit && filled.length === 0) message = t('paymentRequestSettlement.errors.noLines');
     setLinesError(message);
     if (message) return;
     save.mutate(submit);
@@ -139,21 +142,21 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
   if (!pr.actions.settlement.edit) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Pertanggungjawaban" description={pr.number} />
+        <PageHeader title={t('paymentRequestSettlement.title')} description={pr.number} />
         <p className="text-sm text-muted-foreground">
-          Pertanggungjawaban hanya bisa diisi oleh pengaju saat uang muka sudah dibayar dan belum diajukan (atau diminta revisi).
+          {t('paymentRequestSettlement.notEditable')}
         </p>
-        <Button variant="outline" onClick={() => navigate(detailUrl)}>Kembali ke detail</Button>
+        <Button variant="outline" onClick={() => navigate(detailUrl)}>{t('paymentRequestSettlement.backToDetail')}</Button>
       </div>
     );
   }
 
   const diffMessage =
     diff === 0
-      ? 'Realisasi sama dengan uang muka. Tidak ada pengembalian maupun kekurangan.'
+      ? t('paymentRequestSettlement.diffMessage.exact')
       : diff < 0
-        ? `Sisa uang muka ${formatMoney(-diff)} dikembalikan ke kas perusahaan (dicatat Keuangan saat memposting).`
-        : `Kurang bayar ${formatMoney(diff)} dibayarkan perusahaan kepada Anda (dicatat Keuangan saat memposting).`;
+        ? t('paymentRequestSettlement.diffMessage.return', { amount: formatMoney(-diff) })
+        : t('paymentRequestSettlement.diffMessage.reimburse', { amount: formatMoney(diff) });
 
   return (
     <form
@@ -165,7 +168,7 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
       }}
     >
       <PageHeader
-        title={`Pertanggungjawaban ${pr.number}`}
+        title={t('paymentRequestSettlement.titleWithNumber', { number: pr.number })}
         description={`${pr.type.name} · ${pr.purpose}${pr.travelDestination ? ` · ${pr.travelDestination}` : ''}`}
       />
 
@@ -173,23 +176,23 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
         <div role="status" className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <p>
-            <span className="font-medium">Catatan revisi:</span> {pr.settlementLastNote}
+            <span className="font-medium">{t('paymentRequestSettlement.revisionNote')}</span> {pr.settlementLastNote}
           </p>
         </div>
       )}
 
-      <section aria-label="Ringkasan" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <section aria-label={t('paymentRequestSettlement.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Uang muka diterima</p>
+          <p className="text-xs text-muted-foreground">{t('paymentRequestSettlement.summary.advance')}</p>
           <p className="num mt-1 text-xl font-semibold text-foreground">{formatMoney(advance)}</p>
-          <p className="text-xs text-muted-foreground">dibayar {pr.paymentDate ? formatDate(pr.paymentDate) : '—'}</p>
+          <p className="text-xs text-muted-foreground">{t('paymentRequestSettlement.summary.paidOn', { date: pr.paymentDate ? formatDate(pr.paymentDate) : '—' })}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total realisasi</p>
+          <p className="text-xs text-muted-foreground">{t('paymentRequestSettlement.summary.realized')}</p>
           <p className="num mt-1 text-xl font-semibold text-foreground" aria-live="polite">{formatMoney(realized)}</p>
         </div>
         <div className="col-span-2 rounded-lg border border-border bg-card p-4 lg:col-span-1">
-          <p className="text-xs text-muted-foreground">{diff < 0 ? 'Sisa uang muka' : diff > 0 ? 'Kurang bayar' : 'Selisih'}</p>
+          <p className="text-xs text-muted-foreground">{diff < 0 ? t('paymentRequestSettlement.summary.return') : diff > 0 ? t('paymentRequestSettlement.summary.reimburse') : t('paymentRequestSettlement.summary.difference')}</p>
           <p className={`num mt-1 text-xl font-semibold ${diff > 0 ? 'text-danger' : 'text-foreground'}`}>{formatMoney(Math.abs(diff))}</p>
         </div>
       </section>
@@ -199,14 +202,14 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
         <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader>
-              <CardTitle>Rincian realisasi</CardTitle>
+              <CardTitle>{t('paymentRequestSettlement.lines.title')}</CardTitle>
               <CardDescription>
-                {isTravel ? 'Dimulai dari rencana perjalanan. Ubah nominal sesuai biaya sebenarnya, tambah atau hapus baris.' : 'Catat pengeluaran yang benar-benar terjadi.'}
+                {isTravel ? t('paymentRequestSettlement.lines.travelHint') : t('paymentRequestSettlement.lines.hint')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isTravel ? (
-                <TravelLinesEditor lines={lines} onChange={setLines} error={linesError} days={days} amountLabel="Realisasi" />
+                <TravelLinesEditor lines={lines} onChange={setLines} error={linesError} days={days} amountLabel={t('paymentRequestSettlement.lines.actual')} />
               ) : (
                 <LinesEditor lines={lines} onChange={setLines} error={linesError} />
               )}
@@ -216,7 +219,7 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
           {isTravel && (
             <Card>
               <CardHeader>
-                <CardTitle>Rencana vs realisasi</CardTitle>
+                <CardTitle>{t('paymentRequestSettlement.planVsActual')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <PlanVsActual planned={pr.lines.map((l) => ({ category: l.category, amount: Number(l.amount) }))} actual={lines} />
@@ -226,8 +229,8 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Bukti / nota</CardTitle>
-              <CardDescription>Lampirkan nota, kuitansi, atau bukti transfer pengembalian (JPG, PNG, WebP, PDF).</CardDescription>
+              <CardTitle>{t('paymentRequestSettlement.receipts.title')}</CardTitle>
+              <CardDescription>{t('paymentRequestSettlement.receipts.hint')}</CardDescription>
             </CardHeader>
             <CardContent>
               <AttachmentPicker
@@ -243,13 +246,13 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
 
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Catatan</CardTitle>
+            <CardTitle>{t('paymentRequestSettlement.notes.title')}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <Field label="Catatan untuk atasan & Keuangan" hint="Opsional.">
+            <Field label={t('paymentRequestSettlement.notes.note')} hint={t('paymentRequestSettlement.notes.optional')}>
               <Textarea rows={4} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
             </Field>
-            <Field label="Batas waktu pertanggungjawaban" hint="Opsional. Pengingat dikirim bila terlewat.">
+            <Field label={t('paymentRequestSettlement.notes.deadline')} hint={t('paymentRequestSettlement.notes.deadlineHint')}>
               {(control) => <DateInput id={control.id} value={deadline} min={isoDay(pr.paymentDate) || undefined} onChange={setDeadline} />}
             </Field>
           </CardContent>
@@ -265,18 +268,18 @@ function SettlementBody({ pr }: { pr: PaymentRequestDetail }) {
 
       <div className="sticky bottom-0 z-10 -mx-3 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-background/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
         <p className="mr-auto text-sm text-muted-foreground">
-          Realisasi <span className="num ml-1 font-semibold text-foreground">{formatMoney(realized)}</span>
+          {t('paymentRequestSettlement.footer.actual')} <span className="num ml-1 font-semibold text-foreground">{formatMoney(realized)}</span>
         </p>
         <Button type="button" variant="outline" onClick={() => navigate(detailUrl)}>
-          Batal
+          {t('paymentRequestSettlement.footer.cancel')}
         </Button>
         <Button type="button" variant="secondary" onClick={() => onSave(false)} loading={save.isPending && save.variables === false}>
           <Save aria-hidden />
-          Simpan Draf
+          {t('paymentRequestSettlement.footer.saveDraft')}
         </Button>
         <Button type="submit" loading={save.isPending && save.variables === true}>
           <Send aria-hidden />
-          Ajukan
+          {t('paymentRequestSettlement.footer.submit')}
         </Button>
       </div>
     </form>

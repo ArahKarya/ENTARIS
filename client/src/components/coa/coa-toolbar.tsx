@@ -3,6 +3,7 @@
  * "akun bersaldo saja" toggle and Buka/Tutup semua.
  */
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,12 +19,13 @@ export interface CoaToolbarProps {
 }
 
 export function CoaToolbar({ view, counts, total, disabled }: CoaToolbarProps) {
+  const { t } = useTranslation('finance');
   const chips = [
-    { value: '', label: 'Semua', count: total },
-    ...ROOT_TYPES.map((t) => ({
-      value: t,
-      label: rootTypeLabel(t),
-      count: counts[t] ?? 0,
+    { value: '', label: t('coaToolbar.all'), count: total },
+    ...ROOT_TYPES.map((type) => ({
+      value: type,
+      label: rootTypeLabel(type),
+      count: counts[type] ?? 0,
     })),
   ];
 
@@ -31,17 +33,17 @@ export function CoaToolbar({ view, counts, total, disabled }: CoaToolbarProps) {
     <div className="space-y-3">
       <FilterBar
         list={view.list}
-        searchLabel="Cari akun"
-        searchPlaceholder="Cari nomor atau nama akun"
+        searchLabel={t('coaToolbar.searchLabel')}
+        searchPlaceholder={t('coaToolbar.searchPlaceholder')}
         actions={
           <>
             <Button variant="outline" size="sm" onClick={view.expandAll} disabled={disabled}>
               <ChevronsUpDown aria-hidden />
-              Buka semua
+              {t('coaToolbar.expandAll')}
             </Button>
             <Button variant="outline" size="sm" onClick={view.collapseAll} disabled={disabled}>
               <ChevronsDownUp aria-hidden />
-              Tutup semua
+              {t('coaToolbar.collapseAll')}
             </Button>
           </>
         }
@@ -53,11 +55,11 @@ export function CoaToolbar({ view, counts, total, disabled }: CoaToolbarProps) {
             onChange={(e) => view.setNonZeroOnly(e.target.checked)}
             className="size-4 rounded accent-primary"
           />
-          Hanya akun bersaldo
+          {t('coaToolbar.nonZeroOnly')}
         </label>
       </FilterBar>
 
-      <div role="group" aria-label="Filter tipe akun" className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label={t('coaToolbar.typeFilter')} className="flex flex-wrap gap-1.5">
         {chips.map((chip) => {
           const active = view.rootType === chip.value;
           return (

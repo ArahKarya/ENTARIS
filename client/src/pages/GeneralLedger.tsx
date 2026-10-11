@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CalendarRange, ChevronDown, Eye, Info, Plus, Upload, XCircle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDate, formatRupiah, toNumber } from '@/lib/format';
@@ -99,13 +100,8 @@ const ymd = (d: Date) =>
 
 type Preset = 'today' | 'week' | 'month' | 'lastMonth' | 'year';
 
-const PRESETS: Array<{ key: Preset; label: string }> = [
-  { key: 'today', label: 'Hari ini' },
-  { key: 'week', label: 'Minggu ini' },
-  { key: 'month', label: 'Bulan ini' },
-  { key: 'lastMonth', label: 'Bulan lalu' },
-  { key: 'year', label: 'Tahun ini (YTD)' },
-];
+/** Labels live under generalLedger.presets.<key>. */
+const PRESETS: readonly Preset[] = ['today', 'week', 'month', 'lastMonth', 'year'];
 
 function presetRange(preset: Preset, now = new Date()): { startDate: string; endDate: string } {
   const y = now.getFullYear();
@@ -146,6 +142,7 @@ function useAccountOptions() {
 }
 
 export const GeneralLedger = () => {
+  const { t } = useTranslation('finance');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -182,13 +179,13 @@ export const GeneralLedger = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/journals/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Jurnal dibatalkan.');
+      toast.success(t('generalLedger.toast.cancelled'));
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
     },
     onError: (err: unknown) => {
       const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(message || 'Gagal membatalkan jurnal.');
+      toast.error(message || t('generalLedger.toast.cancelFailed'));
     },
   });
 
@@ -196,7 +193,7 @@ export const GeneralLedger = () => {
     () => [
       {
         id: 'entryNumber',
-        header: 'Nomor',
+        header: t('generalLedger.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -212,7 +209,7 @@ export const GeneralLedger = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('generalLedger.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -220,7 +217,7 @@ export const GeneralLedger = () => {
       },
       {
         id: 'narration',
-        header: 'Keterangan',
+        header: t('generalLedger.columns.narration'),
         meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -229,7 +226,7 @@ export const GeneralLedger = () => {
             </p>
             {row.original.user?.fullName && (
               <p className="truncate text-xs text-muted-foreground group-data-[density=compact]/table:hidden">
-                oleh {row.original.user.fullName}
+                {t('generalLedger.by', { name: row.original.user.fullName })}
               </p>
             )}
           </div>
@@ -237,7 +234,7 @@ export const GeneralLedger = () => {
       },
       {
         id: 'accounts',
-        header: 'Rincian Akun',
+        header: t('generalLedger.columns.accounts'),
         meta: { hideBelow: 'lg', cellClassName: 'min-w-52 max-w-72' },
         cell: ({ row }) => {
           const lines = row.original.items;
@@ -249,14 +246,14 @@ export const GeneralLedger = () => {
                   <span className="truncate text-foreground">{it.account.name}</span>
                 </li>
               ))}
-              {lines.length > 2 && <li className="font-medium text-primary">+{lines.length - 2} lainnya</li>}
+              {lines.length > 2 && <li className="font-medium text-primary">{t('generalLedger.moreLines', { count: lines.length - 2 })}</li>}
             </ul>
           );
         },
       },
       {
         id: 'debit',
-        header: () => withUnit('Debit'),
+        header: () => withUnit(t('generalLedger.columns.debit')),
         meta: { align: 'right' },
         cell: ({ row }) => {
           const { debit } = lineTotals(row.original.items);
@@ -271,7 +268,7 @@ export const GeneralLedger = () => {
       },
       {
         id: 'credit',
-        header: () => withUnit('Kredit'),
+        header: () => withUnit(t('generalLedger.columns.credit')),
         meta: { align: 'right', hideBelow: 'sm' },
         cell: ({ row }) => (
           <span className={amountClass(row.original.status)}>{money(lineTotals(row.original.items).credit)}</span>
@@ -279,24 +276,24 @@ export const GeneralLedger = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('generalLedger.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="journal" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('generalLedger.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const je = row.original;
           const auto = AUTO_JOURNAL.test(je.entryNumber);
           return (
             <RowActions
-              label={`Aksi untuk ${je.entryNumber}`}
+              label={t('generalLedger.rowActions', { number: je.entryNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(je.id) },
+                { label: t('generalLedger.actions.view'), icon: Eye, onSelect: () => setSelectedId(je.id) },
                 {
-                  label: auto ? 'Batalkan dari modul asal' : 'Batalkan jurnal',
+                  label: auto ? t('generalLedger.actions.cancelAtSource') : t('generalLedger.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   disabled: auto,
@@ -309,24 +306,24 @@ export const GeneralLedger = () => {
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Jurnal Umum"
-        description="Kelola dan tinjau semua transaksi jurnal harian."
+        title={t('generalLedger.title')}
+        description={t('generalLedger.description')}
         actions={
           canEdit ? (
             <>
               <Button variant="outline" onClick={() => setIsImportOpen(true)}>
                 <Upload aria-hidden />
-                <span className="sr-only sm:not-sr-only">Impor</span>
+                <span className="sr-only sm:not-sr-only">{t('generalLedger.import')}</span>
               </Button>
               <Button onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat Jurnal
+                {t('generalLedger.create')}
               </Button>
             </>
           ) : undefined
@@ -335,14 +332,12 @@ export const GeneralLedger = () => {
 
       {canEdit && (
         <aside
-          aria-label="Cara kerja pembatalan jurnal"
+          aria-label={t('generalLedger.help.label')}
           className="flex gap-2.5 rounded-md border border-warning/30 bg-warning-subtle px-3.5 py-2.5 text-sm text-warning-text"
         >
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
           <p>
-            Jurnal otomatis (<span className="num">JV-PAY</span>, <span className="num">JV-SI</span>,{' '}
-            <span className="num">JV-PI</span>, <span className="num">JV-COGS</span>) dibatalkan dari modul asalnya
-            agar faktur, pembayaran, dan saldo ikut diperbarui. Halaman ini hanya membatalkan jurnal manual.
+            <Trans t={t} i18nKey="generalLedger.help.body" components={{ num: <span className="num" /> }} />
           </p>
         </aside>
       )}
@@ -350,15 +345,15 @@ export const GeneralLedger = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari jurnal"
-          searchPlaceholder="Cari nomor, keterangan, akun"
+          searchLabel={t('generalLedger.filters.searchLabel')}
+          searchPlaceholder={t('generalLedger.filters.searchPlaceholder')}
           status={{ options: STATUS_FILTER }}
           dateRange
         >
           <ComboboxFilter
-            label="Akun"
-            allLabel="Semua akun"
-            searchPlaceholder="Cari nomor/nama akun…"
+            label={t('generalLedger.filters.account')}
+            allLabel={t('generalLedger.filters.allAccounts')}
+            searchPlaceholder={t('generalLedger.filters.accountSearch')}
             value={list.filters.accountId}
             onChange={(v) => list.setFilter('accountId', v)}
             options={accounts.options}
@@ -369,14 +364,14 @@ export const GeneralLedger = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full sm:w-auto">
                 <CalendarRange aria-hidden />
-                Periode
+                {t('generalLedger.filters.period')}
                 <ChevronDown aria-hidden className="text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-44">
               {PRESETS.map((p) => (
-                <DropdownMenuItem key={p.key} onSelect={() => list.setFilters(presetRange(p.key))}>
-                  {p.label}
+                <DropdownMenuItem key={p} onSelect={() => list.setFilters(presetRange(p))}>
+                  {t(`generalLedger.presets.${p}`)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -385,8 +380,8 @@ export const GeneralLedger = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar jurnal umum"
-          itemLabel="jurnal"
+          label={t('generalLedger.table.label')}
+          itemLabel={t('generalLedger.table.itemLabel')}
           columns={columns}
           data={journalsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -399,12 +394,12 @@ export const GeneralLedger = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada transaksi jurnal',
-            description: 'Jurnal manual dan jurnal otomatis dari modul lain akan muncul di sini.',
+            title: t('generalLedger.empty.title'),
+            description: t('generalLedger.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat jurnal pertama
+                {t('generalLedger.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -421,9 +416,9 @@ export const GeneralLedger = () => {
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
-        title="Batalkan Jurnal"
-        description={`Apakah Anda yakin ingin membatalkan jurnal ${cancelTarget?.entryNumber ?? ''}? Saldo akun terkait akan dikembalikan. Tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('generalLedger.cancelDialog.title')}
+        description={t('generalLedger.cancelDialog.description', { number: cancelTarget?.entryNumber ?? '' })}
+        confirmLabel={t('generalLedger.cancelDialog.confirm')}
         loading={cancelMutation.isPending}
         onConfirm={() => (cancelTarget ? cancelMutation.mutateAsync(cancelTarget.id) : undefined)}
       />

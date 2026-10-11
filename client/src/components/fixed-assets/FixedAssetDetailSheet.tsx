@@ -6,6 +6,7 @@
  */
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Pencil, Play, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
@@ -61,6 +62,7 @@ export function FixedAssetDetailSheet({
   onPostEntry,
   postingEntryId,
 }: FixedAssetDetailSheetProps) {
+  const { t } = useTranslation('finance');
   const detailQuery = useQuery({
     queryKey: ['fixed-asset', assetId],
     queryFn: async () => (await api.get<FixedAssetRow>(`/fixed-assets/${assetId}`)).data,
@@ -89,8 +91,8 @@ export function FixedAssetDetailSheet({
         {!asset ? (
           <>
             <SheetHeader>
-              <SheetTitle>Detail aset tetap</SheetTitle>
-              <SheetDescription>{detailQuery.isError ? 'Aset tidak dapat dimuat.' : 'Memuat…'}</SheetDescription>
+              <SheetTitle>{t('fixedAssetDetailSheet.title')}</SheetTitle>
+              <SheetDescription>{detailQuery.isError ? t('fixedAssetDetailSheet.loadError') : t('fixedAssetDetailSheet.loading')}</SheetDescription>
             </SheetHeader>
             <SheetBody>
               {detailQuery.isError ? (
@@ -99,7 +101,7 @@ export function FixedAssetDetailSheet({
                   compact
                   action={
                     <Button variant="outline" size="sm" onClick={() => detailQuery.refetch()}>
-                      Coba lagi
+                      {t('fixedAssetDetailSheet.retry')}
                     </Button>
                   }
                 />
@@ -123,68 +125,70 @@ export function FixedAssetDetailSheet({
 
             <SheetBody className="space-y-6">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Kategori">{asset.category}</Detail>
-                <Detail label="Tanggal perolehan">{formatDate(asset.acquisitionDate)}</Detail>
-                <Detail label="Masa manfaat">{formatNumber(asset.usefulLifeMonths)} bulan</Detail>
-                <Detail label="Nilai sisa">{formatRupiah(asset.salvageValue)}</Detail>
-                <Detail label="Metode">{asset.depreciationMethod === 'straight_line' ? 'Garis lurus' : asset.depreciationMethod}</Detail>
-                <Detail label="Dibuat oleh">{asset.user?.fullName ?? '—'}</Detail>
+                <Detail label={t('fixedAssetDetailSheet.fields.category')}>{asset.category}</Detail>
+                <Detail label={t('fixedAssetDetailSheet.fields.acquisitionDate')}>{formatDate(asset.acquisitionDate)}</Detail>
+                <Detail label={t('fixedAssetDetailSheet.fields.usefulLife')}>{t('fixedAssetDetailSheet.months', { count: asset.usefulLifeMonths })}</Detail>
+                <Detail label={t('fixedAssetDetailSheet.fields.salvageValue')}>{formatRupiah(asset.salvageValue)}</Detail>
+                <Detail label={t('fixedAssetDetailSheet.fields.method')}>
+                  {asset.depreciationMethod === 'straight_line' ? t('fixedAssetDetailSheet.straightLine') : asset.depreciationMethod}
+                </Detail>
+                <Detail label={t('fixedAssetDetailSheet.fields.createdBy')}>{asset.user?.fullName ?? '—'}</Detail>
                 {asset.gaAsset && (
-                  <Detail label="Aset EAM terkait">
+                  <Detail label={t('fixedAssetDetailSheet.fields.eamAsset')}>
                     <span className="font-mono">{asset.gaAsset.code}</span> · {asset.gaAsset.name}
                   </Detail>
                 )}
-                {asset.disposalDate && <Detail label="Tanggal dilepas">{formatDate(asset.disposalDate)}</Detail>}
-                <Detail wide label="Akun aset">{account(asset.assetAccount)}</Detail>
-                <Detail wide label="Akun beban penyusutan">{account(asset.depreciationAccount)}</Detail>
-                <Detail wide label="Akun akumulasi penyusutan">{account(asset.accumulatedDepAccount)}</Detail>
+                {asset.disposalDate && <Detail label={t('fixedAssetDetailSheet.fields.disposalDate')}>{formatDate(asset.disposalDate)}</Detail>}
+                <Detail wide label={t('fixedAssetDetailSheet.fields.assetAccount')}>{account(asset.assetAccount)}</Detail>
+                <Detail wide label={t('fixedAssetDetailSheet.fields.depreciationAccount')}>{account(asset.depreciationAccount)}</Detail>
+                <Detail wide label={t('fixedAssetDetailSheet.fields.accumulatedAccount')}>{account(asset.accumulatedDepAccount)}</Detail>
                 {asset.description && (
-                  <Detail wide label="Keterangan">
+                  <Detail wide label={t('fixedAssetDetailSheet.fields.description')}>
                     {asset.description}
                   </Detail>
                 )}
               </dl>
 
               <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <Figure label="Harga perolehan" value={num(asset.acquisitionCost)} />
-                <Figure label="Akm. penyusutan" value={num(asset.accumulatedDepreciation)} />
-                <Figure label="Nilai buku" value={num(asset.bookValue)} emphasis className="col-span-2 sm:col-span-1" />
+                <Figure label={t('fixedAssetDetailSheet.figures.cost')} value={num(asset.acquisitionCost)} />
+                <Figure label={t('fixedAssetDetailSheet.figures.accumulated')} value={num(asset.accumulatedDepreciation)} />
+                <Figure label={t('fixedAssetDetailSheet.figures.bookValue')} value={num(asset.bookValue)} emphasis className="col-span-2 sm:col-span-1" />
               </dl>
 
               <section aria-labelledby="fa-schedule">
                 <div className="flex items-baseline justify-between gap-2">
                   <h3 id="fa-schedule" className="text-sm font-semibold text-foreground">
-                    Jadwal Penyusutan
+                    {t('fixedAssetDetailSheet.schedule.title')}
                   </h3>
                   {detailQuery.data && (
                     <p className="text-xs text-muted-foreground">
-                      {formatNumber(postedCount)} dari {formatNumber(entries.length)} periode diposting
+                      {t('fixedAssetDetailSheet.schedule.progress', { posted: formatNumber(postedCount), total: formatNumber(entries.length) })}
                     </p>
                   )}
                 </div>
                 {!detailQuery.data ? (
                   <Skeleton className="mt-2 h-32 w-full" />
                 ) : entries.length === 0 ? (
-                  <p className="mt-2 text-sm text-muted-foreground">Belum ada jadwal penyusutan.</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{t('fixedAssetDetailSheet.schedule.empty')}</p>
                 ) : (
                   <div
                     role="region"
-                    aria-label="Jadwal penyusutan"
+                    aria-label={t('fixedAssetDetailSheet.schedule.region')}
                     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                     tabIndex={0}
                     className="mt-2 max-h-96 overflow-y-auto rounded-md border border-border focus-visible:outline-2 focus-visible:outline-ring"
                   >
                     <table className="w-full text-sm">
-                      <caption className="sr-only">Jadwal penyusutan {asset.assetNumber}</caption>
+                      <caption className="sr-only">{t('fixedAssetDetailSheet.schedule.caption', { number: asset.assetNumber })}</caption>
                       <thead className="sticky top-0 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
                         <tr>
-                          <th scope="col" className="px-2 sm:px-3 py-2 text-left font-medium">Periode</th>
+                          <th scope="col" className="px-2 sm:px-3 py-2 text-left font-medium">{t('fixedAssetDetailSheet.schedule.period')}</th>
                           <th scope="col" className="whitespace-nowrap px-2 sm:px-3 py-2 text-right font-medium">
-                            Jumlah <span className="normal-case">(Rp)</span>
+                            {t('fixedAssetDetailSheet.schedule.amount')} <span className="normal-case">(Rp)</span>
                           </th>
-                          <th scope="col" className="px-2 sm:px-3 py-2 text-left font-medium">Status</th>
+                          <th scope="col" className="px-2 sm:px-3 py-2 text-left font-medium">{t('fixedAssetDetailSheet.schedule.status')}</th>
                           <th scope="col" className="px-2 sm:px-3 py-2 text-right font-medium sm:w-24">
-                            <span className="sr-only">Aksi</span>
+                            <span className="sr-only">{t('fixedAssetDetailSheet.schedule.actions')}</span>
                           </th>
                         </tr>
                       </thead>
@@ -200,7 +204,7 @@ export function FixedAssetDetailSheet({
                             <td className="px-2 sm:px-3 py-1.5">
                               <StatusBadge
                                 status={e.isPosted ? 'Posted' : 'Pending'}
-                                label={e.isPosted ? 'Diposting' : 'Belum'}
+                                label={e.isPosted ? t('fixedAssetDetailSheet.schedule.posted') : t('fixedAssetDetailSheet.schedule.pending')}
                                 tone={e.isPosted ? 'success' : 'warning'}
                               />
                             </td>
@@ -212,10 +216,10 @@ export function FixedAssetDetailSheet({
                                   loading={postingEntryId === e.id}
                                   disabled={!!postingEntryId}
                                   onClick={() => onPostEntry(toTarget(asset, e))}
-                                  aria-label={`Posting penyusutan ${formatDate(e.periodDate)}`}
+                                  aria-label={t('fixedAssetDetailSheet.schedule.postLabel', { date: formatDate(e.periodDate) })}
                                 >
                                   <Play aria-hidden />
-                                  <span className="hidden sm:inline">Posting</span>
+                                  <span className="hidden sm:inline">{t('fixedAssetDetailSheet.schedule.post')}</span>
                                 </Button>
                               )}
                             </td>
@@ -233,13 +237,13 @@ export function FixedAssetDetailSheet({
                 {onDispose && (
                   <Button variant="outline" className="text-danger-text" onClick={() => onDispose(asset)}>
                     <Trash2 aria-hidden />
-                    Lepas aset
+                    {t('fixedAssetDetailSheet.dispose')}
                   </Button>
                 )}
                 {onEdit && (
                   <Button variant="outline" onClick={() => onEdit(asset)}>
                     <Pencil aria-hidden />
-                    Edit data
+                    {t('fixedAssetDetailSheet.edit')}
                   </Button>
                 )}
               </SheetFooter>

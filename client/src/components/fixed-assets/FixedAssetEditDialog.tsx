@@ -6,6 +6,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Info } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ interface FixedAssetEditDialogProps {
 }
 
 export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogProps) {
+  const { t } = useTranslation('finance');
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -60,7 +62,7 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
         })
       ).data,
     onSuccess: () => {
-      toast.success('Aset diperbarui.');
+      toast.success(t('fixedAssetEditDialog.updated'));
       qc.invalidateQueries({ queryKey: ['fixed-assets'] });
       qc.invalidateQueries({ queryKey: ['fixed-asset'] });
       qc.invalidateQueries({ queryKey: ['dashboard-fixed-assets'] });
@@ -68,15 +70,15 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
       qc.invalidateQueries({ queryKey: ['ga-asset-detail'] });
       onClose();
     },
-    onError: (err) => toast.error(apiError(err, 'Gagal mengupdate aset')),
+    onError: (err) => toast.error(apiError(err, t('fixedAssetEditDialog.updateFailed'))),
   });
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!asset) return;
     const found = {
-      name: name.trim() ? undefined : 'Nama wajib diisi.',
-      category: category.trim() ? undefined : 'Kategori wajib diisi.',
+      name: name.trim() ? undefined : t('fixedAssetEditDialog.errors.name'),
+      category: category.trim() ? undefined : t('fixedAssetEditDialog.errors.category'),
     };
     setErrors(found);
     if (found.name || found.category) return;
@@ -94,18 +96,18 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
       <DialogContent size="md" hideClose={editMut.isPending}>
         <form onSubmit={submit} noValidate className="flex min-w-0 flex-col gap-5">
           <DialogHeader>
-            <DialogTitle>Edit Data Aset</DialogTitle>
+            <DialogTitle>{t('fixedAssetEditDialog.title')}</DialogTitle>
             <DialogDescription className="num font-mono">{asset?.assetNumber}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <Field label="Nama" required error={errors.name}>
+            <Field label={t('fixedAssetEditDialog.name')} required error={errors.name}>
               <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
             </Field>
-            <Field label="Kategori" required error={errors.category}>
+            <Field label={t('fixedAssetEditDialog.category')} required error={errors.category}>
               <Input value={category} onChange={(e) => setCategory(e.target.value)} maxLength={100} />
             </Field>
-            <Field label="Keterangan">
+            <Field label={t('fixedAssetEditDialog.description')}>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={500} />
             </Field>
             <EamAssetPicker
@@ -118,18 +120,17 @@ export function FixedAssetEditDialog({ asset, onClose }: FixedAssetEditDialogPro
             <div className="flex items-start gap-2 rounded-md bg-info-subtle px-3 py-2.5 text-xs text-info-text">
               <Info className="mt-px size-4 shrink-0" aria-hidden />
               <p>
-                Hanya nama, kategori, keterangan, dan aset EAM terkait yang bisa diubah. Untuk koreksi nominal (harga perolehan, masa
-                manfaat, akun GL), lepas aset lama lalu buat aset baru supaya jurnal terkait tetap konsisten.
+                {t('fixedAssetEditDialog.lockedNote')}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={editMut.isPending}>
-              Batal
+              {t('fixedAssetEditDialog.cancel')}
             </Button>
             <Button type="submit" loading={editMut.isPending}>
-              Simpan perubahan
+              {t('fixedAssetEditDialog.save')}
             </Button>
           </DialogFooter>
         </form>

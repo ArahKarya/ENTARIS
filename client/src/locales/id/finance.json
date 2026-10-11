@@ -1,1 +1,2385 @@
-{}
+{
+  "accountFormDialog": {
+    "toast": {
+      "updated": "Akun diperbarui.",
+      "created": "Akun ditambahkan.",
+      "updateFailed": "Gagal mengupdate akun.",
+      "createFailed": "Gagal membuat akun."
+    },
+    "errors": {
+      "accountNumber": "Nomor akun wajib diisi.",
+      "name": "Nama akun wajib diisi."
+    },
+    "title": {
+      "edit": "Edit Akun",
+      "createChild": "Tambah Sub-akun",
+      "create": "Tambah Akun"
+    },
+    "group": "Grup",
+    "detail": "Detail",
+    "description": "Akun grup hanya mengelompokkan sub-akun; transaksi dicatat ke akun detail.",
+    "systemNote": "Dipakai untuk posting otomatis ({{roles}}). Akun ini tidak dapat dihapus selama masih dipetakan di Pengaturan → Akun Sistem.",
+    "parent": "Akun induk",
+    "parentHint": "Kosongkan untuk membuat akun level teratas.",
+    "noParent": "Tanpa induk (level teratas)",
+    "accountNumber": "Nomor akun",
+    "rootType": "Tipe root",
+    "rootTypeHint": {
+      "edit": "Mengikuti digit pertama nomor akun.",
+      "parent": "Mengikuti akun induk.",
+      "auto": "Otomatis dari digit pertama."
+    },
+    "name": "Nama akun",
+    "namePlaceholder": "Mis: Bank BNI",
+    "isGroup": "Akun grup",
+    "isGroupHint": "Hanya untuk mengelompokkan sub-akun. Akun grup yang masih punya sub-akun tidak bisa diubah menjadi detail.",
+    "isActive": "Akun aktif",
+    "isActiveHint": "Akun nonaktif tidak muncul di pilihan akun pada transaksi.",
+    "cancel": "Batal",
+    "saveChanges": "Simpan perubahan",
+    "save": "Simpan akun"
+  },
+  "accountPicker": {
+    "placeholder": "Pilih akun…",
+    "search": "Cari nomor atau nama akun…"
+  },
+  "applyDepositModal": {
+    "applyFailed": "Gagal mengaplikasikan uang muka.",
+    "title": "Gunakan Uang Muka",
+    "description": "Aplikasikan deposit ke invoice ini",
+    "submit": "Aplikasikan",
+    "busy": "Memproses…",
+    "outstanding": "Sisa tagihan invoice: <num>{{amount}}</num>",
+    "loading": "Memuat deposit…",
+    "empty": "Tidak ada deposit aktif untuk supplier ini.",
+    "choose": "Pilih Deposit",
+    "ofAmount": "dari {{amount}}",
+    "amount": "Jumlah yang diaplikasikan (Rp)"
+  },
+  "attachmentPicker": {
+    "errors": {
+      "type": "\"{{name}}\" bukan JPG, PNG, WebP, atau PDF.",
+      "size": "\"{{name}}\" lebih dari 5 MB.",
+      "max": "Maksimal {{max}} lampiran per pengajuan."
+    },
+    "drop": "Tarik nota/kuitansi ke sini atau <pick>pilih file</pick>",
+    "hint": "JPG, PNG, WebP, atau PDF · maks. 5 MB per file",
+    "hintRequired": "JPG, PNG, WebP, atau PDF · maks. 5 MB per file · wajib untuk jenis ini",
+    "input": "Pilih file lampiran",
+    "list": "Lampiran",
+    "remove": "Hapus {{name}}",
+    "notUploaded": "belum diunggah · {{size}}",
+    "cancel": "Batalkan {{name}}"
+  },
+  "bankReconciliation": {
+    "toast": {
+      "deleted": "Rekonsiliasi dihapus.",
+      "deleteFailed": "Gagal menghapus."
+    },
+    "columns": {
+      "account": "Akun",
+      "statementDate": "Tanggal Statement",
+      "bookBalance": "Saldo Buku",
+      "statementBalance": "Saldo Statement",
+      "difference": "Selisih",
+      "matched": "Tercocokkan",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "balanced": "(seimbang)",
+    "unbalanced": "(belum seimbang)",
+    "rowActions": "Aksi untuk rekonsiliasi {{account}} {{date}}",
+    "actions": {
+      "open": "Buka pencocokan",
+      "view": "Lihat detail",
+      "delete": "Hapus"
+    },
+    "title": "Rekonsiliasi Bank",
+    "description": "Cocokkan transaksi buku dengan mutasi bank.",
+    "create": "Rekonsiliasi Baru",
+    "filters": {
+      "searchLabel": "Cari rekonsiliasi",
+      "searchPlaceholder": "Cari nama/nomor akun atau catatan",
+      "dateRange": "Rentang tanggal statement",
+      "account": "Filter akun bank",
+      "allAccounts": "Semua akun bank",
+      "accountSearch": "Cari akun…"
+    },
+    "table": {
+      "label": "Daftar rekonsiliasi bank",
+      "itemLabel": "rekonsiliasi"
+    },
+    "empty": {
+      "title": "Belum ada rekonsiliasi",
+      "description": "Sesi rekonsiliasi rekening bank akan muncul di sini.",
+      "action": "Buat rekonsiliasi pertama"
+    },
+    "deleteDialog": {
+      "title": "Hapus Rekonsiliasi",
+      "description": "Yakin ingin menghapus rekonsiliasi ini? Data yang sudah dicocokkan akan hilang.",
+      "confirm": "Hapus"
+    }
+  },
+  "bulkExpenseModal": {
+    "accountType": {
+      "EXPENSE": "Beban / Biaya",
+      "LIABILITY": "Hutang",
+      "ASSET": "Aset",
+      "EQUITY": "Ekuitas",
+      "REVENUE": "Pendapatan"
+    },
+    "narration": "{{debit}} dari {{cash}}",
+    "errors": {
+      "noJournalId": "Server tidak mengembalikan ID jurnal.",
+      "uploadFailed": "Jurnal tersimpan, tapi lampiran gagal: {{reason}}",
+      "uploadError": "Upload error",
+      "saveFailed": "Gagal menyimpan jurnal."
+    },
+    "footer": {
+      "validRows": "Baris valid:",
+      "total": "Total:",
+      "done_one": "{{count}} sukses",
+      "done_other": "{{count}} sukses",
+      "failed_one": "{{count}} gagal",
+      "failed_other": "{{count}} gagal",
+      "finish": "Selesai",
+      "close": "Tutup",
+      "cancel": "Batal",
+      "saving": "Menyimpan…",
+      "saveAll": "Simpan Semua ({{count}})"
+    },
+    "title": "Input Pengeluaran (Banyak Baris)",
+    "description": "Input banyak pengeluaran sekaligus dari satu sumber kas",
+    "date": "Tanggal",
+    "cashSource": "Sumber Kas",
+    "cashPlaceholder": "Pilih Akun Kas/Bank",
+    "batchNote": "Batch Note",
+    "columns": {
+      "debitAccount": "Akun Debit",
+      "description": "Keterangan",
+      "party": "Pihak (opsional)",
+      "amount": "Jumlah",
+      "attachment": "Lampiran"
+    },
+    "row": {
+      "label": "Baris pengeluaran {{n}}",
+      "accountPlaceholder": "Pilih Akun",
+      "descriptionPlaceholder": "Baris #{{n}}, contoh: Beli ATK",
+      "noParty": "Tidak ada",
+      "amount": "Jumlah (Rp)",
+      "attachments": "Lampiran baris {{n}}: {{files}}",
+      "upload": "Unggah lampiran baris {{n}}",
+      "uploadTitle": "Upload lampiran",
+      "fileInput": "Berkas lampiran baris {{n}}",
+      "saving": "Menyimpan baris {{n}}",
+      "saved": "Baris {{n}} tersimpan",
+      "retry": "Ulangi simpan baris {{n}}",
+      "remove": "Hapus baris {{n}}"
+    },
+    "addRow": "Tambah Baris"
+  },
+  "cashBook": {
+    "txnType": {
+      "pengeluaran": "Pengeluaran",
+      "pemasukan": "Pemasukan",
+      "uang_muka": "Uang muka karyawan",
+      "terima_kasbon": "Terima kasbon",
+      "lainnya": "Lainnya"
+    },
+    "balanceMismatch": "Saldo akhir tidak cocok"
+  },
+  "cashBookDraftReview": {
+    "toast": {
+      "saved": "Perubahan draft disimpan.",
+      "saveFailed": "Gagal menyimpan perubahan.",
+      "postFailed": "Gagal memposting draft.",
+      "discarded": "Draft dibuang.",
+      "discardFailed": "Gagal membuang draft.",
+      "posted_one": "{{count, number}} jurnal dibuat ({{total}}).",
+      "posted_other": "{{count, number}} jurnal dibuat ({{total}}).",
+      "partiallyPosted_one": "{{count, number}} jurnal dibuat; {{failed}} baris belum diposting.",
+      "partiallyPosted_other": "{{count, number}} jurnal dibuat; {{failed}} baris belum diposting.",
+      "bulkApplied_one": "Akun diterapkan ke {{count}} baris. Simpan perubahan untuk menyimpan.",
+      "bulkApplied_other": "Akun diterapkan ke {{count}} baris. Simpan perubahan untuk menyimpan."
+    },
+    "rowProblem": "Baris {{n}}: {{error}}",
+    "loading": "Memuat draf buku kas…",
+    "fallbackTitle": "Draft Buku Kas",
+    "notFound": {
+      "title": "Draft tidak ditemukan",
+      "description": "Draft mungkin sudah dibuang atau tautannya salah."
+    },
+    "backToList": "Kembali ke daftar",
+    "warnings": {
+      "balance": "Saldo akhir tidak cocok (selisih {{amount}}).",
+      "review_one": "{{count, number}} baris masih ditandai Ragu / perlu ditinjau.",
+      "review_other": "{{count, number}} baris masih ditandai Ragu / perlu ditinjau.",
+      "duplicate_one": "{{count, number}} baris ditandai kemungkinan duplikat.",
+      "duplicate_other": "{{count, number}} baris ditandai kemungkinan duplikat."
+    },
+    "title": "Draft {{number}}",
+    "subtitle": "{{title}} · halaman {{date}} · kas {{cash}}",
+    "createdBy": "dibuat {{name}}",
+    "createdByAira": "dibuat {{name}} via AIRA",
+    "airaNote": "Baris dibaca AIRA. Periksa baris bertanda <b>Ragu</b>; posting baru membuat jurnal.",
+    "airaNoteWithSource": "Baris dibaca AIRA ({{note}}). Periksa baris bertanda <b>Ragu</b>; posting baru membuat jurnal.",
+    "readOnly": "Draft sudah diposting; tampilan hanya-baca. Nomor jurnal ada di tiap baris.",
+    "readOnlyOn": "Draft sudah diposting pada {{date}}; tampilan hanya-baca. Nomor jurnal ada di tiap baris.",
+    "page": {
+      "label": "Data halaman buku kas",
+      "title": "Judul",
+      "cashAccount": "Akun kas / bank",
+      "cashPlaceholder": "Pilih akun kas…",
+      "cashSearch": "Cari akun kas…",
+      "cashLocked": "Tidak bisa diganti setelah ada baris diposting.",
+      "date": "Tanggal halaman",
+      "dateHint": "Untuk baris tanpa tanggal sendiri.",
+      "opening": "Saldo awal",
+      "closing": "Saldo akhir"
+    },
+    "balance": {
+      "unchecked": "Isi saldo awal dan saldo akhir halaman untuk memeriksa kecocokan.",
+      "ok": "Saldo cocok: saldo awal + masuk − keluar = {{amount}}.",
+      "mismatch": "<b>Saldo akhir tidak cocok.</b> Seharusnya {{expected}}, tertulis {{written}} (selisih {{difference}}). Periksa baris yang terlewat atau salah baca. Ini peringatan, bukan penghalang posting."
+    },
+    "summary": {
+      "label": "Ringkasan draft",
+      "in": "Total Masuk",
+      "out": "Total Keluar",
+      "notSkipped": "baris tidak dilewati",
+      "rows": "Jumlah Baris",
+      "review": "Perlu Ditinjau",
+      "doubtful": "baris Ragu",
+      "toPost_one": "{{count, number}} akan diposting",
+      "toPost_other": "{{count, number}} akan diposting",
+      "duplicates_one": "{{count, number}} duplikat?",
+      "duplicates_other": "{{count, number}} duplikat?"
+    },
+    "onlyReview": "Hanya yang perlu ditinjau",
+    "bulk": {
+      "label": "Aksi massal",
+      "account": "Akun untuk baris terpilih",
+      "accountPlaceholder": "Pilih akun massal…",
+      "accountSearch": "Cari nomor atau nama akun…",
+      "apply": "Terapkan akun",
+      "clear": "Batal pilih",
+      "selected_one": "{{count, number}} baris dipilih",
+      "selected_other": "{{count, number}} baris dipilih"
+    },
+    "postValidOnly": "Posting baris yang valid saja",
+    "footer": {
+      "unsaved": "Ada perubahan yang belum disimpan.",
+      "discard": "Buang",
+      "discardSuffix": "draft",
+      "save": "Simpan",
+      "saveSuffix": "perubahan",
+      "saveFirst": "Simpan perubahan dulu",
+      "postAll": "Posting semua",
+      "ready_one": "{{count, number}} baris siap diposting.",
+      "ready_other": "{{count, number}} baris siap diposting."
+    },
+    "postDialog": {
+      "confirm": "Posting",
+      "warnings": "Peringatan sebelum posting",
+      "title_one": "Posting {{count, number}} baris?",
+      "title_other": "Posting {{count, number}} baris?",
+      "description_one": "Akan dibuat {{count, number}} jurnal seimbang (satu per baris) di {{cash}}: masuk {{in}}, keluar {{out}}. Jurnal tidak dapat dihapus; koreksi lewat pembatalan di Jurnal Umum.",
+      "description_other": "Akan dibuat {{count, number}} jurnal seimbang (satu per baris) di {{cash}}: masuk {{in}}, keluar {{out}}. Jurnal tidak dapat dihapus; koreksi lewat pembatalan di Jurnal Umum."
+    },
+    "discardDialog": {
+      "title": "Buang draft ini?",
+      "confirm": "Buang draft",
+      "description_one": "Draft {{number}} ({{count, number}} baris) dibuang dan tidak dapat diposting. Belum ada jurnal yang terdampak.",
+      "description_other": "Draft {{number}} ({{count, number}} baris) dibuang dan tidak dapat diposting. Belum ada jurnal yang terdampak."
+    },
+    "moreProblems_one": "… dan {{count}} lainnya.",
+    "moreProblems_other": "… dan {{count}} lainnya."
+  },
+  "cashBookDrafts": {
+    "columns": {
+      "number": "Nomor",
+      "page": "Halaman Buku Kas",
+      "source": "Sumber",
+      "rows": "Baris",
+      "in": "Masuk",
+      "out": "Keluar",
+      "needsReview": "Perlu Ditinjau",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "rowActions": "Aksi untuk {{number}}",
+    "actions": {
+      "review": "Tinjau"
+    },
+    "title": "Draft Buku Kas",
+    "description": "Halaman buku kas dari foto nota (AIRA) atau tempel/CSV menunggu ditinjau sebelum menjadi jurnal. Draft belum berefek ke buku besar.",
+    "createFromPaste": "Buat dari Tempel/CSV",
+    "tabs": {
+      "label": "Status draft",
+      "all": "Semua"
+    },
+    "summary": {
+      "label": "Ringkasan draft buku kas",
+      "waiting": "Menunggu Ditinjau",
+      "waitingHint": "berstatus Draft",
+      "partial": "Sebagian Diposting",
+      "partialHint": "ada baris tersisa",
+      "posted": "Sudah Diposting",
+      "postedHint": "jurnal terbentuk",
+      "all": "Semua Draft Aktif",
+      "allHint": "tidak termasuk dibuang"
+    },
+    "filters": {
+      "searchLabel": "Cari draft buku kas",
+      "searchPlaceholder": "Cari nomor, judul, atau catatan sumber",
+      "dateRange": "Rentang tanggal halaman"
+    },
+    "table": {
+      "label": "Daftar draft buku kas",
+      "itemLabel": "draft"
+    },
+    "empty": {
+      "title": "Belum ada draft buku kas",
+      "description": "Kirim foto nota atau halaman buku kas ke AIRA, atau tempel baris dari Excel/CSV untuk membuat draft."
+    },
+    "rowCount_one": "{{count, number}} baris",
+    "rowCount_other": "{{count, number}} baris"
+  },
+  "cashBookImportDialog": {
+    "createFailed": "Gagal membuat draft buku kas.",
+    "fileTooLarge": "Berkas terlalu besar (maksimal 512 KB). Pecah menjadi beberapa berkas.",
+    "excelNotSupported": "Berkas Excel belum dibaca langsung. Salin sel dari Excel lalu tempel di kotak, atau simpan sebagai CSV.",
+    "title": "Buat Draft dari Tempel / CSV",
+    "description": "Kolom: tanggal, keterangan, masuk, keluar (maksimal {{max}} baris). Draft belum menjadi jurnal; Anda meninjau akun tiap baris di langkah berikutnya.",
+    "cashAccount": "Akun kas / bank",
+    "cashPlaceholder": "Pilih akun kas…",
+    "cashSearch": "Cari akun kas…",
+    "pageDate": "Tanggal halaman",
+    "pageDateHint": "Dipakai untuk baris tanpa tanggal.",
+    "titleField": "Judul (opsional)",
+    "titlePlaceholder": "Buku kas Oktober minggu 1",
+    "opening": "Saldo awal",
+    "closing": "Saldo akhir",
+    "paste": "Tempel baris atau isi CSV",
+    "pasteHint": "Dari Excel: blok sel (dengan baris judul Tanggal, Keterangan, Masuk, Keluar), salin, lalu tempel di sini.",
+    "chooseFile": "Pilih berkas CSV",
+    "preview": "Pratinjau baris",
+    "previewTable": "Pratinjau baris tempel",
+    "columns": {
+      "line": "Baris",
+      "date": "Tanggal",
+      "description": "Keterangan",
+      "in": "Masuk",
+      "out": "Keluar",
+      "note": "Catatan"
+    },
+    "cancel": "Batal",
+    "submit": "Buat Draft",
+    "created_one": "Draft {{number}} dibuat ({{count}} baris). Tinjau sebelum posting.",
+    "created_other": "Draft {{number}} dibuat ({{count}} baris). Tinjau sebelum posting.",
+    "rowsRead_one": "{{count}} baris terbaca",
+    "rowsRead_other": "{{count}} baris terbaca",
+    "rowsWithErrors_one": "{{count}} baris bermasalah",
+    "rowsWithErrors_other": "{{count}} baris bermasalah",
+    "previewCaption_one": "Pratinjau {{count}} baris pertama",
+    "previewCaption_other": "Pratinjau {{count}} baris pertama",
+    "moreErrors_one": "… dan {{count}} kesalahan lain.",
+    "moreErrors_other": "… dan {{count}} kesalahan lain.",
+    "submitCount_one": "Buat Draft ({{count}} baris)",
+    "submitCount_other": "Buat Draft ({{count}} baris)"
+  },
+  "cashBookParse": {
+    "noInput": "Belum ada data. Tempel baris dari Excel atau pilih berkas CSV.",
+    "empty": "Data kosong.",
+    "unknownColumns": "Kolom tidak dikenali. Pakai urutan: tanggal, keterangan, masuk, keluar (atau beri baris judul).",
+    "row": {
+      "noDescription": "Keterangan kosong",
+      "noAmount": "Isi nominal masuk atau keluar",
+      "bothAmounts": "Isi salah satu saja: masuk atau keluar"
+    },
+    "noRows": "Tidak ada baris data setelah baris judul.",
+    "tooMany_one": "Maksimal {{max}} baris per draft (ada {{count}}). Pecah menjadi beberapa draft.",
+    "tooMany_other": "Maksimal {{max}} baris per draft (ada {{count}}). Pecah menjadi beberapa draft."
+  },
+  "cashLedger": {
+    "kind": {
+      "Receive": "Penerimaan",
+      "Pay": "Pembayaran",
+      "VendorDeposit": "Uang Muka Supplier",
+      "CustomerDeposit": "Uang Muka Customer",
+      "VendorRefund": "Refund Supplier",
+      "CustomerRefund": "Refund Customer",
+      "Transfer": "Pinbuk",
+      "Expense": "Kas Keluar (Jurnal)",
+      "JournalIn": "Kas Masuk (Jurnal)"
+    },
+    "direction": {
+      "in": "Masuk",
+      "out": "Keluar"
+    },
+    "source": {
+      "journal": "Jurnal",
+      "payment": "Pembayaran"
+    },
+    "cancel": {
+      "vendorDepositLabel": "Batalkan di Uang Muka Supplier",
+      "vendorDepositMessage": "Batalkan dari modul Uang Muka Supplier.",
+      "customerDepositLabel": "Batalkan di Uang Muka Customer",
+      "customerDepositMessage": "Batalkan dari modul Uang Muka Customer.",
+      "journalLabel": "Batalkan di Jurnal Umum",
+      "journalMessage": "Transaksi ini dibuat dari jurnal. Batalkan dari Buku Besar."
+    },
+    "export": {
+      "date": "Tanggal",
+      "number": "Nomor",
+      "source": "Sumber",
+      "type": "Tipe",
+      "direction": "Arah",
+      "party": "Pihak",
+      "account": "Akun Kas/Bank",
+      "notes": "Keterangan",
+      "reference": "Referensi",
+      "in": "Masuk",
+      "out": "Keluar",
+      "status": "Status"
+    }
+  },
+  "coaPage": {
+    "exportFile": "bagan-akun",
+    "toast": {
+      "deleted": "Akun \"{{name}}\" dihapus.",
+      "deleteFailed": "Gagal menghapus akun."
+    },
+    "error": {
+      "description": "Bagan akun gagal dimuat. Periksa koneksi Anda lalu coba lagi.",
+      "retry": "Coba lagi"
+    },
+    "empty": {
+      "title": "Belum ada akun",
+      "description": "Buat akun pertama atau impor bagan akun dari Excel.",
+      "action": "Tambah akun"
+    },
+    "noResults": "Tidak ada akun yang cocok dengan \"{{query}}\".",
+    "resetFilter": "Reset filter",
+    "title": "Bagan Akun",
+    "description": "Struktur Chart of Accounts beserta saldo setiap akun.",
+    "exportExcel": "Ekspor Excel",
+    "import": "Impor",
+    "add": "Tambah Akun",
+    "delete": {
+      "title": "Hapus akun?",
+      "description": "Akun <mono>{{number}}</mono> <b>{{name}}</b> akan dihapus permanen. Akun hanya bisa dihapus jika tidak memiliki sub-akun, tidak memiliki transaksi, dan saldonya nol.",
+      "confirm": "Ya, hapus"
+    },
+    "showing_one": "Menampilkan {{count, number}} dari {{total}} akun",
+    "showing_other": "Menampilkan {{count, number}} dari {{total}} akun",
+    "count_one": "{{count, number}} akun",
+    "count_other": "{{count, number}} akun"
+  },
+  "coaToolbar": {
+    "all": "Semua",
+    "searchLabel": "Cari akun",
+    "searchPlaceholder": "Cari nomor atau nama akun",
+    "expandAll": "Buka semua",
+    "collapseAll": "Tutup semua",
+    "nonZeroOnly": "Hanya akun bersaldo",
+    "typeFilter": "Filter tipe akun"
+  },
+  "coaTree": {
+    "rootType": {
+      "ASSET": "Aset",
+      "LIABILITY": "Kewajiban",
+      "EQUITY": "Ekuitas",
+      "REVENUE": "Pendapatan",
+      "EXPENSE": "Beban"
+    },
+    "yes": "Ya",
+    "no": "Tidak"
+  },
+  "coaTreeTable": {
+    "systemBadge": {
+      "title": "Akun sistem: {{roles}}",
+      "label": "Sistem"
+    },
+    "oppositeBalance": "(saldo berlawanan dengan saldo normal)",
+    "deleteBlock": {
+      "system": "akun sistem",
+      "children": "masih punya sub-akun"
+    },
+    "groupSr": ", akun grup",
+    "inactive": "Nonaktif",
+    "group": "Grup",
+    "detail": "Detail",
+    "debit": "Debit",
+    "credit": "Kredit",
+    "rowActions": "Aksi untuk {{number}} {{name}}",
+    "actions": {
+      "addChild": "Tambah sub-akun",
+      "setBalance": "Atur saldo awal",
+      "edit": "Edit akun",
+      "deleteBlocked": "Hapus ({{reason}})",
+      "delete": "Hapus"
+    },
+    "label": "Bagan akun",
+    "columns": {
+      "account": "Akun",
+      "type": "Tipe",
+      "normalBalance": "Saldo Normal",
+      "balance": "Saldo (Rp)",
+      "actions": "Aksi"
+    }
+  },
+  "comboField": {
+    "required": "{{label}} (wajib)",
+    "placeholder": "Pilih…",
+    "search": "Cari…"
+  },
+  "depreciationRunPanel": {
+    "columns": {
+      "assetNumber": "No. Aset",
+      "name": "Nama Aset",
+      "category": "Kategori",
+      "period": "Periode",
+      "amount": "Beban"
+    },
+    "toast": {
+      "posted_one": "{{count, number}} depresiasi diposting (total {{total}}).",
+      "posted_other": "{{count, number}} depresiasi diposting (total {{total}}).",
+      "postFailed": "Gagal posting depresiasi bulk"
+    },
+    "title": "Posting penyusutan bulanan",
+    "description": "Memposting semua jadwal penyusutan aset aktif yang jatuh di bulan terpilih dan belum diposting. Satu jurnal per aset agar mudah ditelusuri.",
+    "month": "Bulan periode",
+    "monthHint": "Bawaan: bulan sebelumnya (sudah selesai).",
+    "monthError": "Format bulan harus YYYY-MM.",
+    "post": "Posting penyusutan",
+    "summary": "Ringkasan pratinjau {{month}}",
+    "stats": {
+      "assets": "Jumlah aset",
+      "total": "Total beban",
+      "categories": "Kategori",
+      "journals_one": "{{count, number}} jurnal · {{month}}",
+      "journals_other": "{{count, number}} jurnal · {{month}}"
+    },
+    "error": {
+      "title": "Pratinjau gagal dimuat",
+      "description": "Gagal mengambil preview depresiasi.",
+      "retry": "Coba lagi"
+    },
+    "empty": {
+      "title": "Tidak ada penyusutan untuk periode ini",
+      "description": "Semua jadwal sudah diposting atau tidak ada aset di periode tersebut."
+    },
+    "table": "Pratinjau penyusutan {{month}}",
+    "itemLabel": "aset",
+    "details": "Rincian posting",
+    "byCategory": "Per kategori",
+    "journal": {
+      "debit": "Beban penyusutan (akun beban tiap aset)",
+      "credit": "Akumulasi penyusutan (akun akumulasi tiap aset)",
+      "note_one": "Satu jurnal per aset ({{count, number}} jurnal), langsung berstatus diposting.",
+      "note_other": "Satu jurnal per aset ({{count, number}} jurnal), langsung berstatus diposting."
+    },
+    "confirm": {
+      "title": "Posting penyusutan {{month}}?",
+      "assets": "Aset",
+      "description_one": "{{count, number}} jurnal penyusutan akan dibuat dan langsung diposting ke buku besar.",
+      "description_other": "{{count, number}} jurnal penyusutan akan dibuat dan langsung diposting ke buku besar.",
+      "confirm_one": "Ya, posting {{count, number}} jurnal",
+      "confirm_other": "Ya, posting {{count, number}} jurnal"
+    },
+    "postCount_one": "Posting {{count, number}} penyusutan",
+    "postCount_other": "Posting {{count, number}} penyusutan",
+    "assetCount_one": "{{count, number}} aset",
+    "assetCount_other": "{{count, number}} aset"
+  },
+  "expenseModal": {
+    "accountType": {
+      "EXPENSE": "Beban / Biaya",
+      "LIABILITY": "Hutang",
+      "ASSET": "Aset",
+      "EQUITY": "Ekuitas",
+      "REVENUE": "Pendapatan"
+    },
+    "saveFailed": "Gagal menyimpan pengeluaran.",
+    "sameAccount": "Akun debit dan kredit tidak boleh sama.",
+    "narration": {
+      "description": "Pengeluaran: {{account}}",
+      "text": "Pengeluaran: {{debit}} dari {{credit}}"
+    },
+    "title": "Catat Pengeluaran",
+    "description": "Semua jenis pengeluaran kas & bank",
+    "submit": "Simpan Pengeluaran",
+    "done": "Selesai",
+    "date": "Tanggal",
+    "debitAccount": "Akun Pengeluaran (Debit)",
+    "debitAccountHint": "Contoh: Beban Listrik, Beban Gaji, Hutang Usaha, dll.",
+    "debitPlaceholder": "Pilih Akun Pengeluaran",
+    "creditAccount": "Dibayar Dari (Kredit)",
+    "creditPlaceholder": "Pilih Akun Kas/Bank",
+    "party": "Pihak Terkait (opsional)",
+    "noParty": "Tanpa Pihak Terkait",
+    "amount": "Jumlah (Rp)",
+    "descriptionLabel": "Keterangan",
+    "descriptionPlaceholder": "Contoh: Bayar listrik bulan Maret...",
+    "referenceNo": "No. Referensi",
+    "referencePlaceholder": "No. kwitansi, bukti, dll.",
+    "notes": "Catatan",
+    "notesPlaceholder": "Catatan opsional...",
+    "srSummary": "Ringkasan:",
+    "summary": "Pengeluaran",
+    "partyValue": "Pihak: {{name}}",
+    "saved": "Tersimpan",
+    "proof": "Lampiran Bukti"
+  },
+  "fixedAssetDetailSheet": {
+    "title": "Detail aset tetap",
+    "loadError": "Aset tidak dapat dimuat.",
+    "loading": "Memuat…",
+    "retry": "Coba lagi",
+    "fields": {
+      "category": "Kategori",
+      "acquisitionDate": "Tanggal perolehan",
+      "usefulLife": "Masa manfaat",
+      "salvageValue": "Nilai sisa",
+      "method": "Metode",
+      "createdBy": "Dibuat oleh",
+      "eamAsset": "Aset EAM terkait",
+      "disposalDate": "Tanggal dilepas",
+      "assetAccount": "Akun aset",
+      "depreciationAccount": "Akun beban penyusutan",
+      "accumulatedAccount": "Akun akumulasi penyusutan",
+      "description": "Keterangan"
+    },
+    "months_one": "{{count, number}} bulan",
+    "months_other": "{{count, number}} bulan",
+    "straightLine": "Garis lurus",
+    "figures": {
+      "cost": "Harga perolehan",
+      "accumulated": "Akm. penyusutan",
+      "bookValue": "Nilai buku"
+    },
+    "schedule": {
+      "title": "Jadwal Penyusutan",
+      "progress": "{{posted}} dari {{total}} periode diposting",
+      "empty": "Belum ada jadwal penyusutan.",
+      "region": "Jadwal penyusutan",
+      "caption": "Jadwal penyusutan {{number}}",
+      "period": "Periode",
+      "amount": "Jumlah",
+      "status": "Status",
+      "actions": "Aksi",
+      "posted": "Diposting",
+      "pending": "Belum",
+      "postLabel": "Posting penyusutan {{date}}",
+      "post": "Posting"
+    },
+    "dispose": "Lepas aset",
+    "edit": "Edit data"
+  },
+  "fixedAssetEditDialog": {
+    "updated": "Aset diperbarui.",
+    "updateFailed": "Gagal mengupdate aset",
+    "errors": {
+      "name": "Nama wajib diisi.",
+      "category": "Kategori wajib diisi."
+    },
+    "title": "Edit Data Aset",
+    "name": "Nama",
+    "category": "Kategori",
+    "description": "Keterangan",
+    "lockedNote": "Hanya nama, kategori, keterangan, dan aset EAM terkait yang bisa diubah. Untuk koreksi nominal (harga perolehan, masa manfaat, akun GL), lepas aset lama lalu buat aset baru supaya jurnal terkait tetap konsisten.",
+    "cancel": "Batal",
+    "save": "Simpan perubahan"
+  },
+  "fixedAssetFormDialog": {
+    "errors": {
+      "name": "Nama aset wajib diisi.",
+      "category": "Kategori wajib diisi.",
+      "acquisitionDate": "Tanggal perolehan wajib diisi.",
+      "acquisitionCost": "Harga perolehan harus lebih dari 0.",
+      "usefulLife": "Masa manfaat minimal 1 bulan (bilangan bulat).",
+      "salvageValue": "Nilai sisa tidak boleh negatif.",
+      "assetAccount": "Pilih akun aset.",
+      "depreciationAccount": "Pilih akun beban penyusutan.",
+      "accumulatedAccount": "Pilih akun akumulasi penyusutan."
+    },
+    "created": "Aset tetap dibuat.",
+    "createFailed": "Gagal membuat aset tetap",
+    "title": "Tambah Aset Tetap",
+    "description": "Jadwal penyusutan garis lurus dibuat otomatis per bulan setelah tanggal perolehan.",
+    "fields": {
+      "name": "Nama aset",
+      "category": "Kategori",
+      "categoryPlaceholder": "Kendaraan, Mesin, Gedung, dll",
+      "acquisitionDate": "Tanggal perolehan",
+      "acquisitionCost": "Harga perolehan (Rp)",
+      "usefulLife": "Masa manfaat (bulan)",
+      "salvageValue": "Nilai sisa (Rp)",
+      "monthlyHint": "Penyusutan ± {{amount}} per bulan",
+      "assetAccount": "Akun aset",
+      "depreciationAccount": "Akun beban penyusutan",
+      "accumulatedAccount": "Akun akumulasi penyusutan",
+      "description": "Keterangan"
+    },
+    "cancel": "Batal",
+    "save": "Simpan aset"
+  },
+  "fixedAssetImportDialog": {
+    "importFailed": "Gagal import.",
+    "readFailed": "Gagal membaca berkas CSV: {{reason}}",
+    "title": "Impor Aset Tetap (CSV)",
+    "description": "Buat banyak aset sekaligus; jadwal penyusutan dibuat otomatis.",
+    "format": {
+      "title": "Format CSV",
+      "required": "Kolom wajib (header tidak peka huruf besar/kecil):",
+      "accountUuid": "(UUID akun)",
+      "optional": "Opsional: <code>description</code>, <code>salvage_value</code>",
+      "download": "Unduh template"
+    },
+    "choose": "Pilih file CSV",
+    "chooseAnother": "Pilih file lain",
+    "preview": "Pratinjau impor",
+    "columns": {
+      "no": "No",
+      "name": "Nama",
+      "category": "Kategori",
+      "date": "Tanggal",
+      "cost": "Harga",
+      "life": "Umur",
+      "assetAccount": "Akun aset",
+      "status": "Status"
+    },
+    "ok": "OK",
+    "errorRows": "Baris dengan error:",
+    "cancel": "Batal",
+    "imported_one": "{{count}} aset diimpor ({{schedules}} jadwal depresiasi).",
+    "imported_other": "{{count}} aset diimpor ({{schedules}} jadwal depresiasi).",
+    "maxRows_one": "Maks. {{count, number}} baris per impor",
+    "maxRows_other": "Maks. {{count, number}} baris per impor",
+    "rowsRead_one": "{{count, number}} baris terbaca",
+    "rowsRead_other": "{{count, number}} baris terbaca",
+    "errorCount_one": "({{count, number}} error)",
+    "errorCount_other": "({{count, number}} error)",
+    "overLimit_one": "(melebihi batas {{count, number}} baris)",
+    "overLimit_other": "(melebihi batas {{count, number}} baris)",
+    "monthsShort_one": "{{count}} bln",
+    "monthsShort_other": "{{count}} bln",
+    "submit_one": "Impor {{count, number}} aset",
+    "submit_other": "Impor {{count, number}} aset"
+  },
+  "fixedAssetRegister": {
+    "columns": {
+      "assetNumber": "No. Aset",
+      "name": "Nama Aset",
+      "acquisitionDate": "Tgl. Perolehan",
+      "cost": "Harga Perolehan",
+      "accumulated": "Akm. Penyusutan",
+      "bookValue": "Nilai Buku",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "rowActions": "Aksi untuk {{number}}",
+    "actions": {
+      "view": "Lihat detail & jadwal",
+      "edit": "Edit data",
+      "dispose": "Lepas aset"
+    },
+    "summary": {
+      "label": "Ringkasan aset tetap aktif",
+      "active": "Aset Aktif",
+      "activeHint": "tidak termasuk dilepas",
+      "cost": "Harga Perolehan",
+      "accumulated": "Akm. Penyusutan",
+      "bookValue": "Nilai Buku"
+    },
+    "filters": {
+      "searchLabel": "Cari aset tetap",
+      "searchPlaceholder": "Cari nomor, nama, atau kategori aset",
+      "dateRange": "Rentang tanggal perolehan",
+      "category": "Kategori",
+      "allCategories": "Semua kategori",
+      "categorySearch": "Cari kategori…"
+    },
+    "table": {
+      "label": "Daftar aset tetap",
+      "itemLabel": "aset"
+    },
+    "empty": {
+      "title": "Belum ada aset tetap",
+      "description": "Aset yang Anda tambahkan atau impor akan muncul di sini beserta jadwal penyusutannya.",
+      "action": "Tambah aset pertama"
+    }
+  },
+  "fixedAssetUtils": {
+    "template": {
+      "assetAccount": "<uuid-akun-aset>",
+      "expenseAccount": "<uuid-akun-beban>",
+      "accumAccount": "<uuid-akun-akm>",
+      "name": "Mesin Contoh",
+      "category": "Mesin",
+      "description": "Mesin contoh untuk template"
+    },
+    "import": {
+      "empty": "CSV kosong atau hanya berisi header.",
+      "missingColumns": "Kolom wajib hilang: {{columns}}.",
+      "emptyField": "{{column}} kosong",
+      "invalidField": "{{column}} tidak valid",
+      "unknownField": "{{column}} tidak dikenal",
+      "rowError": "Baris {{line}}: {{errors}}"
+    }
+  },
+  "fixedAssetsPage": {
+    "toast": {
+      "depreciationPosted": "Depresiasi diposting.",
+      "depreciationFailed": "Gagal posting depresiasi",
+      "disposed": "Aset dilepas.",
+      "disposeFailed": "Gagal disposisi aset",
+      "nothingToExport": "Tidak ada aset untuk di-export",
+      "exportFailed": "Gagal mengekspor aset. Coba lagi.",
+      "exportTruncated_one": "Ekspor dibatasi {{count, number}} aset pertama. Persempit filter.",
+      "exportTruncated_other": "Ekspor dibatasi {{count, number}} aset pertama. Persempit filter.",
+      "exported_one": "{{count, number}} aset diekspor.",
+      "exported_other": "{{count, number}} aset diekspor."
+    },
+    "title": "Aset Tetap",
+    "description": "Daftar aset tetap, jadwal penyusutan, dan posting penyusutan bulanan ke jurnal.",
+    "exportCsv": "Ekspor CSV",
+    "importCsv": "Impor CSV",
+    "add": "Tambah Aset",
+    "tabs": {
+      "label": "Tampilan aset tetap",
+      "list": "Daftar Aset",
+      "depreciation": "Posting Penyusutan"
+    },
+    "dispose": {
+      "title": "Lepas aset tetap?",
+      "description": "Aset \"{{name}}\" akan ditandai dilepas per hari ini dan tidak lagi dihitung penyusutannya.",
+      "confirm": "Ya, lepas aset"
+    },
+    "post": {
+      "title": "Posting penyusutan?",
+      "description": "Pastikan aset dan periode sudah benar. Jurnal langsung diposting ke buku besar.",
+      "confirm": "Ya, posting penyusutan",
+      "asset": "Aset",
+      "name": "Nama",
+      "period": "Periode",
+      "amount": "Jumlah beban",
+      "note": "Untuk memposting semua aset sekaligus, gunakan tab Posting Penyusutan."
+    }
+  },
+  "generalLedger": {
+    "presets": {
+      "today": "Hari ini",
+      "week": "Minggu ini",
+      "month": "Bulan ini",
+      "lastMonth": "Bulan lalu",
+      "year": "Tahun ini (YTD)"
+    },
+    "toast": {
+      "cancelled": "Jurnal dibatalkan.",
+      "cancelFailed": "Gagal membatalkan jurnal."
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "narration": "Keterangan",
+      "accounts": "Rincian Akun",
+      "debit": "Debit",
+      "credit": "Kredit",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "by": "oleh {{name}}",
+    "moreLines_one": "+{{count}} lainnya",
+    "moreLines_other": "+{{count}} lainnya",
+    "rowActions": "Aksi untuk {{number}}",
+    "actions": {
+      "view": "Lihat detail",
+      "cancelAtSource": "Batalkan dari modul asal",
+      "cancel": "Batalkan jurnal"
+    },
+    "title": "Jurnal Umum",
+    "description": "Kelola dan tinjau semua transaksi jurnal harian.",
+    "import": "Impor",
+    "create": "Buat Jurnal",
+    "help": {
+      "label": "Cara kerja pembatalan jurnal",
+      "body": "Jurnal otomatis (<num>JV-PAY</num>, <num>JV-SI</num>, <num>JV-PI</num>, <num>JV-COGS</num>) dibatalkan dari modul asalnya agar invoice, pembayaran, dan saldo ikut diperbarui. Halaman ini hanya membatalkan jurnal manual."
+    },
+    "filters": {
+      "searchLabel": "Cari jurnal",
+      "searchPlaceholder": "Cari nomor, keterangan, akun",
+      "account": "Akun",
+      "allAccounts": "Semua akun",
+      "accountSearch": "Cari nomor/nama akun…",
+      "period": "Periode"
+    },
+    "table": {
+      "label": "Daftar jurnal umum",
+      "itemLabel": "jurnal"
+    },
+    "empty": {
+      "title": "Belum ada transaksi jurnal",
+      "description": "Jurnal manual dan jurnal otomatis dari modul lain akan muncul di sini.",
+      "action": "Buat jurnal pertama"
+    },
+    "cancelDialog": {
+      "title": "Batalkan Jurnal",
+      "description": "Apakah Anda yakin ingin membatalkan jurnal {{number}}? Saldo akun terkait akan dikembalikan. Tindakan ini tidak dapat dibatalkan.",
+      "confirm": "Ya, Batalkan"
+    }
+  },
+  "journalDetailDrawer": {
+    "loadingTitle": "Memuat…",
+    "active": "Aktif",
+    "description": "Detail jurnal umum",
+    "bodyLabel": "Isi detail jurnal",
+    "loading": "Memuat jurnal…",
+    "notFound": "Jurnal tidak ditemukan.",
+    "manualJournal": "Jurnal Manual",
+    "date": "Tanggal",
+    "createdBy": "Dibuat oleh",
+    "lines": "Detail Akun",
+    "linesTable": "Detail akun jurnal",
+    "columns": {
+      "account": "Akun",
+      "debit": "Debit",
+      "credit": "Kredit"
+    },
+    "attachments_one": "Lampiran ({{count}})",
+    "attachments_other": "Lampiran ({{count}})",
+    "noAttachments": "Belum ada lampiran.",
+    "download": "Unduh {{name}}"
+  },
+  "journalEntryModal": {
+    "saveFailed": "Gagal menyimpan jurnal.",
+    "title": "Buat Jurnal Baru",
+    "description": "Catat transaksi keuangan secara manual.",
+    "date": "Tanggal",
+    "narration": "Keterangan / Narasi",
+    "narrationPlaceholder": "Keterangan transaksi",
+    "lines": "Rincian Akun",
+    "addRow": "Tambah Baris",
+    "linesTable": "Rincian akun jurnal",
+    "columns": {
+      "account": "Akun",
+      "description": "Keterangan",
+      "debit": "Debit",
+      "credit": "Kredit",
+      "actions": "Aksi"
+    },
+    "row": {
+      "account": "Akun baris {{n}}",
+      "description": "Keterangan baris {{n}}",
+      "debit": "Debit baris {{n}}",
+      "credit": "Kredit baris {{n}}",
+      "remove": "Hapus baris {{n}}"
+    },
+    "chooseAccount": "Pilih akun…",
+    "descriptionPlaceholder": "Keterangan…",
+    "status": "Status",
+    "balanced": "Jurnal Seimbang",
+    "difference": "Selisih: {{amount}}",
+    "totalDebit": "Total Debit",
+    "totalCredit": "Total Kredit",
+    "cancel": "Batal",
+    "posting": "Memposting…",
+    "post": "Posting ke Buku Besar"
+  },
+  "journalPreview": {
+    "title": "Jurnal yang akan dibuat"
+  },
+  "linesEditor": {
+    "description": "Uraian",
+    "expenseDate": "Tanggal biaya",
+    "amount": "Nominal (Rp)",
+    "remove": "Hapus",
+    "rowDescription": "Uraian baris {{n}}",
+    "descriptionPlaceholder": "mis. Taksi ke kantor customer",
+    "rowDate": "Tanggal biaya baris {{n}}",
+    "rowAmount": "Nominal baris {{n}}",
+    "rowRemove": "Hapus baris {{n}}",
+    "addRow": "Tambah baris",
+    "total": "Total"
+  },
+  "openingBalanceDialog": {
+    "debit": "Debit",
+    "credit": "Kredit",
+    "saved": "Saldo awal diatur.",
+    "saveFailed": "Gagal mengatur saldo awal.",
+    "invalid": "Masukkan angka yang valid.",
+    "title": "Atur Saldo Awal",
+    "current": "Saldo saat ini",
+    "normal": "Saldo normal",
+    "newBalance": "Saldo baru",
+    "hint": "Format Indonesia: titik untuk ribuan, koma untuk desimal (mis. 1.500.000,50). Nilai negatif = saldo berlawanan.<br/>Jurnal saldo awal otomatis dibuat terhadap akun Ekuitas Saldo Awal.",
+    "willSave": "Akan disimpan:",
+    "cancel": "Batal",
+    "save": "Simpan saldo"
+  },
+  "payDialog": {
+    "missingExpenseAccount": "Akun biaya belum diisi",
+    "cashAccountPlaceholder": "Akun kas/bank (pilih di atas)",
+    "paid": "Pembayaran diposting ke jurnal.",
+    "payFailed": "Gagal membayar pengajuan.",
+    "errors": {
+      "cashAccount": "Pilih akun kas/bank sumber dana.",
+      "date": "Isi tanggal bayar."
+    },
+    "title": "Bayar {{number}}",
+    "cashAccount": "Sumber dana (kas/bank)",
+    "date": "Tanggal bayar",
+    "reference": "Referensi transfer",
+    "referenceHint": "Opsional, mis. no. bukti transfer.",
+    "closedYearNote": "Tanggal di tahun buku yang sudah ditutup akan ditolak.",
+    "cancel": "Batal",
+    "submit": "Bayar & Posting"
+  },
+  "paymentDetailDrawer": {
+    "type": {
+      "Receive": "Terima Pembayaran",
+      "Pay": "Bayar Hutang",
+      "VendorDeposit": "Uang Muka Supplier",
+      "Expense": "Pengeluaran",
+      "Transfer": "Pemindahbukuan"
+    },
+    "toast": {
+      "uploaded": "Lampiran diunggah.",
+      "uploadFailed": "Gagal mengunggah lampiran.",
+      "deleted": "Lampiran dihapus.",
+      "deleteFailed": "Gagal menghapus lampiran.",
+      "tooLarge": "File {{name}} terlalu besar (maks 10MB)."
+    },
+    "loadingTitle": "Memuat…",
+    "description": "Detail pembayaran",
+    "loadingDescription": "Memuat detail pembayaran",
+    "loading": "Memuat pembayaran…",
+    "error": {
+      "title": "Pembayaran gagal dimuat",
+      "description": "Permintaan ke server gagal, jadi detail belum bisa ditampilkan. Periksa koneksi lalu coba lagi.",
+      "retry": "Coba lagi"
+    },
+    "notFound": {
+      "title": "Pembayaran tidak ditemukan",
+      "description": "Pembayaran ini mungkin sudah dihapus. Tutup panel lalu muat ulang daftar."
+    },
+    "refund": "Refund: {{amount}}",
+    "info": {
+      "date": "Tanggal",
+      "party": "Pihak Terkait",
+      "account": "Akun Kas/Bank",
+      "reference": "Referensi"
+    },
+    "splits": {
+      "title": "Detail Akun",
+      "table": "Tabel detail akun"
+    },
+    "columns": {
+      "account": "Akun",
+      "amount": "Jumlah",
+      "debit": "Debit",
+      "credit": "Kredit"
+    },
+    "allocations": {
+      "title": "Alokasi ke Invoice",
+      "salesInvoice": "Invoice Penjualan",
+      "purchaseInvoice": "Invoice Pembelian"
+    },
+    "journal": {
+      "title": "Jurnal ({{number}})",
+      "table": "Tabel jurnal"
+    },
+    "notes": "Catatan",
+    "attachments": {
+      "title_one": "Lampiran ({{count}})",
+      "title_other": "Lampiran ({{count}})",
+      "uploading": "Mengunggah…",
+      "choose": "Pilih file",
+      "dropHint": "atau seret file ke sini (maks 10MB)",
+      "input": "Berkas lampiran",
+      "empty": "Belum ada lampiran.",
+      "download": "Unduh {{name}}",
+      "delete": "Hapus {{name}}"
+    },
+    "deleteDialog": {
+      "title": "Hapus lampiran?",
+      "description": "Lampiran \"{{name}}\" akan dihapus permanen.",
+      "confirm": "Hapus"
+    }
+  },
+  "paymentModal": {
+    "saveFailed": "Gagal menyimpan pembayaran.",
+    "refundExceeds": "Jumlah refund {{amount}} melebihi sisa uang muka {{remaining}}.",
+    "type": {
+      "receive": "Penerimaan",
+      "pay": "Pengeluaran",
+      "customerRefund": "Refund ke Customer",
+      "vendorRefund": "Refund dari Supplier"
+    },
+    "title": {
+      "receive": "Terima Pembayaran",
+      "pay": "Bayar Hutang"
+    },
+    "draftUnsaved": "Draft • belum disimpan",
+    "save": "Simpan",
+    "done": "Selesai",
+    "typeLegend": "Tipe Transaksi",
+    "source": {
+      "labelDeposit": "Pembayaran Asal (Uang Muka)",
+      "labelOptional": "Pembayaran Asal (opsional)",
+      "depositHint": "Pengembalian uang muka. Sisa uang muka: <b>{{remaining}}</b>. Saldo uang muka otomatis berkurang, jurnal: DR Bank / CR Uang Muka.",
+      "hintSupplier": "Pilih pembayaran ke supplier yang sebagian dikembalikan, atau baris uang muka untuk refund DP. Sistem otomatis mengurangi alokasi dan mengembalikan sisa tagihan invoice.",
+      "hintCustomer": "Pilih penerimaan dari customer yang sebagian dikembalikan, atau baris uang muka untuk refund DP. Sistem otomatis mengurangi alokasi dan mengembalikan sisa tagihan invoice.",
+      "none": "Refund tanpa tautan dokumen",
+      "depositOption": "UANG MUKA · {{number}} • {{date}} • sisa {{remaining}}"
+    },
+    "date": "Tanggal",
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "choose": "Pilih",
+    "srInfo": "Info:",
+    "srWarning": "Perhatian:",
+    "srSummary": "Ringkasan:",
+    "openInvoices_one": "{{count}} invoice terbuka, total <num>{{total}}</num>",
+    "openInvoices_other": "{{count}} invoice terbuka, total <num>{{total}}</num>",
+    "openInvoicesList": "Daftar invoice terbuka",
+    "nonInvoiceReceivable": "Saldo piutang tanpa invoice (saldo awal): <num>{{amount}}</num>",
+    "nonInvoicePayable": "Saldo hutang tanpa invoice (saldo awal): <num>{{amount}}</num>",
+    "fillFullAmount": "Isi jumlah lunaskan semua ({{amount}})",
+    "noReceivable": "Tidak ada piutang untuk customer ini.",
+    "noPayable": "Tidak ada hutang untuk supplier ini.",
+    "amount": "Jumlah Tagihan (Rp)",
+    "cashAccount": "Akun Kas/Bank",
+    "chooseAccount": "Pilih Akun",
+    "split": {
+      "toggle": "Split ke beberapa akun (mis. dipotong komisi)",
+      "section": "Distribusi akun",
+      "hint": "Total {{amount}} dibagi ke beberapa akun. Selisih harus 0.",
+      "row": "Baris split {{n}}",
+      "rowAccount": "Akun baris split {{n}}",
+      "rowAmount": "Jumlah baris split {{n}}",
+      "rowNotes": "Catatan baris split {{n}}",
+      "notesPlaceholder": "catatan",
+      "rowRemove": "Hapus baris split {{n}}",
+      "addRow": "Tambah baris",
+      "total": "Total split:",
+      "difference": "Selisih:"
+    },
+    "referenceNo": "No. Referensi",
+    "referencePlaceholder": "No. cek, transfer, dll.",
+    "notes": "Catatan",
+    "notesPlaceholder": "Keterangan opsional...",
+    "summary": {
+      "receiving": "Menerima",
+      "paying": "Membayar",
+      "settlesAll": "Melunasi semua tagihan"
+    },
+    "saved": "Tersimpan",
+    "transferProof": "Lampiran Bukti Transfer",
+    "depositRefundSaved": "Refund uang muka tersimpan. Saldo deposit supplier sudah berkurang."
+  },
+  "paymentRequest": {
+    "kind": {
+      "REIMBURSEMENT": "Reimbursement",
+      "VENDOR_PAYMENT": "Pembayaran supplier",
+      "CASH_ADVANCE": "Uang muka",
+      "TRAVEL": "Perjalanan dinas",
+      "OTHER": "Lainnya"
+    },
+    "travelCategory": {
+      "TRANSPORT": "Transportasi",
+      "LODGING": "Penginapan",
+      "PER_DIEM": "Uang Saku/Harian",
+      "MEALS": "Konsumsi",
+      "OTHER": "Lain-lain"
+    },
+    "history": {
+      "CREATE": "Dibuat",
+      "UPDATE": "Diubah",
+      "SUBMIT": "Diajukan",
+      "APPROVE": "Disetujui",
+      "REJECT": "Ditolak",
+      "RETURN": "Dikembalikan untuk revisi",
+      "CANCEL": "Dibatalkan",
+      "VERIFY": "Akun biaya diverifikasi",
+      "PAY": "Dibayar",
+      "CANCEL_PAYMENT": "Pembayaran dibatalkan",
+      "SETTLE_SUBMIT": "Pertanggungjawaban diajukan",
+      "SETTLE_APPROVE": "Pertanggungjawaban disetujui atasan",
+      "SETTLE_RETURN": "Pertanggungjawaban dikembalikan untuk revisi",
+      "SETTLE_POST": "Pertanggungjawaban diposting",
+      "SETTLE_CANCEL": "Posting pertanggungjawaban dibatalkan"
+    },
+    "step": {
+      "SUPERVISOR": "atasan langsung",
+      "FINANCE": "Keuangan",
+      "DIRECTOR": "Direktur"
+    }
+  },
+  "paymentRequestDetail": {
+    "advanceAccount": {
+      "name": "Uang Muka Karyawan",
+      "unmapped": "Uang Muka Karyawan (akun sistem belum dipetakan)"
+    },
+    "toast": {
+      "approve": "Pengajuan disetujui.",
+      "reject": "Pengajuan ditolak.",
+      "return": "Pengajuan dikembalikan untuk revisi.",
+      "cancel": "Pengajuan dibatalkan.",
+      "submit": "Pengajuan diajukan.",
+      "cancelPayment": "Pembayaran dibatalkan; jurnal di-void.",
+      "settleApprove": "Pertanggungjawaban disetujui; diteruskan ke Keuangan.",
+      "settleReturn": "Pertanggungjawaban dikembalikan untuk revisi.",
+      "settleCancelPosting": "Posting dibatalkan; jurnal pertanggungjawaban di-void.",
+      "actionFailed": "Gagal memproses pengajuan.",
+      "accountsSaved": "Akun biaya disimpan.",
+      "accountsFailed": "Gagal menyimpan akun biaya."
+    },
+    "loading": "Memuat pengajuan…",
+    "notFound": {
+      "title": "Pengajuan tidak ditemukan",
+      "description": "Pengajuan ini tidak ada atau Anda tidak memiliki akses.",
+      "back": "Kembali ke daftar"
+    },
+    "waiting": {
+      "supervisorNamed": "Menunggu persetujuan {{name}}",
+      "supervisor": "Menunggu persetujuan atasan",
+      "finance": "Menunggu verifikasi Keuangan",
+      "directorNamed": "Menunggu persetujuan {{name}} (melewati batas nilai)",
+      "director": "Menunggu persetujuan Direktur (melewati batas nilai)"
+    },
+    "actions": {
+      "edit": "Ubah",
+      "submit": "Ajukan",
+      "reject": "Tolak",
+      "return": "Minta Revisi",
+      "approve": "Setujui",
+      "payDisabled": "Lengkapi akun biaya per baris dulu",
+      "pay": "Bayar",
+      "cancelPayment": "Batalkan Pembayaran",
+      "settleReturn": "Minta Revisi Pertanggungjawaban",
+      "settlePost": "Verifikasi & Posting",
+      "settleApprove": "Setujui Pertanggungjawaban",
+      "settleCancelPosting": "Batalkan Posting Pertanggungjawaban",
+      "cancel": "Batalkan Pengajuan"
+    },
+    "yourStep": "Anda memproses tahap {{step}}.",
+    "lastNote": "Catatan terakhir:",
+    "summary": {
+      "label": "Ringkasan",
+      "total": "Total",
+      "type": "Jenis",
+      "neededBy": "Dibutuhkan"
+    },
+    "lines": {
+      "travelTitle": "Rencana biaya",
+      "title": "Rincian biaya",
+      "saveAccounts": "Simpan akun",
+      "advanceNote": "Uang muka: saat dibayar dicatat ke <b>{{account}}</b>, lalu dipertanggungjawabkan.",
+      "expenseDate": "Tanggal biaya {{date}}",
+      "account": "Akun biaya baris {{n}}",
+      "accountValue": "Akun: {{account}}",
+      "accountMissing": "belum diisi Keuangan"
+    },
+    "attachments": {
+      "title_one": "Lampiran ({{count}})",
+      "title_other": "Lampiran ({{count}})",
+      "empty": "Tidak ada lampiran."
+    },
+    "people": {
+      "title": "Pengaju & penerima",
+      "requester": "Pengaju",
+      "supervisor": "Atasan",
+      "department": "Departemen",
+      "submitted": "Diajukan",
+      "notSubmitted": "Belum diajukan",
+      "payee": "Penerima",
+      "supplier": "Supplier",
+      "employee": "Karyawan",
+      "bankAccount": "Rekening",
+      "accountHolder": "a.n. {{name}}"
+    },
+    "payment": {
+      "title": "Pembayaran",
+      "date": "Tanggal bayar",
+      "source": "Sumber dana",
+      "reference": "Referensi",
+      "paidBy": "Dibayar oleh",
+      "journal": "Jurnal"
+    },
+    "history": "Riwayat",
+    "dialogs": {
+      "approve": {
+        "title": "Setujui {{number}}?",
+        "financeDescription": "Total {{total}}. Jika melewati batas nilai aturan persetujuan, pengajuan diteruskan ke Direktur; jika tidak, langsung siap dibayar.",
+        "description": "Total {{total}} untuk {{payee}}.",
+        "confirm": "Setujui"
+      },
+      "financeNote": "Catatan Keuangan",
+      "note": "Catatan",
+      "noteHint": "Opsional. Terlihat oleh pengaju dan di riwayat.",
+      "optional": "Opsional.",
+      "settleApprove": {
+        "title": "Setujui pertanggungjawaban {{number}}?",
+        "description": "Pertanggungjawaban diteruskan ke Keuangan untuk diverifikasi dan diposting."
+      },
+      "settleReturn": {
+        "title": "Minta revisi pertanggungjawaban {{number}}?",
+        "description": "Dikembalikan ke pengaju untuk diperbaiki lalu diajukan ulang."
+      },
+      "returnConfirm": "Kembalikan",
+      "fixReason": "Yang perlu diperbaiki",
+      "cancelReason": "Alasan pembatalan",
+      "settleCancelPosting": {
+        "title": "Batalkan posting pertanggungjawaban {{number}}?",
+        "description": "Jurnal pertanggungjawaban di-void; status kembali ke Verifikasi Keuangan dan uang muka kembali terbuka.",
+        "confirm": "Batalkan Posting"
+      },
+      "submit": {
+        "title": "Ajukan {{number}}?",
+        "description": "Setelah diajukan, pengajuan tidak bisa diubah kecuali dikembalikan untuk revisi.",
+        "confirm": "Ajukan"
+      },
+      "reject": {
+        "title": "Tolak {{number}}?",
+        "description": "Pengajuan yang ditolak tidak bisa diajukan ulang. Gunakan Minta Revisi bila pengaju cukup memperbaiki.",
+        "confirm": "Tolak",
+        "reason": "Alasan penolakan"
+      },
+      "return": {
+        "title": "Minta revisi {{number}}?",
+        "description": "Pengajuan dikembalikan ke pengaju untuk diperbaiki lalu diajukan ulang."
+      },
+      "cancel": {
+        "title": "Batalkan {{number}}?",
+        "description": "Pengajuan yang dibatalkan tidak bisa diproses lagi.",
+        "confirm": "Ya, Batalkan"
+      },
+      "cancelPayment": {
+        "title": "Batalkan pembayaran {{number}}?",
+        "description": "Jurnal pembayaran di-void dan pengajuan kembali ke Siap Dibayar.",
+        "confirm": "Batalkan Pembayaran"
+      }
+    }
+  },
+  "paymentRequestForm": {
+    "loading": "Memuat formulir…",
+    "toast": {
+      "deleteAttachmentFailed": "Gagal menghapus lampiran.",
+      "submitted": "Pengajuan diajukan.",
+      "draftSaved": "Draf pengajuan disimpan.",
+      "saveFailed": "Gagal menyimpan pengajuan."
+    },
+    "errors": {
+      "type": "Pilih jenis pengajuan.",
+      "purpose": "Jelaskan keperluan (minimal 3 karakter).",
+      "payeeName": "Nama penerima wajib diisi.",
+      "supplier": "Pilih supplier.",
+      "lineIncomplete": "Setiap baris wajib berisi uraian dan nominal lebih dari 0.",
+      "noLines": "Tambahkan minimal satu rincian biaya.",
+      "attachmentRequired": "Jenis pengajuan ini wajib melampirkan bukti."
+    },
+    "editTitle": "Ubah Pengajuan",
+    "editTitleNumber": "Ubah {{number}}",
+    "createTitle": "Buat Pengajuan",
+    "notEditable": "Pengajuan ini tidak bisa diubah lagi (hanya saat Draf atau Perlu Revisi).",
+    "backToDetail": "Kembali ke detail",
+    "flow": {
+      "supervisor": "Setelah diajukan, pengajuan menunggu persetujuan atasan Anda ({{name}}), lalu Keuangan.",
+      "finance": "Setelah diajukan, pengajuan langsung diverifikasi Keuangan (atasan langsung belum diatur)."
+    },
+    "overdueAdvances_one": "Anda masih punya <b>{{count}} uang muka</b> yang belum dipertanggungjawabkan lebih dari {{days}} hari ({{amount}}). Pengajuan baru tetap bisa dibuat, tetapi mohon segera selesaikan pertanggungjawaban.",
+    "overdueAdvances_other": "Anda masih punya <b>{{count}} uang muka</b> yang belum dipertanggungjawabkan lebih dari {{days}} hari ({{amount}}). Pengajuan baru tetap bisa dibuat, tetapi mohon segera selesaikan pertanggungjawaban.",
+    "revisionNote": "Catatan revisi:",
+    "info": {
+      "title": "Informasi pengajuan",
+      "type": "Jenis pengajuan",
+      "typePlaceholder": "Pilih jenis…",
+      "attachmentRequired": "Wajib lampiran",
+      "attachmentOptional": "Lampiran opsional",
+      "requiresSettlement": "Wajib dipertanggungjawabkan setelah dipakai",
+      "travelPurpose": "Keperluan perjalanan",
+      "purpose": "Keperluan",
+      "purposePlaceholder": "Tujuan dan tanggal kegiatan",
+      "neededBy": "Dibutuhkan tanggal",
+      "neededByHint": "Opsional: kapan dana dibutuhkan.",
+      "department": "Departemen / bagian",
+      "optional": "Opsional."
+    },
+    "lines": {
+      "travelTitle": "Rencana biaya perjalanan",
+      "title": "Rincian biaya",
+      "travelHint": "Perkiraan biaya per kategori, dipakai sebagai pembanding saat pertanggungjawaban. Akun biaya dipilih Keuangan.",
+      "hint": "Akun biaya dipilih oleh Keuangan saat verifikasi."
+    },
+    "attachments": {
+      "title": "Lampiran",
+      "hint": "Nota, kuitansi, invoice supplier, atau dokumen pendukung lain."
+    },
+    "payee": {
+      "title": "Penerima pembayaran",
+      "kind": "Dibayarkan ke",
+      "employee": "Karyawan (saya)",
+      "supplier": "Supplier",
+      "supplierLabel": "Supplier",
+      "supplierPlaceholder": "Pilih supplier…",
+      "supplierSearch": "Cari supplier…",
+      "name": "Nama penerima",
+      "bank": "Bank",
+      "bankPlaceholder": "mis. BCA",
+      "accountNo": "Nomor rekening",
+      "accountHolder": "Atas nama rekening"
+    },
+    "footer": {
+      "total": "Total",
+      "cancel": "Batal",
+      "saveDraft": "Simpan Draf",
+      "submit": "Ajukan"
+    }
+  },
+  "paymentRequestSettlement": {
+    "loading": "Memuat pengajuan…",
+    "toast": {
+      "deleteAttachmentFailed": "Gagal menghapus lampiran.",
+      "submitted": "Pertanggungjawaban diajukan.",
+      "draftSaved": "Draf pertanggungjawaban disimpan.",
+      "saveFailed": "Gagal menyimpan pertanggungjawaban."
+    },
+    "errors": {
+      "lineIncomplete": "Setiap baris wajib berisi uraian dan nominal lebih dari 0.",
+      "noLines": "Tambahkan minimal satu rincian realisasi."
+    },
+    "title": "Pertanggungjawaban",
+    "titleWithNumber": "Pertanggungjawaban {{number}}",
+    "notEditable": "Pertanggungjawaban hanya bisa diisi oleh pengaju saat uang muka sudah dibayar dan belum diajukan (atau diminta revisi).",
+    "backToDetail": "Kembali ke detail",
+    "diffMessage": {
+      "exact": "Realisasi sama dengan uang muka. Tidak ada pengembalian maupun kekurangan.",
+      "return": "Sisa uang muka {{amount}} dikembalikan ke kas perusahaan (dicatat Keuangan saat memposting).",
+      "reimburse": "Kurang bayar {{amount}} dibayarkan perusahaan kepada Anda (dicatat Keuangan saat memposting)."
+    },
+    "revisionNote": "Catatan revisi:",
+    "summary": {
+      "label": "Ringkasan",
+      "advance": "Uang muka diterima",
+      "paidOn": "dibayar {{date}}",
+      "realized": "Total realisasi",
+      "return": "Sisa uang muka",
+      "reimburse": "Kurang bayar",
+      "difference": "Selisih"
+    },
+    "lines": {
+      "title": "Rincian realisasi",
+      "travelHint": "Dimulai dari rencana perjalanan. Ubah nominal sesuai biaya sebenarnya, tambah atau hapus baris.",
+      "hint": "Catat pengeluaran yang benar-benar terjadi.",
+      "actual": "Realisasi"
+    },
+    "planVsActual": "Rencana vs realisasi",
+    "receipts": {
+      "title": "Bukti / nota",
+      "hint": "Lampirkan nota, kuitansi, atau bukti transfer pengembalian (JPG, PNG, WebP, PDF)."
+    },
+    "notes": {
+      "title": "Catatan",
+      "note": "Catatan untuk atasan & Keuangan",
+      "optional": "Opsional.",
+      "deadline": "Batas waktu pertanggungjawaban",
+      "deadlineHint": "Opsional. Pengingat dikirim bila terlewat."
+    },
+    "footer": {
+      "actual": "Realisasi",
+      "cancel": "Batal",
+      "saveDraft": "Simpan Draf",
+      "submit": "Ajukan"
+    }
+  },
+  "paymentRequests": {
+    "title": "Pengajuan Pembayaran",
+    "description": "Reimbursement, uang muka, perjalanan dinas, dan pembayaran supplier: diajukan, disetujui, dan dibayar di satu tempat.",
+    "exportExcel": "Ekspor Excel",
+    "create": "Buat Pengajuan",
+    "loadingList": "Memuat daftar…",
+    "rowActions": "Aksi untuk {{number}}",
+    "export": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "requester": "Pengaju",
+      "type": "Jenis",
+      "purpose": "Keperluan",
+      "payee": "Penerima",
+      "neededBy": "Dibutuhkan Tanggal",
+      "total": "Total",
+      "status": "Status",
+      "paidAt": "Tanggal Bayar",
+      "advanceAmount": "Jumlah Uang Muka",
+      "age": "Umur (hari)",
+      "settlementStatus": "Status Pertanggungjawaban",
+      "overdue": "Lewat {{days}} hari",
+      "yes": "Ya",
+      "no": "Tidak"
+    },
+    "exportFile": {
+      "advances": "uang-muka-karyawan",
+      "requests": "pengajuan-pembayaran"
+    },
+    "tabs": {
+      "label": "Tampilan pengajuan",
+      "mine": "Pengajuan Saya",
+      "approvals": "Perlu Persetujuan",
+      "payable": "Siap Dibayar",
+      "eam": "Tagihan EAM",
+      "advances": "Belum Dipertanggungjawabkan",
+      "all": "Semua",
+      "waiting": "menunggu",
+      "waitingPosting": "menunggu posting",
+      "overdue": "lewat batas waktu"
+    },
+    "columns": {
+      "number": "Nomor",
+      "requester": "Pengaju",
+      "purpose": "Keperluan",
+      "advance": "Uang Muka",
+      "paid": "Dibayar",
+      "age": "Umur",
+      "settlement": "Pertanggungjawaban",
+      "actions": "Aksi",
+      "date": "Tanggal",
+      "neededBy": "Dibutuhkan",
+      "total": "Total",
+      "status": "Status"
+    },
+    "days_one": "{{count, number}} hari",
+    "days_other": "{{count, number}} hari",
+    "pastLimit": ", melewati batas {{days}} hari",
+    "pastLimitShort": ", melewati batas",
+    "actions": {
+      "view": "Lihat detail",
+      "edit": "Ubah"
+    },
+    "toast": {
+      "exportTruncated_one": "Ekspor dibatasi {{count, number}} pengajuan pertama. Persempit filter.",
+      "exportTruncated_other": "Ekspor dibatasi {{count, number}} pengajuan pertama. Persempit filter.",
+      "exportFailed": "Gagal mengekspor pengajuan. Coba lagi."
+    },
+    "empty": {
+      "mine": {
+        "title": "Belum ada pengajuan",
+        "description": "Ajukan reimbursement, uang muka, atau pembayaran supplier. Tidak perlu lagi lewat email dan Excel."
+      },
+      "approvals": {
+        "title": "Tidak ada yang menunggu persetujuan Anda",
+        "description": "Pengajuan yang perlu Anda setujui akan muncul di sini."
+      },
+      "payable": {
+        "title": "Belum ada pengajuan siap dibayar",
+        "description": "Pengajuan yang sudah disetujui lengkap akan muncul di sini."
+      },
+      "advances": {
+        "title": "Tidak ada uang muka yang belum dipertanggungjawabkan",
+        "description": "Uang muka dan perjalanan dinas yang sudah dibayar dan belum diselesaikan muncul di sini."
+      },
+      "all": {
+        "title": "Belum ada pengajuan",
+        "description": "Semua pengajuan pembayaran akan muncul di sini."
+      },
+      "action": "Buat pengajuan pertama"
+    },
+    "advances": {
+      "summary": "Ringkasan uang muka karyawan",
+      "open": "Uang Muka Belum Selesai",
+      "count_one": "{{count, number}} uang muka",
+      "count_other": "{{count, number}} uang muka",
+      "overdue": "Lewat {{days}} Hari",
+      "employees": "Karyawan",
+      "employeesHint": "dengan uang muka terbuka",
+      "oldest": "Terlama",
+      "oldestHint": "sejak dibayar",
+      "byEmployee": "Uang muka per karyawan",
+      "byEmployeeCaption": "Uang muka belum dipertanggungjawabkan per karyawan",
+      "columns": {
+        "employee": "Karyawan",
+        "count": "Jumlah",
+        "amount": "Nilai (Rp)",
+        "oldest": "Terlama"
+      }
+    },
+    "summary": {
+      "label": "Ringkasan pengajuan sesuai filter",
+      "inApproval": "Dalam Persetujuan",
+      "ready": "Siap Dibayar",
+      "paid": "Sudah Dibayar",
+      "requests_one": "{{count, number}} pengajuan",
+      "requests_other": "{{count, number}} pengajuan",
+      "needsWork": "Draf & Perlu Revisi",
+      "needsRevision_one": "{{count, number}} perlu revisi",
+      "needsRevision_other": "{{count, number}} perlu revisi",
+      "notSubmitted": "belum diajukan"
+    },
+    "filters": {
+      "searchLabel": "Cari pengajuan",
+      "searchPlaceholder": "Cari nomor, keperluan, penerima, atau pengaju",
+      "settlementStatus": "Status pertanggungjawaban",
+      "allStatuses": "Semua status",
+      "dateRange": "Rentang tanggal pengajuan",
+      "type": "Filter jenis pengajuan",
+      "allTypes": "Semua jenis",
+      "typeSearch": "Cari jenis…"
+    },
+    "table": {
+      "advances": "Uang muka belum dipertanggungjawabkan",
+      "requests": "Daftar pengajuan pembayaran",
+      "itemLabel": "pengajuan"
+    }
+  },
+  "payments": {
+    "title": "Transaksi Kas & Bank",
+    "description": "Pantau mutasi kas, pembayaran supplier, dan pelunasan piutang.",
+    "exportExcel": "Ekspor Excel",
+    "exportFile": "transaksi-kas-bank",
+    "record": "Catat Transaksi",
+    "attachmentCount_one": "{{count}} lampiran",
+    "attachmentCount_other": "{{count}} lampiran",
+    "attachments": "lampiran",
+    "rowActions": "Aksi untuk {{number}}",
+    "partyType": {
+      "Customer": "Customer",
+      "Supplier": "Supplier",
+      "Both": "Customer & Supplier"
+    },
+    "toast": {
+      "cancelled": "Pembayaran dibatalkan.",
+      "cancelFailed": "Gagal membatalkan pembayaran.",
+      "exportFailed": "Gagal mengekspor transaksi. Coba lagi.",
+      "exportTruncated_one": "Ekspor dibatasi {{count, number}} transaksi pertama. Persempit filter.",
+      "exportTruncated_other": "Ekspor dibatasi {{count, number}} transaksi pertama. Persempit filter."
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "party": "Pihak / Keterangan",
+      "kind": "Tipe / Akun",
+      "amount": "Jumlah",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "actions": {
+      "viewJournal": "Lihat jurnal",
+      "viewDetail": "Lihat detail",
+      "cancel": "Batalkan"
+    },
+    "menu": {
+      "cashIn": "Kas masuk",
+      "receive": "Terima Pembayaran",
+      "cashOut": "Kas keluar",
+      "pay": "Bayar Hutang",
+      "expense": "Catat Pengeluaran",
+      "bulkExpense": "Input Banyak Pengeluaran",
+      "supplierDeposit": "Uang Muka Supplier",
+      "betweenAccounts": "Antar akun",
+      "transfer": "Pindah Buku (Pinbuk)"
+    },
+    "summary": {
+      "label": "Ringkasan transaksi sesuai filter",
+      "count": "Jumlah Transaksi",
+      "cashIn": "Kas Masuk",
+      "cashOut": "Kas Keluar",
+      "net": "Arus Kas Bersih",
+      "netHint": "masuk − keluar",
+      "cancelled_one": "{{count, number}} dibatalkan",
+      "cancelled_other": "{{count, number}} dibatalkan",
+      "transactions_one": "{{count, number}} transaksi",
+      "transactions_other": "{{count, number}} transaksi"
+    },
+    "help": {
+      "title": "Cara kerja edit & pembatalan",
+      "body": "Transaksi bank/kas tidak bisa diedit untuk menjaga integritas Buku Besar. Bila ada kesalahan, <b>batalkan transaksi lalu buat ulang</b>. Uang Muka Supplier/Customer wajib dibatalkan dari modulnya masing-masing. Transaksi yang berasal dari jurnal manual (Beban, Pinbuk) dibatalkan dari Buku Besar. Hanya role <b>Admin</b> yang boleh membatalkan."
+    },
+    "filters": {
+      "searchLabel": "Cari transaksi",
+      "searchPlaceholder": "Cari nomor, pihak, atau keterangan",
+      "type": "Tipe transaksi",
+      "allTypes": "Semua tipe",
+      "paymentGroup": "Pembayaran",
+      "journalGroup": "Jurnal kas",
+      "direction": "Arah kas",
+      "allDirections": "Masuk & keluar",
+      "in": "Kas masuk (+)",
+      "out": "Kas keluar (−)",
+      "party": "Pihak",
+      "allParties": "Semua pihak",
+      "partySearch": "Cari customer/supplier…",
+      "account": "Akun kas/bank",
+      "allAccounts": "Semua akun",
+      "accountSearch": "Cari akun…"
+    },
+    "table": {
+      "label": "Daftar transaksi kas & bank",
+      "itemLabel": "transaksi"
+    },
+    "empty": {
+      "title": "Belum ada transaksi kas & bank",
+      "description": "Penerimaan, pembayaran, pengeluaran, dan pinbuk yang dicatat akan muncul di sini.",
+      "action": "Terima pembayaran pertama"
+    },
+    "cancelDialog": {
+      "title": "Batalkan Transaksi",
+      "description": "Batalkan {{number}}? Alokasi ke invoice, saldo kas/bank, dan jurnal akan otomatis dibalik. Tindakan tidak dapat dibatalkan.",
+      "confirm": "Ya, Batalkan"
+    }
+  },
+  "planVsActual": {
+    "label": "Rencana vs realisasi per kategori",
+    "caption": "Rencana dan realisasi biaya per kategori",
+    "category": "Kategori",
+    "planned": "Rencana",
+    "actual": "Realisasi",
+    "difference": "Selisih",
+    "total": "Total"
+  },
+  "projectGuaranteeDetailSheet": {
+    "fields": {
+      "party": "Pemberi proyek",
+      "type": "Jenis jaminan",
+      "date": "Tanggal setor",
+      "returnDate": "Jatuh tempo kembali",
+      "account": "Akun sumber dana",
+      "reference": "No. referensi",
+      "notes": "Catatan"
+    },
+    "figures": {
+      "deposited": "Jumlah disetor",
+      "outstanding": "Sisa di luar",
+      "returned": "Dikembalikan",
+      "forfeited": "Hangus"
+    },
+    "history": "Riwayat Settlement",
+    "noSettlements": "Belum ada settlement.",
+    "returned": "Kembali <b>{{amount}}</b>",
+    "forfeited": "Hangus <b>{{amount}}</b>",
+    "cancelSettlement": "Batalkan settlement {{date}}",
+    "cancelDeposit": "Batalkan setoran",
+    "settle": "Settlement"
+  },
+  "projectGuaranteeModal": {
+    "saveFailed": "Gagal menyimpan uang jaminan.",
+    "title": "Setor Uang Jaminan Proyek",
+    "description": "Jaminan tender/pelaksanaan ke pemberi proyek",
+    "date": "Tanggal Setor",
+    "type": "Jenis Jaminan",
+    "party": "Pemberi Proyek",
+    "partyPlaceholder": "Pilih Pihak",
+    "projectName": "Nama Proyek",
+    "projectNamePlaceholder": "Mis. Pengadaan Beras 2026",
+    "referenceNo": "No. Referensi",
+    "referencePlaceholder": "No. tender / kontrak",
+    "amount": "Jumlah (Rp)",
+    "amountLabel": "Jumlah uang jaminan",
+    "account": "Akun Sumber Dana",
+    "accountPlaceholder": "Pilih Akun Kas/Bank",
+    "returnDate": "Jatuh Tempo Pengembalian",
+    "returnDateHint": "Opsional. Sistem mengingatkan H-7 via notifikasi & Telegram.",
+    "notes": "Catatan",
+    "notesPlaceholder": "Keterangan opsional...",
+    "summary": "Setor jaminan <b>{{amount}}</b>",
+    "journal": "Jurnal: <mono>DR Uang Jaminan Proyek (1.8) / CR Kas-Bank</mono>",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "submit": "Setor Jaminan"
+  },
+  "projectGuarantees": {
+    "guaranteeType": {
+      "bid": "Penawaran",
+      "performance": "Pelaksanaan",
+      "maintenance": "Pemeliharaan",
+      "other": "Lainnya"
+    },
+    "toast": {
+      "cancelled": "Uang jaminan dibatalkan.",
+      "cancelFailed": "Gagal membatalkan uang jaminan.",
+      "settlementCancelled": "Settlement dibatalkan.",
+      "settlementCancelFailed": "Gagal membatalkan settlement."
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "party": "Pemberi Proyek",
+      "due": "Jatuh Tempo",
+      "amount": "Jumlah",
+      "outstanding": "Sisa",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "rowActions": "Aksi untuk {{number}}",
+    "actions": {
+      "view": "Lihat detail",
+      "settle": "Settlement (kembali/hangus)",
+      "cancel": "Batalkan setoran"
+    },
+    "title": "Uang Jaminan Proyek",
+    "description": "Setoran jaminan tender/pelaksanaan ke pemberi proyek.",
+    "create": "Setor Jaminan",
+    "summary": {
+      "label": "Ringkasan uang jaminan sesuai filter",
+      "outstanding": "Sisa di Luar",
+      "returned": "Dikembalikan",
+      "ofDeposited": "dari {{amount}} disetor",
+      "forfeited": "Hangus",
+      "forfeitedHint": "dibebankan ke biaya",
+      "overdue": "Lewat Jatuh Tempo",
+      "overdueOutstanding": "Sisa {{amount}}",
+      "active_one": "{{count, number}} jaminan aktif",
+      "active_other": "{{count, number}} jaminan aktif",
+      "dueSoon_one": "{{count, number}} segera jatuh tempo",
+      "dueSoon_other": "{{count, number}} segera jatuh tempo"
+    },
+    "filters": {
+      "searchLabel": "Cari uang jaminan",
+      "searchPlaceholder": "Cari nomor, pihak, atau proyek",
+      "dateRange": "Rentang tanggal setor",
+      "party": "Filter pemberi proyek",
+      "allParties": "Semua pemberi proyek",
+      "partySearch": "Cari pihak…",
+      "type": "Filter jenis jaminan",
+      "allTypes": "Semua jenis",
+      "typeSearch": "Cari jenis…",
+      "due": "Filter jatuh tempo",
+      "allDue": "Semua jatuh tempo",
+      "dueSearch": "Cari…",
+      "dueOption": {
+        "overdue": "Lewat jatuh tempo",
+        "dueSoon": "Segera jatuh tempo (30 hari)"
+      }
+    },
+    "table": {
+      "label": "Daftar uang jaminan proyek",
+      "itemLabel": "uang jaminan"
+    },
+    "empty": {
+      "title": "Belum ada uang jaminan proyek",
+      "description": "Setoran jaminan tender atau pelaksanaan ke pemberi proyek akan muncul di sini.",
+      "action": "Setor jaminan pertama"
+    },
+    "cancelDialog": {
+      "title": "Batalkan Uang Jaminan",
+      "description": "Apakah Anda yakin ingin membatalkan setoran {{number}}? Saldo akun akan dikembalikan seperti sebelum setor."
+    },
+    "confirmCancel": "Ya, Batalkan",
+    "cancelSettlementDialog": {
+      "title": "Batalkan Settlement",
+      "description": "Batalkan settlement {{label}}? Jurnal settlement dibalik dan sisa jaminan kembali bertambah."
+    }
+  },
+  "reconciliationModal": {
+    "created": "Rekonsiliasi dibuat.",
+    "createFailed": "Gagal membuat rekonsiliasi.",
+    "required": "Lengkapi semua field yang wajib diisi.",
+    "title": "Rekonsiliasi Baru",
+    "description": "Cocokkan saldo buku dengan statement bank / kas.",
+    "submit": "Buat Rekonsiliasi",
+    "saving": "Menyimpan…",
+    "account": "Akun Bank / Kas",
+    "accountPlaceholder": "Pilih akun...",
+    "statementDate": "Tanggal Statement",
+    "statementBalance": "Saldo Statement (Rp)",
+    "notes": "Catatan",
+    "optional": "Opsional...",
+    "items": {
+      "title": "Mutasi Bank (Opsional)",
+      "add": "Tambah",
+      "date": "Tanggal mutasi {{n}}",
+      "description": "Keterangan mutasi {{n}}",
+      "descriptionPlaceholder": "Keterangan",
+      "amount": "Jumlah mutasi {{n}} (Rp)",
+      "amountPlaceholder": "Jumlah (Rp)",
+      "remove": "Hapus mutasi {{n}}"
+    }
+  },
+  "reconciliationWorkspace": {
+    "generalJournal": "Jurnal umum",
+    "toast": {
+      "matched": "Item dicocokkan.",
+      "matchFailed": "Gagal mencocokkan.",
+      "unmatched": "Pencocokan dibatalkan.",
+      "unmatchFailed": "Gagal membatalkan pencocokan.",
+      "completed": "Rekonsiliasi selesai.",
+      "completeFailed": "Gagal menyelesaikan rekonsiliasi.",
+      "itemsAdded": "Item statement ditambahkan.",
+      "itemsFailed": "Gagal menambah item.",
+      "itemRequired": "Minimal satu item harus diisi.",
+      "noUnmatched": "Tidak ada item statement yang belum dicocokkan. Tambahkan item statement terlebih dahulu."
+    },
+    "back": "Kembali",
+    "breadcrumb": "Rekonsiliasi Bank",
+    "matching": "Pencocokan",
+    "title": "Pencocokan Rekonsiliasi",
+    "loading": "Memuat rekonsiliasi…",
+    "notFound": {
+      "title": "Rekonsiliasi tidak ditemukan.",
+      "description": "Sesi mungkin sudah dihapus."
+    },
+    "retry": "Coba lagi",
+    "statementAsOf": "Statement per {{date}}",
+    "complete": "Selesai",
+    "summary": {
+      "label": "Ringkasan rekonsiliasi",
+      "book": "Saldo Buku",
+      "statement": "Saldo Statement",
+      "difference": "Selisih",
+      "balanced": "Seimbang",
+      "matched": "Item Tercocokkan",
+      "matchedHint": "item statement"
+    },
+    "book": {
+      "title": "Transaksi Buku",
+      "empty": {
+        "title": "Semua transaksi sudah dicocokkan",
+        "description": "Tidak ada transaksi buku yang tersisa."
+      },
+      "region": "Transaksi buku belum dicocokkan",
+      "unmatched_one": "{{count, number}} transaksi belum dicocokkan",
+      "unmatched_other": "{{count, number}} transaksi belum dicocokkan"
+    },
+    "columns": {
+      "date": "Tanggal",
+      "description": "Keterangan",
+      "amount": "Jumlah",
+      "actions": "Aksi",
+      "status": "Status"
+    },
+    "matchLabel": "Cocokkan {{entry}} {{date}}",
+    "match": "Cocokkan",
+    "bank": {
+      "title": "Mutasi Bank",
+      "add": "Tambah Item",
+      "item": "Item statement {{n}}",
+      "amountRp": "Jumlah (Rp)",
+      "removeRow": "Hapus baris {{n}}",
+      "newRow": "Baris baru",
+      "empty": {
+        "title": "Belum ada item statement",
+        "description": "Tambahkan mutasi dari rekening koran."
+      },
+      "region": "Item mutasi bank",
+      "count_one": "{{count, number}} item statement",
+      "count_other": "{{count, number}} item statement"
+    },
+    "cancel": "Batal",
+    "save": "Simpan",
+    "matched": "Sudah dicocokkan",
+    "notMatched": "Belum dicocokkan",
+    "noDescription": "Tanpa keterangan",
+    "unmatchLabel": "Batalkan pencocokan {{item}}",
+    "itemFallback": "item",
+    "unmatch": "Batalkan",
+    "completeDialog": {
+      "title": "Selesaikan Rekonsiliasi",
+      "description": "Apakah Anda yakin ingin menyelesaikan rekonsiliasi ini? Status akan berubah menjadi Selesai dan tidak dapat diubah kembali.",
+      "confirm": "Selesaikan"
+    }
+  },
+  "recurringTemplateModal": {
+    "toast": {
+      "updated": "Template diperbarui.",
+      "created": "Template dibuat.",
+      "saveFailed": "Gagal menyimpan template."
+    },
+    "errors": {
+      "name": "Nama template wajib diisi.",
+      "nextRun": "Tanggal berikutnya wajib diisi.",
+      "narration": "Keterangan jurnal wajib diisi.",
+      "minLines": "Minimal 2 baris jurnal.",
+      "unbalanced": "Debit dan Kredit harus seimbang.",
+      "required": "Wajib diisi."
+    },
+    "title": {
+      "edit": "Edit Template Berulang",
+      "create": "Buat Template Berulang"
+    },
+    "description": "Transaksi yang dibuat otomatis sesuai jadwal.",
+    "name": "Nama Template",
+    "namePlaceholder": "contoh: Beban Sewa Bulanan",
+    "type": "Tipe Transaksi",
+    "types": {
+      "journal": "Jurnal Umum",
+      "sales_invoice": "Invoice Penjualan",
+      "purchase_invoice": "Invoice Pembelian"
+    },
+    "frequency": "Frekuensi",
+    "frequencies": {
+      "daily": "Harian",
+      "weekly": "Mingguan",
+      "monthly": "Bulanan",
+      "quarterly": "Triwulan",
+      "yearly": "Tahunan"
+    },
+    "dayOfMonth": "Tanggal dalam Bulan",
+    "nextRun": "Jadwal Berikutnya",
+    "journal": {
+      "title": "Data Jurnal",
+      "narration": "Keterangan",
+      "narrationPlaceholder": "contoh: Beban sewa gedung bulan ...",
+      "account": "Akun baris {{n}}",
+      "chooseAccount": "Pilih akun…",
+      "debit": "Debit",
+      "debitRow": "Debit baris {{n}}",
+      "credit": "Kredit",
+      "creditRow": "Kredit baris {{n}}",
+      "removeRow": "Hapus baris {{n}}",
+      "addRow": "Tambah Baris"
+    },
+    "invoiceNote": "Untuk tipe invoice penjualan/pembelian, eksekusi otomatis akan segera didukung. Saat ini Anda dapat menggunakan tipe Jurnal Umum untuk transaksi berulang.",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "saveChanges": "Simpan Perubahan",
+    "create": "Buat Template"
+  },
+  "recurringTransactions": {
+    "type": {
+      "journal": "Jurnal",
+      "sales_invoice": "Invoice Penjualan",
+      "purchase_invoice": "Invoice Pembelian"
+    },
+    "frequency": {
+      "daily": "Harian",
+      "weekly": "Mingguan",
+      "monthly": "Bulanan",
+      "quarterly": "Triwulan",
+      "yearly": "Tahunan"
+    },
+    "frequencyDay": "{{frequency}} (tgl {{day}})",
+    "period": {
+      "daily": "1 hari",
+      "weekly": "1 minggu",
+      "monthly": "1 bulan",
+      "quarterly": "3 bulan",
+      "yearly": "1 tahun",
+      "fallback": "satu periode"
+    },
+    "toast": {
+      "executed": "Template dijalankan.",
+      "executeFailed": "Gagal mengeksekusi template.",
+      "statusUpdated": "Status template diperbarui.",
+      "statusFailed": "Gagal mengubah status template."
+    },
+    "columns": {
+      "name": "Nama",
+      "type": "Tipe",
+      "frequency": "Frekuensi",
+      "nextShort": "Jadwal",
+      "next": "Jadwal Berikutnya",
+      "last": "Terakhir Dijalankan",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "rowActions": "Aksi untuk {{name}}",
+    "actions": {
+      "edit": "Edit",
+      "run": "Jalankan sekarang",
+      "deactivate": "Nonaktifkan",
+      "activate": "Aktifkan"
+    },
+    "title": "Transaksi Berulang",
+    "description": "Kelola template transaksi otomatis berdasarkan jadwal.",
+    "create": "Buat Template",
+    "filters": {
+      "searchLabel": "Cari template",
+      "searchPlaceholder": "Cari nama template",
+      "active": "Aktif",
+      "inactive": "Nonaktif",
+      "type": "Filter tipe template",
+      "allTypes": "Semua tipe",
+      "typeSearch": "Cari tipe…"
+    },
+    "table": {
+      "label": "Daftar template transaksi berulang",
+      "itemLabel": "template"
+    },
+    "empty": {
+      "title": "Belum ada template transaksi berulang",
+      "description": "Template jurnal yang dijadwalkan akan muncul di sini.",
+      "action": "Buat template pertama"
+    },
+    "runDialog": {
+      "title": "Jalankan template sekarang?",
+      "description": "Template <b>{{name}}</b> akan langsung membuat jurnal bertanggal hari ini yang terposting ke buku besar. Jadwal berikutnya dihitung ulang menjadi <b>{{period}}</b> setelah hari ini (jadwal saat ini: {{current}}).",
+      "confirm": "Ya, jalankan"
+    }
+  },
+  "reviewTable": {
+    "empty": "kosong",
+    "side": {
+      "masuk": "masuk",
+      "keluar": "keluar"
+    },
+    "row": {
+      "amount": "Nominal {{side}} baris {{n}}",
+      "select": "Pilih baris {{n}}",
+      "date": "Tanggal baris {{n}}",
+      "description": "Keterangan baris {{n}}",
+      "type": "Jenis transaksi baris {{n}}",
+      "account": "Akun lawan baris {{n}}",
+      "skip": "Lewati baris {{n}}"
+    },
+    "duplicate": "Duplikat?",
+    "failed": "Gagal: {{error}}",
+    "chooseAccount": "Pilih akun…",
+    "accountSearch": "Cari nomor atau nama akun…",
+    "notChosen": "Belum dipilih",
+    "doubtful": "Ragu",
+    "reason": "Alasan",
+    "reasonRow": "baris {{n}}",
+    "posted": "Diposting",
+    "skipped": "Dilewati",
+    "reasonLabel": "Alasan klasifikasi:",
+    "region": "Tabel baris draft buku kas (geser untuk melihat semua kolom)",
+    "caption": "Baris draft buku kas: tanggal, keterangan, masuk, keluar, jenis transaksi, akun lawan, keyakinan, dan lewati",
+    "selectAll": "Pilih semua baris yang tampil",
+    "columns": {
+      "select": "Pilih",
+      "date": "Tanggal",
+      "description": "Keterangan",
+      "in": "Masuk",
+      "out": "Keluar",
+      "type": "Jenis transaksi",
+      "account": "Akun lawan",
+      "confidence": "Keyakinan",
+      "skip": "Lewati"
+    },
+    "noRows": "Tidak ada baris yang cocok dengan filter."
+  },
+  "settleGuaranteeModal": {
+    "saved": "Settlement uang jaminan disimpan.",
+    "saveFailed": "Gagal memproses settlement.",
+    "errors": {
+      "total": "Total dikembalikan + hangus harus > 0 dan ≤ sisa jaminan.",
+      "returnAccount": "Pilih akun kas/bank tujuan pengembalian."
+    },
+    "title": "Settlement Uang Jaminan",
+    "outstanding": "Sisa Jaminan",
+    "date": "Tanggal",
+    "returnAmount": "Dikembalikan (kas masuk)",
+    "max": "Maks: {{amount}}",
+    "returnAccount": "Akun kas/bank tujuan",
+    "returnAccountPlaceholder": "Pilih akun kas/bank tujuan",
+    "forfeitAmount": "Hangus / Dipotong Penalti (jadi beban)",
+    "rest": "Sisa: {{amount}}",
+    "expenseAccount": "Akun beban",
+    "expenseDefault": "Default: Beban Lain-lain",
+    "notes": "Catatan (opsional)",
+    "total": "Total settlement:",
+    "after": "Sisa setelah ini:",
+    "cancel": "Batal",
+    "processing": "Memproses…",
+    "submit": "Proses"
+  },
+  "settlementCard": {
+    "waiting": {
+      "supervisorNamed": "Menunggu persetujuan {{name}}",
+      "supervisor": "Menunggu persetujuan atasan",
+      "finance": "Menunggu verifikasi dan posting Keuangan"
+    },
+    "title": "Pertanggungjawaban",
+    "fill": {
+      "revise": "Revisi pertanggungjawaban",
+      "continue": "Lanjutkan pengisian",
+      "start": "Isi pertanggungjawaban"
+    },
+    "age": {
+      "open_one": "Uang muka {{amount}} dibayar {{date}}, <num>{{count}} hari</num> belum selesai.",
+      "open_other": "Uang muka {{amount}} dibayar {{date}}, <num>{{count}} hari</num> belum selesai.",
+      "overdue_one": "Uang muka {{amount}} dibayar {{date}}, <num>{{count}} hari</num> belum selesai (melewati {{limit}} hari / batas waktu).",
+      "overdue_other": "Uang muka {{amount}} dibayar {{date}}, <num>{{count}} hari</num> belum selesai (melewati {{limit}} hari / batas waktu)."
+    },
+    "revisionNote": "Catatan revisi:",
+    "empty": "Belum ada rincian realisasi.",
+    "advance": "Uang muka",
+    "realized": "Total realisasi",
+    "diff": {
+      "return": "Sisa uang muka (dikembalikan)",
+      "reimburse": "Kurang bayar (dibayar perusahaan)",
+      "none": "Selisih"
+    },
+    "requesterNote": "Catatan pengaju:",
+    "deadline": "Batas waktu: {{date}}",
+    "posted": "Diposting",
+    "date": "Tanggal",
+    "cash": "Kas/bank",
+    "reference": "Referensi",
+    "journal": "Jurnal"
+  },
+  "settlementPostDialog": {
+    "posted": "Pertanggungjawaban diposting ke jurnal.",
+    "postFailed": "Gagal memposting pertanggungjawaban.",
+    "accountMissing": "Akun belum dipilih",
+    "cashReturn": "Kas/bank penerima pengembalian sisa {{amount}}",
+    "cashReimburse": "Kas/bank untuk membayar kekurangan {{amount}}",
+    "errors": {
+      "date": "Isi tanggal pertanggungjawaban."
+    },
+    "title": "Verifikasi & posting {{number}}",
+    "description": "{{payee}} · uang muka {{advance}} · realisasi {{realized}}",
+    "linesLegend": "Akun biaya per baris realisasi",
+    "lineAccount": "Akun biaya baris {{n}}",
+    "date": "Tanggal pertanggungjawaban",
+    "dateHint": "Tanggal di tahun buku yang sudah ditutup ditolak.",
+    "reference": "Referensi",
+    "referenceHint": "Opsional, mis. no. bukti setor/transfer.",
+    "note": "Catatan Keuangan",
+    "optional": "Opsional.",
+    "mode": {
+      "return": "Sisa uang muka dikembalikan pengaju: kas/bank bertambah, uang muka dilunasi penuh.",
+      "reimburse": "Realisasi melebihi uang muka: kekurangan dibayar perusahaan dari kas/bank.",
+      "exact": "Realisasi sama dengan uang muka: tidak ada baris kas/bank."
+    },
+    "problems": "Yang perlu dilengkapi",
+    "cancel": "Batal",
+    "submit": "Posting"
+  },
+  "systemAccountsTab": {
+    "errors": {
+      "requiredRole": "Role \"{{role}}\" wajib. Pilih akun lain, tidak boleh dikosongkan."
+    },
+    "toast": {
+      "saved": "Konfigurasi akun sistem disimpan.",
+      "saveFailed": "Gagal menyimpan konfigurasi.",
+      "noAccountAvailable": "Tidak ada akun tersedia untuk ditambahkan."
+    },
+    "loading": "Memuat akun sistem…",
+    "error": {
+      "title": "Akun sistem gagal dimuat",
+      "description": "Pemetaan akun tidak ditampilkan karena permintaan ke server gagal. Periksa koneksi lalu coba lagi.",
+      "retry": "Coba lagi"
+    },
+    "title": "Akun Sistem",
+    "description": "Konfigurasi akun COA yang digunakan sistem untuk auto GL posting.",
+    "save": "Simpan Perubahan",
+    "stats": {
+      "total": "Total Role",
+      "configured": "Terkonfigurasi",
+      "required": "Wajib",
+      "status": "Status",
+      "complete": "Lengkap",
+      "incomplete": "Belum Lengkap"
+    },
+    "search": "Cari role akun...",
+    "required": "Wajib",
+    "multi": "Multi",
+    "accountFor": "Akun untuk {{role}} {{n}}",
+    "accountForSingle": "Akun untuk {{role}}",
+    "chooseAccount": "-- Pilih Akun --",
+    "addAccount": "Tambah Akun",
+    "unassignTitle": "Lepas akun dari role ini",
+    "unassign": "Lepas",
+    "groups": {
+      "cash": {
+        "title": "Kas & Bank",
+        "description": "Akun kas, bank, dan setara kas untuk transaksi pembayaran"
+      },
+      "receivablesPayables": {
+        "title": "Piutang & Hutang",
+        "description": "Akun piutang usaha, hutang usaha, dan penyisihannya"
+      },
+      "inventory": {
+        "title": "Persediaan & HPP",
+        "description": "Akun persediaan barang dan beban pokok penjualan"
+      },
+      "revenue": {
+        "title": "Pendapatan",
+        "description": "Akun pendapatan usaha, jasa, diskon, dan retur"
+      },
+      "tax": {
+        "title": "Pajak",
+        "description": "Akun PPN masukan/keluaran dan beban pajak penghasilan"
+      },
+      "deposits": {
+        "title": "Uang Muka (Deposit)",
+        "description": "Akun uang muka pembelian dan penjualan"
+      },
+      "production": {
+        "title": "Produksi",
+        "description": "Akun biaya konversi dan selisih produksi"
+      },
+      "fixedAssets": {
+        "title": "Aset Tetap & Depresiasi",
+        "description": "Akun pencatatan aset tetap, akumulasi penyusutan, dan beban penyusutan"
+      },
+      "bank": {
+        "title": "Biaya Bank & Bunga",
+        "description": "Akun administrasi bank, bunga pinjaman, dan pendapatan bunga"
+      },
+      "accruals": {
+        "title": "Akrual & Dibayar Dimuka",
+        "description": "Akun biaya dibayar dimuka dan hutang beban akrual"
+      },
+      "fx": {
+        "title": "Selisih Kurs",
+        "description": "Akun laba/rugi selisih kurs terealisasi dan belum terealisasi"
+      },
+      "other": {
+        "title": "Pendapatan & Beban Lain-lain",
+        "description": "Akun pendapatan/beban di luar usaha utama"
+      },
+      "equity": {
+        "title": "Ekuitas",
+        "description": "Akun modal, laba ditahan, dan prive pemilik"
+      }
+    }
+  },
+  "timeline": {
+    "empty": "Belum ada riwayat."
+  },
+  "travel": {
+    "errors": {
+      "endBeforeStart": "Tanggal kembali tidak boleh sebelum tanggal berangkat.",
+      "destination": "Isi kota/tujuan perjalanan.",
+      "startDate": "Isi tanggal berangkat.",
+      "endDate": "Isi tanggal kembali."
+    }
+  },
+  "travelLinesEditor": {
+    "amount": "Nominal",
+    "quickAdd": "Tambah rincian per kategori",
+    "empty": "Belum ada rincian. Pilih kategori di atas untuk menambah baris biaya perjalanan.",
+    "unit": {
+      "perDiem": {
+        "rate": "Tarif/hari",
+        "qty": "Hari"
+      },
+      "lodging": {
+        "rate": "Tarif/malam",
+        "qty": "Malam"
+      }
+    },
+    "rowCategory": "Kategori baris {{n}}",
+    "rowDescription": "Uraian baris {{n}}",
+    "descriptionPlaceholder": "mis. Tiket kereta Jakarta–Surabaya",
+    "rowDate": "Tanggal biaya baris {{n}}",
+    "rowField": "{{label}} baris {{n}}",
+    "rowRemove": "Hapus baris {{n}}",
+    "subtotals": "Subtotal per kategori",
+    "total": "Total"
+  },
+  "travelSection": {
+    "title": "Perjalanan dinas",
+    "description": "Tujuan, jadwal, dan peserta. Keperluan perjalanan diisi pada kolom Keperluan di atas.",
+    "destination": "Kota / tujuan",
+    "destinationPlaceholder": "mis. Surabaya",
+    "startDate": "Tanggal berangkat",
+    "endDate": "Tanggal kembali",
+    "duration": "Durasi {{days}} hari ({{nights}} malam).",
+    "endDateHint": "Tidak boleh sebelum tanggal berangkat.",
+    "participants": "Peserta",
+    "participantsHint": "Opsional. Nama peserta lain bila berangkat bersama."
+  },
+  "travelSummary": {
+    "title": "Perjalanan dinas",
+    "destination": "Kota / tujuan",
+    "duration": "Durasi",
+    "days": "{{days}} hari ({{nights}} malam)",
+    "departure": "Berangkat",
+    "return": "Kembali",
+    "purpose": "Keperluan",
+    "participants": "Peserta"
+  }
+}

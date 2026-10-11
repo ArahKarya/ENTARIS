@@ -1,1 +1,2385 @@
-{}
+{
+  "accountFormDialog": {
+    "toast": {
+      "updated": "Account updated.",
+      "created": "Account added.",
+      "updateFailed": "Could not update the account.",
+      "createFailed": "Could not create the account."
+    },
+    "errors": {
+      "accountNumber": "Account number is required.",
+      "name": "Account name is required."
+    },
+    "title": {
+      "edit": "Edit account",
+      "createChild": "Add sub-account",
+      "create": "Add account"
+    },
+    "group": "Group",
+    "detail": "Detail",
+    "description": "Group accounts only organise sub-accounts; transactions are recorded to detail accounts.",
+    "systemNote": "Used for automatic posting ({{roles}}). This account cannot be deleted while it is still mapped in Settings → System Accounts.",
+    "parent": "Parent account",
+    "parentHint": "Leave empty to create a top-level account.",
+    "noParent": "No parent (top level)",
+    "accountNumber": "Account number",
+    "rootType": "Root type",
+    "rootTypeHint": {
+      "edit": "Follows the first digit of the account number.",
+      "parent": "Follows the parent account.",
+      "auto": "Set automatically from the first digit."
+    },
+    "name": "Account name",
+    "namePlaceholder": "E.g. Bank BNI",
+    "isGroup": "Group account",
+    "isGroupHint": "Only for grouping sub-accounts. A group account that still has sub-accounts cannot be changed to a detail account.",
+    "isActive": "Active account",
+    "isActiveHint": "Inactive accounts do not appear in account choices on transactions.",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "save": "Save account"
+  },
+  "accountPicker": {
+    "placeholder": "Choose account…",
+    "search": "Search account number or name…"
+  },
+  "applyDepositModal": {
+    "applyFailed": "Could not apply the deposit.",
+    "title": "Use deposit",
+    "description": "Apply a deposit to this invoice",
+    "submit": "Apply",
+    "busy": "Processing…",
+    "outstanding": "Invoice balance due: <num>{{amount}}</num>",
+    "loading": "Loading deposits…",
+    "empty": "This supplier has no active deposits.",
+    "choose": "Choose deposit",
+    "ofAmount": "of {{amount}}",
+    "amount": "Amount to apply (Rp)"
+  },
+  "attachmentPicker": {
+    "errors": {
+      "type": "\"{{name}}\" is not a JPG, PNG, WebP, or PDF.",
+      "size": "\"{{name}}\" is larger than 5 MB.",
+      "max": "Up to {{max}} attachments per request."
+    },
+    "drop": "Drag receipts here or <pick>choose a file</pick>",
+    "hint": "JPG, PNG, WebP, or PDF · max 5 MB per file",
+    "hintRequired": "JPG, PNG, WebP, or PDF · max 5 MB per file · required for this type",
+    "input": "Choose attachment file",
+    "list": "Attachments",
+    "remove": "Remove {{name}}",
+    "notUploaded": "not uploaded yet · {{size}}",
+    "cancel": "Discard {{name}}"
+  },
+  "bankReconciliation": {
+    "toast": {
+      "deleted": "Reconciliation deleted.",
+      "deleteFailed": "Could not delete."
+    },
+    "columns": {
+      "account": "Account",
+      "statementDate": "Statement date",
+      "bookBalance": "Book balance",
+      "statementBalance": "Statement balance",
+      "difference": "Difference",
+      "matched": "Matched",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "balanced": "(balanced)",
+    "unbalanced": "(not balanced)",
+    "rowActions": "Actions for reconciliation {{account}} {{date}}",
+    "actions": {
+      "open": "Open matching",
+      "view": "View details",
+      "delete": "Delete"
+    },
+    "title": "Bank Reconciliation",
+    "description": "Match book transactions against bank statement lines.",
+    "create": "New reconciliation",
+    "filters": {
+      "searchLabel": "Search reconciliations",
+      "searchPlaceholder": "Search account name/number or notes",
+      "dateRange": "Statement date range",
+      "account": "Filter by bank account",
+      "allAccounts": "All bank accounts",
+      "accountSearch": "Search accounts…"
+    },
+    "table": {
+      "label": "Bank reconciliations",
+      "itemLabel": "reconciliations"
+    },
+    "empty": {
+      "title": "No reconciliations yet",
+      "description": "Bank account reconciliation sessions will appear here.",
+      "action": "Create your first reconciliation"
+    },
+    "deleteDialog": {
+      "title": "Delete reconciliation",
+      "description": "Delete this reconciliation? Matched data will be lost.",
+      "confirm": "Delete"
+    }
+  },
+  "bulkExpenseModal": {
+    "accountType": {
+      "EXPENSE": "Expenses",
+      "LIABILITY": "Liabilities",
+      "ASSET": "Assets",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue"
+    },
+    "narration": "{{debit}} from {{cash}}",
+    "errors": {
+      "noJournalId": "The server did not return a journal ID.",
+      "uploadFailed": "Journal saved, but the attachment failed: {{reason}}",
+      "uploadError": "Upload error",
+      "saveFailed": "Could not save the journal."
+    },
+    "footer": {
+      "validRows": "Valid rows:",
+      "total": "Total:",
+      "done_one": "{{count}} saved",
+      "done_other": "{{count}} saved",
+      "failed_one": "{{count}} failed",
+      "failed_other": "{{count}} failed",
+      "finish": "Done",
+      "close": "Close",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveAll": "Save all ({{count}})"
+    },
+    "title": "Enter expenses (multiple rows)",
+    "description": "Enter many expenses at once from a single cash source",
+    "date": "Date",
+    "cashSource": "Cash source",
+    "cashPlaceholder": "Choose cash/bank account",
+    "batchNote": "Batch note",
+    "columns": {
+      "debitAccount": "Debit account",
+      "description": "Description",
+      "party": "Party (optional)",
+      "amount": "Amount",
+      "attachment": "Attachment"
+    },
+    "row": {
+      "label": "Expense row {{n}}",
+      "accountPlaceholder": "Choose account",
+      "descriptionPlaceholder": "Row #{{n}}, e.g. office supplies",
+      "noParty": "None",
+      "amount": "Amount (Rp)",
+      "attachments": "Attachments for row {{n}}: {{files}}",
+      "upload": "Upload attachment for row {{n}}",
+      "uploadTitle": "Upload attachment",
+      "fileInput": "Attachment file for row {{n}}",
+      "saving": "Saving row {{n}}",
+      "saved": "Row {{n}} saved",
+      "retry": "Retry saving row {{n}}",
+      "remove": "Remove row {{n}}"
+    },
+    "addRow": "Add row"
+  },
+  "cashBook": {
+    "txnType": {
+      "pengeluaran": "Expense",
+      "pemasukan": "Income",
+      "uang_muka": "Employee advance",
+      "terima_kasbon": "Advance returned",
+      "lainnya": "Other"
+    },
+    "balanceMismatch": "Closing balance does not match"
+  },
+  "cashBookDraftReview": {
+    "toast": {
+      "saved": "Draft changes saved.",
+      "saveFailed": "Could not save the changes.",
+      "postFailed": "Could not post the draft.",
+      "discarded": "Draft discarded.",
+      "discardFailed": "Could not discard the draft.",
+      "posted_one": "{{count, number}} journal created ({{total}}).",
+      "posted_other": "{{count, number}} journals created ({{total}}).",
+      "partiallyPosted_one": "{{count, number}} journal created; {{failed}} rows not posted yet.",
+      "partiallyPosted_other": "{{count, number}} journals created; {{failed}} rows not posted yet.",
+      "bulkApplied_one": "Account applied to {{count}} row. Save your changes to keep it.",
+      "bulkApplied_other": "Account applied to {{count}} rows. Save your changes to keep it."
+    },
+    "rowProblem": "Row {{n}}: {{error}}",
+    "loading": "Loading cash book draft…",
+    "fallbackTitle": "Cash Book Draft",
+    "notFound": {
+      "title": "Draft not found",
+      "description": "The draft may have been discarded, or the link is wrong."
+    },
+    "backToList": "Back to list",
+    "warnings": {
+      "balance": "Closing balance does not match (difference {{amount}}).",
+      "review_one": "{{count, number}} row is still marked Unsure / needs review.",
+      "review_other": "{{count, number}} rows are still marked Unsure / need review.",
+      "duplicate_one": "{{count, number}} row is marked as a possible duplicate.",
+      "duplicate_other": "{{count, number}} rows are marked as possible duplicates."
+    },
+    "title": "Draft {{number}}",
+    "subtitle": "{{title}} · page {{date}} · cash {{cash}}",
+    "createdBy": "created by {{name}}",
+    "createdByAira": "created by {{name}} via AIRA",
+    "airaNote": "Rows were read by AIRA. Check the rows marked <b>Unsure</b>; only posting creates journals.",
+    "airaNoteWithSource": "Rows were read by AIRA ({{note}}). Check the rows marked <b>Unsure</b>; only posting creates journals.",
+    "readOnly": "The draft has been posted; this view is read-only. Each row shows its journal number.",
+    "readOnlyOn": "The draft was posted on {{date}}; this view is read-only. Each row shows its journal number.",
+    "page": {
+      "label": "Cash book page details",
+      "title": "Title",
+      "cashAccount": "Cash / bank account",
+      "cashPlaceholder": "Choose cash account…",
+      "cashSearch": "Search cash accounts…",
+      "cashLocked": "Cannot be changed once some rows are posted.",
+      "date": "Page date",
+      "dateHint": "For rows without their own date.",
+      "opening": "Opening balance",
+      "closing": "Closing balance"
+    },
+    "balance": {
+      "unchecked": "Enter the page's opening and closing balances to check that they match.",
+      "ok": "Balance matches: opening + in − out = {{amount}}.",
+      "mismatch": "<b>Closing balance does not match.</b> Expected {{expected}}, written {{written}} (difference {{difference}}). Check for missed or misread rows. This is a warning and does not block posting."
+    },
+    "summary": {
+      "label": "Draft summary",
+      "in": "Total in",
+      "out": "Total out",
+      "notSkipped": "rows not skipped",
+      "rows": "Rows",
+      "review": "Needs review",
+      "doubtful": "unsure rows",
+      "toPost_one": "{{count, number}} to be posted",
+      "toPost_other": "{{count, number}} to be posted",
+      "duplicates_one": "{{count, number}} duplicate?",
+      "duplicates_other": "{{count, number}} duplicates?"
+    },
+    "onlyReview": "Only rows that need review",
+    "bulk": {
+      "label": "Bulk actions",
+      "account": "Account for selected rows",
+      "accountPlaceholder": "Choose account for all…",
+      "accountSearch": "Search account number or name…",
+      "apply": "Apply account",
+      "clear": "Clear selection",
+      "selected_one": "{{count, number}} row selected",
+      "selected_other": "{{count, number}} rows selected"
+    },
+    "postValidOnly": "Post only the valid rows",
+    "footer": {
+      "unsaved": "There are unsaved changes.",
+      "discard": "Discard",
+      "discardSuffix": "draft",
+      "save": "Save",
+      "saveSuffix": "changes",
+      "saveFirst": "Save your changes first",
+      "postAll": "Post all",
+      "ready_one": "{{count, number}} row ready to post.",
+      "ready_other": "{{count, number}} rows ready to post."
+    },
+    "postDialog": {
+      "confirm": "Post",
+      "warnings": "Warnings before posting",
+      "title_one": "Post {{count, number}} row?",
+      "title_other": "Post {{count, number}} rows?",
+      "description_one": "{{count, number}} balanced journal (one per row) will be created in {{cash}}: in {{in}}, out {{out}}. Journals cannot be deleted; correct them by cancelling in the General Journal.",
+      "description_other": "{{count, number}} balanced journals (one per row) will be created in {{cash}}: in {{in}}, out {{out}}. Journals cannot be deleted; correct them by cancelling in the General Journal."
+    },
+    "discardDialog": {
+      "title": "Discard this draft?",
+      "confirm": "Discard draft",
+      "description_one": "Draft {{number}} ({{count, number}} row) will be discarded and can no longer be posted. No journals are affected.",
+      "description_other": "Draft {{number}} ({{count, number}} rows) will be discarded and can no longer be posted. No journals are affected."
+    },
+    "moreProblems_one": "… and {{count}} more.",
+    "moreProblems_other": "… and {{count}} more."
+  },
+  "cashBookDrafts": {
+    "columns": {
+      "number": "Number",
+      "page": "Cash book page",
+      "source": "Source",
+      "rows": "Rows",
+      "in": "In",
+      "out": "Out",
+      "needsReview": "Needs review",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {{number}}",
+    "actions": {
+      "review": "Review"
+    },
+    "title": "Cash Book Drafts",
+    "description": "Cash book pages from receipt photos (AIRA) or paste/CSV wait for review before becoming journals. Drafts do not affect the General Ledger yet.",
+    "createFromPaste": "Create from paste/CSV",
+    "tabs": {
+      "label": "Draft status",
+      "all": "All"
+    },
+    "summary": {
+      "label": "Cash book draft summary",
+      "waiting": "Awaiting review",
+      "waitingHint": "in Draft status",
+      "partial": "Partially posted",
+      "partialHint": "rows still remaining",
+      "posted": "Posted",
+      "postedHint": "journals created",
+      "all": "All active drafts",
+      "allHint": "excluding discarded"
+    },
+    "filters": {
+      "searchLabel": "Search cash book drafts",
+      "searchPlaceholder": "Search number, title, or source note",
+      "dateRange": "Page date range"
+    },
+    "table": {
+      "label": "Cash book drafts",
+      "itemLabel": "drafts"
+    },
+    "empty": {
+      "title": "No cash book drafts yet",
+      "description": "Send a receipt photo or cash book page to AIRA, or paste rows from Excel/CSV to create a draft."
+    },
+    "rowCount_one": "{{count, number}} row",
+    "rowCount_other": "{{count, number}} rows"
+  },
+  "cashBookImportDialog": {
+    "createFailed": "Could not create the cash book draft.",
+    "fileTooLarge": "The file is too large (max 512 KB). Split it into several files.",
+    "excelNotSupported": "Excel files are not read directly yet. Copy the cells from Excel and paste them in the box, or save the sheet as CSV.",
+    "title": "Create draft from paste / CSV",
+    "description": "Columns: date, description, in, out (max {{max}} rows). The draft is not a journal yet; you review each row's account in the next step.",
+    "cashAccount": "Cash / bank account",
+    "cashPlaceholder": "Choose cash account…",
+    "cashSearch": "Search cash accounts…",
+    "pageDate": "Page date",
+    "pageDateHint": "Used for rows without a date.",
+    "titleField": "Title (optional)",
+    "titlePlaceholder": "Cash book, October week 1",
+    "opening": "Opening balance",
+    "closing": "Closing balance",
+    "paste": "Paste rows or CSV content",
+    "pasteHint": "From Excel: select the cells (with the header row Tanggal, Keterangan, Masuk, Keluar), copy, then paste here.",
+    "chooseFile": "Choose CSV file",
+    "preview": "Row preview",
+    "previewTable": "Pasted row preview",
+    "columns": {
+      "line": "Row",
+      "date": "Date",
+      "description": "Description",
+      "in": "In",
+      "out": "Out",
+      "note": "Note"
+    },
+    "cancel": "Cancel",
+    "submit": "Create draft",
+    "created_one": "Draft {{number}} created ({{count}} row). Review it before posting.",
+    "created_other": "Draft {{number}} created ({{count}} rows). Review it before posting.",
+    "rowsRead_one": "{{count}} row read",
+    "rowsRead_other": "{{count}} rows read",
+    "rowsWithErrors_one": "{{count}} row with problems",
+    "rowsWithErrors_other": "{{count}} rows with problems",
+    "previewCaption_one": "Preview of the first {{count}} row",
+    "previewCaption_other": "Preview of the first {{count}} rows",
+    "moreErrors_one": "… and {{count}} more error.",
+    "moreErrors_other": "… and {{count}} more errors.",
+    "submitCount_one": "Create draft ({{count}} row)",
+    "submitCount_other": "Create draft ({{count}} rows)"
+  },
+  "cashBookParse": {
+    "noInput": "No data yet. Paste rows from Excel or choose a CSV file.",
+    "empty": "The data is empty.",
+    "unknownColumns": "Columns not recognised. Use the order: date, description, in, out (or add a header row).",
+    "row": {
+      "noDescription": "Description is empty",
+      "noAmount": "Enter an in or out amount",
+      "bothAmounts": "Enter only one: in or out"
+    },
+    "noRows": "No data rows after the header row.",
+    "tooMany_one": "Up to {{max}} rows per draft ({{count}} found). Split it into several drafts.",
+    "tooMany_other": "Up to {{max}} rows per draft ({{count}} found). Split it into several drafts."
+  },
+  "cashLedger": {
+    "kind": {
+      "Receive": "Receipt",
+      "Pay": "Payment",
+      "VendorDeposit": "Supplier Deposit",
+      "CustomerDeposit": "Customer Deposit",
+      "VendorRefund": "Supplier refund",
+      "CustomerRefund": "Customer refund",
+      "Transfer": "Bank transfer",
+      "Expense": "Cash out (journal)",
+      "JournalIn": "Cash in (journal)"
+    },
+    "direction": {
+      "in": "In",
+      "out": "Out"
+    },
+    "source": {
+      "journal": "Journal",
+      "payment": "Payment"
+    },
+    "cancel": {
+      "vendorDepositLabel": "Cancel in Supplier Deposits",
+      "vendorDepositMessage": "Cancel it from the Supplier Deposits module.",
+      "customerDepositLabel": "Cancel in Customer Deposits",
+      "customerDepositMessage": "Cancel it from the Customer Deposits module.",
+      "journalLabel": "Cancel in General Journal",
+      "journalMessage": "This transaction was created from a journal. Cancel it from the General Ledger."
+    },
+    "export": {
+      "date": "Date",
+      "number": "Number",
+      "source": "Source",
+      "type": "Type",
+      "direction": "Direction",
+      "party": "Party",
+      "account": "Cash/bank account",
+      "notes": "Description",
+      "reference": "Reference",
+      "in": "In",
+      "out": "Out",
+      "status": "Status"
+    }
+  },
+  "coaPage": {
+    "exportFile": "chart-of-accounts",
+    "toast": {
+      "deleted": "Account \"{{name}}\" deleted.",
+      "deleteFailed": "Could not delete the account."
+    },
+    "error": {
+      "description": "The Chart of Accounts could not be loaded. Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "empty": {
+      "title": "No accounts yet",
+      "description": "Create your first account or import a Chart of Accounts from Excel.",
+      "action": "Add account"
+    },
+    "noResults": "No accounts match \"{{query}}\".",
+    "resetFilter": "Reset filter",
+    "title": "Chart of Accounts",
+    "description": "The Chart of Accounts structure with each account's balance.",
+    "exportExcel": "Export to Excel",
+    "import": "Import",
+    "add": "Add account",
+    "delete": {
+      "title": "Delete account?",
+      "description": "Account <mono>{{number}}</mono> <b>{{name}}</b> will be deleted permanently. An account can only be deleted if it has no sub-accounts, no transactions, and a zero balance.",
+      "confirm": "Yes, delete"
+    },
+    "showing_one": "Showing {{count, number}} of {{total}} accounts",
+    "showing_other": "Showing {{count, number}} of {{total}} accounts",
+    "count_one": "{{count, number}} account",
+    "count_other": "{{count, number}} accounts"
+  },
+  "coaToolbar": {
+    "all": "All",
+    "searchLabel": "Search accounts",
+    "searchPlaceholder": "Search account number or name",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "nonZeroOnly": "Only accounts with a balance",
+    "typeFilter": "Filter by account type"
+  },
+  "coaTree": {
+    "rootType": {
+      "ASSET": "Assets",
+      "LIABILITY": "Liabilities",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expenses"
+    },
+    "yes": "Yes",
+    "no": "No"
+  },
+  "coaTreeTable": {
+    "systemBadge": {
+      "title": "System account: {{roles}}",
+      "label": "System"
+    },
+    "oppositeBalance": "(balance opposite to the normal balance)",
+    "deleteBlock": {
+      "system": "system account",
+      "children": "still has sub-accounts"
+    },
+    "groupSr": ", group account",
+    "inactive": "Inactive",
+    "group": "Group",
+    "detail": "Detail",
+    "debit": "Debit",
+    "credit": "Credit",
+    "rowActions": "Actions for {{number}} {{name}}",
+    "actions": {
+      "addChild": "Add sub-account",
+      "setBalance": "Set opening balance",
+      "edit": "Edit account",
+      "deleteBlocked": "Delete ({{reason}})",
+      "delete": "Delete"
+    },
+    "label": "Chart of Accounts",
+    "columns": {
+      "account": "Account",
+      "type": "Type",
+      "normalBalance": "Normal balance",
+      "balance": "Balance (Rp)",
+      "actions": "Actions"
+    }
+  },
+  "comboField": {
+    "required": "{{label}} (required)",
+    "placeholder": "Select…",
+    "search": "Search…"
+  },
+  "depreciationRunPanel": {
+    "columns": {
+      "assetNumber": "Asset no.",
+      "name": "Asset name",
+      "category": "Category",
+      "period": "Period",
+      "amount": "Expense"
+    },
+    "toast": {
+      "posted_one": "{{count, number}} depreciation entry posted (total {{total}}).",
+      "posted_other": "{{count, number}} depreciation entries posted (total {{total}}).",
+      "postFailed": "Could not post the bulk depreciation."
+    },
+    "title": "Monthly depreciation posting",
+    "description": "Posts every unposted depreciation schedule of active assets that falls in the selected month. One journal per asset so each is easy to trace.",
+    "month": "Period month",
+    "monthHint": "Default: the previous (completed) month.",
+    "monthError": "The month must use the YYYY-MM format.",
+    "post": "Post depreciation",
+    "summary": "Preview summary for {{month}}",
+    "stats": {
+      "assets": "Assets",
+      "total": "Total expense",
+      "categories": "Categories",
+      "journals_one": "{{count, number}} journal · {{month}}",
+      "journals_other": "{{count, number}} journals · {{month}}"
+    },
+    "error": {
+      "title": "Preview could not be loaded",
+      "description": "Could not load the depreciation preview.",
+      "retry": "Try again"
+    },
+    "empty": {
+      "title": "No depreciation for this period",
+      "description": "All schedules are already posted, or there are no assets in this period."
+    },
+    "table": "Depreciation preview for {{month}}",
+    "itemLabel": "assets",
+    "details": "Posting details",
+    "byCategory": "By category",
+    "journal": {
+      "debit": "Depreciation expense (each asset's expense account)",
+      "credit": "Accumulated depreciation (each asset's accumulated account)",
+      "note_one": "One journal per asset ({{count, number}} journal), posted immediately.",
+      "note_other": "One journal per asset ({{count, number}} journals), posted immediately."
+    },
+    "confirm": {
+      "title": "Post depreciation for {{month}}?",
+      "assets": "Assets",
+      "description_one": "{{count, number}} depreciation journal will be created and posted to the General Ledger right away.",
+      "description_other": "{{count, number}} depreciation journals will be created and posted to the General Ledger right away.",
+      "confirm_one": "Yes, post {{count, number}} journal",
+      "confirm_other": "Yes, post {{count, number}} journals"
+    },
+    "postCount_one": "Post {{count, number}} depreciation entry",
+    "postCount_other": "Post {{count, number}} depreciation entries",
+    "assetCount_one": "{{count, number}} asset",
+    "assetCount_other": "{{count, number}} assets"
+  },
+  "expenseModal": {
+    "accountType": {
+      "EXPENSE": "Expenses",
+      "LIABILITY": "Liabilities",
+      "ASSET": "Assets",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue"
+    },
+    "saveFailed": "Could not save the expense.",
+    "sameAccount": "The debit and credit accounts cannot be the same.",
+    "narration": {
+      "description": "Expense: {{account}}",
+      "text": "Expense: {{debit}} from {{credit}}"
+    },
+    "title": "Record expense",
+    "description": "Any kind of cash & bank expense",
+    "submit": "Save expense",
+    "done": "Done",
+    "date": "Date",
+    "debitAccount": "Expense account (debit)",
+    "debitAccountHint": "For example: electricity, salaries, trade payables, etc.",
+    "debitPlaceholder": "Choose expense account",
+    "creditAccount": "Paid from (credit)",
+    "creditPlaceholder": "Choose cash/bank account",
+    "party": "Related party (optional)",
+    "noParty": "No related party",
+    "amount": "Amount (Rp)",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "For example: March electricity bill...",
+    "referenceNo": "Reference no.",
+    "referencePlaceholder": "Receipt no., proof, etc.",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional notes...",
+    "srSummary": "Summary:",
+    "summary": "Expense",
+    "partyValue": "Party: {{name}}",
+    "saved": "Saved",
+    "proof": "Proof attachment"
+  },
+  "fixedAssetDetailSheet": {
+    "title": "Fixed asset details",
+    "loadError": "The asset could not be loaded.",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "fields": {
+      "category": "Category",
+      "acquisitionDate": "Acquisition date",
+      "usefulLife": "Useful life",
+      "salvageValue": "Salvage value",
+      "method": "Method",
+      "createdBy": "Created by",
+      "eamAsset": "Linked EAM asset",
+      "disposalDate": "Disposal date",
+      "assetAccount": "Asset account",
+      "depreciationAccount": "Depreciation expense account",
+      "accumulatedAccount": "Accumulated depreciation account",
+      "description": "Description"
+    },
+    "months_one": "{{count, number}} month",
+    "months_other": "{{count, number}} months",
+    "straightLine": "Straight line",
+    "figures": {
+      "cost": "Acquisition cost",
+      "accumulated": "Accum. depreciation",
+      "bookValue": "Book value"
+    },
+    "schedule": {
+      "title": "Depreciation schedule",
+      "progress": "{{posted}} of {{total}} periods posted",
+      "empty": "No depreciation schedule yet.",
+      "region": "Depreciation schedule",
+      "caption": "Depreciation schedule {{number}}",
+      "period": "Period",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "posted": "Posted",
+      "pending": "Pending",
+      "postLabel": "Post depreciation for {{date}}",
+      "post": "Post"
+    },
+    "dispose": "Dispose asset",
+    "edit": "Edit details"
+  },
+  "fixedAssetEditDialog": {
+    "updated": "Asset updated.",
+    "updateFailed": "Could not update the asset.",
+    "errors": {
+      "name": "Name is required.",
+      "category": "Category is required."
+    },
+    "title": "Edit asset details",
+    "name": "Name",
+    "category": "Category",
+    "description": "Description",
+    "lockedNote": "Only the name, category, description, and linked EAM asset can be changed. To correct amounts (acquisition cost, useful life, GL accounts), dispose of the old asset and create a new one so the related journals stay consistent.",
+    "cancel": "Cancel",
+    "save": "Save changes"
+  },
+  "fixedAssetFormDialog": {
+    "errors": {
+      "name": "Asset name is required.",
+      "category": "Category is required.",
+      "acquisitionDate": "Acquisition date is required.",
+      "acquisitionCost": "Acquisition cost must be greater than 0.",
+      "usefulLife": "Useful life must be at least 1 month (whole number).",
+      "salvageValue": "Salvage value cannot be negative.",
+      "assetAccount": "Choose the asset account.",
+      "depreciationAccount": "Choose the depreciation expense account.",
+      "accumulatedAccount": "Choose the accumulated depreciation account."
+    },
+    "created": "Fixed asset created.",
+    "createFailed": "Could not create the fixed asset.",
+    "title": "Add fixed asset",
+    "description": "A monthly straight-line depreciation schedule is created automatically after the acquisition date.",
+    "fields": {
+      "name": "Asset name",
+      "category": "Category",
+      "categoryPlaceholder": "Vehicles, machinery, buildings, etc.",
+      "acquisitionDate": "Acquisition date",
+      "acquisitionCost": "Acquisition cost (Rp)",
+      "usefulLife": "Useful life (months)",
+      "salvageValue": "Salvage value (Rp)",
+      "monthlyHint": "Depreciation ± {{amount}} per month",
+      "assetAccount": "Asset account",
+      "depreciationAccount": "Depreciation expense account",
+      "accumulatedAccount": "Accumulated depreciation account",
+      "description": "Description"
+    },
+    "cancel": "Cancel",
+    "save": "Save asset"
+  },
+  "fixedAssetImportDialog": {
+    "importFailed": "Import failed.",
+    "readFailed": "Could not read the CSV file: {{reason}}",
+    "title": "Import fixed assets (CSV)",
+    "description": "Create many assets at once; depreciation schedules are created automatically.",
+    "format": {
+      "title": "CSV format",
+      "required": "Required columns (headers are case-insensitive):",
+      "accountUuid": "(account UUID)",
+      "optional": "Optional: <code>description</code>, <code>salvage_value</code>",
+      "download": "Download template"
+    },
+    "choose": "Choose CSV file",
+    "chooseAnother": "Choose another file",
+    "preview": "Import preview",
+    "columns": {
+      "no": "No.",
+      "name": "Name",
+      "category": "Category",
+      "date": "Date",
+      "cost": "Cost",
+      "life": "Life",
+      "assetAccount": "Asset account",
+      "status": "Status"
+    },
+    "ok": "OK",
+    "errorRows": "Rows with errors:",
+    "cancel": "Cancel",
+    "imported_one": "{{count}} asset imported ({{schedules}} depreciation schedule entries).",
+    "imported_other": "{{count}} assets imported ({{schedules}} depreciation schedule entries).",
+    "maxRows_one": "Max {{count, number}} row per import",
+    "maxRows_other": "Max {{count, number}} rows per import",
+    "rowsRead_one": "{{count, number}} row read",
+    "rowsRead_other": "{{count, number}} rows read",
+    "errorCount_one": "({{count, number}} error)",
+    "errorCount_other": "({{count, number}} errors)",
+    "overLimit_one": "(over the {{count, number}}-row limit)",
+    "overLimit_other": "(over the {{count, number}}-row limit)",
+    "monthsShort_one": "{{count}} mo",
+    "monthsShort_other": "{{count}} mo",
+    "submit_one": "Import {{count, number}} asset",
+    "submit_other": "Import {{count, number}} assets"
+  },
+  "fixedAssetRegister": {
+    "columns": {
+      "assetNumber": "Asset no.",
+      "name": "Asset name",
+      "acquisitionDate": "Acquired",
+      "cost": "Acquisition cost",
+      "accumulated": "Accum. depreciation",
+      "bookValue": "Book value",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {{number}}",
+    "actions": {
+      "view": "View details & schedule",
+      "edit": "Edit details",
+      "dispose": "Dispose asset"
+    },
+    "summary": {
+      "label": "Active fixed asset summary",
+      "active": "Active assets",
+      "activeHint": "excluding disposed",
+      "cost": "Acquisition cost",
+      "accumulated": "Accum. depreciation",
+      "bookValue": "Book value"
+    },
+    "filters": {
+      "searchLabel": "Search fixed assets",
+      "searchPlaceholder": "Search asset number, name, or category",
+      "dateRange": "Acquisition date range",
+      "category": "Category",
+      "allCategories": "All categories",
+      "categorySearch": "Search categories…"
+    },
+    "table": {
+      "label": "Fixed assets",
+      "itemLabel": "assets"
+    },
+    "empty": {
+      "title": "No fixed assets yet",
+      "description": "Assets you add or import will appear here with their depreciation schedules.",
+      "action": "Add your first asset"
+    }
+  },
+  "fixedAssetUtils": {
+    "template": {
+      "assetAccount": "<asset-account-uuid>",
+      "expenseAccount": "<expense-account-uuid>",
+      "accumAccount": "<accumulated-account-uuid>",
+      "name": "Sample machine",
+      "category": "Machinery",
+      "description": "Sample machine for the template"
+    },
+    "import": {
+      "empty": "The CSV is empty or only has a header.",
+      "missingColumns": "Missing required columns: {{columns}}.",
+      "emptyField": "{{column}} is empty",
+      "invalidField": "{{column}} is not valid",
+      "unknownField": "{{column}} is not recognised",
+      "rowError": "Row {{line}}: {{errors}}"
+    }
+  },
+  "fixedAssetsPage": {
+    "toast": {
+      "depreciationPosted": "Depreciation posted.",
+      "depreciationFailed": "Could not post the depreciation.",
+      "disposed": "Asset disposed.",
+      "disposeFailed": "Could not dispose of the asset.",
+      "nothingToExport": "There are no assets to export.",
+      "exportFailed": "Could not export assets. Try again.",
+      "exportTruncated_one": "Export limited to the first {{count, number}} asset. Narrow the filter.",
+      "exportTruncated_other": "Export limited to the first {{count, number}} assets. Narrow the filter.",
+      "exported_one": "{{count, number}} asset exported.",
+      "exported_other": "{{count, number}} assets exported."
+    },
+    "title": "Fixed Assets",
+    "description": "Fixed asset register, depreciation schedules, and monthly depreciation posting to the journal.",
+    "exportCsv": "Export CSV",
+    "importCsv": "Import CSV",
+    "add": "Add asset",
+    "tabs": {
+      "label": "Fixed asset views",
+      "list": "Asset register",
+      "depreciation": "Depreciation posting"
+    },
+    "dispose": {
+      "title": "Dispose of fixed asset?",
+      "description": "Asset \"{{name}}\" will be marked as disposed as of today and will no longer be depreciated.",
+      "confirm": "Yes, dispose asset"
+    },
+    "post": {
+      "title": "Post depreciation?",
+      "description": "Make sure the asset and period are correct. The journal is posted to the General Ledger right away.",
+      "confirm": "Yes, post depreciation",
+      "asset": "Asset",
+      "name": "Name",
+      "period": "Period",
+      "amount": "Expense amount",
+      "note": "To post every asset at once, use the Depreciation posting tab."
+    }
+  },
+  "generalLedger": {
+    "presets": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "lastMonth": "Last month",
+      "year": "This year (YTD)"
+    },
+    "toast": {
+      "cancelled": "Journal cancelled.",
+      "cancelFailed": "Could not cancel the journal."
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "narration": "Description",
+      "accounts": "Account lines",
+      "debit": "Debit",
+      "credit": "Credit",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "by": "by {{name}}",
+    "moreLines_one": "+{{count}} more",
+    "moreLines_other": "+{{count}} more",
+    "rowActions": "Actions for {{number}}",
+    "actions": {
+      "view": "View details",
+      "cancelAtSource": "Cancel from the source module",
+      "cancel": "Cancel journal"
+    },
+    "title": "General Journal",
+    "description": "Manage and review all daily journal transactions.",
+    "import": "Import",
+    "create": "New journal",
+    "help": {
+      "label": "How journal cancellation works",
+      "body": "Automatic journals (<num>JV-PAY</num>, <num>JV-SI</num>, <num>JV-PI</num>, <num>JV-COGS</num>) are cancelled from their source module so invoices, payments, and balances are updated too. This page only cancels manual journals."
+    },
+    "filters": {
+      "searchLabel": "Search journals",
+      "searchPlaceholder": "Search number, description, account",
+      "account": "Account",
+      "allAccounts": "All accounts",
+      "accountSearch": "Search account number/name…",
+      "period": "Period"
+    },
+    "table": {
+      "label": "General Journal entries",
+      "itemLabel": "journals"
+    },
+    "empty": {
+      "title": "No journal transactions yet",
+      "description": "Manual journals and automatic journals from other modules will appear here.",
+      "action": "Create your first journal"
+    },
+    "cancelDialog": {
+      "title": "Cancel journal",
+      "description": "Cancel journal {{number}}? The related account balances will be restored. This cannot be undone.",
+      "confirm": "Yes, cancel"
+    }
+  },
+  "journalDetailDrawer": {
+    "loadingTitle": "Loading…",
+    "active": "Active",
+    "description": "General Journal details",
+    "bodyLabel": "Journal details",
+    "loading": "Loading journal…",
+    "notFound": "Journal not found.",
+    "manualJournal": "Manual journal",
+    "date": "Date",
+    "createdBy": "Created by",
+    "lines": "Account lines",
+    "linesTable": "Journal account lines",
+    "columns": {
+      "account": "Account",
+      "debit": "Debit",
+      "credit": "Credit"
+    },
+    "attachments_one": "Attachment ({{count}})",
+    "attachments_other": "Attachments ({{count}})",
+    "noAttachments": "No attachments yet.",
+    "download": "Download {{name}}"
+  },
+  "journalEntryModal": {
+    "saveFailed": "Could not save the journal.",
+    "title": "New journal",
+    "description": "Record a financial transaction manually.",
+    "date": "Date",
+    "narration": "Description / narration",
+    "narrationPlaceholder": "Transaction description",
+    "lines": "Account lines",
+    "addRow": "Add row",
+    "linesTable": "Journal account lines",
+    "columns": {
+      "account": "Account",
+      "description": "Description",
+      "debit": "Debit",
+      "credit": "Credit",
+      "actions": "Actions"
+    },
+    "row": {
+      "account": "Account, row {{n}}",
+      "description": "Description, row {{n}}",
+      "debit": "Debit, row {{n}}",
+      "credit": "Credit, row {{n}}",
+      "remove": "Remove row {{n}}"
+    },
+    "chooseAccount": "Choose account…",
+    "descriptionPlaceholder": "Description…",
+    "status": "Status",
+    "balanced": "Journal balanced",
+    "difference": "Difference: {{amount}}",
+    "totalDebit": "Total debit",
+    "totalCredit": "Total credit",
+    "cancel": "Cancel",
+    "posting": "Posting…",
+    "post": "Post to General Ledger"
+  },
+  "journalPreview": {
+    "title": "Journal to be created"
+  },
+  "linesEditor": {
+    "description": "Description",
+    "expenseDate": "Expense date",
+    "amount": "Amount (Rp)",
+    "remove": "Remove",
+    "rowDescription": "Description, row {{n}}",
+    "descriptionPlaceholder": "e.g. Taxi to the customer's office",
+    "rowDate": "Expense date, row {{n}}",
+    "rowAmount": "Amount, row {{n}}",
+    "rowRemove": "Remove row {{n}}",
+    "addRow": "Add row",
+    "total": "Total"
+  },
+  "openingBalanceDialog": {
+    "debit": "Debit",
+    "credit": "Credit",
+    "saved": "Opening balance set.",
+    "saveFailed": "Could not set the opening balance.",
+    "invalid": "Enter a valid number.",
+    "title": "Set opening balance",
+    "current": "Current balance",
+    "normal": "Normal balance",
+    "newBalance": "New balance",
+    "hint": "Indonesian format: dots for thousands, comma for decimals (e.g. 1.500.000,50). A negative value means the opposite balance.<br/>The opening balance journal is created automatically against the Opening Balance Equity account.",
+    "willSave": "Will be saved:",
+    "cancel": "Cancel",
+    "save": "Save balance"
+  },
+  "payDialog": {
+    "missingExpenseAccount": "Expense account not set",
+    "cashAccountPlaceholder": "Cash/bank account (choose above)",
+    "paid": "Payment posted to the journal.",
+    "payFailed": "Could not pay the request.",
+    "errors": {
+      "cashAccount": "Choose the cash/bank account to pay from.",
+      "date": "Enter the payment date."
+    },
+    "title": "Pay {{number}}",
+    "cashAccount": "Pay from (cash/bank)",
+    "date": "Payment date",
+    "reference": "Transfer reference",
+    "referenceHint": "Optional, e.g. transfer receipt number.",
+    "closedYearNote": "Dates in a closed fiscal year will be rejected.",
+    "cancel": "Cancel",
+    "submit": "Pay & post"
+  },
+  "paymentDetailDrawer": {
+    "type": {
+      "Receive": "Receive payment",
+      "Pay": "Pay payables",
+      "VendorDeposit": "Supplier Deposit",
+      "Expense": "Expense",
+      "Transfer": "Bank transfer"
+    },
+    "toast": {
+      "uploaded": "Attachment uploaded.",
+      "uploadFailed": "Could not upload the attachment.",
+      "deleted": "Attachment deleted.",
+      "deleteFailed": "Could not delete the attachment.",
+      "tooLarge": "File {{name}} is too large (max 10 MB)."
+    },
+    "loadingTitle": "Loading…",
+    "description": "Payment details",
+    "loadingDescription": "Loading payment details",
+    "loading": "Loading payment…",
+    "error": {
+      "title": "Payment could not be loaded",
+      "description": "The request to the server failed, so the details cannot be shown yet. Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "notFound": {
+      "title": "Payment not found",
+      "description": "This payment may have been deleted. Close the panel and reload the list."
+    },
+    "refund": "Refund: {{amount}}",
+    "info": {
+      "date": "Date",
+      "party": "Party",
+      "account": "Cash/bank account",
+      "reference": "Reference"
+    },
+    "splits": {
+      "title": "Account details",
+      "table": "Account details table"
+    },
+    "columns": {
+      "account": "Account",
+      "amount": "Amount",
+      "debit": "Debit",
+      "credit": "Credit"
+    },
+    "allocations": {
+      "title": "Invoice allocations",
+      "salesInvoice": "Sales Invoice",
+      "purchaseInvoice": "Purchase Invoice"
+    },
+    "journal": {
+      "title": "Journal ({{number}})",
+      "table": "Journal table"
+    },
+    "notes": "Notes",
+    "attachments": {
+      "title_one": "Attachments ({{count}})",
+      "title_other": "Attachments ({{count}})",
+      "uploading": "Uploading…",
+      "choose": "Choose file",
+      "dropHint": "or drag files here (max 10 MB)",
+      "input": "Attachment file",
+      "empty": "No attachments yet.",
+      "download": "Download {{name}}",
+      "delete": "Delete {{name}}"
+    },
+    "deleteDialog": {
+      "title": "Delete attachment?",
+      "description": "Attachment \"{{name}}\" will be deleted permanently.",
+      "confirm": "Delete"
+    }
+  },
+  "paymentModal": {
+    "saveFailed": "Could not save the payment.",
+    "refundExceeds": "Refund amount {{amount}} exceeds the remaining deposit {{remaining}}.",
+    "type": {
+      "receive": "Receipt",
+      "pay": "Payment",
+      "customerRefund": "Refund to customer",
+      "vendorRefund": "Refund from supplier"
+    },
+    "title": {
+      "receive": "Receive payment",
+      "pay": "Pay payables"
+    },
+    "draftUnsaved": "Draft • not saved yet",
+    "save": "Save",
+    "done": "Done",
+    "typeLegend": "Transaction type",
+    "source": {
+      "labelDeposit": "Source payment (deposit)",
+      "labelOptional": "Source payment (optional)",
+      "depositHint": "Deposit refund. Remaining deposit: <b>{{remaining}}</b>. The deposit balance is reduced automatically; journal: DR Bank / CR Deposit.",
+      "hintSupplier": "Choose the supplier payment being partly returned, or a deposit row to refund a down payment. The system reduces the allocation and restores the remaining invoice balance automatically.",
+      "hintCustomer": "Choose the customer receipt being partly returned, or a deposit row to refund a down payment. The system reduces the allocation and restores the remaining invoice balance automatically.",
+      "none": "Refund without a linked document",
+      "depositOption": "DEPOSIT · {{number}} • {{date}} • {{remaining}} remaining"
+    },
+    "date": "Date",
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "choose": "Select",
+    "srInfo": "Info:",
+    "srWarning": "Warning:",
+    "srSummary": "Summary:",
+    "openInvoices_one": "{{count}} open invoice, total <num>{{total}}</num>",
+    "openInvoices_other": "{{count}} open invoices, total <num>{{total}}</num>",
+    "openInvoicesList": "Open invoices",
+    "nonInvoiceReceivable": "Receivables without an invoice (opening balance): <num>{{amount}}</num>",
+    "nonInvoicePayable": "Payables without an invoice (opening balance): <num>{{amount}}</num>",
+    "fillFullAmount": "Fill in the full outstanding amount ({{amount}})",
+    "noReceivable": "This customer has no receivables.",
+    "noPayable": "This supplier has no payables.",
+    "amount": "Amount (Rp)",
+    "cashAccount": "Cash/bank account",
+    "chooseAccount": "Select account",
+    "split": {
+      "toggle": "Split across several accounts (e.g. commission deducted)",
+      "section": "Account split",
+      "hint": "Total {{amount}} split across several accounts. The difference must be 0.",
+      "row": "Split row {{n}}",
+      "rowAccount": "Account for split row {{n}}",
+      "rowAmount": "Amount for split row {{n}}",
+      "rowNotes": "Note for split row {{n}}",
+      "notesPlaceholder": "note",
+      "rowRemove": "Remove split row {{n}}",
+      "addRow": "Add row",
+      "total": "Split total:",
+      "difference": "Difference:"
+    },
+    "referenceNo": "Reference no.",
+    "referencePlaceholder": "Cheque no., transfer, etc.",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional description...",
+    "summary": {
+      "receiving": "Receiving",
+      "paying": "Paying",
+      "settlesAll": "Settles all outstanding bills"
+    },
+    "saved": "Saved",
+    "transferProof": "Transfer receipt attachment",
+    "depositRefundSaved": "Deposit refund saved. The supplier deposit balance has been reduced."
+  },
+  "paymentRequest": {
+    "kind": {
+      "REIMBURSEMENT": "Reimbursement",
+      "VENDOR_PAYMENT": "Supplier payment",
+      "CASH_ADVANCE": "Cash advance",
+      "TRAVEL": "Business travel",
+      "OTHER": "Other"
+    },
+    "travelCategory": {
+      "TRANSPORT": "Transport",
+      "LODGING": "Lodging",
+      "PER_DIEM": "Per diem",
+      "MEALS": "Meals",
+      "OTHER": "Other"
+    },
+    "history": {
+      "CREATE": "Created",
+      "UPDATE": "Edited",
+      "SUBMIT": "Submitted",
+      "APPROVE": "Approved",
+      "REJECT": "Rejected",
+      "RETURN": "Returned for revision",
+      "CANCEL": "Cancelled",
+      "VERIFY": "Expense accounts verified",
+      "PAY": "Paid",
+      "CANCEL_PAYMENT": "Payment cancelled",
+      "SETTLE_SUBMIT": "Settlement submitted",
+      "SETTLE_APPROVE": "Settlement approved by supervisor",
+      "SETTLE_RETURN": "Settlement returned for revision",
+      "SETTLE_POST": "Settlement posted",
+      "SETTLE_CANCEL": "Settlement posting cancelled"
+    },
+    "step": {
+      "SUPERVISOR": "direct supervisor",
+      "FINANCE": "Finance",
+      "DIRECTOR": "Director"
+    }
+  },
+  "paymentRequestDetail": {
+    "advanceAccount": {
+      "name": "Employee Advances",
+      "unmapped": "Employee Advances (system account not mapped yet)"
+    },
+    "toast": {
+      "approve": "Request approved.",
+      "reject": "Request rejected.",
+      "return": "Request returned for revision.",
+      "cancel": "Request cancelled.",
+      "submit": "Request submitted.",
+      "cancelPayment": "Payment cancelled; journal voided.",
+      "settleApprove": "Settlement approved and sent to Finance.",
+      "settleReturn": "Settlement returned for revision.",
+      "settleCancelPosting": "Posting cancelled; settlement journal voided.",
+      "actionFailed": "Could not process the request.",
+      "accountsSaved": "Expense accounts saved.",
+      "accountsFailed": "Could not save the expense accounts."
+    },
+    "loading": "Loading request…",
+    "notFound": {
+      "title": "Request not found",
+      "description": "This request does not exist or you do not have access to it.",
+      "back": "Back to list"
+    },
+    "waiting": {
+      "supervisorNamed": "Waiting for approval from {{name}}",
+      "supervisor": "Waiting for supervisor approval",
+      "finance": "Waiting for Finance verification",
+      "directorNamed": "Waiting for approval from {{name}} (over the amount limit)",
+      "director": "Waiting for Director approval (over the amount limit)"
+    },
+    "actions": {
+      "edit": "Edit",
+      "submit": "Submit",
+      "reject": "Reject",
+      "return": "Request revision",
+      "approve": "Approve",
+      "payDisabled": "Set the expense account on every line first",
+      "pay": "Pay",
+      "cancelPayment": "Cancel payment",
+      "settleReturn": "Request settlement revision",
+      "settlePost": "Verify & post",
+      "settleApprove": "Approve settlement",
+      "settleCancelPosting": "Cancel settlement posting",
+      "cancel": "Cancel request"
+    },
+    "yourStep": "You are handling the {{step}} step.",
+    "lastNote": "Latest note:",
+    "summary": {
+      "label": "Summary",
+      "total": "Total",
+      "type": "Type",
+      "neededBy": "Needed by"
+    },
+    "lines": {
+      "travelTitle": "Planned costs",
+      "title": "Cost details",
+      "saveAccounts": "Save accounts",
+      "advanceNote": "Advance: when paid it is recorded to <b>{{account}}</b>, then settled later.",
+      "expenseDate": "Expense date {{date}}",
+      "account": "Expense account, row {{n}}",
+      "accountValue": "Account: {{account}}",
+      "accountMissing": "not set by Finance yet"
+    },
+    "attachments": {
+      "title_one": "Attachment ({{count}})",
+      "title_other": "Attachments ({{count}})",
+      "empty": "No attachments."
+    },
+    "people": {
+      "title": "Requester & payee",
+      "requester": "Requester",
+      "supervisor": "Supervisor",
+      "department": "Department",
+      "submitted": "Submitted",
+      "notSubmitted": "Not submitted yet",
+      "payee": "Payee",
+      "supplier": "Supplier",
+      "employee": "Employee",
+      "bankAccount": "Bank account",
+      "accountHolder": "Account holder: {{name}}"
+    },
+    "payment": {
+      "title": "Payment",
+      "date": "Payment date",
+      "source": "Paid from",
+      "reference": "Reference",
+      "paidBy": "Paid by",
+      "journal": "Journal"
+    },
+    "history": "History",
+    "dialogs": {
+      "approve": {
+        "title": "Approve {{number}}?",
+        "financeDescription": "Total {{total}}. If it exceeds the approval rule's amount limit, the request goes to the Director; otherwise it is ready to pay right away.",
+        "description": "Total {{total}} for {{payee}}.",
+        "confirm": "Approve"
+      },
+      "financeNote": "Finance note",
+      "note": "Note",
+      "noteHint": "Optional. Visible to the requester and in the history.",
+      "optional": "Optional.",
+      "settleApprove": {
+        "title": "Approve the settlement for {{number}}?",
+        "description": "The settlement goes to Finance to be verified and posted."
+      },
+      "settleReturn": {
+        "title": "Request a settlement revision for {{number}}?",
+        "description": "It goes back to the requester to fix and submit again."
+      },
+      "returnConfirm": "Return",
+      "fixReason": "What needs fixing",
+      "cancelReason": "Reason for cancelling",
+      "settleCancelPosting": {
+        "title": "Cancel the settlement posting for {{number}}?",
+        "description": "The settlement journal is voided; the status returns to Finance verification and the advance is open again.",
+        "confirm": "Cancel posting"
+      },
+      "submit": {
+        "title": "Submit {{number}}?",
+        "description": "Once submitted, the request cannot be changed unless it is returned for revision.",
+        "confirm": "Submit"
+      },
+      "reject": {
+        "title": "Reject {{number}}?",
+        "description": "A rejected request cannot be resubmitted. Use Request revision if the requester only needs to fix something.",
+        "confirm": "Reject",
+        "reason": "Reason for rejecting"
+      },
+      "return": {
+        "title": "Request revision of {{number}}?",
+        "description": "The request goes back to the requester to fix and submit again."
+      },
+      "cancel": {
+        "title": "Cancel {{number}}?",
+        "description": "A cancelled request cannot be processed any further.",
+        "confirm": "Yes, cancel"
+      },
+      "cancelPayment": {
+        "title": "Cancel the payment for {{number}}?",
+        "description": "The payment journal is voided and the request goes back to Ready to pay.",
+        "confirm": "Cancel payment"
+      }
+    }
+  },
+  "paymentRequestForm": {
+    "loading": "Loading form…",
+    "toast": {
+      "deleteAttachmentFailed": "Could not delete the attachment.",
+      "submitted": "Request submitted.",
+      "draftSaved": "Request draft saved.",
+      "saveFailed": "Could not save the request."
+    },
+    "errors": {
+      "type": "Choose a request type.",
+      "purpose": "Describe the purpose (at least 3 characters).",
+      "payeeName": "Payee name is required.",
+      "supplier": "Choose a supplier.",
+      "lineIncomplete": "Every line needs a description and an amount greater than 0.",
+      "noLines": "Add at least one cost line.",
+      "attachmentRequired": "This request type requires a supporting attachment."
+    },
+    "editTitle": "Edit request",
+    "editTitleNumber": "Edit {{number}}",
+    "createTitle": "New request",
+    "notEditable": "This request can no longer be edited (only while Draft or Needs revision).",
+    "backToDetail": "Back to details",
+    "flow": {
+      "supervisor": "Once submitted, the request waits for approval from your supervisor ({{name}}), then Finance.",
+      "finance": "Once submitted, the request goes straight to Finance for verification (no direct supervisor set)."
+    },
+    "overdueAdvances_one": "You still have <b>{{count}} advance</b> unsettled for more than {{days}} days ({{amount}}). You can still create a new request, but please settle it soon.",
+    "overdueAdvances_other": "You still have <b>{{count}} advances</b> unsettled for more than {{days}} days ({{amount}}). You can still create a new request, but please settle them soon.",
+    "revisionNote": "Revision note:",
+    "info": {
+      "title": "Request details",
+      "type": "Request type",
+      "typePlaceholder": "Choose a type…",
+      "attachmentRequired": "Attachment required",
+      "attachmentOptional": "Attachment optional",
+      "requiresSettlement": "Must be settled after use",
+      "travelPurpose": "Trip purpose",
+      "purpose": "Purpose",
+      "purposePlaceholder": "Purpose and date of the activity",
+      "neededBy": "Needed by",
+      "neededByHint": "Optional: when the funds are needed.",
+      "department": "Department / unit",
+      "optional": "Optional."
+    },
+    "lines": {
+      "travelTitle": "Planned travel costs",
+      "title": "Cost details",
+      "travelHint": "Estimated cost per category, used for comparison at settlement. Finance chooses the expense accounts.",
+      "hint": "Finance chooses the expense accounts during verification."
+    },
+    "attachments": {
+      "title": "Attachments",
+      "hint": "Receipts, supplier invoices, or other supporting documents."
+    },
+    "payee": {
+      "title": "Payee",
+      "kind": "Pay to",
+      "employee": "Employee (me)",
+      "supplier": "Supplier",
+      "supplierLabel": "Supplier",
+      "supplierPlaceholder": "Choose supplier…",
+      "supplierSearch": "Search suppliers…",
+      "name": "Payee name",
+      "bank": "Bank",
+      "bankPlaceholder": "e.g. BCA",
+      "accountNo": "Account number",
+      "accountHolder": "Account holder name"
+    },
+    "footer": {
+      "total": "Total",
+      "cancel": "Cancel",
+      "saveDraft": "Save draft",
+      "submit": "Submit"
+    }
+  },
+  "paymentRequestSettlement": {
+    "loading": "Loading request…",
+    "toast": {
+      "deleteAttachmentFailed": "Could not delete the attachment.",
+      "submitted": "Settlement submitted.",
+      "draftSaved": "Settlement draft saved.",
+      "saveFailed": "Could not save the settlement."
+    },
+    "errors": {
+      "lineIncomplete": "Every line needs a description and an amount greater than 0.",
+      "noLines": "Add at least one actual expense line."
+    },
+    "title": "Settlement",
+    "titleWithNumber": "Settlement {{number}}",
+    "notEditable": "Only the requester can fill in the settlement, once the advance is paid and before it is submitted (or when a revision is requested).",
+    "backToDetail": "Back to details",
+    "diffMessage": {
+      "exact": "Actual equals the advance. Nothing to return and no shortfall.",
+      "return": "The unused advance of {{amount}} is returned to the company cash (recorded by Finance when posting).",
+      "reimburse": "The shortfall of {{amount}} is paid to you by the company (recorded by Finance when posting)."
+    },
+    "revisionNote": "Revision note:",
+    "summary": {
+      "label": "Summary",
+      "advance": "Advance received",
+      "paidOn": "paid on {{date}}",
+      "realized": "Total actual",
+      "return": "Unused advance",
+      "reimburse": "Shortfall",
+      "difference": "Difference"
+    },
+    "lines": {
+      "title": "Actual expenses",
+      "travelHint": "Starts from the travel plan. Change amounts to what was actually spent, and add or remove lines.",
+      "hint": "Record the expenses that actually happened.",
+      "actual": "Actual"
+    },
+    "planVsActual": "Planned vs actual",
+    "receipts": {
+      "title": "Receipts",
+      "hint": "Attach receipts, invoices, or proof of the refund transfer (JPG, PNG, WebP, PDF)."
+    },
+    "notes": {
+      "title": "Notes",
+      "note": "Note for your supervisor & Finance",
+      "optional": "Optional.",
+      "deadline": "Settlement deadline",
+      "deadlineHint": "Optional. A reminder is sent if it passes."
+    },
+    "footer": {
+      "actual": "Actual",
+      "cancel": "Cancel",
+      "saveDraft": "Save draft",
+      "submit": "Submit"
+    }
+  },
+  "paymentRequests": {
+    "title": "Payment Requests",
+    "description": "Reimbursements, cash advances, business travel, and supplier payments: requested, approved, and paid in one place.",
+    "exportExcel": "Export to Excel",
+    "create": "New request",
+    "loadingList": "Loading list…",
+    "rowActions": "Actions for {{number}}",
+    "export": {
+      "number": "Number",
+      "date": "Date",
+      "requester": "Requester",
+      "type": "Type",
+      "purpose": "Purpose",
+      "payee": "Payee",
+      "neededBy": "Needed by",
+      "total": "Total",
+      "status": "Status",
+      "paidAt": "Payment date",
+      "advanceAmount": "Advance amount",
+      "age": "Age (days)",
+      "settlementStatus": "Settlement status",
+      "overdue": "Over {{days}} days",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "exportFile": {
+      "advances": "employee-advances",
+      "requests": "payment-requests"
+    },
+    "tabs": {
+      "label": "Request views",
+      "mine": "My requests",
+      "approvals": "Needs approval",
+      "payable": "Ready to pay",
+      "eam": "EAM bills",
+      "advances": "Unsettled advances",
+      "all": "All",
+      "waiting": "waiting",
+      "waitingPosting": "waiting to be posted",
+      "overdue": "past the deadline"
+    },
+    "columns": {
+      "number": "Number",
+      "requester": "Requester",
+      "purpose": "Purpose",
+      "advance": "Advance",
+      "paid": "Paid",
+      "age": "Age",
+      "settlement": "Settlement",
+      "actions": "Actions",
+      "date": "Date",
+      "neededBy": "Needed by",
+      "total": "Total",
+      "status": "Status"
+    },
+    "days_one": "{{count, number}} day",
+    "days_other": "{{count, number}} days",
+    "pastLimit": ", past the {{days}}-day limit",
+    "pastLimitShort": ", past the limit",
+    "actions": {
+      "view": "View details",
+      "edit": "Edit"
+    },
+    "toast": {
+      "exportTruncated_one": "Export limited to the first {{count, number}} request. Narrow the filter.",
+      "exportTruncated_other": "Export limited to the first {{count, number}} requests. Narrow the filter.",
+      "exportFailed": "Could not export requests. Try again."
+    },
+    "empty": {
+      "mine": {
+        "title": "No requests yet",
+        "description": "Request a reimbursement, cash advance, or supplier payment. No more email and spreadsheets."
+      },
+      "approvals": {
+        "title": "Nothing is waiting for your approval",
+        "description": "Requests you need to approve will appear here."
+      },
+      "payable": {
+        "title": "No requests ready to pay",
+        "description": "Fully approved requests will appear here."
+      },
+      "advances": {
+        "title": "No unsettled advances",
+        "description": "Paid cash advances and business travel that are not yet settled appear here."
+      },
+      "all": {
+        "title": "No requests yet",
+        "description": "All payment requests will appear here."
+      },
+      "action": "Create your first request"
+    },
+    "advances": {
+      "summary": "Employee advance summary",
+      "open": "Unsettled advances",
+      "count_one": "{{count, number}} advance",
+      "count_other": "{{count, number}} advances",
+      "overdue": "Over {{days}} days",
+      "employees": "Employees",
+      "employeesHint": "with open advances",
+      "oldest": "Oldest",
+      "oldestHint": "since payment",
+      "byEmployee": "Advances by employee",
+      "byEmployeeCaption": "Unsettled advances by employee",
+      "columns": {
+        "employee": "Employee",
+        "count": "Count",
+        "amount": "Amount (Rp)",
+        "oldest": "Oldest"
+      }
+    },
+    "summary": {
+      "label": "Request summary for the current filter",
+      "inApproval": "In approval",
+      "ready": "Ready to pay",
+      "paid": "Paid",
+      "requests_one": "{{count, number}} request",
+      "requests_other": "{{count, number}} requests",
+      "needsWork": "Drafts & revisions",
+      "needsRevision_one": "{{count, number}} needs revision",
+      "needsRevision_other": "{{count, number}} need revision",
+      "notSubmitted": "not submitted yet"
+    },
+    "filters": {
+      "searchLabel": "Search requests",
+      "searchPlaceholder": "Search number, purpose, payee, or requester",
+      "settlementStatus": "Settlement status",
+      "allStatuses": "All statuses",
+      "dateRange": "Request date range",
+      "type": "Filter by request type",
+      "allTypes": "All types",
+      "typeSearch": "Search types…"
+    },
+    "table": {
+      "advances": "Unsettled advances",
+      "requests": "Payment requests",
+      "itemLabel": "requests"
+    }
+  },
+  "payments": {
+    "title": "Cash & Bank Transactions",
+    "description": "Track cash movements, supplier payments, and receivable settlements.",
+    "exportExcel": "Export to Excel",
+    "exportFile": "cash-bank-transactions",
+    "record": "Record transaction",
+    "attachmentCount_one": "{{count}} attachment",
+    "attachmentCount_other": "{{count}} attachments",
+    "attachments": "attachments",
+    "rowActions": "Actions for {{number}}",
+    "partyType": {
+      "Customer": "Customer",
+      "Supplier": "Supplier",
+      "Both": "Customer & Supplier"
+    },
+    "toast": {
+      "cancelled": "Payment cancelled.",
+      "cancelFailed": "Could not cancel the payment.",
+      "exportFailed": "Could not export transactions. Try again.",
+      "exportTruncated_one": "Export limited to the first {{count, number}} transaction. Narrow the filter.",
+      "exportTruncated_other": "Export limited to the first {{count, number}} transactions. Narrow the filter."
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "party": "Party / description",
+      "kind": "Type / account",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "actions": {
+      "viewJournal": "View journal",
+      "viewDetail": "View details",
+      "cancel": "Cancel"
+    },
+    "menu": {
+      "cashIn": "Cash in",
+      "receive": "Receive payment",
+      "cashOut": "Cash out",
+      "pay": "Pay payables",
+      "expense": "Record expense",
+      "bulkExpense": "Enter multiple expenses",
+      "supplierDeposit": "Supplier Deposit",
+      "betweenAccounts": "Between accounts",
+      "transfer": "Bank transfer"
+    },
+    "summary": {
+      "label": "Transaction summary for the current filter",
+      "count": "Transactions",
+      "cashIn": "Cash in",
+      "cashOut": "Cash out",
+      "net": "Net cash flow",
+      "netHint": "in − out",
+      "cancelled_one": "{{count, number}} cancelled",
+      "cancelled_other": "{{count, number}} cancelled",
+      "transactions_one": "{{count, number}} transaction",
+      "transactions_other": "{{count, number}} transactions"
+    },
+    "help": {
+      "title": "How editing and cancelling work",
+      "body": "Cash and bank transactions cannot be edited, to keep the General Ledger intact. If something is wrong, <b>cancel the transaction and create it again</b>. Supplier and Customer Deposits must be cancelled from their own modules. Transactions from manual journals (expenses, bank transfers) are cancelled from the General Ledger. Only the <b>Admin</b> role can cancel."
+    },
+    "filters": {
+      "searchLabel": "Search transactions",
+      "searchPlaceholder": "Search number, party, or description",
+      "type": "Transaction type",
+      "allTypes": "All types",
+      "paymentGroup": "Payments",
+      "journalGroup": "Cash journals",
+      "direction": "Cash direction",
+      "allDirections": "In & out",
+      "in": "Cash in (+)",
+      "out": "Cash out (−)",
+      "party": "Party",
+      "allParties": "All parties",
+      "partySearch": "Search customers/suppliers…",
+      "account": "Cash/bank account",
+      "allAccounts": "All accounts",
+      "accountSearch": "Search accounts…"
+    },
+    "table": {
+      "label": "Cash & bank transactions",
+      "itemLabel": "transactions"
+    },
+    "empty": {
+      "title": "No cash & bank transactions yet",
+      "description": "Recorded receipts, payments, expenses, and bank transfers will appear here.",
+      "action": "Receive your first payment"
+    },
+    "cancelDialog": {
+      "title": "Cancel transaction",
+      "description": "Cancel {{number}}? Invoice allocations, cash/bank balances, and journals will be reversed automatically. This cannot be undone.",
+      "confirm": "Yes, cancel"
+    }
+  },
+  "planVsActual": {
+    "label": "Planned vs actual by category",
+    "caption": "Planned and actual costs by category",
+    "category": "Category",
+    "planned": "Planned",
+    "actual": "Actual",
+    "difference": "Difference",
+    "total": "Total"
+  },
+  "projectGuaranteeDetailSheet": {
+    "fields": {
+      "party": "Project owner",
+      "type": "Guarantee type",
+      "date": "Deposit date",
+      "returnDate": "Expected return date",
+      "account": "Paid from account",
+      "reference": "Reference no.",
+      "notes": "Notes"
+    },
+    "figures": {
+      "deposited": "Amount deposited",
+      "outstanding": "Outstanding",
+      "returned": "Returned",
+      "forfeited": "Forfeited"
+    },
+    "history": "Settlement history",
+    "noSettlements": "No settlements yet.",
+    "returned": "Returned <b>{{amount}}</b>",
+    "forfeited": "Forfeited <b>{{amount}}</b>",
+    "cancelSettlement": "Cancel settlement {{date}}",
+    "cancelDeposit": "Cancel deposit",
+    "settle": "Settle"
+  },
+  "projectGuaranteeModal": {
+    "saveFailed": "Could not save the guarantee deposit.",
+    "title": "Deposit project guarantee",
+    "description": "Bid/performance guarantee paid to the project owner",
+    "date": "Deposit date",
+    "type": "Guarantee type",
+    "party": "Project owner",
+    "partyPlaceholder": "Choose party",
+    "projectName": "Project name",
+    "projectNamePlaceholder": "E.g. Rice procurement 2026",
+    "referenceNo": "Reference no.",
+    "referencePlaceholder": "Tender / contract no.",
+    "amount": "Amount (Rp)",
+    "amountLabel": "Guarantee amount",
+    "account": "Paid from account",
+    "accountPlaceholder": "Choose cash/bank account",
+    "returnDate": "Expected return date",
+    "returnDateHint": "Optional. The system sends a reminder 7 days before via notifications & Telegram.",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional description...",
+    "summary": "Deposit guarantee <b>{{amount}}</b>",
+    "journal": "Journal: <mono>DR Project Guarantee Deposit (1.8) / CR Cash-Bank</mono>",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "submit": "Deposit guarantee"
+  },
+  "projectGuarantees": {
+    "guaranteeType": {
+      "bid": "Bid",
+      "performance": "Performance",
+      "maintenance": "Maintenance",
+      "other": "Other"
+    },
+    "toast": {
+      "cancelled": "Guarantee deposit cancelled.",
+      "cancelFailed": "Could not cancel the guarantee deposit.",
+      "settlementCancelled": "Settlement cancelled.",
+      "settlementCancelFailed": "Could not cancel the settlement."
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "party": "Project owner",
+      "due": "Due date",
+      "amount": "Amount",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {{number}}",
+    "actions": {
+      "view": "View details",
+      "settle": "Settle (returned/forfeited)",
+      "cancel": "Cancel deposit"
+    },
+    "title": "Project Guarantees",
+    "description": "Bid and performance guarantee deposits paid to project owners.",
+    "create": "Deposit guarantee",
+    "summary": {
+      "label": "Guarantee summary for the current filter",
+      "outstanding": "Outstanding",
+      "returned": "Returned",
+      "ofDeposited": "of {{amount}} deposited",
+      "forfeited": "Forfeited",
+      "forfeitedHint": "charged to expenses",
+      "overdue": "Overdue",
+      "overdueOutstanding": "{{amount}} outstanding",
+      "active_one": "{{count, number}} active guarantee",
+      "active_other": "{{count, number}} active guarantees",
+      "dueSoon_one": "{{count, number}} due soon",
+      "dueSoon_other": "{{count, number}} due soon"
+    },
+    "filters": {
+      "searchLabel": "Search guarantees",
+      "searchPlaceholder": "Search number, party, or project",
+      "dateRange": "Deposit date range",
+      "party": "Filter by project owner",
+      "allParties": "All project owners",
+      "partySearch": "Search parties…",
+      "type": "Filter by guarantee type",
+      "allTypes": "All types",
+      "typeSearch": "Search types…",
+      "due": "Filter by due date",
+      "allDue": "All due dates",
+      "dueSearch": "Search…",
+      "dueOption": {
+        "overdue": "Overdue",
+        "dueSoon": "Due soon (30 days)"
+      }
+    },
+    "table": {
+      "label": "Project guarantees",
+      "itemLabel": "guarantees"
+    },
+    "empty": {
+      "title": "No project guarantees yet",
+      "description": "Bid or performance guarantee deposits paid to project owners will appear here.",
+      "action": "Deposit your first guarantee"
+    },
+    "cancelDialog": {
+      "title": "Cancel guarantee deposit",
+      "description": "Cancel deposit {{number}}? Account balances will be restored to how they were before the deposit."
+    },
+    "confirmCancel": "Yes, cancel",
+    "cancelSettlementDialog": {
+      "title": "Cancel settlement",
+      "description": "Cancel settlement {{label}}? The settlement journal is reversed and the outstanding guarantee increases again."
+    }
+  },
+  "reconciliationModal": {
+    "created": "Reconciliation created.",
+    "createFailed": "Could not create the reconciliation.",
+    "required": "Fill in all required fields.",
+    "title": "New reconciliation",
+    "description": "Match the book balance against the bank / cash statement.",
+    "submit": "Create reconciliation",
+    "saving": "Saving…",
+    "account": "Bank / cash account",
+    "accountPlaceholder": "Choose account...",
+    "statementDate": "Statement date",
+    "statementBalance": "Statement balance (Rp)",
+    "notes": "Notes",
+    "optional": "Optional...",
+    "items": {
+      "title": "Bank statement lines (optional)",
+      "add": "Add",
+      "date": "Statement line {{n}} date",
+      "description": "Statement line {{n}} description",
+      "descriptionPlaceholder": "Description",
+      "amount": "Statement line {{n}} amount (Rp)",
+      "amountPlaceholder": "Amount (Rp)",
+      "remove": "Remove statement line {{n}}"
+    }
+  },
+  "reconciliationWorkspace": {
+    "generalJournal": "General Journal",
+    "toast": {
+      "matched": "Item matched.",
+      "matchFailed": "Could not match.",
+      "unmatched": "Match removed.",
+      "unmatchFailed": "Could not remove the match.",
+      "completed": "Reconciliation completed.",
+      "completeFailed": "Could not complete the reconciliation.",
+      "itemsAdded": "Statement items added.",
+      "itemsFailed": "Could not add the items.",
+      "itemRequired": "Fill in at least one item.",
+      "noUnmatched": "There are no unmatched statement items. Add statement items first."
+    },
+    "back": "Back",
+    "breadcrumb": "Bank Reconciliation",
+    "matching": "Matching",
+    "title": "Reconciliation matching",
+    "loading": "Loading reconciliation…",
+    "notFound": {
+      "title": "Reconciliation not found.",
+      "description": "The session may have been deleted."
+    },
+    "retry": "Try again",
+    "statementAsOf": "Statement as of {{date}}",
+    "complete": "Complete",
+    "summary": {
+      "label": "Reconciliation summary",
+      "book": "Book balance",
+      "statement": "Statement balance",
+      "difference": "Difference",
+      "balanced": "Balanced",
+      "matched": "Matched items",
+      "matchedHint": "statement items"
+    },
+    "book": {
+      "title": "Book transactions",
+      "empty": {
+        "title": "All transactions are matched",
+        "description": "No book transactions remain."
+      },
+      "region": "Unmatched book transactions",
+      "unmatched_one": "{{count, number}} transaction not matched yet",
+      "unmatched_other": "{{count, number}} transactions not matched yet"
+    },
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "actions": "Actions",
+      "status": "Status"
+    },
+    "matchLabel": "Match {{entry}} {{date}}",
+    "match": "Match",
+    "bank": {
+      "title": "Bank statement",
+      "add": "Add item",
+      "item": "Statement item {{n}}",
+      "amountRp": "Amount (Rp)",
+      "removeRow": "Remove row {{n}}",
+      "newRow": "New row",
+      "empty": {
+        "title": "No statement items yet",
+        "description": "Add lines from the bank statement."
+      },
+      "region": "Bank statement items",
+      "count_one": "{{count, number}} statement item",
+      "count_other": "{{count, number}} statement items"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "matched": "Matched",
+    "notMatched": "Not matched",
+    "noDescription": "No description",
+    "unmatchLabel": "Remove match for {{item}}",
+    "itemFallback": "item",
+    "unmatch": "Unmatch",
+    "completeDialog": {
+      "title": "Complete reconciliation",
+      "description": "Complete this reconciliation? The status changes to Completed and cannot be changed back.",
+      "confirm": "Complete"
+    }
+  },
+  "recurringTemplateModal": {
+    "toast": {
+      "updated": "Template updated.",
+      "created": "Template created.",
+      "saveFailed": "Could not save the template."
+    },
+    "errors": {
+      "name": "Template name is required.",
+      "nextRun": "Next run date is required.",
+      "narration": "Journal description is required.",
+      "minLines": "At least 2 journal lines are needed.",
+      "unbalanced": "Debit and credit must balance.",
+      "required": "Required."
+    },
+    "title": {
+      "edit": "Edit recurring template",
+      "create": "New recurring template"
+    },
+    "description": "Transactions created automatically on a schedule.",
+    "name": "Template name",
+    "namePlaceholder": "e.g. Monthly rent expense",
+    "type": "Transaction type",
+    "types": {
+      "journal": "General Journal",
+      "sales_invoice": "Sales Invoice",
+      "purchase_invoice": "Purchase Invoice"
+    },
+    "frequency": "Frequency",
+    "frequencies": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "dayOfMonth": "Day of month",
+    "nextRun": "Next run",
+    "journal": {
+      "title": "Journal details",
+      "narration": "Description",
+      "narrationPlaceholder": "e.g. Building rent expense for ...",
+      "account": "Account, row {{n}}",
+      "chooseAccount": "Choose account…",
+      "debit": "Debit",
+      "debitRow": "Debit, row {{n}}",
+      "credit": "Credit",
+      "creditRow": "Credit, row {{n}}",
+      "removeRow": "Remove row {{n}}",
+      "addRow": "Add row"
+    },
+    "invoiceNote": "Automatic runs for sales/purchase invoice types are coming soon. For now, use the General Journal type for recurring transactions.",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "create": "Create template"
+  },
+  "recurringTransactions": {
+    "type": {
+      "journal": "Journal",
+      "sales_invoice": "Sales Invoice",
+      "purchase_invoice": "Purchase Invoice"
+    },
+    "frequency": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "frequencyDay": "{{frequency}} (day {{day}})",
+    "period": {
+      "daily": "1 day",
+      "weekly": "1 week",
+      "monthly": "1 month",
+      "quarterly": "3 months",
+      "yearly": "1 year",
+      "fallback": "one period"
+    },
+    "toast": {
+      "executed": "Template run.",
+      "executeFailed": "Could not run the template.",
+      "statusUpdated": "Template status updated.",
+      "statusFailed": "Could not change the template status."
+    },
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "frequency": "Frequency",
+      "nextShort": "Next",
+      "next": "Next run",
+      "last": "Last run",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {{name}}",
+    "actions": {
+      "edit": "Edit",
+      "run": "Run now",
+      "deactivate": "Deactivate",
+      "activate": "Activate"
+    },
+    "title": "Recurring Transactions",
+    "description": "Manage automatic transaction templates on a schedule.",
+    "create": "New template",
+    "filters": {
+      "searchLabel": "Search templates",
+      "searchPlaceholder": "Search template name",
+      "active": "Active",
+      "inactive": "Inactive",
+      "type": "Filter by template type",
+      "allTypes": "All types",
+      "typeSearch": "Search types…"
+    },
+    "table": {
+      "label": "Recurring transaction templates",
+      "itemLabel": "templates"
+    },
+    "empty": {
+      "title": "No recurring transaction templates yet",
+      "description": "Scheduled journal templates will appear here.",
+      "action": "Create your first template"
+    },
+    "runDialog": {
+      "title": "Run the template now?",
+      "description": "Template <b>{{name}}</b> will immediately create a journal dated today and posted to the General Ledger. The next run is recalculated to <b>{{period}}</b> after today (current schedule: {{current}}).",
+      "confirm": "Yes, run"
+    }
+  },
+  "reviewTable": {
+    "empty": "empty",
+    "side": {
+      "masuk": "in",
+      "keluar": "out"
+    },
+    "row": {
+      "amount": "Amount {{side}}, row {{n}}",
+      "select": "Select row {{n}}",
+      "date": "Date, row {{n}}",
+      "description": "Description, row {{n}}",
+      "type": "Transaction type, row {{n}}",
+      "account": "Counter account, row {{n}}",
+      "skip": "Skip row {{n}}"
+    },
+    "duplicate": "Duplicate?",
+    "failed": "Failed: {{error}}",
+    "chooseAccount": "Choose account…",
+    "accountSearch": "Search account number or name…",
+    "notChosen": "Not chosen",
+    "doubtful": "Unsure",
+    "reason": "Reason",
+    "reasonRow": "row {{n}}",
+    "posted": "Posted",
+    "skipped": "Skipped",
+    "reasonLabel": "Classification reason:",
+    "region": "Cash book draft rows (scroll to see all columns)",
+    "caption": "Cash book draft rows: date, description, in, out, transaction type, counter account, confidence, and skip",
+    "selectAll": "Select all visible rows",
+    "columns": {
+      "select": "Select",
+      "date": "Date",
+      "description": "Description",
+      "in": "In",
+      "out": "Out",
+      "type": "Transaction type",
+      "account": "Counter account",
+      "confidence": "Confidence",
+      "skip": "Skip"
+    },
+    "noRows": "No rows match the filter."
+  },
+  "settleGuaranteeModal": {
+    "saved": "Guarantee settlement saved.",
+    "saveFailed": "Could not process the settlement.",
+    "errors": {
+      "total": "Returned + forfeited must be greater than 0 and no more than the outstanding guarantee.",
+      "returnAccount": "Choose the cash/bank account receiving the return."
+    },
+    "title": "Guarantee settlement",
+    "outstanding": "Outstanding guarantee",
+    "date": "Date",
+    "returnAmount": "Returned (cash in)",
+    "max": "Max: {{amount}}",
+    "returnAccount": "Receiving cash/bank account",
+    "returnAccountPlaceholder": "Choose receiving cash/bank account",
+    "forfeitAmount": "Forfeited / penalty deducted (expensed)",
+    "rest": "Remaining: {{amount}}",
+    "expenseAccount": "Expense account",
+    "expenseDefault": "Default: Other Expenses",
+    "notes": "Notes (optional)",
+    "total": "Settlement total:",
+    "after": "Remaining after this:",
+    "cancel": "Cancel",
+    "processing": "Processing…",
+    "submit": "Process"
+  },
+  "settlementCard": {
+    "waiting": {
+      "supervisorNamed": "Waiting for approval from {{name}}",
+      "supervisor": "Waiting for supervisor approval",
+      "finance": "Waiting for Finance to verify and post"
+    },
+    "title": "Settlement",
+    "fill": {
+      "revise": "Revise settlement",
+      "continue": "Continue filling in",
+      "start": "Fill in settlement"
+    },
+    "age": {
+      "open_one": "Advance of {{amount}} paid on {{date}}, unsettled for <num>{{count}} day</num>.",
+      "open_other": "Advance of {{amount}} paid on {{date}}, unsettled for <num>{{count}} days</num>.",
+      "overdue_one": "Advance of {{amount}} paid on {{date}}, unsettled for <num>{{count}} day</num> (past the {{limit}}-day limit).",
+      "overdue_other": "Advance of {{amount}} paid on {{date}}, unsettled for <num>{{count}} days</num> (past the {{limit}}-day limit)."
+    },
+    "revisionNote": "Revision note:",
+    "empty": "No actual expense lines yet.",
+    "advance": "Advance",
+    "realized": "Total actual",
+    "diff": {
+      "return": "Unused advance (to be returned)",
+      "reimburse": "Shortfall (paid by the company)",
+      "none": "Difference"
+    },
+    "requesterNote": "Requester's note:",
+    "deadline": "Deadline: {{date}}",
+    "posted": "Posted",
+    "date": "Date",
+    "cash": "Cash/bank",
+    "reference": "Reference",
+    "journal": "Journal"
+  },
+  "settlementPostDialog": {
+    "posted": "Settlement posted to the journal.",
+    "postFailed": "Could not post the settlement.",
+    "accountMissing": "Account not selected",
+    "cashReturn": "Cash/bank receiving the returned {{amount}}",
+    "cashReimburse": "Cash/bank paying the shortfall of {{amount}}",
+    "errors": {
+      "date": "Enter the settlement date."
+    },
+    "title": "Verify & post {{number}}",
+    "description": "{{payee}} · advance {{advance}} · actual {{realized}}",
+    "linesLegend": "Expense account per actual line",
+    "lineAccount": "Expense account, row {{n}}",
+    "date": "Settlement date",
+    "dateHint": "Dates in a closed fiscal year are rejected.",
+    "reference": "Reference",
+    "referenceHint": "Optional, e.g. deposit/transfer receipt number.",
+    "note": "Finance note",
+    "optional": "Optional.",
+    "mode": {
+      "return": "The requester returns the unused advance: cash/bank increases and the advance is fully cleared.",
+      "reimburse": "Actual exceeds the advance: the company pays the shortfall from cash/bank.",
+      "exact": "Actual equals the advance: no cash/bank line."
+    },
+    "problems": "Still needed",
+    "cancel": "Cancel",
+    "submit": "Post"
+  },
+  "systemAccountsTab": {
+    "errors": {
+      "requiredRole": "Role \"{{role}}\" is required. Choose another account; it cannot be left empty."
+    },
+    "toast": {
+      "saved": "System account configuration saved.",
+      "saveFailed": "Could not save the configuration.",
+      "noAccountAvailable": "No accounts available to add."
+    },
+    "loading": "Loading system accounts…",
+    "error": {
+      "title": "System accounts could not be loaded",
+      "description": "Account mappings are not shown because the request to the server failed. Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "title": "System Accounts",
+    "description": "Configure the Chart of Accounts entries the system uses for automatic GL posting.",
+    "save": "Save changes",
+    "stats": {
+      "total": "Total roles",
+      "configured": "Configured",
+      "required": "Required",
+      "status": "Status",
+      "complete": "Complete",
+      "incomplete": "Incomplete"
+    },
+    "search": "Search account roles...",
+    "required": "Required",
+    "multi": "Multi",
+    "accountFor": "Account for {{role}} {{n}}",
+    "accountForSingle": "Account for {{role}}",
+    "chooseAccount": "-- Choose account --",
+    "addAccount": "Add account",
+    "unassignTitle": "Remove the account from this role",
+    "unassign": "Remove",
+    "groups": {
+      "cash": {
+        "title": "Cash & Bank",
+        "description": "Cash, bank, and cash-equivalent accounts for payment transactions"
+      },
+      "receivablesPayables": {
+        "title": "Receivables & Payables",
+        "description": "Trade receivables, trade payables, and their allowances"
+      },
+      "inventory": {
+        "title": "Inventory & COGS",
+        "description": "Inventory and cost of goods sold accounts"
+      },
+      "revenue": {
+        "title": "Revenue",
+        "description": "Sales, service, discount, and return accounts"
+      },
+      "tax": {
+        "title": "Tax",
+        "description": "Input/output VAT and income tax expense accounts"
+      },
+      "deposits": {
+        "title": "Deposits",
+        "description": "Supplier and customer deposit accounts"
+      },
+      "production": {
+        "title": "Production",
+        "description": "Conversion cost and production variance accounts"
+      },
+      "fixedAssets": {
+        "title": "Fixed Assets & Depreciation",
+        "description": "Fixed asset, accumulated depreciation, and depreciation expense accounts"
+      },
+      "bank": {
+        "title": "Bank Charges & Interest",
+        "description": "Bank fees, loan interest, and interest income accounts"
+      },
+      "accruals": {
+        "title": "Accruals & Prepayments",
+        "description": "Prepaid expense and accrued expense accounts"
+      },
+      "fx": {
+        "title": "Exchange Differences",
+        "description": "Realised and unrealised exchange gain/loss accounts"
+      },
+      "other": {
+        "title": "Other Income & Expenses",
+        "description": "Income and expense accounts outside the main business"
+      },
+      "equity": {
+        "title": "Equity",
+        "description": "Capital, retained earnings, and owner drawing accounts"
+      }
+    }
+  },
+  "timeline": {
+    "empty": "No history yet."
+  },
+  "travel": {
+    "errors": {
+      "endBeforeStart": "The return date cannot be before the departure date.",
+      "destination": "Enter the destination city.",
+      "startDate": "Enter the departure date.",
+      "endDate": "Enter the return date."
+    }
+  },
+  "travelLinesEditor": {
+    "amount": "Amount",
+    "quickAdd": "Add a line by category",
+    "empty": "No lines yet. Choose a category above to add a travel expense line.",
+    "unit": {
+      "perDiem": {
+        "rate": "Rate/day",
+        "qty": "Days"
+      },
+      "lodging": {
+        "rate": "Rate/night",
+        "qty": "Nights"
+      }
+    },
+    "rowCategory": "Category, row {{n}}",
+    "rowDescription": "Description, row {{n}}",
+    "descriptionPlaceholder": "e.g. Train ticket Jakarta–Surabaya",
+    "rowDate": "Expense date, row {{n}}",
+    "rowField": "{{label}}, row {{n}}",
+    "rowRemove": "Remove row {{n}}",
+    "subtotals": "Subtotals by category",
+    "total": "Total"
+  },
+  "travelSection": {
+    "title": "Business travel",
+    "description": "Destination, schedule, and participants. Enter the trip's purpose in the Purpose field above.",
+    "destination": "City / destination",
+    "destinationPlaceholder": "e.g. Surabaya",
+    "startDate": "Departure date",
+    "endDate": "Return date",
+    "duration": "Duration {{days}} days ({{nights}} nights).",
+    "endDateHint": "Cannot be before the departure date.",
+    "participants": "Participants",
+    "participantsHint": "Optional. Names of others travelling with you."
+  },
+  "travelSummary": {
+    "title": "Business travel",
+    "destination": "City / destination",
+    "duration": "Duration",
+    "days": "{{days}} days ({{nights}} nights)",
+    "departure": "Departure",
+    "return": "Return",
+    "purpose": "Purpose",
+    "participants": "Participants"
+  }
+}

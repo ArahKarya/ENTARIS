@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 /** Travel section state + validation of the payment request form (TRAVEL types). */
 export interface TravelValue {
   destination: string;
@@ -13,11 +15,11 @@ export type TravelErrors = Partial<Record<'destination' | 'startDate' | 'endDate
 /** Client-side check mirroring server/services/paymentRequestTravel.ts validateTravel. */
 export function validateTravelValue(t: TravelValue, forSubmit: boolean): TravelErrors {
   const e: TravelErrors = {};
-  if (t.startDate && t.endDate && t.endDate < t.startDate) e.endDate = 'Tanggal kembali tidak boleh sebelum tanggal berangkat.';
+  if (t.startDate && t.endDate && t.endDate < t.startDate) e.endDate = i18n.t('finance:travel.errors.endBeforeStart');
   if (forSubmit) {
-    if (t.destination.trim().length < 2) e.destination = 'Isi kota/tujuan perjalanan.';
-    if (!t.startDate) e.startDate = 'Isi tanggal berangkat.';
-    if (!t.endDate) e.endDate ??= 'Isi tanggal kembali.';
+    if (t.destination.trim().length < 2) e.destination = i18n.t('finance:travel.errors.destination');
+    if (!t.startDate) e.startDate = i18n.t('finance:travel.errors.startDate');
+    if (!t.endDate) e.endDate ??= i18n.t('finance:travel.errors.endDate');
   }
   return e;
 }

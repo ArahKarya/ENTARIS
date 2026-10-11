@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { Save, Loader2, AlertTriangle, Plus, X, ChevronDown, ChevronRight, CheckCircle2, Search } from 'lucide-react';
@@ -39,75 +40,40 @@ interface AccountOption {
   isActive: boolean;
 }
 
-const ROLE_GROUPS: { title: string; description: string; roles: string[] }[] = [
-  {
-    title: 'Kas & Bank',
-    description: 'Akun kas, bank, dan setara kas untuk transaksi pembayaran',
-    roles: ['CASH'],
-  },
-  {
-    title: 'Piutang & Hutang',
-    description: 'Akun piutang usaha, hutang usaha, dan penyisihannya',
-    roles: ['AR', 'AP', 'ALLOWANCE_DOUBTFUL', 'BAD_DEBT_EXPENSE'],
-  },
-  {
-    title: 'Persediaan & HPP',
-    description: 'Akun persediaan barang dan beban pokok penjualan',
-    roles: ['INVENTORY', 'COGS', 'INVENTORY_VARIANCE'],
-  },
-  {
-    title: 'Pendapatan',
-    description: 'Akun pendapatan usaha, jasa, diskon, dan retur',
-    roles: ['SALES', 'SERVICE_REVENUE', 'SALES_DISCOUNT', 'SALES_RETURN'],
-  },
-  {
-    title: 'Pajak',
-    description: 'Akun PPN masukan/keluaran dan beban pajak penghasilan',
-    roles: ['TAX_INPUT', 'TAX_OUTPUT', 'INCOME_TAX_EXPENSE'],
-  },
-  {
-    title: 'Uang Muka (Deposit)',
-    description: 'Akun uang muka pembelian dan penjualan',
-    roles: ['VENDOR_DEPOSIT', 'CUSTOMER_DEPOSIT'],
-  },
-  {
-    title: 'Produksi',
-    description: 'Akun biaya konversi dan selisih produksi',
-    roles: ['PRODUCTION_CONVERSION'],
-  },
-  {
-    title: 'Aset Tetap & Depresiasi',
-    description: 'Akun pencatatan aset tetap, akumulasi penyusutan, dan beban penyusutan',
-    roles: ['FIXED_ASSET', 'ACCUM_DEPRECIATION', 'DEPRECIATION_EXPENSE'],
-  },
-  {
-    title: 'Biaya Bank & Bunga',
-    description: 'Akun administrasi bank, bunga pinjaman, dan pendapatan bunga',
-    roles: ['BANK_CHARGE', 'INTEREST_EXPENSE', 'INTEREST_INCOME'],
-  },
-  {
-    title: 'Akrual & Dibayar Dimuka',
-    description: 'Akun biaya dibayar dimuka dan hutang beban akrual',
-    roles: ['PREPAID_EXPENSE', 'ACCRUED_EXPENSE'],
-  },
-  {
-    title: 'Selisih Kurs',
-    description: 'Akun laba/rugi selisih kurs terealisasi dan belum terealisasi',
-    roles: ['FX_GAIN_LOSS', 'FX_UNREALIZED'],
-  },
-  {
-    title: 'Pendapatan & Beban Lain-lain',
-    description: 'Akun pendapatan/beban di luar usaha utama',
-    roles: ['OTHER_INCOME', 'OTHER_EXPENSE', 'SHIPPING_EXPENSE', 'ROUNDING_ACCOUNT'],
-  },
-  {
-    title: 'Ekuitas',
-    description: 'Akun modal, laba ditahan, dan prive pemilik',
-    roles: ['OPENING_EQUITY', 'RETAINED_EARNINGS', 'CURRENT_PROFIT', 'OWNER_DRAWING'],
-  },
+type RoleGroupKey =
+  | 'cash'
+  | 'receivablesPayables'
+  | 'inventory'
+  | 'revenue'
+  | 'tax'
+  | 'deposits'
+  | 'production'
+  | 'fixedAssets'
+  | 'bank'
+  | 'accruals'
+  | 'fx'
+  | 'other'
+  | 'equity';
+
+/** Titles and descriptions live under systemAccountsTab.groups.<key>. */
+const ROLE_GROUPS: { key: RoleGroupKey; roles: string[] }[] = [
+  { key: 'cash', roles: ['CASH'] },
+  { key: 'receivablesPayables', roles: ['AR', 'AP', 'ALLOWANCE_DOUBTFUL', 'BAD_DEBT_EXPENSE'] },
+  { key: 'inventory', roles: ['INVENTORY', 'COGS', 'INVENTORY_VARIANCE'] },
+  { key: 'revenue', roles: ['SALES', 'SERVICE_REVENUE', 'SALES_DISCOUNT', 'SALES_RETURN'] },
+  { key: 'tax', roles: ['TAX_INPUT', 'TAX_OUTPUT', 'INCOME_TAX_EXPENSE'] },
+  { key: 'deposits', roles: ['VENDOR_DEPOSIT', 'CUSTOMER_DEPOSIT'] },
+  { key: 'production', roles: ['PRODUCTION_CONVERSION'] },
+  { key: 'fixedAssets', roles: ['FIXED_ASSET', 'ACCUM_DEPRECIATION', 'DEPRECIATION_EXPENSE'] },
+  { key: 'bank', roles: ['BANK_CHARGE', 'INTEREST_EXPENSE', 'INTEREST_INCOME'] },
+  { key: 'accruals', roles: ['PREPAID_EXPENSE', 'ACCRUED_EXPENSE'] },
+  { key: 'fx', roles: ['FX_GAIN_LOSS', 'FX_UNREALIZED'] },
+  { key: 'other', roles: ['OTHER_INCOME', 'OTHER_EXPENSE', 'SHIPPING_EXPENSE', 'ROUNDING_ACCOUNT'] },
+  { key: 'equity', roles: ['OPENING_EQUITY', 'RETAINED_EARNINGS', 'CURRENT_PROFIT', 'OWNER_DRAWING'] },
 ];
 
 export const SystemAccountsTab: React.FC = () => {
+  const { t } = useTranslation('finance');
   const queryClient = useQueryClient();
   const [editState, setEditState] = useState<Record<string, string[]>>({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -176,7 +142,7 @@ export const SystemAccountsTab: React.FC = () => {
           // Role dikosongkan → minta backend lepas. Role wajib tidak boleh dikosongkan.
           const meta = getRoleMeta(role);
           if (meta?.required) {
-            throw new Error(`Role "${meta.label}" wajib. Pilih akun lain, tidak boleh dikosongkan.`);
+            throw new Error(t('systemAccountsTab.errors.requiredRole', { role: meta.label }));
           }
           clearRoles.push(role);
         } else {
@@ -192,10 +158,10 @@ export const SystemAccountsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['system-accounts'] });
       setEditState({});
       setHasChanges(false);
-      toast.success('Konfigurasi akun sistem disimpan.');
+      toast.success(t('systemAccountsTab.toast.saved'));
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || error.message || 'Gagal menyimpan konfigurasi.');
+      toast.error(error.response?.data?.error || error.message || t('systemAccountsTab.toast.saveFailed'));
     },
   });
 
@@ -236,9 +202,14 @@ export const SystemAccountsTab: React.FC = () => {
 
   // Filter groups/roles by search
   const filteredGroups = useMemo(() => {
-    if (!searchTerm) return ROLE_GROUPS;
+    const groups = ROLE_GROUPS.map((group) => ({
+      ...group,
+      title: t(`systemAccountsTab.groups.${group.key}.title`),
+      description: t(`systemAccountsTab.groups.${group.key}.description`),
+    }));
+    if (!searchTerm) return groups;
     const q = searchTerm.toLowerCase();
-    return ROLE_GROUPS.map((group) => ({
+    return groups.map((group) => ({
       ...group,
       roles: group.roles.filter((roleKey) => {
         const meta = data?.roles.find((r) => r.key === roleKey);
@@ -251,19 +222,19 @@ export const SystemAccountsTab: React.FC = () => {
         );
       }),
     })).filter((group) => group.roles.length > 0);
-  }, [searchTerm, data]);
+  }, [searchTerm, data, t]);
 
   if (isLoading) {
-    return <LoadingState label="Memuat akun sistem…" />;
+    return <LoadingState label={t('systemAccountsTab.loading')} />;
   }
 
   if (isError) {
     return (
       <EmptyState
         kind="error"
-        title="Akun sistem gagal dimuat"
-        description="Pemetaan akun tidak ditampilkan karena permintaan ke server gagal. Periksa koneksi lalu coba lagi."
-        action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+        title={t('systemAccountsTab.error.title')}
+        description={t('systemAccountsTab.error.description')}
+        action={<Button variant="outline" onClick={() => refetch()}>{t('systemAccountsTab.error.retry')}</Button>}
       />
     );
   }
@@ -273,9 +244,9 @@ export const SystemAccountsTab: React.FC = () => {
       {/* Header with stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Akun Sistem</h2>
+          <h2 className="text-base font-semibold text-foreground">{t('systemAccountsTab.title')}</h2>
           <p className="text-sm text-muted-foreground">
-            Konfigurasi akun COA yang digunakan sistem untuk auto GL posting.
+            {t('systemAccountsTab.description')}
           </p>
         </div>
         {hasChanges && (
@@ -285,7 +256,7 @@ export const SystemAccountsTab: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover disabled:opacity-50"
           >
             {saveMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-            Simpan Perubahan
+            {t('systemAccountsTab.save')}
           </button>
         )}
       </div>
@@ -293,15 +264,15 @@ export const SystemAccountsTab: React.FC = () => {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-card border border-border rounded-lg p-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Role</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('systemAccountsTab.stats.total')}</p>
           <p className="text-xl font-bold text-foreground mt-0.5">{stats.total}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Terkonfigurasi</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('systemAccountsTab.stats.configured')}</p>
           <p className="text-xl font-bold text-success-text mt-0.5">{stats.configured}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wajib</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('systemAccountsTab.stats.required')}</p>
           <p className="text-xl font-bold text-primary mt-0.5">{stats.requiredConfigured}/{stats.required}</p>
         </div>
         <div className={cn(
@@ -310,17 +281,17 @@ export const SystemAccountsTab: React.FC = () => {
             ? 'bg-success-subtle border-success/30'
             : 'bg-warning-subtle border-warning/30'
         )}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('systemAccountsTab.stats.status')}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             {stats.requiredConfigured === stats.required ? (
               <>
                 <CheckCircle2 size={16} className="text-success-text" />
-                <span className="text-sm font-semibold text-success-text">Lengkap</span>
+                <span className="text-sm font-semibold text-success-text">{t('systemAccountsTab.stats.complete')}</span>
               </>
             ) : (
               <>
                 <AlertTriangle size={16} className="text-warning-text" />
-                <span className="text-sm font-semibold text-warning-text">Belum Lengkap</span>
+                <span className="text-sm font-semibold text-warning-text">{t('systemAccountsTab.stats.incomplete')}</span>
               </>
             )}
           </div>
@@ -332,7 +303,7 @@ export const SystemAccountsTab: React.FC = () => {
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Cari role akun..."
+          placeholder={t('systemAccountsTab.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
@@ -341,14 +312,14 @@ export const SystemAccountsTab: React.FC = () => {
 
       {/* Groups */}
       {filteredGroups.map((group) => {
-        const isCollapsed = collapsedGroups.has(group.title);
+        const isCollapsed = collapsedGroups.has(group.key);
         const groupStatus = getGroupStatus(group.roles);
 
         return (
-          <div key={group.title} className="bg-card rounded-xl border border-border overflow-hidden">
+          <div key={group.key} className="bg-card rounded-xl border border-border overflow-hidden">
             {/* Group header */}
             <button
-              onClick={() => toggleGroup(group.title)}
+              onClick={() => toggleGroup(group.key)}
               className="w-full flex items-center justify-between px-4 py-3 bg-muted border-b border-border hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-2.5">
@@ -402,12 +373,12 @@ export const SystemAccountsTab: React.FC = () => {
                             <span className="text-sm font-medium text-foreground">{meta.label}</span>
                             {meta.required && (
                               <span className="text-xs font-medium text-primary bg-primary-subtle px-1.5 py-0.5 rounded">
-                                Wajib
+                                {t('systemAccountsTab.required')}
                               </span>
                             )}
                             {meta.multiAccount && (
                               <span className="text-xs font-medium text-primary-subtle-foreground bg-primary-subtle px-1.5 py-0.5 rounded">
-                                Multi
+                                {t('systemAccountsTab.multi')}
                               </span>
                             )}
                             <span className="text-xs font-mono text-muted-foreground uppercase">
@@ -427,9 +398,9 @@ export const SystemAccountsTab: React.FC = () => {
                                   <div key={`${accId}-${idx}`} className="flex items-center gap-1">
                                     <ComboboxFilter
                                       className="flex-1"
-                                      label={`Akun untuk ${meta.label} ${idx + 1}`}
+                                      label={t('systemAccountsTab.accountFor', { role: meta.label, n: idx + 1 })}
                                       value={accId}
-                                      allLabel="-- Pilih Akun --"
+                                      allLabel={t('systemAccountsTab.chooseAccount')}
                                       options={[
                                         { value: accId, label: acc ? `${acc.accountNumber} - ${acc.name}` : accId },
                                         ...filteredAccounts
@@ -458,13 +429,13 @@ export const SystemAccountsTab: React.FC = () => {
                                   if (unused) {
                                     updateRole(roleKey, [...selectedIds, unused.id]);
                                   } else {
-                                    toast.error('Tidak ada akun tersedia untuk ditambahkan.');
+                                    toast.error(t('systemAccountsTab.toast.noAccountAvailable'));
                                   }
                                 }}
                                 className="flex items-center gap-1 text-xs text-primary hover:underline transition-colors"
                               >
                                 <Plus size={12} />
-                                Tambah Akun
+                                {t('systemAccountsTab.addAccount')}
                               </button>
                             </div>
                           ) : (
@@ -472,9 +443,9 @@ export const SystemAccountsTab: React.FC = () => {
                             <div className="space-y-1">
                               <ComboboxFilter
                                 className={cn(isMissing && '[&_button]:border-warning-border [&_button]:bg-warning-subtle')}
-                                label={`Akun untuk ${meta.label}`}
+                                label={t('systemAccountsTab.accountForSingle', { role: meta.label })}
                                 value={selectedIds[0] ?? ''}
-                                allLabel="-- Pilih Akun --"
+                                allLabel={t('systemAccountsTab.chooseAccount')}
                                 options={filteredAccounts.map((acc) => ({
                                   value: acc.id,
                                   label: `${acc.accountNumber} - ${acc.name}`,
@@ -485,10 +456,10 @@ export const SystemAccountsTab: React.FC = () => {
                                 <button
                                   onClick={() => updateRole(roleKey, [])}
                                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-danger-text transition-colors"
-                                  title="Lepas akun dari role ini"
+                                  title={t('systemAccountsTab.unassignTitle')}
                                 >
                                   <X size={12} />
-                                  Lepas
+                                  {t('systemAccountsTab.unassign')}
                                 </button>
                               )}
                             </div>
@@ -509,7 +480,7 @@ export const SystemAccountsTab: React.FC = () => {
         <div className="fixed bottom-6 right-6 z-50">
           <Button size="lg" onClick={() => saveMutation.mutate()} loading={saveMutation.isPending} className="shadow-[var(--shadow-3)]">
             {!saveMutation.isPending && <Save aria-hidden />}
-            Simpan Perubahan
+            {t('systemAccountsTab.save')}
           </Button>
         </div>
       )}

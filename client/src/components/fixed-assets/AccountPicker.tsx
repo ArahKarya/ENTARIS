@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ComboField } from './ComboField';
 
 export interface AccountOption {
@@ -21,7 +22,8 @@ interface AccountPickerProps {
 }
 
 /** Searchable chart-of-accounts picker for forms ("1.6.3 — Kendaraan"). */
-export function AccountPicker({ accounts, placeholder = 'Pilih akun…', ...props }: AccountPickerProps) {
+export function AccountPicker({ accounts, placeholder, ...props }: AccountPickerProps) {
+  const { t } = useTranslation('finance');
   const options = useMemo(
     () => accounts.map((a) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` })),
     [accounts],
@@ -30,8 +32,8 @@ export function AccountPicker({ accounts, placeholder = 'Pilih akun…', ...prop
     <ComboField
       {...props}
       options={options}
-      placeholder={placeholder}
-      searchPlaceholder="Cari nomor atau nama akun…"
+      placeholder={placeholder ?? t('accountPicker.placeholder')}
+      searchPlaceholder={t('accountPicker.search')}
     />
   );
 }

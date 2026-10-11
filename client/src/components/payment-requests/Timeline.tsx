@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatDateTime } from '@/lib/format';
 import { getStatusLabel } from '@/lib/status';
 import { cn } from '@/lib/utils';
@@ -15,7 +16,8 @@ const TONE: Record<string, string> = {
 
 /** Vertical history of a payment request (oldest first). */
 export function Timeline({ items }: { items: PaymentRequestHistory[] }) {
-  if (items.length === 0) return <p className="text-sm text-muted-foreground">Belum ada riwayat.</p>;
+  const { t } = useTranslation('finance');
+  if (items.length === 0) return <p className="text-sm text-muted-foreground">{t('timeline.empty')}</p>;
   return (
     <ol className="relative space-y-4 border-l border-border pl-5">
       {items.map((h) => (
