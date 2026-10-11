@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { pdf } from '@react-pdf/renderer';
 import { AlertTriangle, Boxes, FileDown, Loader2, Package, Wallet, Warehouse as WarehouseIcon } from 'lucide-react';
@@ -64,15 +65,9 @@ interface StockRow extends SnapshotItem {
 }
 
 const FILTER_KEYS = ['warehouse', 'date', 'category', 'stock'] as const;
-const STOCK_FILTER = [
-  { value: 'negative', label: 'Stok negatif' },
-  { value: 'positive', label: 'Stok positif' },
-];
-const CATEGORY_OPTIONS = [...CATEGORY_ORDER, 'Lainnya'].map((c) => ({
-  value: c,
-  label: c,
-}));
-const CATEGORY_RANK = new Map(CATEGORY_OPTIONS.map((o, i) => [o.value, i]));
+/** Category filter values (group labels from lib/stockCategories, matched against row.categoryLabel). */
+const CATEGORY_VALUES = [...CATEGORY_ORDER, 'Lainnya'];
+const CATEGORY_RANK = new Map(CATEGORY_VALUES.map((c, i) => [c, i]));
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Today as a local calendar date (YYYY-MM-DD), not the UTC day. */
@@ -105,6 +100,7 @@ function toRows(snapshot: StockSnapshotResponse | undefined): StockRow[] {
 }
 
 function StockQty({ row }: { row: StockRow }) {
+  const { t } = useTranslation('dashboard');
   const negative = row.qty < 0;
   return (
     <div className="flex flex-col items-end">
@@ -118,7 +114,7 @@ function StockQty({ row }: { row: StockRow }) {
         {formatNumber(row.qty, { maxDecimals: 3 })}
         <span className="text-xs font-normal text-muted-foreground">{row.unit}</span>
       </span>
-      {negative && <span className="text-[11px] font-medium leading-4 text-danger-text">Stok negatif</span>}
+      {negative && <span className="text-[11px] font-medium leading-4 text-danger-text">{t('warehouseStock.negativeStock')}</span>}
       {/* Mobile: value stacked here because its column is hidden. */}
       <span className="text-xs text-muted-foreground sm:hidden">{formatRupiah(row.value)}</span>
     </div>
@@ -126,6 +122,12 @@ function StockQty({ row }: { row: StockRow }) {
 }
 
 export const WarehouseStockDashboard = () => {
+  const { t } = useTranslation('dashboard');
+  const stockFilter = [
+    { value: 'negative', label: t('warehouseStock.negativeStock') },
+    { value: 'positive', label: t('warehouseStock.positiveStock') },
+  ];
+  const categoryOptions = CATEGORY_VALUES.map((c) => ({ value: c, label: c === 'Lainnya' ? t('warehouseStock.otherCategory') : c }));
   const list = useListState({ filters: FILTER_KEYS });
   const [density, setDensity] = useTableDensity();
   const [isDownloading, setIsDownloading] = useState(false);
@@ -182,10 +184,10 @@ export const WarehouseStockDashboard = () => {
     () =>
       (warehousesQuery.data ?? []).map((w) => ({
         value: w.id,
-        label: w.isDefault ? `${w.name} (default)` : w.name,
+        label: w.isDefault ? `${w.name} ${t('warehouseStock.default')}` : w.name,
         hint: w.code,
       })),
-    [warehousesQuery.data],
+    [warehousesQuery.data, t],
   );
   const showWarehouseColumn = !warehouseId && (snapshot?.warehouses.length ?? 0) > 1;
   // Only search/category/stock narrow the rows; warehouse + date define the scope.
@@ -197,7 +199,7 @@ export const WarehouseStockDashboard = () => {
       {
         id: 'name',
         accessorFn: (r) => r.name,
-        header: 'Item',
+        header: t('widgetsShared.item'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36 max-w-48 sm:max-w-80' },
         cell: ({ row }) => {
@@ -218,7 +220,7 @@ export const WarehouseStockDashboard = () => {
       {
         id: 'category',
         accessorFn: (r) => CATEGORY_RANK.get(r.categoryLabel) ?? 99,
-        header: 'Kategori',
+        header: t('widgetsShared.category'),
         enableSorting: true,
         meta: {
           hideBelow: 'lg',
@@ -229,7 +231,7 @@ export const WarehouseStockDashboard = () => {
       {
         id: 'warehouse',
         accessorFn: (r) => r.warehouseName,
-        header: 'Gudang',
+        header: t('inventoryTab.warehouse'),
         enableSorting: true,
         meta: {
           hideBelow: 'md',
@@ -240,7 +242,7 @@ export const WarehouseStockDashboard = () => {
       {
         id: 'qty',
         accessorFn: (r) => r.qty,
-        header: 'Stok',
+        header: t('widgetsShared.stock'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -249,7 +251,7 @@ export const WarehouseStockDashboard = () => {
       {
         id: 'averageCost',
         accessorFn: (r) => r.averageCost,
-        header: 'Avg. Cost (Rp)',
+        header: t('warehouseStock.avgCost'),
         enableSorting: true,
         sortDescFirst: true,
         meta: {
@@ -263,7 +265,7 @@ export const WarehouseStockDashboard = () => {
       {
         id: 'value',
         accessorFn: (r) => r.value,
-        header: 'Nilai (Rp)',
+        header: t('warehouseStock.valueRp'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -275,7 +277,7 @@ export const WarehouseStockDashboard = () => {
       },
     ];
     return showWarehouseColumn ? all : all.filter((c) => c.id !== 'warehouse');
-  }, [showWarehouseColumn]);
+  }, [showWarehouseColumn, t]);
 
   // PDF of the stock position for the selected date (and warehouse, if any).
   const handleDownloadPDF = async () => {
@@ -308,7 +310,7 @@ export const WarehouseStockDashboard = () => {
           asOfDate={snap.asOfDate}
           valuationNote={snap.valuationNote}
           company={{
-            name: company?.companyName ?? 'Perusahaan',
+            name: company?.companyName ?? t('warehouseStock.companyFallback'),
             address: company?.address,
             logoUrl: company?.logoUrl,
           }}
@@ -324,7 +326,7 @@ export const WarehouseStockDashboard = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error(errorMessage(e, 'Gagal membuat PDF.'));
+      toast.error(errorMessage(e, t('warehouseStock.pdfFailed')));
     } finally {
       setIsDownloading(false);
     }
@@ -332,57 +334,57 @@ export const WarehouseStockDashboard = () => {
 
   const noWarehouses = !!snapshot && snapshot.warehouses.length === 0;
   const scopeLabel = warehouseId
-    ? (snapshot?.warehouses[0]?.name ?? 'gudang terpilih')
-    : `${formatNumber(summary?.warehouses ?? 0)} gudang aktif`;
+    ? (snapshot?.warehouses[0]?.name ?? t('warehouseStock.selectedWarehouse'))
+    : t('warehouseStock.activeWarehouses', { count: summary?.warehouses ?? 0, formatted: formatNumber(summary?.warehouses ?? 0) });
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Stok per Gudang"
-        description="Posisi stok per gudang pada akhir tanggal terpilih. Item dengan stok 0 tidak ditampilkan."
+        title={t('warehouseStock.title')}
+        description={t('warehouseStock.description')}
         actions={
           <Button
             onClick={handleDownloadPDF}
             disabled={isDownloading || !snapshot || noWarehouses}
-            title="Unduh posisi stok per tanggal terpilih"
+            title={t('warehouseStock.downloadTitle')}
           >
             {isDownloading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
-            Unduh PDF
+            {t('warehouseStock.downloadPdf')}
           </Button>
         }
       />
 
-      <section aria-label="Ringkasan stok" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('warehouseKpi.title')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Gudang"
+          label={t('inventoryTab.warehouse')}
           icon={WarehouseIcon}
           loading={!summary && !snapshotQuery.isError}
           value={summary ? formatNumber(summary.warehouses) : '—'}
-          hint={warehouseId ? scopeLabel : 'gudang aktif'}
+          hint={warehouseId ? scopeLabel : t('warehouseStock.activeWarehouseHint')}
         />
         <StatCard
-          label="Item Bersaldo"
+          label={t('warehouseStock.itemsWithBalance')}
           icon={Package}
           loading={!summary && !snapshotQuery.isError}
           value={summary ? formatNumber(summary.items) : '—'}
           hint={
-            summary && summary.rows !== summary.items ? `${formatNumber(summary.rows)} saldo per gudang` : 'jenis item'
+            summary && summary.rows !== summary.items ? t('warehouseStock.balancesPerWarehouse', { value: formatNumber(summary.rows) }) : t('warehouseStock.itemTypes')
           }
         />
         <StatCard
-          label="Nilai Persediaan"
+          label={t('kpiCards.inventoryValue')}
           icon={Wallet}
           loading={!summary && !snapshotQuery.isError}
           value={summary ? formatRupiah(summary.value, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.value) : undefined}
-          hint="estimasi avg cost terkini"
+          hint={t('warehouseStock.valueHint')}
         />
         <StatCard
-          label="Stok Negatif"
+          label={t('warehouseStock.negativeStockTitle')}
           icon={summary?.negative ? AlertTriangle : Boxes}
           loading={!summary && !snapshotQuery.isError}
           value={summary ? formatNumber(summary.negative) : '—'}
-          hint={summary ? (summary.negative > 0 ? 'perlu ditindaklanjuti' : 'tidak ada') : undefined}
+          hint={summary ? (summary.negative > 0 ? t('warehouseStock.needsFollowUp') : t('warehouseStock.none')) : undefined}
           className={summary && summary.negative > 0 ? 'border-danger/40' : undefined}
         />
       </section>
@@ -390,19 +392,19 @@ export const WarehouseStockDashboard = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari item"
-          searchPlaceholder="Cari nama atau kode item"
+          searchLabel={t('warehouseStock.searchLabel')}
+          searchPlaceholder={t('warehouseStock.searchPlaceholder')}
           status={{
-            options: STOCK_FILTER,
+            options: stockFilter,
             key: 'stock',
-            label: 'Kondisi stok',
-            allLabel: 'Semua stok',
+            label: t('warehouseStock.stockCondition'),
+            allLabel: t('warehouseStock.allStock'),
           }}
         >
           <ComboboxFilter
-            label="Gudang"
-            allLabel="Semua gudang"
-            searchPlaceholder="Cari gudang…"
+            label={t('inventoryTab.warehouse')}
+            allLabel={t('warehouseStock.allWarehouses')}
+            searchPlaceholder={t('warehouseStock.searchWarehouse')}
             value={warehouseId}
             onChange={(v) => list.setFilter('warehouse', v)}
             options={warehouseOptions}
@@ -410,12 +412,12 @@ export const WarehouseStockDashboard = () => {
             className="w-[calc(50%-0.25rem)] sm:w-48"
           />
           <ComboboxFilter
-            label="Kategori"
-            allLabel="Semua kategori"
-            searchPlaceholder="Cari kategori…"
+            label={t('widgetsShared.category')}
+            allLabel={t('warehouseStock.allCategories')}
+            searchPlaceholder={t('warehouseStock.searchCategory')}
             value={filters.category}
             onChange={(v) => list.setFilter('category', v)}
-            options={CATEGORY_OPTIONS}
+            options={categoryOptions}
             className="w-[calc(50%-0.25rem)] sm:w-40"
           />
           <div className="flex w-[calc(50%-0.25rem)] items-center gap-2 sm:w-auto">
@@ -423,7 +425,7 @@ export const WarehouseStockDashboard = () => {
               htmlFor="stock-as-of"
               className="sr-only whitespace-nowrap text-sm text-muted-foreground sm:not-sr-only"
             >
-              Posisi per
+              {t('warehouseStock.asOf')}
             </label>
             <DateInput
               id="stock-as-of"
@@ -437,8 +439,8 @@ export const WarehouseStockDashboard = () => {
         </FilterBar>
 
         <DataTable
-          label={`Stok per gudang per ${formatDate(asOfDate)}`}
-          itemLabel="saldo"
+          label={t('warehouseStock.tableLabel', { date: formatDate(asOfDate) })}
+          itemLabel={t('warehouseStock.itemLabel')}
           columns={columns}
           data={snapshot ? rows : undefined}
           getRowId={(row) => row.key}
@@ -458,17 +460,17 @@ export const WarehouseStockDashboard = () => {
           empty={
             noWarehouses
               ? {
-                  title: 'Belum ada gudang aktif',
-                  description: 'Aktifkan atau tambahkan gudang untuk melihat stok per lokasi.',
+                  title: t('warehouseStock.noWarehousesTitle'),
+                  description: t('warehouseStock.noWarehousesDescription'),
                   action: can('warehouse', 'view') ? (
                     <Button size="sm" variant="outline" asChild>
-                      <Link to="/warehouses">Buka Daftar Gudang</Link>
+                      <Link to="/warehouses">{t('warehouseStock.openWarehouses')}</Link>
                     </Button>
                   ) : undefined,
                 }
               : {
-                  title: isToday ? 'Belum ada stok' : `Tidak ada stok per ${formatDate(asOfDate)}`,
-                  description: 'Saldo stok akan muncul setelah ada penerimaan barang atau pergerakan stok.',
+                  title: isToday ? t('warehouseStock.emptyTitle') : t('warehouseStock.emptyTitleAsOf', { date: formatDate(asOfDate) }),
+                  description: t('warehouseStock.emptyDescription'),
                 }
           }
         />
@@ -476,7 +478,7 @@ export const WarehouseStockDashboard = () => {
         {snapshot?.valuationNote && (
           <p className="text-xs text-muted-foreground">
             {snapshot.valuationNote}
-            {!isToday && ' Posisi historis dihitung mundur dari stok terkini.'}
+            {!isToday && ` ${t('warehouseStock.historicalNote')}`}
           </p>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Clock } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -37,6 +38,7 @@ function Bar({ buckets, total, label }: { buckets: AgingBucket[]; total: number;
 }
 
 export default function AgingSummary() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<AgingData>({
     queryKey: ['aging-summary'],
     queryFn: async () => (await api.get('/dashboard/aging-summary')).data,
@@ -44,10 +46,10 @@ export default function AgingSummary() {
 
   return (
     <WidgetCard
-      title="Umur Piutang & Utang"
+      title={t('agingSummary.title')}
       icon={Clock}
       href="/reports/aging-ar"
-      hrefLabel="Detail"
+      hrefLabel={t('widgetsShared.detail')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
@@ -56,8 +58,8 @@ export default function AgingSummary() {
       {data && (
         <div className="space-y-4">
           {([
-            ['Piutang (AR)', data.receivable, data.totalReceivable],
-            ['Hutang (AP)', data.payable, data.totalPayable],
+            [t('agingSummary.ar'), data.receivable, data.totalReceivable],
+            [t('agingSummary.ap'), data.payable, data.totalPayable],
           ] as const).map(([label, buckets, total]) => (
             <div key={label}>
               <div className="mb-1.5 flex items-center justify-between">
@@ -67,14 +69,14 @@ export default function AgingSummary() {
               <Bar buckets={buckets} total={total} label={label} />
             </div>
           ))}
-          <ScrollRegion label="Rincian umur piutang dan utang" className="overflow-x-auto border border-border">
+          <ScrollRegion label={t('agingSummary.detailLabel')} className="overflow-x-auto border border-border">
             <table className="w-full min-w-[320px] border-collapse text-xs">
-              <caption className="sr-only">Umur piutang dan utang per kelompok hari</caption>
+              <caption className="sr-only">{t('agingSummary.caption')}</caption>
               <thead className="bg-muted text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-3 py-1.5 text-left font-medium">Umur</th>
-                  <th scope="col" className="px-3 py-1.5 text-right font-medium">Piutang</th>
-                  <th scope="col" className="px-3 py-1.5 text-right font-medium">Hutang</th>
+                  <th scope="col" className="px-3 py-1.5 text-left font-medium">{t('agingSummary.age')}</th>
+                  <th scope="col" className="px-3 py-1.5 text-right font-medium">{t('agingSummary.receivable')}</th>
+                  <th scope="col" className="px-3 py-1.5 text-right font-medium">{t('agingSummary.payable')}</th>
                 </tr>
               </thead>
               <tbody>

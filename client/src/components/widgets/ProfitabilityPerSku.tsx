@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
 import { Calculator, TrendingDown, TrendingUp } from 'lucide-react';
 import api from '../../lib/api';
-import { formatRupiah } from '@/lib/format';
+import { formatNumber, formatRupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
@@ -34,10 +35,11 @@ interface Props {
   endDate: string;
 }
 
-const fmtPct = (n: number) => `${n.toFixed(1)}%`;
+const fmtPct = (n: number) => `${formatNumber(n, { decimals: 1 })}%`;
 const marginTone = (p: number) => (p >= 20 ? 'text-success-text' : p >= 0 ? 'text-warning-text' : 'text-danger-text');
 
 export default function ProfitabilityPerSku({ startDate, endDate }: Props) {
+  const { t } = useTranslation('dashboard');
   const primary = useQuery<ApiResponse>({
     queryKey: ['dashboard-profitability-per-sku', startDate, endDate],
     queryFn: async () => (await api.get('/reports/profitability-per-sku', { params: { startDate, endDate } })).data,
@@ -56,30 +58,30 @@ export default function ProfitabilityPerSku({ startDate, endDate }: Props) {
 
   return (
     <WidgetCard
-      title="Profitabilitas per SKU"
+      title={t('profitabilityPerSku.title')}
       description={
         usingFallback
-          ? 'Data terakhir: 12 bulan terakhir (tidak ada penjualan pada periode terpilih)'
-          : 'Margin material vs loaded HPP (10 teratas berdasarkan pendapatan)'
+          ? t('profitabilityPerSku.fallbackDescription')
+          : t('profitabilityPerSku.description')
       }
       icon={Calculator}
       href="/reports/profitability-per-sku"
-      hrefLabel="Laporan lengkap"
+      hrefLabel={t('profitabilityPerSku.fullReport')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && rows.length === 0 && !fallback.isLoading}
       emptyIcon={Calculator}
-      emptyText="Belum ada penjualan terkait inventory pada periode ini"
+      emptyText={t('profitabilityPerSku.empty')}
       minHeight={240}
     >
       {data && (
         <>
           <dl className="mb-3 grid grid-cols-3 gap-2 text-center">
             {[
-              ['Pendapatan', formatRupiah(data.summary.totalRevenue, { compact: true }), 'text-foreground'],
-              ['Margin material', fmtPct(data.summary.materialMarginPct), marginTone(data.summary.materialMarginPct)],
-              ['Margin loaded', fmtPct(data.summary.loadedMarginPct), marginTone(data.summary.loadedMarginPct)],
+              [t('profitabilityPerSku.revenue'), formatRupiah(data.summary.totalRevenue, { compact: true }), 'text-foreground'],
+              [t('profitabilityPerSku.materialMargin'), fmtPct(data.summary.materialMarginPct), marginTone(data.summary.materialMarginPct)],
+              [t('profitabilityPerSku.loadedMargin'), fmtPct(data.summary.loadedMarginPct), marginTone(data.summary.loadedMarginPct)],
             ].map(([k, v, tone]) => (
               <div key={k} className="rounded-md border border-border px-2 py-2">
                 <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</dt>
@@ -88,16 +90,16 @@ export default function ProfitabilityPerSku({ startDate, endDate }: Props) {
             ))}
           </dl>
           <MiniTable
-            caption="Profitabilitas per SKU"
+            caption={t('profitabilityPerSku.title')}
             maxHeightClass="max-h-96"
             rows={rows}
             rowKey={(r) => r.itemId}
             columns={[
-              { key: 'name', label: 'Produk' },
-              { key: 'rev', label: 'Pendapatan', numeric: true, hideOnMobile: true },
-              { key: 'mat', label: 'Mat %', numeric: true },
-              { key: 'loaded', label: 'Loaded %', numeric: true },
-              { key: 'cov', label: 'Cakupan', numeric: true, hideOnMobile: true },
+              { key: 'name', label: t('profitabilityPerSku.product') },
+              { key: 'rev', label: t('profitabilityPerSku.revenue'), numeric: true, hideOnMobile: true },
+              { key: 'mat', label: t('profitabilityPerSku.matPct'), numeric: true },
+              { key: 'loaded', label: t('profitabilityPerSku.loadedPct'), numeric: true },
+              { key: 'cov', label: t('profitabilityPerSku.coverage'), numeric: true, hideOnMobile: true },
             ]}
             cell={(r, k) => {
               switch (k) {
@@ -127,7 +129,7 @@ export default function ProfitabilityPerSku({ startDate, endDate }: Props) {
             }}
           />
           <p className="mt-2 text-[11px] text-muted-foreground">
-            <span className="font-semibold">Cakupan</span> = persentase baris yang terhubung ke batch. 100% berarti margin loaded paling akurat.
+            <Trans t={t} i18nKey="profitabilityPerSku.coverageNote" components={{ b: <span className="font-semibold" /> }} />
           </p>
         </>
       )}

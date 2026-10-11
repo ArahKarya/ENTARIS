@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, BellRing, CheckCircle2, FileWarning, PackageX, ShieldCheck, Truck, Wrench, type LucideIcon } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -55,6 +56,7 @@ interface Props {
  * Finance-only sources follow the same gating as their widgets.
  */
 export default function AttentionList({ canFinance, canApprovals, canMaintenance = false }: Props) {
+  const { t } = useTranslation('dashboard');
   const overdue = useQuery<OverdueItem[]>({
     queryKey: ['dashboard-overdue'],
     queryFn: async () => (await api.get('/dashboard/overdue')).data,
@@ -102,8 +104,8 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
       key: 'ar',
       icon: FileWarning,
       tone: 'danger',
-      title: `${ar.length} faktur penjualan jatuh tempo`,
-      detail: `${formatRupiah(ar.reduce((s, o) => s + o.amount, 0), { compact: true })}, terlama ${oldest} hari`,
+      title: t('attentionList.arOverdue', { count: ar.length }),
+      detail: t('attentionList.overdueDetail', { amount: formatRupiah(ar.reduce((s, o) => s + o.amount, 0), { compact: true }), count: oldest }),
       href: '/reports/aging-ar',
     });
   }
@@ -113,8 +115,8 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
       key: 'ap',
       icon: FileWarning,
       tone: 'warning',
-      title: `${ap.length} faktur pembelian jatuh tempo`,
-      detail: `${formatRupiah(ap.reduce((s, o) => s + o.amount, 0), { compact: true })}, terlama ${oldest} hari`,
+      title: t('attentionList.apOverdue', { count: ap.length }),
+      detail: t('attentionList.overdueDetail', { amount: formatRupiah(ap.reduce((s, o) => s + o.amount, 0), { compact: true }), count: oldest }),
       href: '/reports/aging-ap',
     });
   }
@@ -125,8 +127,8 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
       key: 'stock',
       icon: PackageX,
       tone: outOfStock > 0 ? 'danger' : 'warning',
-      title: `${stock.data?.length ?? 0} item stok kritis`,
-      detail: `${outOfStock} habis, ${low} di bawah minimum`,
+      title: t('attentionList.stockCritical', { count: stock.data?.length ?? 0 }),
+      detail: t('attentionList.stockDetail', { out: outOfStock, low }),
       href: '/inventory',
     });
   }
@@ -135,8 +137,8 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
       key: 'negative',
       icon: PackageX,
       tone: 'danger',
-      title: `${negative.data?.length} item stok minus`,
-      detail: 'Input produksi/penerimaan agar stok kembali positif',
+      title: t('attentionList.negative', { count: negative.data?.length ?? 0 }),
+      detail: t('attentionList.negativeDetail'),
       href: '/inventory',
     });
   }
@@ -146,8 +148,8 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
       key: 'do',
       icon: Truck,
       tone: old > 0 ? 'warning' : 'info',
-      title: `${pendingDo.data?.length} surat jalan belum difakturkan`,
-      detail: old > 0 ? `${old} sudah 5 hari atau lebih` : 'Belum ada yang lewat 5 hari',
+      title: t('attentionList.pendingDo', { count: pendingDo.data?.length ?? 0 }),
+      detail: old > 0 ? t('attentionList.pendingDoOld', { count: old }) : t('attentionList.pendingDoFresh'),
       href: '/delivery-orders',
     });
   }
@@ -156,8 +158,8 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
       key: 'approval',
       icon: ShieldCheck,
       tone: 'info',
-      title: `${approvals.data?.length} pengajuan menunggu persetujuan`,
-      detail: 'Buka kotak masuk persetujuan',
+      title: t('attentionList.approvals', { count: approvals.data?.length ?? 0 }),
+      detail: t('attentionList.approvalsDetail'),
       href: '/approvals',
     });
   }
@@ -175,18 +177,18 @@ export default function AttentionList({ canFinance, canApprovals, canMaintenance
 
   return (
     <WidgetCard
-      title="Perlu Perhatian"
-      description="Hal yang butuh tindakan hari ini"
+      title={t('attentionList.title')}
+      description={t('attentionList.description')}
       icon={BellRing}
       isLoading={isLoading}
       isError={isError && rows.length === 0}
       onRetry={() => queries.forEach((q) => void q.refetch())}
       isEmpty={rows.length === 0}
       emptyIcon={CheckCircle2}
-      emptyText="Tidak ada yang perlu ditindaklanjuti"
+      emptyText={t('attentionList.empty')}
       minHeight={140}
     >
-      <ScrollRegion label="Daftar hal yang perlu perhatian" className="max-h-[19rem] overflow-y-auto">
+      <ScrollRegion label={t('attentionList.listLabel')} className="max-h-[19rem] overflow-y-auto">
       <ul className="divide-y divide-border">
         {rows.map(({ key, icon: Icon, tone, title, detail, href }) => (
           <li key={key}>

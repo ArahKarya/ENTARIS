@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Landmark, Wallet } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -17,6 +18,7 @@ interface CashPositionData {
 }
 
 export default function CashPositionWidget() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<CashPositionData>({
     queryKey: ['dashboard-cash-position'],
     queryFn: async () => (await api.get('/dashboard/cash-position')).data,
@@ -24,17 +26,17 @@ export default function CashPositionWidget() {
 
   return (
     <WidgetCard
-      title="Posisi Kas & Bank"
-      description="Saldo per akun"
+      title={t('cashPosition.title')}
+      description={t('cashPosition.description')}
       icon={Wallet}
       href="/payments"
-      hrefLabel="Transaksi"
+      hrefLabel={t('cashPosition.transactions')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && data.accounts.length === 0}
       emptyIcon={Landmark}
-      emptyText="Belum ada akun kas/bank"
+      emptyText={t('cashPosition.empty')}
       minHeight={160}
     >
       {data && (
@@ -59,7 +61,7 @@ export default function CashPositionWidget() {
             })}
           </ul>
           <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('widgetsShared.total')}</span>
             <span className="num text-base font-semibold text-foreground">{formatRupiah(data.total, { negative: 'parens' })}</span>
           </div>
         </>

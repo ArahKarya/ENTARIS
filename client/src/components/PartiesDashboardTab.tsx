@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown, Wallet, Users, Store, CreditCard, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -60,12 +61,13 @@ interface DashboardData {
   recentPayments: RecentPayment[];
 }
 
-const AGING_LABELS = ['Belum Jatuh Tempo', '1-30 hari', '31-60 hari', '61-90 hari', '> 90 hari'];
+const AGING_LABEL_KEYS = ['partiesTab.aging.current', 'partiesTab.aging.d30', 'partiesTab.aging.d60', 'partiesTab.aging.d90', 'partiesTab.aging.over90'] as const;
 const AGING_COLORS = ['bg-success', 'bg-warning', 'bg-warning/60', 'bg-danger/60', 'bg-danger'];
 
 const PANEL = 'rounded-lg border border-border bg-card text-card-foreground shadow-[var(--shadow-1)]';
 
 function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
+  const { t } = useTranslation('dashboard');
   const buckets = [data.current, data.d30, data.d60, data.d90, data.over90];
   const total = buckets.reduce((s, v) => s + v, 0);
 
@@ -86,7 +88,7 @@ function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
                   key={i}
                   className={cn(AGING_COLORS[i], 'transition-all')}
                   style={{ width: `${pct}%` }}
-                  title={`${AGING_LABELS[i]}: ${formatRupiah(val)}`}
+                  title={`${t(AGING_LABEL_KEYS[i])}: ${formatRupiah(val)}`}
                 />
               );
             })}
@@ -95,34 +97,35 @@ function AgingBar({ data, label }: { data: AgingBucket; label: string }) {
             {buckets.map((val, i) => (
               <li key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className={cn('size-2 rounded-full', AGING_COLORS[i])} aria-hidden />
-                <span>{AGING_LABELS[i]}</span>
+                <span>{t(AGING_LABEL_KEYS[i])}</span>
                 <span className="num font-medium text-foreground">{formatRupiah(val)}</span>
               </li>
             ))}
           </ul>
         </>
       ) : (
-        <p className="text-xs text-muted-foreground">Tidak ada saldo terbuka saat ini.</p>
+        <p className="text-xs text-muted-foreground">{t('partiesTab.noOpenBalance')}</p>
       )}
     </div>
   );
 }
 
 export default function PartiesDashboardTab() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<DashboardData>({
     queryKey: ['parties-dashboard'],
     queryFn: () => api.get('/parties/dashboard').then(r => r.data),
   });
 
-  if (isLoading) return <LoadingState label="Memuat ringkasan mitra…" />;
+  if (isLoading) return <LoadingState label={t('partiesTab.loading')} />;
 
   if (isError || !data) {
     return (
       <EmptyState
         kind="error"
-        title="Ringkasan mitra gagal dimuat"
-        description="Permintaan ke server gagal. Periksa koneksi lalu coba lagi."
-        action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+        title={t('partiesTab.errorTitle')}
+        description={t('partiesTab.errorDescription')}
+        action={<Button variant="outline" onClick={() => refetch()}>{t('kit.widget.retry')}</Button>}
       />
     );
   }
@@ -133,34 +136,34 @@ export default function PartiesDashboardTab() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <KPICard icon={<Users size={16} />} label="Pelanggan Aktif" value={summary.totalCustomers.toString()} tone="primary" />
-        <KPICard icon={<Store size={16} />} label="Vendor Aktif" value={summary.totalSuppliers.toString()} tone="info" />
-        <KPICard icon={<TrendingUp size={16} />} label="Total Piutang" value={formatRupiah(summary.totalPiutang)} tone="danger" />
-        <KPICard icon={<TrendingDown size={16} />} label="Total Hutang" value={formatRupiah(summary.totalHutang)} tone="warning" />
-        <KPICard icon={<Wallet size={16} />} label="UM Pelanggan" value={formatRupiah(summary.totalCustomerDeposit)} tone="success" />
-        <KPICard icon={<CreditCard size={16} />} label="UM Vendor" value={formatRupiah(summary.totalVendorDeposit)} tone="neutral" />
+        <KPICard icon={<Users size={16} />} label={t('partiesTab.activeCustomers')} value={summary.totalCustomers.toString()} tone="primary" />
+        <KPICard icon={<Store size={16} />} label={t('partiesTab.activeSuppliers')} value={summary.totalSuppliers.toString()} tone="info" />
+        <KPICard icon={<TrendingUp size={16} />} label={t('partiesTab.totalReceivables')} value={formatRupiah(summary.totalPiutang)} tone="danger" />
+        <KPICard icon={<TrendingDown size={16} />} label={t('partiesTab.totalPayables')} value={formatRupiah(summary.totalHutang)} tone="warning" />
+        <KPICard icon={<Wallet size={16} />} label={t('partiesTab.customerDeposit')} value={formatRupiah(summary.totalCustomerDeposit)} tone="success" />
+        <KPICard icon={<CreditCard size={16} />} label={t('partiesTab.supplierDeposit')} value={formatRupiah(summary.totalVendorDeposit)} tone="neutral" />
       </div>
 
       {/* Aging Piutang & Hutang */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className={cn(PANEL, 'p-5')}>
-          <AgingBar data={data.agingPiutang} label="Aging Piutang" />
+          <AgingBar data={data.agingPiutang} label={t('partiesTab.agingAr')} />
         </div>
         <div className={cn(PANEL, 'p-5')}>
-          <AgingBar data={data.agingHutang} label="Aging Hutang" />
+          <AgingBar data={data.agingHutang} label={t('partiesTab.agingAp')} />
         </div>
       </div>
 
       {/* Top Customers & Vendors */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TopList
-          title="Top 10 Piutang Pelanggan"
+          title={t('partiesTab.topAr')}
           icon={<TrendingUp size={14} className="text-danger-text" aria-hidden />}
           items={data.topCustomers}
           barColor="bg-danger/60"
         />
         <TopList
-          title="Top 10 Hutang Vendor"
+          title={t('partiesTab.topAp')}
           icon={<TrendingDown size={14} className="text-warning-text" aria-hidden />}
           items={data.topVendors}
           barColor="bg-warning/70"
@@ -169,28 +172,28 @@ export default function PartiesDashboardTab() {
 
       {/* Aging Invoices (Overdue) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <OverdueTable title="Invoice Piutang Jatuh Tempo" invoices={data.agingPiutangInvoices} nameField="customerName" />
-        <OverdueTable title="Invoice Hutang Jatuh Tempo" invoices={data.agingHutangInvoices} nameField="supplierName" />
+        <OverdueTable title={t('partiesTab.overdueAr')} invoices={data.agingPiutangInvoices} nameField="customerName" />
+        <OverdueTable title={t('partiesTab.overdueAp')} invoices={data.agingHutangInvoices} nameField="supplierName" />
       </div>
 
       {/* Recent Payments */}
       <section className={cn(PANEL, 'overflow-hidden')} aria-labelledby="parties-recent-payments">
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
           <Clock size={14} className="text-muted-foreground" aria-hidden />
-          <h3 id="parties-recent-payments" className="text-sm font-semibold text-foreground">Pembayaran Terakhir</h3>
+          <h3 id="parties-recent-payments" className="text-sm font-semibold text-foreground">{t('partiesTab.recentPayments')}</h3>
         </div>
         {data.recentPayments.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">Belum ada pembayaran.</div>
+          <div className="p-6 text-center text-sm text-muted-foreground">{t('partiesTab.noPayments')}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>No. Pembayaran</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Mitra</TableHead>
-                <TableHead>Tipe</TableHead>
-                <TableHead>Akun</TableHead>
-                <TableHead className="text-right">Jumlah</TableHead>
+                <TableHead>{t('partiesTab.paymentNo')}</TableHead>
+                <TableHead>{t('widgetsShared.date')}</TableHead>
+                <TableHead>{t('partiesTab.partner')}</TableHead>
+                <TableHead>{t('recentMovements.type')}</TableHead>
+                <TableHead>{t('partiesTab.account')}</TableHead>
+                <TableHead className="text-right">{t('widgetsShared.amount')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,7 +204,7 @@ export default function PartiesDashboardTab() {
                   <TableCell className="font-medium">{p.partyName}</TableCell>
                   <TableCell>
                     <Badge variant={p.paymentType === 'Receive' ? 'success' : 'info'} className="uppercase">
-                      {p.paymentType === 'Receive' ? 'Terima' : 'Bayar'}
+                      {p.paymentType === 'Receive' ? t('partiesTab.receive') : t('partiesTab.pay')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{p.accountName}</TableCell>
@@ -239,6 +242,7 @@ function KPICard({ icon, label, value, tone }: { icon: React.ReactNode; label: s
 }
 
 function TopList({ title, icon, items, barColor }: { title: string; icon: React.ReactNode; items: TopParty[]; barColor: string }) {
+  const { t } = useTranslation('dashboard');
   const maxVal = items.length > 0 ? items[0].outstanding : 1;
 
   return (
@@ -248,7 +252,7 @@ function TopList({ title, icon, items, barColor }: { title: string; icon: React.
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Tidak ada saldo terbuka saat ini.</p>
+        <p className="text-xs text-muted-foreground">{t('partiesTab.noOpenBalance')}</p>
       ) : (
         <ol className="space-y-2.5">
           {items.map((item, i) => {
@@ -277,6 +281,7 @@ function TopList({ title, icon, items, barColor }: { title: string; icon: React.
 }
 
 function OverdueTable({ title, invoices, nameField }: { title: string; invoices: AgingInvoice[]; nameField: 'customerName' | 'supplierName' }) {
+  const { t } = useTranslation('dashboard');
   return (
     <section className={cn(PANEL, 'overflow-hidden')} aria-label={title}>
       <div className="flex items-center gap-2 border-b border-border px-5 py-4">
@@ -284,15 +289,15 @@ function OverdueTable({ title, invoices, nameField }: { title: string; invoices:
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       {invoices.length === 0 ? (
-        <div className="p-6 text-center text-sm text-muted-foreground">Tidak ada invoice jatuh tempo.</div>
+        <div className="p-6 text-center text-sm text-muted-foreground">{t('partiesTab.noOverdue')}</div>
       ) : (
         <Table className="text-xs">
           <TableHeader>
             <TableRow>
-              <TableHead>Invoice</TableHead>
-              <TableHead>Mitra</TableHead>
-              <TableHead className="text-right">Outstanding</TableHead>
-              <TableHead className="text-right">Hari</TableHead>
+              <TableHead>{t('partiesTab.invoice')}</TableHead>
+              <TableHead>{t('partiesTab.partner')}</TableHead>
+              <TableHead className="text-right">{t('partiesTab.outstanding')}</TableHead>
+              <TableHead className="text-right">{t('partiesTab.days')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -306,7 +311,7 @@ function OverdueTable({ title, invoices, nameField }: { title: string; invoices:
                     variant={inv.daysOverdue > 60 ? 'danger' : inv.daysOverdue > 30 ? 'warning' : 'success'}
                     className="num font-semibold"
                   >
-                    {inv.daysOverdue}d
+                    {t('partiesTab.daysShort', { count: inv.daysOverdue })}
                   </Badge>
                 </TableCell>
               </TableRow>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartFrame } from './ChartFrame';
 import { CHART_COLORS, TOOLTIP_STYLE } from './chart-theme';
@@ -25,6 +26,7 @@ export interface DonutBreakdownProps {
 
 /** Donut + visible legend listing label, amount and percentage (colour is never the only signal). */
 export function DonutBreakdown({ data, formatValue, summary, caption, valueHeader, legendLimit = 6, footer }: DonutBreakdownProps) {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
   const total = data.reduce((s, d) => s + d.value, 0);
   const pct = (v: number) => (total > 0 ? `${((v / total) * 100).toFixed(0)}%` : '0%');
@@ -35,7 +37,7 @@ export function DonutBreakdown({ data, formatValue, summary, caption, valueHeade
         summary={summary}
         table={{
           caption,
-          columns: ['Kelompok', valueHeader, 'Porsi'],
+          columns: [t('kit.donut.group'), valueHeader, t('kit.donut.share')],
           rows: data.map((d) => [d.label, formatValue(d.value), pct(d.value)]),
         }}
       >

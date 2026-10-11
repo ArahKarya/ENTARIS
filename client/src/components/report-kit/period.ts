@@ -3,6 +3,7 @@
  * "yyyy-MM-dd" strings (the format the report APIs already take).
  */
 import { endOfMonth, endOfQuarter, endOfYear, format, startOfMonth, startOfQuarter, startOfYear, subMonths, subQuarters, subYears } from 'date-fns';
+import i18n from '@/i18n';
 import { formatDate, formatDateRange } from '@/lib/format';
 
 export interface DateRange {
@@ -13,19 +14,20 @@ export interface DateRange {
 export type RangePreset = 'month' | 'lastMonth' | 'quarter' | 'year';
 export type AsOfPreset = 'today' | 'lastMonthEnd' | 'lastQuarterEnd' | 'lastYearEnd';
 
-export const RANGE_PRESETS: ReadonlyArray<{ id: RangePreset; label: string }> = [
-  { id: 'month', label: 'Bulan ini' },
-  { id: 'lastMonth', label: 'Bulan lalu' },
-  { id: 'quarter', label: 'Kuartal ini' },
-  { id: 'year', label: 'Tahun ini' },
-];
+/** Preset chips; `labelKey` is a `reports` namespace key, translated at render time. */
+export const RANGE_PRESETS = [
+  { id: 'month', labelKey: 'kit.presets.month' },
+  { id: 'lastMonth', labelKey: 'kit.presets.lastMonth' },
+  { id: 'quarter', labelKey: 'kit.presets.quarter' },
+  { id: 'year', labelKey: 'kit.presets.year' },
+] as const satisfies ReadonlyArray<{ id: RangePreset; labelKey: string }>;
 
-export const AS_OF_PRESETS: ReadonlyArray<{ id: AsOfPreset; label: string }> = [
-  { id: 'today', label: 'Hari ini' },
-  { id: 'lastMonthEnd', label: 'Akhir bulan lalu' },
-  { id: 'lastQuarterEnd', label: 'Akhir kuartal lalu' },
-  { id: 'lastYearEnd', label: 'Akhir tahun lalu' },
-];
+export const AS_OF_PRESETS = [
+  { id: 'today', labelKey: 'kit.presets.today' },
+  { id: 'lastMonthEnd', labelKey: 'kit.presets.lastMonthEnd' },
+  { id: 'lastQuarterEnd', labelKey: 'kit.presets.lastQuarterEnd' },
+  { id: 'lastYearEnd', labelKey: 'kit.presets.lastYearEnd' },
+] as const satisfies ReadonlyArray<{ id: AsOfPreset; labelKey: string }>;
 
 export function toIso(d: Date): string {
   return format(d, 'yyyy-MM-dd');
@@ -98,8 +100,10 @@ export function normalizeAsOf(date: string | null | undefined, fallback: string)
   return isIsoDate(date) ? date : fallback;
 }
 
-/** "Periode 1-31 Okt 2026" / "Per 05 Okt 2026". */
+/** "Periode 1-31 Okt 2026" / "Per 05 Okt 2026" (follows the UI language). */
 export function periodLabel(value: DateRange | string): string {
-  return typeof value === 'string' ? `Per ${formatDate(value)}` : `Periode ${formatDateRange(value.startDate, value.endDate)}`;
+  return typeof value === 'string'
+    ? i18n.t('kit.period.asOf', { ns: 'reports', date: formatDate(value) })
+    : i18n.t('kit.period.range', { ns: 'reports', range: formatDateRange(value.startDate, value.endDate) });
 }
 

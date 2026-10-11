@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Package, Truck } from 'lucide-react';
 import api from '../../lib/api';
 import { formatRupiah } from '@/lib/format';
@@ -12,6 +13,7 @@ interface TopCustomer {
 }
 
 export default function TopVendors() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<TopCustomer[]>({
     queryKey: ['dashboard-top-vendors'],
     queryFn: async () => (await api.get('/dashboard/top-vendors')).data,
@@ -19,17 +21,17 @@ export default function TopVendors() {
 
   return (
     <WidgetCard
-      title="Vendor Teratas"
-      description="Berdasarkan total pembelian"
+      title={t('topVendors.title')}
+      description={t('topVendors.description')}
       icon={Truck}
       href="/parties"
-      hrefLabel="Vendor"
+      hrefLabel={t('topVendors.suppliers')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && data.length === 0}
       emptyIcon={Package}
-      emptyText="Belum ada faktur pembelian yang diposting. Pemasok teratas muncul setelah faktur pertama diposting."
+      emptyText={t('topVendors.empty')}
     >
       <ol className="space-y-2.5">
         {(data ?? []).map((c) => (

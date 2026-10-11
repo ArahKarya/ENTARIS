@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
-import { formatNumber } from '@/lib/format';
+import { LOCALE, formatNumber } from '@/lib/format';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
 import { ChartFrame } from '../dashboard-kit/ChartFrame';
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_STYLE } from '../dashboard-kit/chart-theme';
@@ -24,19 +25,24 @@ interface MovementTrendItem {
   net: number;
 }
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const LABELS: Record<string, string> = { masuk: 'Masuk', keluar: 'Keluar', net: 'Net' };
+/** "2026-10" -> "Okt" / "Oct"; formatted at render time so it follows the UI language. */
+function monthLabel(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return month;
+  return new Intl.DateTimeFormat(LOCALE, { month: 'short' }).format(new Date(y, m - 1, 1));
+}
 
 export default function MovementTrendChart() {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
+  const labels: Record<string, string> = { masuk: t('movementTrend.in'), keluar: t('movementTrend.out'), net: t('movementTrend.net') };
   const { data, isLoading, isError, refetch } = useQuery<MovementTrendItem[]>({
     queryKey: ['warehouse-movement-trend'],
     queryFn: async () => {
       const r = await api.get<MovementTrendRaw[]>('/inventory/dashboard/movement-trend');
       return r.data.map((d) => {
-        const [, m] = d.month.split('-');
         return {
-          month: MONTH_NAMES[parseInt(m, 10) - 1] ?? d.month,
+          month: d.month,
           masuk: d.inQty + d.adjInQty,
           keluar: d.outQty + d.adjOutQty,
           net: d.netChange,
@@ -44,31 +50,31 @@ export default function MovementTrendChart() {
       });
     },
   });
-  const rows = data ?? [];
+  const rows = (data ?? []).map((r) => ({ ...r, month: monthLabel(r.month) }));
 
   return (
     <WidgetCard
-      title="Stok masuk vs keluar per bulan"
-      description="6 bulan terakhir"
+      title={t('movementTrend.title')}
+      description={t('movementTrend.description')}
       icon={BarChart3}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && rows.length === 0}
       emptyIcon={BarChart3}
-      emptyText="Tidak ada pergerakan stok dalam 6 bulan terakhir."
+      emptyText={t('movementTrend.empty')}
       minHeight={290}
     >
       <ChartFrame
-        summary={`Grafik batang kuantitas stok masuk dan keluar per bulan dengan garis perubahan bersih, ${rows.length} bulan.`}
+        summary={t('movementTrend.summary', { count: rows.length })}
         legend={[
-          { label: 'Masuk', color: 'var(--chart-3)' },
-          { label: 'Keluar', color: 'var(--chart-4)' },
-          { label: 'Net', color: 'var(--chart-1)', dashed: true },
+          { label: labels.masuk, color: 'var(--chart-3)' },
+          { label: labels.keluar, color: 'var(--chart-4)' },
+          { label: labels.net, color: 'var(--chart-1)', dashed: true },
         ]}
         table={{
-          caption: 'Pergerakan stok per bulan',
-          columns: ['Bulan', 'Masuk', 'Keluar', 'Net'],
+          caption: t('movementTrend.caption'),
+          columns: [t('monthlyProfit.month'), labels.masuk, labels.keluar, labels.net],
           rows: rows.map((r) => [r.month, formatNumber(r.masuk), formatNumber(r.keluar), formatNumber(r.net)]),
         }}
       >
@@ -80,7 +86,7 @@ export default function MovementTrendChart() {
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
               cursor={{ fill: 'var(--muted)' }}
-              formatter={(v, n) => [formatNumber(Number(v)), LABELS[String(n)] ?? String(n)]}
+              formatter={(v, n) => [formatNumber(Number(v)), labels[String(n)] ?? String(n)]}
             />
             <Bar dataKey="masuk" name="masuk" stackId="a" fill="var(--chart-3)" isAnimationActive={animate} />
             <Bar dataKey="keluar" name="keluar" stackId="a" fill="var(--chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={animate} />

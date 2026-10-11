@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { TrendingUp } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
@@ -21,34 +22,35 @@ interface RevenueChartProps {
   description?: string;
 }
 
-export default function RevenueChart({ data, loading, isError, onRetry, description = 'Per bulan pada periode terpilih' }: RevenueChartProps) {
+export default function RevenueChart({ data, loading, isError, onRetry, description }: RevenueChartProps) {
   const animate = useChartAnimation();
   const rows = data ?? [];
+  const { t } = useTranslation('dashboard');
   const totalIn = rows.reduce((s, r) => s + r.pendapatan, 0);
   const totalOut = rows.reduce((s, r) => s + r.beban, 0);
   return (
     <WidgetCard
-      title="Apakah pendapatan menutup beban?"
-      description={description}
+      title={t('revenueChart.title')}
+      description={description ?? t('revenueChart.description')}
       icon={TrendingUp}
       href="/reports/profit-loss"
-      hrefLabel="Laba rugi"
+      hrefLabel={t('expenseBreakdown.profitLoss')}
       isLoading={loading}
       isError={isError}
       onRetry={onRetry}
       isEmpty={rows.length === 0}
-      emptyText="Belum ada transaksi pada periode ini"
+      emptyText={t('revenueChart.empty')}
       minHeight={290}
     >
       <ChartFrame
-        summary={`Grafik area pendapatan dan beban per bulan. Total pendapatan ${formatRupiah(totalIn)}, total beban ${formatRupiah(totalOut)}.`}
+        summary={t('revenueChart.summary', { revenue: formatRupiah(totalIn), expense: formatRupiah(totalOut) })}
         legend={[
-          { label: 'Pendapatan', color: 'var(--chart-2)', value: formatRupiah(totalIn, { compact: true }) },
-          { label: 'Beban', color: 'var(--chart-4)', dashed: true, value: formatRupiah(totalOut, { compact: true }) },
+          { label: t('monthlyProfit.revenue'), color: 'var(--chart-2)', value: formatRupiah(totalIn, { compact: true }) },
+          { label: t('monthlyProfit.expense'), color: 'var(--chart-4)', dashed: true, value: formatRupiah(totalOut, { compact: true }) },
         ]}
         table={{
-          caption: 'Pendapatan dan beban per bulan',
-          columns: ['Bulan', 'Pendapatan', 'Beban'],
+          caption: t('revenueChart.caption'),
+          columns: [t('monthlyProfit.month'), t('monthlyProfit.revenue'), t('monthlyProfit.expense')],
           rows: rows.map((r) => [r.name, formatRupiah(r.pendapatan), formatRupiah(r.beban)]),
         }}
       >
@@ -58,8 +60,8 @@ export default function RevenueChart({ data, loading, isError, onRetry, descript
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
             <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={compactIdrTick} domain={[0, 'auto']} width={44} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatRupiah(Number(v))} />
-            <Area type="monotone" dataKey="pendapatan" name="Pendapatan" stroke="var(--chart-2)" strokeWidth={2} fill="var(--chart-2)" fillOpacity={0.12} dot={rows.length <= 2} isAnimationActive={animate} />
-            <Area type="monotone" dataKey="beban" name="Beban" stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="5 3" fill="var(--chart-4)" fillOpacity={0.08} dot={rows.length <= 2} isAnimationActive={animate} />
+            <Area type="monotone" dataKey="pendapatan" name={t('monthlyProfit.revenue')} stroke="var(--chart-2)" strokeWidth={2} fill="var(--chart-2)" fillOpacity={0.12} dot={rows.length <= 2} isAnimationActive={animate} />
+            <Area type="monotone" dataKey="beban" name={t('monthlyProfit.expense')} stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="5 3" fill="var(--chart-4)" fillOpacity={0.08} dot={rows.length <= 2} isAnimationActive={animate} />
           </AreaChart>
         </ResponsiveContainer>
       </ChartFrame>

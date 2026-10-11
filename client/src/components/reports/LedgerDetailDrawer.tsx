@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
 import { ExternalLink } from 'lucide-react';
 import { formatRupiah, formatDate } from '@/lib/format';
@@ -26,6 +27,7 @@ const LedgerDetailDrawer: React.FC<LedgerDetailDrawerProps> = ({
   startDate,
   endDate,
 }) => {
+  const { t } = useTranslation('reports');
   const navigate = useNavigate();
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -65,33 +67,33 @@ const LedgerDetailDrawer: React.FC<LedgerDetailDrawerProps> = ({
       <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle className="truncate">{accountName}</SheetTitle>
-          <SheetDescription>{data?.accountNumber || ''} &middot; Detail Buku Besar</SheetDescription>
+          <SheetDescription>{data?.accountNumber || ''} &middot; {t('ledgerDetailDrawer.subtitle')}</SheetDescription>
         </SheetHeader>
 
-        <SheetBody role="region" aria-label="Isi detail buku besar" tabIndex={0}>
+        <SheetBody role="region" aria-label={t('ledgerDetailDrawer.bodyLabel')} tabIndex={0}>
           {isLoading ? (
-            <LoadingState label="Memuat buku besar…" />
+            <LoadingState label={t('ledgerDetailDrawer.loading')} />
           ) : isError ? (
             <EmptyState
               kind="error"
-              title="Buku besar gagal dimuat"
-              description="Permintaan ke server gagal, jadi transaksi akun ini belum bisa ditampilkan."
-              action={<Button variant="outline" onClick={() => refetch()}>Coba lagi</Button>}
+              title={t('ledgerDetailDrawer.errorTitle')}
+              description={t('ledgerDetailDrawer.errorDescription')}
+              action={<Button variant="outline" onClick={() => refetch()}>{t('kit.state.retry')}</Button>}
             />
           ) : !hasEntries ? (
-            <EmptyState title="Tidak ada transaksi pada periode ini" description="Akun ini tidak bergerak di rentang tanggal laporan. Ubah periode di halaman laporan untuk melihat transaksi lain." />
+            <EmptyState title={t('ledgerDetailDrawer.emptyTitle')} description={t('ledgerDetailDrawer.emptyDescription')} />
           ) : (
             // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable at phone width
-            <div className="overflow-x-auto rounded-lg border border-border" role="region" aria-label="Transaksi buku besar" tabIndex={0}>
+            <div className="overflow-x-auto rounded-lg border border-border" role="region" aria-label={t('ledgerDetailDrawer.tableLabel')} tabIndex={0}>
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th scope="col" className={cn(th, 'text-left')}>Tanggal</th>
-                    <th scope="col" className={cn(th, 'text-left')}>Referensi</th>
-                    <th scope="col" className={cn(th, 'text-left')}>Keterangan</th>
-                    <th scope="col" className={cn(th, 'text-right')}>Debit</th>
-                    <th scope="col" className={cn(th, 'text-right')}>Kredit</th>
-                    <th scope="col" className={cn(th, 'text-right')}>Saldo</th>
+                    <th scope="col" className={cn(th, 'text-left')}>{t('reportsShared.date')}</th>
+                    <th scope="col" className={cn(th, 'text-left')}>{t('reportsShared.reference')}</th>
+                    <th scope="col" className={cn(th, 'text-left')}>{t('reportsShared.description')}</th>
+                    <th scope="col" className={cn(th, 'text-right')}>{t('reportsShared.debit')}</th>
+                    <th scope="col" className={cn(th, 'text-right')}>{t('reportsShared.credit')}</th>
+                    <th scope="col" className={cn(th, 'text-right')}>{t('reportsShared.balance')}</th>
                   </tr>
                 </thead>
                 <tbody>

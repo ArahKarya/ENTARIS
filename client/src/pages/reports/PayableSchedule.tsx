@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Clock, Wallet } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { ScheduleReport, type ScheduleStatus } from '@/components/reports/ScheduleReport';
 
@@ -21,6 +22,7 @@ interface ScheduleData {
 }
 
 export default function PayableSchedule() {
+  const { t } = useTranslation('reports');
   const { data, isLoading, isError, refetch } = useQuery<ScheduleData>({
     queryKey: ['payable-schedule'],
     queryFn: async () => {
@@ -33,19 +35,19 @@ export default function PayableSchedule() {
 
   return (
     <ScheduleReport
-      title="Jadwal Utang"
-      description="Daftar utang berdasarkan jatuh tempo, status, dan prioritas pembayaran."
-      partyHeader="Supplier"
-      caption="Jadwal utang per invoice pembelian"
-      emptyText="Tidak ada utang outstanding."
+      title={t('payableSchedule.title')}
+      description={t('payableSchedule.description')}
+      partyHeader={t('payableSchedule.partyHeader')}
+      caption={t('payableSchedule.caption')}
+      emptyText={t('payableSchedule.empty')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => refetch()}
       invoices={(data?.invoices ?? []).map((inv) => ({ ...inv, partyName: inv.supplierName }))}
       summary={[
-        { label: 'Total Utang', value: summary?.totalOutstanding ?? 0, icon: Wallet, tone: 'neutral', hint: `${summary?.totalInvoices ?? 0} invoice` },
-        { label: 'Jatuh Tempo', value: summary?.overdueAmount ?? 0, icon: AlertTriangle, tone: (summary?.overdueAmount ?? 0) > 0 ? 'negative' : 'neutral' },
-        { label: 'Segera (7 hari)', value: summary?.dueSoonAmount ?? 0, icon: Clock, tone: 'neutral' },
+        { label: t('payableSchedule.summary.total'), value: summary?.totalOutstanding ?? 0, icon: Wallet, tone: 'neutral', hint: t('reportsShared.invoiceCount', { count: summary?.totalInvoices ?? 0 }) },
+        { label: t('scheduleReport.status.overdue'), value: summary?.overdueAmount ?? 0, icon: AlertTriangle, tone: (summary?.overdueAmount ?? 0) > 0 ? 'negative' : 'neutral' },
+        { label: t('payableSchedule.summary.dueSoon'), value: summary?.dueSoonAmount ?? 0, icon: Clock, tone: 'neutral' },
       ]}
     />
   );

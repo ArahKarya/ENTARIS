@@ -5,6 +5,8 @@
  */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { formatNumber, formatRupiah } from '@/lib/format';
@@ -44,39 +46,39 @@ const signedPct = (v: number | null) => (v == null ? '—' : `${v > 0 ? '+' : ''
 const rateClass = (v: number | null) =>
   v == null ? 'text-muted-foreground' : v >= 90 ? 'text-success-text' : v >= 70 ? 'text-warning-text' : 'text-danger-text';
 
-const COLUMNS: DataColumn<PerformanceRow>[] = [
-  { key: 'supplier', header: 'Pemasok', rowHeader: true, render: (r) => r.supplierName },
-  { key: 'po', header: 'Jumlah PO', numeric: true, render: (r) => formatNumber(r.poCount) },
+const columns = (t: TFunction<'reports'>): DataColumn<PerformanceRow>[] => [
+  { key: 'supplier', header: t('dailyReport.cols.supplier'), rowHeader: true, render: (r) => r.supplierName },
+  { key: 'po', header: t('supplierPerformance.cols.poCount'), numeric: true, render: (r) => formatNumber(r.poCount) },
   {
     key: 'onTime',
-    header: 'Tepat Waktu',
+    header: t('supplierPerformance.cols.onTime'),
     numeric: true,
     className: (r) => cn('font-medium', rateClass(r.onTimeRate)),
     render: (r) => (
       <>
         {pct(r.onTimeRate)}
         {r.evaluatedCount > 0 && (
-          <span className="block text-xs font-normal text-muted-foreground">dari {formatNumber(r.evaluatedCount)} PO</span>
+          <span className="block text-xs font-normal text-muted-foreground">{t('supplierPerformance.ofPo', { count: r.evaluatedCount, formatted: formatNumber(r.evaluatedCount) })}</span>
         )}
       </>
     ),
   },
   {
     key: 'lead',
-    header: 'Lead Time',
+    header: t('supplierPerformance.cols.leadTime'),
     numeric: true,
-    render: (r) => (r.avgLeadTimeDays == null ? '—' : `${formatNumber(r.avgLeadTimeDays, { maxDecimals: 1 })} hari`),
+    render: (r) => (r.avgLeadTimeDays == null ? '—' : t('supplierPerformance.days', { value: formatNumber(r.avgLeadTimeDays, { maxDecimals: 1 }) })),
   },
   {
     key: 'fill',
-    header: 'Fill Rate',
+    header: t('supplierPerformance.cols.fillRate'),
     numeric: true,
     className: (r) => cn('font-medium', rateClass(r.fillRate)),
     render: (r) => pct(r.fillRate),
   },
   {
     key: 'variance',
-    header: 'Selisih Harga',
+    header: t('supplierPerformance.cols.priceVariance'),
     numeric: true,
     render: (r) => (
       <>
@@ -90,6 +92,7 @@ const COLUMNS: DataColumn<PerformanceRow>[] = [
 ];
 
 export default function SupplierPerformance() {
+  const { t } = useTranslation('reports');
   const now = new Date();
   const { startDate, endDate, setRange } = useReportRange({ startDate: `${now.getFullYear()}-01-01`, endDate: toIso(now) });
   const [partyId, setPartyId] = useState('');
@@ -104,24 +107,24 @@ export default function SupplierPerformance() {
   const handleExport = () => {
     exportToExcel(
       rows.map((r) => ({
-        Pemasok: r.supplierName,
-        'Jumlah PO': r.poCount,
-        'PO Dinilai': r.evaluatedCount,
-        'Tepat Waktu (%)': r.onTimeRate ?? '',
-        'Kiriman Pertama Tepat Waktu (%)': r.firstOnTimeRate ?? '',
-        'Rata-rata Lead Time (hari)': r.avgLeadTimeDays ?? '',
-        'Fill Rate (%)': r.fillRate ?? '',
-        'Selisih Harga Faktur vs PO (%)': r.priceVariancePct ?? '',
-        'Selisih Harga (Rp)': r.priceVarianceAmount,
+        [t('dailyReport.cols.supplier')]: r.supplierName,
+        [t('supplierPerformance.cols.poCount')]: r.poCount,
+        [t('supplierPerformance.excel.evaluated')]: r.evaluatedCount,
+        [t('supplierPerformance.excel.onTime')]: r.onTimeRate ?? '',
+        [t('supplierPerformance.excel.firstOnTime')]: r.firstOnTimeRate ?? '',
+        [t('supplierPerformance.excel.leadTime')]: r.avgLeadTimeDays ?? '',
+        [t('supplierPerformance.excel.fillRate')]: r.fillRate ?? '',
+        [t('supplierPerformance.excel.variancePct')]: r.priceVariancePct ?? '',
+        [t('supplierPerformance.excel.varianceRp')]: r.priceVarianceAmount,
       })),
-      `Kinerja-Pemasok-${startDate || 'awal'}-${endDate || 'akhir'}`,
+      `Kinerja-Supplier-${startDate || 'awal'}-${endDate || 'akhir'}`,
     );
   };
 
   return (
     <ReportPage
-      title="Kinerja Pemasok"
-      description="Ketepatan kirim, lead time, fill rate, dan selisih harga per pemasok (berdasarkan tanggal PO)"
+      title={t('supplierPerformance.title')}
+      description={t('supplierPerformance.description')}
       period={periodLabel({ startDate, endDate })}
       actions={<ExportMenu onExcel={handleExport} disabled={isLoading || isError} />}
       filters={
@@ -132,8 +135,7 @@ export default function SupplierPerformance() {
           </ReportFilterSection>
           <ReportNotice tone="info">
             <p className="text-xs">
-              Tepat waktu = STT terakhir pada/sebelum target terima (PO bertarget yang sudah ada STT). Lead time = tanggal PO
-              sampai STT pertama. Fill rate = qty diterima dibagi qty dipesan. Selisih harga = harga faktur vs harga PO setelah diskon.
+              {t('supplierPerformance.notice')}
             </p>
           </ReportNotice>
         </div>
@@ -141,8 +143,8 @@ export default function SupplierPerformance() {
     >
       <ReportState isLoading={isLoading} isError={isError} isEmpty={!!data && rows.length === 0} onRetry={() => refetch()}>
         <ReportDataTable
-          caption={`Kinerja pemasok, ${periodLabel({ startDate, endDate })}`}
-          columns={COLUMNS}
+          caption={t('supplierPerformance.caption', { period: periodLabel({ startDate, endDate }) })}
+          columns={columns(t)}
           rows={rows}
           getRowKey={(r) => r.supplierId ?? 'general'}
         />

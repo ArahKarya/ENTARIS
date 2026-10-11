@@ -1,21 +1,23 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
-import { formatDateRange } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/shared';
-import { ExportMenu, ReportFilters, ReportPage, ReportState, useReportRange } from '@/components/report-kit';
+import { ExportMenu, ReportFilters, ReportPage, ReportState, periodLabel, useReportRange } from '@/components/report-kit';
 import { LedgerAccountCard, type AccountLedger } from '@/components/reports/LedgerAccountCard';
 
 const PAGE_SIZE = 200;
 const ALL_HISTORY = { startDate: '', endDate: '' };
 
 const LedgerBook: React.FC = () => {
+  const { t } = useTranslation('reports');
   // Default: all history, no date filter.
   const { startDate, endDate, setRange, list } = useReportRange(ALL_HISTORY);
   const searchTerm = list.search;
@@ -86,55 +88,51 @@ const LedgerBook: React.FC = () => {
   }, []);
 
   const handleExportExcel = () => {
-    const rows: Record<string, string | number>[] = [];
+    const h = {
+      number: t('reportsShared.accountNumber'),
+      name: t('reportsShared.accountName'),
+      date: t('reportsShared.date'),
+      description: t('reportsShared.description'),
+      debit: t('reportsShared.debitRp'),
+      credit: t('reportsShared.creditRp'),
+      balance: t('reportsShared.balanceRp'),
+    };
+    type Cell = string | number;
+    const row = (number: Cell, name: Cell, date: Cell, description: Cell, debit: Cell, credit: Cell, balance: Cell) => ({
+      [h.number]: number,
+      [h.name]: name,
+      [h.date]: date,
+      [h.description]: description,
+      [h.debit]: debit,
+      [h.credit]: credit,
+      [h.balance]: balance,
+    });
+    const rows: Record<string, Cell>[] = [];
     for (const account of filtered) {
-      rows.push({
-        'No. Akun': account.accountNumber,
-        'Nama Akun': account.accountName,
-        Tanggal: '',
-        Keterangan: '── SALDO AWAL ──',
-        'Debit (Rp)': '',
-        'Kredit (Rp)': '',
-        'Saldo (Rp)': account.openingBalance,
-      });
+      const { accountNumber: no, accountName: name } = account;
+      rows.push(row(no, name, '', t('ledgerBook.excel.openingMarker'), '', '', account.openingBalance));
       for (const entry of account.entries) {
-        rows.push({
-          'No. Akun': account.accountNumber,
-          'Nama Akun': account.accountName,
-          Tanggal: format(new Date(entry.date), 'dd/MM/yyyy'),
-          Keterangan: entry.description || '',
-          'Debit (Rp)': entry.debit || '',
-          'Kredit (Rp)': entry.credit || '',
-          'Saldo (Rp)': entry.runningBalance,
-        });
+        rows.push(row(no, name, format(new Date(entry.date), 'dd/MM/yyyy'), entry.description || '', entry.debit || '', entry.credit || '', entry.runningBalance));
       }
-      rows.push({
-        'No. Akun': account.accountNumber,
-        'Nama Akun': account.accountName,
-        Tanggal: '',
-        Keterangan: '── TOTAL ──',
-        'Debit (Rp)': account.totalDebit,
-        'Kredit (Rp)': account.totalCredit,
-        'Saldo (Rp)': account.closingBalance,
-      });
-      rows.push({ 'No. Akun': '', 'Nama Akun': '', Tanggal: '', Keterangan: '', 'Debit (Rp)': '', 'Kredit (Rp)': '', 'Saldo (Rp)': '' });
+      rows.push(row(no, name, '', t('ledgerBook.excel.totalMarker'), account.totalDebit, account.totalCredit, account.closingBalance));
+      rows.push(row('', '', '', '', '', '', ''));
     }
     exportToExcel(rows, `Buku-Besar-${startDate}-sd-${endDate}`);
   };
 
-  const period = startDate && endDate ? `Periode ${formatDateRange(startDate, endDate)}` : 'Semua histori';
+  const period = startDate && endDate ? periodLabel({ startDate, endDate }) : t('kit.filters.allHistory');
   const pageBtn = 'max-sm:size-11';
 
   return (
     <ReportPage
-      title="Buku Besar"
-      description="Mutasi per akun dengan saldo berjalan."
+      title={t('ledgerBook.title')}
+      description={t('ledgerBook.description')}
       period={period}
       actions={<ExportMenu disabled={isLoading || isError} onExcel={handleExportExcel} />}
       filters={
         <ReportFilters mode="range" allowAll value={{ startDate, endDate }} onChange={setRange}>
           <div className="grid w-full gap-1.5 sm:w-auto sm:min-w-60">
-            <Label htmlFor="ledger-search">Cari akun</Label>
+            <Label htmlFor="ledger-search">{t('ledgerBook.search')}</Label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Input
@@ -142,7 +140,7 @@ const LedgerBook: React.FC = () => {
                 type="search"
                 value={list.searchInput}
                 onChange={(e) => list.setSearch(e.target.value)}
-                placeholder="Nama atau nomor akun"
+                placeholder={t('ledgerBook.searchPlaceholder')}
                 autoComplete="off"
                 className="pl-9 pr-9 max-sm:h-11 [&::-webkit-search-cancel-button]:hidden"
               />
@@ -150,7 +148,7 @@ const LedgerBook: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => list.setSearch('')}
-                  aria-label="Hapus pencarian"
+                  aria-label={t('reportsHub.clearSearch')}
                   className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="size-4" aria-hidden />
@@ -159,10 +157,10 @@ const LedgerBook: React.FC = () => {
             </div>
           </div>
           <Button variant="outline" className="max-sm:h-11" onClick={() => setExpandedAccounts(new Set(filtered.map((a) => a.accountId)))}>
-            Buka Semua
+            {t('ledgerBook.expandAll')}
           </Button>
           <Button variant="outline" className="max-sm:h-11" onClick={() => setExpandedAccounts(new Set())}>
-            Tutup Semua
+            {t('ledgerBook.collapseAll')}
           </Button>
         </ReportFilters>
       }
@@ -175,11 +173,11 @@ const LedgerBook: React.FC = () => {
         onRetry={() => refetch()}
       >
         <p className="text-xs text-muted-foreground" role="status">
-          {filtered.length} akun · {totalEntries.toLocaleString('id-ID')} mutasi
+          {t('ledgerBook.accountCount', { count: filtered.length })} · {t('ledgerBook.entryCount', { count: totalEntries, formatted: formatNumber(totalEntries) })}
         </p>
         <div className="space-y-3">
           {pageAccounts.length === 0 ? (
-            <EmptyState kind="empty" title="Tidak ada data buku besar untuk periode ini." compact />
+            <EmptyState kind="empty" title={t('ledgerBook.empty')} compact />
           ) : (
             pageAccounts.map((account) => (
               <LedgerAccountCard
@@ -193,22 +191,22 @@ const LedgerBook: React.FC = () => {
         </div>
 
         {totalPages > 1 && (
-          <nav aria-label="Halaman buku besar" className="no-print flex flex-wrap items-center justify-between gap-2">
+          <nav aria-label={t('ledgerBook.pagination')} className="no-print flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">
-              Halaman {safePage} dari {totalPages} · ~{PAGE_SIZE} mutasi/halaman
+              {t('ledgerBook.pageInfo', { page: safePage, total: totalPages, size: PAGE_SIZE })}
             </span>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman pertama" onClick={() => setPage(1)} disabled={safePage === 1}>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label={t('ledgerBook.firstPage')} onClick={() => setPage(1)} disabled={safePage === 1}>
                 <ChevronsLeft className="size-4" aria-hidden />
               </Button>
-              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman sebelumnya" onClick={() => setPage(safePage - 1)} disabled={safePage === 1}>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label={t('ledgerBook.prevPage')} onClick={() => setPage(safePage - 1)} disabled={safePage === 1}>
                 <ChevronLeft className="size-4" aria-hidden />
               </Button>
               <span className="num px-2 text-xs">{safePage} / {totalPages}</span>
-              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman berikutnya" onClick={() => setPage(safePage + 1)} disabled={safePage === totalPages}>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label={t('ledgerBook.nextPage')} onClick={() => setPage(safePage + 1)} disabled={safePage === totalPages}>
                 <ChevronRight className="size-4" aria-hidden />
               </Button>
-              <Button variant="outline" size="icon" className={pageBtn} aria-label="Halaman terakhir" onClick={() => setPage(totalPages)} disabled={safePage === totalPages}>
+              <Button variant="outline" size="icon" className={pageBtn} aria-label={t('ledgerBook.lastPage')} onClick={() => setPage(totalPages)} disabled={safePage === totalPages}>
                 <ChevronsRight className="size-4" aria-hidden />
               </Button>
             </div>

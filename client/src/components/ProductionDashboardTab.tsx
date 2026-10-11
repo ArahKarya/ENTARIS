@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, Boxes, ClipboardCheck, Factory, Layers, PackageCheck, Percent, Coins } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import api from '@/lib/api';
@@ -78,6 +79,7 @@ function useRunSummary(range: { startDate: string; endDate: string }) {
 }
 
 export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboardTabProps) {
+  const { t } = useTranslation('dashboard');
   const { period, setPreset, setRange } = useDashboardPeriod();
   const range = useMemo(() => ({ startDate: period.startDate, endDate: period.endDate }), [period.startDate, period.endDate]);
   const prevRange = useMemo(() => previousPeriod(range), [range]);
@@ -107,9 +109,9 @@ export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboar
     <div className="space-y-5">
       <PeriodToolbar period={period} onPresetChange={setPreset} onRangeChange={setRange} />
 
-      <section aria-label="Ringkasan produksi" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
+      <section aria-label={t('productionTab.summaryLabel')} className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <StatCard
-          label="Proses Produksi"
+          label={t('productionTab.runs')}
           icon={Factory}
           loading={kpiLoading}
           value={s ? formatNumber(s.activeCount) : '—'}
@@ -117,59 +119,59 @@ export default function ProductionDashboardTab({ onOpenRun }: ProductionDashboar
           href={`/inventory?tab=production&view=data&startDate=${range.startDate}&endDate=${range.endDate}`}
         />
         <StatCard
-          label="Bahan Diproses"
+          label={t('productionTab.input')}
           icon={Boxes}
           loading={kpiLoading}
           value={s ? qty(s.inputQty) : '—'}
-          hint="total input"
+          hint={t('productionTab.inputHint')}
         />
         <StatCard
-          label="Output Utama"
+          label={t('productionTab.mainOutput')}
           icon={PackageCheck}
           loading={kpiLoading}
           value={s ? qty(mainOutputQty(s)) : '—'}
-          hint="tanpa produk samping"
+          hint={t('productionTab.mainOutputHint')}
         />
         <StatCard
-          label="Produk Samping"
+          label={t('productionTab.byproduct')}
           icon={Layers}
           loading={kpiLoading}
           value={s ? qty(s.byproductQty) : '—'}
-          hint={s && s.outputQty > 0 ? `${formatYield((s.byproductQty / s.outputQty) * 100)} dari output` : undefined}
+          hint={s && s.outputQty > 0 ? t('productionTab.ofOutput', { pct: formatYield((s.byproductQty / s.outputQty) * 100) }) : undefined}
         />
         <StatCard
-          label="Yield Tertimbang"
+          label={t('productionTab.weightedYield')}
           icon={Percent}
           loading={kpiLoading}
           value={s ? formatYield(s.yieldPct) : '—'}
           delta={s ? pointDelta(s.yieldPct, prev?.yieldPct) : undefined}
-          hint={s && !prev ? 'dibobot qty input' : undefined}
+          hint={s && !prev ? t('productionTab.weightedHint') : undefined}
         />
         <StatCard
-          label="Biaya Konversi"
+          label={t('productionTab.conversionCost')}
           icon={Coins}
           loading={!dashQuery.data && !dashQuery.isError}
           value={conv !== null ? formatRupiah(conv, { compact: true }) : '—'}
           valueTitle={conv !== null ? formatRupiah(conv) : undefined}
           hint={
             dashQuery.isError
-              ? 'gagal dimuat'
+              ? t('kpiCards.loadFailed')
               : hpp && hpp.runsWithHppCount > 0
-              ? `HPP rata-rata ${formatRupiah(hpp.avgLoadedHppPerKg)}/kg`
-              : 'belum ada HPP pada periode'
+              ? t('productionTab.avgHpp', { value: formatRupiah(hpp.avgLoadedHppPerKg) })
+              : t('productionTab.noHpp')
           }
         />
       </section>
       {summaryQuery.isError && (
         <p role="alert" className="text-sm text-danger-text">
-          Ringkasan produksi gagal dimuat.{' '}
+          {t('productionTab.summaryError')}{' '}
           <button type="button" className="font-medium underline" onClick={() => summaryQuery.refetch()}>
-            Coba lagi
+            {t('kit.widget.retry')}
           </button>
         </p>
       )}
       {s && !s.unit && s.inputQty > 0 && (
-        <p className="text-xs text-muted-foreground">Kuantitas memakai satuan campuran; angka dijumlahkan apa adanya.</p>
+        <p className="text-xs text-muted-foreground">{t('productionTab.mixedUnits')}</p>
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -203,18 +205,19 @@ function YieldTrendPanel({
   rangeLabel: string;
   className?: string;
 }) {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
   const rows = useMemo(() => yieldTrendRows(query.data?.yieldTrend ?? []), [query.data]);
   const domain = useMemo(() => yieldDomain(rows.map((r) => r.avgYield), periodYield), [rows, periodYield]);
   return (
-    <Panel className={className} title="Tren yield harian" description={`Rata-rata yield proses per hari · ${rangeLabel}`}>
+    <Panel className={className} title={t('productionTab.trendTitle')} description={t('productionTab.trendDescription', { range: rangeLabel })}>
       <PanelState
         loading={query.isLoading}
         error={query.error}
         onRetry={() => query.refetch()}
         empty={rows.length === 0}
-        emptyTitle="Belum ada data yield"
-        emptyDescription="Yield tampil setelah ada proses produksi pada periode ini."
+        emptyTitle={t('productionTab.trendEmptyTitle')}
+        emptyDescription={t('productionTab.trendEmptyDescription')}
         skeleton="chart"
       >
         <figure className={cn('m-0', query.isFetching && query.isPlaceholderData && 'opacity-60')}>
@@ -240,8 +243,8 @@ function YieldTrendPanel({
                       <ChartTooltipBox
                         title={formatDate(p.date, 'long')}
                         rows={[
-                          { label: 'Yield rata-rata', value: formatYield(p.avgYield), color: 'var(--chart-2)' },
-                          { label: 'Jumlah proses', value: formatNumber(p.count) },
+                          { label: t('productionTab.avgYield'), value: formatYield(p.avgYield), color: 'var(--chart-2)' },
+                          { label: t('productionTab.runCount'), value: formatNumber(p.count) },
                         ]}
                       />
                     );
@@ -252,7 +255,7 @@ function YieldTrendPanel({
                     y={periodYield}
                     stroke="var(--chart-4)"
                     strokeDasharray="4 4"
-                    label={{ value: `Tertimbang ${formatYield(periodYield)}`, position: 'insideTopRight', fontSize: 11, fill: 'var(--text-muted)' }}
+                    label={{ value: t('productionTab.weightedLine', { value: formatYield(periodYield) }), position: 'insideTopRight', fontSize: 11, fill: 'var(--text-muted)' }}
                   />
                 )}
                 <Line isAnimationActive={animate}
@@ -267,7 +270,8 @@ function YieldTrendPanel({
             </ResponsiveContainer>
           </div>
           <figcaption className="sr-only">
-            Yield harian: {rows.map((r) => `${formatDate(r.date)} ${formatYield(r.avgYield)} (${r.count} proses)`).join('; ')}
+            {t('productionTab.dailyYield')}:{' '}
+            {rows.map((r) => `${formatDate(r.date)} ${formatYield(r.avgYield)} (${t('productionTab.runsCount', { count: r.count })})`).join('; ')}
           </figcaption>
         </figure>
       </PanelState>
@@ -276,15 +280,16 @@ function YieldTrendPanel({
 }
 
 function PendingApprovalsPanel({ query }: { query: ReturnType<typeof useQuery<Awaited<ReturnType<typeof fetchApprovalRequests>>>> }) {
+  const { t } = useTranslation('dashboard');
   const rows = query.data ?? [];
   return (
     <Panel
-      title="Menunggu persetujuan"
-      description={rows.length ? `${formatQueueCount(rows.length)} pengajuan proses produksi` : 'Pengajuan proses produksi'}
+      title={t('productionTab.pendingTitle')}
+      description={rows.length ? t('productionTab.pendingCount', { count: formatQueueCount(rows.length) }) : t('productionTab.pendingDescription')}
       bodyClassName="p-0"
       action={
         <Link to={APPROVAL_HREF} className={linkClass}>
-          Buka antrean
+          {t('productionTab.openQueue')}
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       }
@@ -296,8 +301,8 @@ function PendingApprovalsPanel({ query }: { query: ReturnType<typeof useQuery<Aw
           onRetry={() => query.refetch()}
           empty={rows.length === 0}
           emptyIcon={ClipboardCheck}
-          emptyTitle="Tidak ada antrean"
-          emptyDescription="Semua pengajuan proses produksi sudah diputuskan."
+          emptyTitle={t('productionTab.queueEmptyTitle')}
+          emptyDescription={t('productionTab.queueEmptyDescription')}
         >
           <ul className="-mx-4 -my-3 divide-y divide-border">
             {rows.slice(0, 6).map((r) => {
@@ -311,12 +316,12 @@ function PendingApprovalsPanel({ query }: { query: ReturnType<typeof useQuery<Aw
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-foreground">{r.requester.fullName}</span>
                       <span className="num block text-xs text-muted-foreground">
-                        {formatDateTime(r.createdAt)} · {formatQty(Number(r.amount ?? 0))} kg input
+                        {formatDateTime(r.createdAt)} · {t('productionTab.kgInput', { qty: formatQty(Number(r.amount ?? 0)) })}
                       </span>
                     </span>
                     <StatusBadge
                       status="Pending"
-                      label={days > 0 ? `${days} hari` : 'Hari ini'}
+                      label={days > 0 ? t('widgetsShared.days', { count: days }) : t('productionTab.today')}
                       tone={days >= 3 ? 'danger' : 'warning'}
                     />
                   </Link>
@@ -331,19 +336,20 @@ function PendingApprovalsPanel({ query }: { query: ReturnType<typeof useQuery<Aw
 }
 
 function TopProductsPanel({ query }: { query: DashQuery }) {
+  const { t } = useTranslation('dashboard');
   const rows = useMemo(
     () => topProductRows(query.data?.topOutputs ?? [], query.data?.loadedHpp.perProduct ?? []),
     [query.data],
   );
   return (
-    <Panel title="Produk teratas" description="Output terbesar pada periode, dengan HPP rata-rata.">
+    <Panel title={t('productionTab.topTitle')} description={t('productionTab.topDescription')}>
       <PanelState
         loading={query.isLoading}
         error={query.error}
         onRetry={() => query.refetch()}
         empty={rows.length === 0}
-        emptyTitle="Belum ada output"
-        emptyDescription="Hasil produksi pada periode ini akan muncul di sini."
+        emptyTitle={t('productionTab.topEmptyTitle')}
+        emptyDescription={t('productionTab.topEmptyDescription')}
       >
         <ol className="space-y-3">
           {rows.map((r, i) => (
@@ -362,7 +368,7 @@ function TopProductsPanel({ query }: { query: DashQuery }) {
                   <span className="block h-full rounded-sm bg-chart-2" style={{ width: `${Math.max(3, r.share * 100)}%` }} />
                 </span>
                 <span className="num w-32 shrink-0 text-right text-xs text-muted-foreground">
-                  {r.avgHpp !== null ? `HPP ${formatRupiah(r.avgHpp)}/${r.unit || 'unit'}` : 'HPP belum ada'}
+                  {r.avgHpp !== null ? t('productionTab.hppPerUnit', { value: formatRupiah(r.avgHpp), unit: r.unit || t('productionTab.unit') }) : t('productionTab.noHppYet')}
                 </span>
               </div>
             </li>
@@ -374,15 +380,16 @@ function TopProductsPanel({ query }: { query: DashQuery }) {
 }
 
 function RecentRunsPanel({ query, onOpenRun }: { query: DashQuery; onOpenRun: (id: string) => void }) {
+  const { t } = useTranslation('dashboard');
   const rows = query.data?.recentProduction ?? [];
   return (
     <Panel
-      title="Proses terbaru"
-      description="10 proses terakhir pada periode."
+      title={t('productionTab.recentTitle')}
+      description={t('productionTab.recentDescription')}
       bodyClassName="p-0"
       action={
         <Link to="/inventory?tab=production&view=data" className={linkClass}>
-          Data produksi
+          {t('productionTab.productionData')}
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       }
@@ -393,8 +400,8 @@ function RecentRunsPanel({ query, onOpenRun }: { query: DashQuery; onOpenRun: (i
           error={query.error}
           onRetry={() => query.refetch()}
           empty={rows.length === 0}
-          emptyTitle="Belum ada proses"
-          emptyDescription="Tidak ada proses produksi pada periode ini."
+          emptyTitle={t('productionTab.recentEmptyTitle')}
+          emptyDescription={t('productionTab.recentEmptyDescription')}
         >
           <ul className="divide-y divide-border">
             {rows.map((r) => (
@@ -402,7 +409,7 @@ function RecentRunsPanel({ query, onOpenRun }: { query: DashQuery; onOpenRun: (i
                 <button
                   type="button"
                   onClick={() => onOpenRun(r.id)}
-                  aria-label={`${r.runNumber}, ${formatDate(r.date)}, yield ${formatYield(r.yieldPct)}`}
+                  aria-label={t('productionTab.runAria', { run: r.runNumber, date: formatDate(r.date), yield: formatYield(r.yieldPct) })}
                   className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 >
                   <span className="min-w-0">

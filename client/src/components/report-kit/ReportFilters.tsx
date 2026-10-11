@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { DateInput } from '@/components/shared';
@@ -34,6 +35,7 @@ const CHIP = 'max-sm:h-11';
  * date inputs that only apply on "Terapkan" (so half-typed dates never fire a query).
  */
 export function ReportFilters(props: ReportFiltersProps) {
+  const { t } = useTranslation('reports');
   const { children, className, allowAll } = props;
   const isRange = props.mode === 'range';
   const current = isRange ? props.value : null;
@@ -71,8 +73,8 @@ export function ReportFilters(props: ReportFiltersProps) {
   const presets = isRange ? RANGE_PRESETS : AS_OF_PRESETS;
 
   return (
-    <section aria-label="Filter laporan" className={cn('no-print flex flex-col gap-3', className)} data-no-print>
-      <div role="group" aria-label={isRange ? 'Pilih periode' : 'Pilih tanggal posisi'} className="flex flex-wrap items-center gap-2">
+    <section aria-label={t('kit.filters.label')} className={cn('no-print flex flex-col gap-3', className)} data-no-print>
+      <div role="group" aria-label={isRange ? t('kit.filters.choosePeriod') : t('kit.filters.chooseAsOf')} className="flex flex-wrap items-center gap-2">
         {presets.map((p) => (
           <Button
             key={p.id}
@@ -82,7 +84,7 @@ export function ReportFilters(props: ReportFiltersProps) {
             aria-pressed={active === p.id && !customOpen}
             onClick={() => choose(p.id)}
           >
-            {p.label}
+            {t(p.labelKey)}
           </Button>
         ))}
         {allowAll && isRange && (
@@ -96,7 +98,7 @@ export function ReportFilters(props: ReportFiltersProps) {
               if (props.mode === 'range') props.onChange({ startDate: '', endDate: '' });
             }}
           >
-            Semua histori
+            {t('kit.filters.allHistory')}
           </Button>
         )}
         <Button
@@ -106,7 +108,7 @@ export function ReportFilters(props: ReportFiltersProps) {
           aria-pressed={showCustom}
           onClick={() => setCustomOpen(true)}
         >
-          Kustom
+          {t('kit.filters.custom')}
         </Button>
       </div>
 
@@ -115,7 +117,7 @@ export function ReportFilters(props: ReportFiltersProps) {
           <>
             {isRange && (
               <div className="grid gap-1.5">
-                <Label htmlFor="report-start">Dari tanggal</Label>
+                <Label htmlFor="report-start">{t('kit.filters.startDate')}</Label>
                 <DateInput
                   id="report-start"
                   className="w-40 max-sm:w-[calc(50%-0.375rem)] max-sm:min-w-36"
@@ -125,7 +127,7 @@ export function ReportFilters(props: ReportFiltersProps) {
               </div>
             )}
             <div className="grid gap-1.5">
-              <Label htmlFor="report-end">{isRange ? 'Sampai tanggal' : 'Per tanggal'}</Label>
+              <Label htmlFor="report-end">{isRange ? t('kit.filters.endDate') : t('kit.filters.asOfDate')}</Label>
               <DateInput
                 id="report-end"
                 className="w-40 max-sm:min-w-36"
@@ -134,11 +136,11 @@ export function ReportFilters(props: ReportFiltersProps) {
               />
             </div>
             <Button className="max-sm:h-11" onClick={apply} disabled={!draftValid || !dirty}>
-              Terapkan
+              {t('kit.filters.apply')}
             </Button>
             {isRange && !draftValid && draft.startDate && draft.endDate && (
               <p role="alert" className="basis-full text-xs text-danger-text">
-                Tanggal akhir tidak boleh sebelum tanggal mulai.
+                {t('kit.filters.invalidRange')}
               </p>
             )}
           </>

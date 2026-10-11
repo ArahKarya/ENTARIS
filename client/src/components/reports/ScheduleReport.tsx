@@ -1,4 +1,6 @@
 import { AlertTriangle, CheckCircle2, Clock, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { focusRing } from '@/components/ui/styles';
 import { EmptyState } from '@/components/shared';
@@ -20,23 +22,23 @@ export interface ScheduleInvoice {
 }
 
 interface StatusMeta {
-  label: string;
+  labelKey: `scheduleReport.status.${ScheduleStatus}`;
   variant: NonNullable<BadgeProps['variant']>;
   icon: LucideIcon;
 }
 
 const STATUS: Record<ScheduleStatus, StatusMeta> = {
-  overdue: { label: 'Jatuh Tempo', variant: 'danger', icon: AlertTriangle },
-  due_soon: { label: 'Segera', variant: 'warning', icon: Clock },
-  on_track: { label: 'On Track', variant: 'success', icon: CheckCircle2 },
-  no_due_date: { label: 'Tanpa Jatuh Tempo', variant: 'neutral', icon: Clock },
+  overdue: { labelKey: 'scheduleReport.status.overdue', variant: 'danger', icon: AlertTriangle },
+  due_soon: { labelKey: 'scheduleReport.status.due_soon', variant: 'warning', icon: Clock },
+  on_track: { labelKey: 'scheduleReport.status.on_track', variant: 'success', icon: CheckCircle2 },
+  no_due_date: { labelKey: 'scheduleReport.status.no_due_date', variant: 'neutral', icon: Clock },
 };
 
 export interface ScheduleReportProps {
   /** Must equal the route registry label. */
   title: string;
   description: string;
-  /** "Supplier" / "Pelanggan". */
+  /** "Supplier" / "Customer". */
   partyHeader: string;
   caption: string;
   emptyText: string;
@@ -49,7 +51,9 @@ export interface ScheduleReportProps {
 
 function daysText(days: number | null): string {
   if (days === null) return '—';
-  return days < 0 ? `${Math.abs(days)} hari lewat` : `${days} hari`;
+  return days < 0
+    ? i18n.t('scheduleReport.daysOverdue', { ns: 'reports', count: Math.abs(days) })
+    : i18n.t('scheduleReport.daysLeft', { ns: 'reports', count: days });
 }
 
 /** Shared layout of the payable / receivable due-date schedules. */
@@ -65,12 +69,13 @@ export function ScheduleReport({
   isError,
   onRetry,
 }: ScheduleReportProps) {
+  const { t } = useTranslation('reports');
   const th = 'sticky top-0 z-10 whitespace-nowrap border-b border-border bg-muted px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
   return (
     <ReportPage
       title={title}
       description={description}
-      period="Posisi saat ini"
+      period={t('scheduleReport.currentPosition')}
       summary={<ReportSummaryCards loading={isLoading} items={summary} />}
     >
       <ReportState isLoading={isLoading} isError={isError} onRetry={onRetry}>
@@ -90,13 +95,13 @@ export function ScheduleReport({
             <caption className="sr-only">{caption}</caption>
             <thead>
               <tr>
-                <th scope="col" className={cn(th, 'text-left')}>No. Invoice</th>
+                <th scope="col" className={cn(th, 'text-left')}>{t('scheduleReport.columns.invoiceNumber')}</th>
                 <th scope="col" className={cn(th, 'text-left')}>{partyHeader}</th>
-                <th scope="col" className={cn(th, 'text-left max-sm:hidden')}>Tanggal</th>
-                <th scope="col" className={cn(th, 'text-left')}>Jatuh Tempo</th>
-                <th scope="col" className={cn(th, 'text-right')}>Outstanding (Rp)</th>
-                <th scope="col" className={cn(th, 'text-right')}>Sisa Waktu</th>
-                <th scope="col" className={cn(th, 'text-left')}>Status</th>
+                <th scope="col" className={cn(th, 'text-left max-sm:hidden')}>{t('reportsShared.date')}</th>
+                <th scope="col" className={cn(th, 'text-left')}>{t('scheduleReport.columns.dueDate')}</th>
+                <th scope="col" className={cn(th, 'text-right')}>{t('scheduleReport.columns.outstanding')}</th>
+                <th scope="col" className={cn(th, 'text-right')}>{t('scheduleReport.columns.timeLeft')}</th>
+                <th scope="col" className={cn(th, 'text-left')}>{t('reportsShared.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +126,7 @@ export function ScheduleReport({
                     <td className="px-4 py-2.5">
                       <Badge variant={meta.variant}>
                         <Icon className="size-3.5" aria-hidden />
-                        {meta.label}
+                        {t(meta.labelKey)}
                       </Badge>
                     </td>
                   </tr>

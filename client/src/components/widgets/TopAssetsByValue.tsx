@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Trophy } from 'lucide-react';
 import api from '../../lib/api';
 import { formatDate, formatRupiah } from '@/lib/format';
@@ -23,6 +24,7 @@ interface ApiResponse {
 }
 
 export default function TopAssetsByValue() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
     queryKey: ['dashboard-fixed-assets'],
     queryFn: async () => (await api.get('/dashboard/fixed-assets')).data,
@@ -31,30 +33,30 @@ export default function TopAssetsByValue() {
 
   return (
     <WidgetCard
-      title="Top 10 Aset (Nilai Buku)"
-      description="Aset dengan nilai buku tertinggi"
+      title={t('topAssets.title')}
+      description={t('topAssets.description')}
       icon={Trophy}
       href="/fixed-assets"
-      hrefLabel="Aset tetap"
+      hrefLabel={t('depreciationDue.fixedAssets')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!!data && rows.length === 0}
       emptyIcon={Trophy}
-      emptyText="Belum ada aset"
+      emptyText={t('fixedAssetsByCategory.empty')}
       minHeight={200}
     >
       <MiniTable
-        caption="Sepuluh aset tetap dengan nilai buku tertinggi"
+        caption={t('topAssets.caption')}
         rows={rows}
         rowKey={(r) => r.id}
         columns={[
-          { key: 'code', label: 'Kode', hideOnMobile: true },
-          { key: 'name', label: 'Nama' },
-          { key: 'cat', label: 'Kategori', hideOnMobile: true },
-          { key: 'cost', label: 'Harga Beli', numeric: true, hideOnMobile: true },
-          { key: 'book', label: 'Nilai Buku', numeric: true },
-          { key: 'dep', label: 'Penyusutan', numeric: true },
+          { key: 'code', label: t('widgetsShared.code'), hideOnMobile: true },
+          { key: 'name', label: t('widgetsShared.name') },
+          { key: 'cat', label: t('widgetsShared.category'), hideOnMobile: true },
+          { key: 'cost', label: t('topAssets.cost'), numeric: true, hideOnMobile: true },
+          { key: 'book', label: t('topAssets.bookValue'), numeric: true },
+          { key: 'dep', label: t('topAssets.depreciation'), numeric: true },
         ]}
         cell={(a, k) => {
           switch (k) {
@@ -64,7 +66,7 @@ export default function TopAssetsByValue() {
               return (
                 <div className="max-w-[180px]">
                   <p className="truncate font-medium">{a.name}</p>
-                  <p className="text-[11px] text-muted-foreground">Perolehan {formatDate(a.acquisitionDate)}</p>
+                  <p className="text-[11px] text-muted-foreground">{t('topAssets.acquired', { date: formatDate(a.acquisitionDate) })}</p>
                 </div>
               );
             case 'cat':

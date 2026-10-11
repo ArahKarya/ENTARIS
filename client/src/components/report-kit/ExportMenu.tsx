@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { Download, FileDown, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 export interface ExportPdf {
@@ -33,6 +34,7 @@ function downloadBlob(blob: Blob, fileName: string): void {
 
 /** Excel / PDF / Cetak buttons with a busy state and an error toast. Icon-only below sm. */
 export function ExportMenu({ onExcel, pdf, print = true, disabled }: ExportMenuProps) {
+  const { t } = useTranslation('reports');
   const [busy, setBusy] = useState<'excel' | 'pdf' | null>(null);
 
   const run = async (kind: 'excel' | 'pdf', task: () => void | Promise<void>, errorText: string) => {
@@ -58,7 +60,7 @@ export function ExportMenu({ onExcel, pdf, print = true, disabled }: ExportMenuP
         const blob = await renderPdf(pdf.render() as ReactElement<any>).toBlob();
         downloadBlob(blob, pdf.fileName);
       },
-      'Gagal membuat PDF. Coba lagi.',
+      t('kit.export.pdfFailed'),
     );
 
   return (
@@ -66,24 +68,24 @@ export function ExportMenu({ onExcel, pdf, print = true, disabled }: ExportMenuP
       {print && (
         <Button variant="outline" className={COMPACT} onClick={() => window.print()} disabled={disabled}>
           <Printer aria-hidden />
-          <span className="max-sm:sr-only">Cetak</span>
+          <span className="max-sm:sr-only">{t('kit.export.print')}</span>
         </Button>
       )}
       {pdf && (
         <Button variant="outline" className={COMPACT} onClick={handlePdf} loading={busy === 'pdf'} disabled={disabled || busy === 'excel'}>
           {busy !== 'pdf' && <FileDown aria-hidden />}
-          <span className="max-sm:sr-only">Unduh PDF</span>
+          <span className="max-sm:sr-only">{t('kit.export.downloadPdf')}</span>
         </Button>
       )}
       {onExcel && (
         <Button
           className={COMPACT}
-          onClick={() => run('excel', onExcel, 'Gagal mengekspor data. Coba lagi.')}
+          onClick={() => run('excel', onExcel, t('kit.export.excelFailed'))}
           loading={busy === 'excel'}
           disabled={disabled || busy === 'pdf'}
         >
           {busy !== 'excel' && <Download aria-hidden />}
-          <span className="max-sm:sr-only">Ekspor Excel</span>
+          <span className="max-sm:sr-only">{t('kit.export.excel')}</span>
         </Button>
       )}
     </>

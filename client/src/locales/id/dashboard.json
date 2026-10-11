@@ -1,1 +1,734 @@
-{}
+{
+  "widgetsShared": {
+    "detail": "Detail",
+    "selectedPeriod": "Pada periode terpilih",
+    "report": "Laporan",
+    "total": "Total",
+    "noCategory": "Tanpa Kategori",
+    "amount": "Jumlah",
+    "today": "hari ini",
+    "daysAgo_one": "{{count}} hari lalu",
+    "daysAgo_other": "{{count}} hari lalu",
+    "days_one": "{{count}} hari",
+    "days_other": "{{count}} hari",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} item",
+    "moreItems_one": "+ {{count}} item lain",
+    "moreItems_other": "+ {{count}} item lain",
+    "in": "Masuk",
+    "out": "Keluar",
+    "date": "Tanggal",
+    "item": "Item",
+    "qty": "Qty",
+    "value": "Nilai",
+    "code": "Kode",
+    "name": "Nama",
+    "category": "Kategori",
+    "stock": "Stok",
+    "status": "Status"
+  },
+  "agingSummary": {
+    "title": "Umur Piutang & Utang",
+    "ar": "Piutang (AR)",
+    "ap": "Hutang (AP)",
+    "detailLabel": "Rincian umur piutang dan utang",
+    "caption": "Umur piutang dan utang per kelompok hari",
+    "age": "Umur",
+    "receivable": "Piutang",
+    "payable": "Hutang"
+  },
+  "attentionList": {
+    "arOverdue_one": "{{count}} invoice penjualan jatuh tempo",
+    "arOverdue_other": "{{count}} invoice penjualan jatuh tempo",
+    "apOverdue_one": "{{count}} invoice pembelian jatuh tempo",
+    "apOverdue_other": "{{count}} invoice pembelian jatuh tempo",
+    "overdueDetail_one": "{{amount}}, terlama {{count}} hari",
+    "overdueDetail_other": "{{amount}}, terlama {{count}} hari",
+    "stockCritical_one": "{{count}} item stok kritis",
+    "stockCritical_other": "{{count}} item stok kritis",
+    "stockDetail": "{{out}} habis, {{low}} di bawah minimum",
+    "negative_one": "{{count}} item stok minus",
+    "negative_other": "{{count}} item stok minus",
+    "negativeDetail": "Input produksi/penerimaan agar stok kembali positif",
+    "pendingDo_one": "{{count}} surat jalan belum difakturkan",
+    "pendingDo_other": "{{count}} surat jalan belum difakturkan",
+    "pendingDoOld_one": "{{count}} sudah 5 hari atau lebih",
+    "pendingDoOld_other": "{{count}} sudah 5 hari atau lebih",
+    "pendingDoFresh": "Belum ada yang lewat 5 hari",
+    "approvals_one": "{{count}} pengajuan menunggu persetujuan",
+    "approvals_other": "{{count}} pengajuan menunggu persetujuan",
+    "approvalsDetail": "Buka kotak masuk persetujuan",
+    "title": "Perlu Perhatian",
+    "description": "Hal yang butuh tindakan hari ini",
+    "empty": "Tidak ada yang perlu ditindaklanjuti",
+    "listLabel": "Daftar hal yang perlu perhatian"
+  },
+  "cashFlowChart": {
+    "in": "Kas Masuk",
+    "out": "Kas Keluar",
+    "net": "Arus Kas Bersih",
+    "title": "Kas masuk vs keluar"
+  },
+  "cashPosition": {
+    "title": "Posisi Kas & Bank",
+    "description": "Saldo per akun",
+    "transactions": "Transaksi",
+    "empty": "Belum ada akun kas/bank"
+  },
+  "categoryDistribution": {
+    "title": "Kategori dengan stok terbanyak",
+    "description": "Total kuantitas stok per kategori",
+    "empty": "Belum ada item persediaan yang berkategori. Isi kategori saat menambah item.",
+    "listLabel": "Distribusi stok per kategori"
+  },
+  "cogsBackfill": {
+    "title": "COGS Pending Settle",
+    "description": "Penjualan saat stok minus, otomatis settle saat barang masuk",
+    "empty": "Tidak ada COGS pending. Semua penjualan tercover stok.",
+    "pendingItems": "Item Pending",
+    "estimatedValue": "Estimasi Nilai",
+    "listLabel": "Rincian COGS pending per item"
+  },
+  "depreciationDue": {
+    "title": "Penyusutan Mendatang",
+    "description": "Jadwal yang belum diposting",
+    "fixedAssets": "Aset tetap",
+    "thisMonth": "Bulan ini",
+    "entries_one": "{{count}} entri",
+    "entries_other": "{{count}} entri",
+    "allPosted": "Semua jadwal sudah diposting",
+    "listLabel": "Jadwal penyusutan mendatang"
+  },
+  "expenseBreakdown": {
+    "title": "Beban per Akun",
+    "profitLoss": "Laba rugi",
+    "empty": "Belum ada data beban pada periode ini",
+    "summary_one": "Diagram donat beban per akun, total {{total}}, {{count}} akun.",
+    "summary_other": "Diagram donat beban per akun, total {{total}}, {{count}} akun.",
+    "caption": "Beban per akun"
+  },
+  "financialRatios": {
+    "title": "Rasio Keuangan",
+    "balanceSheet": "Neraca",
+    "healthy": ", sehat",
+    "attention": ", perlu perhatian",
+    "totalAssets": "Total Aset",
+    "liabilities": "Liabilitas",
+    "equity": "Ekuitas"
+  },
+  "fixedAssetsByCategory": {
+    "title": "Aset per Kategori",
+    "description": "Distribusi nilai buku",
+    "empty": "Belum ada aset",
+    "assetCount_one": "{{count}} aset",
+    "assetCount_other": "{{count}} aset",
+    "summary": "Diagram donat nilai buku aset tetap per kategori, total {{total}}.",
+    "caption": "Nilai buku aset per kategori",
+    "bookValue": "Nilai buku"
+  },
+  "fixedAssetsKpi": {
+    "title": "Ringkasan Aset Tetap",
+    "countHint": "entitas aset tetap aktif",
+    "cost": "Harga Perolehan",
+    "costHint": "akumulasi nilai beli",
+    "accumulated": "Akum. Penyusutan",
+    "ytd": "YTD {{value}}",
+    "noYtd": "belum ada posting YTD",
+    "netBookValue": "Nilai Buku Bersih",
+    "ofCost": "{{pct}}% dari harga beli"
+  },
+  "kpiCards": {
+    "vsPrevious": "vs periode sebelumnya",
+    "title": "Ringkasan Kinerja",
+    "stockCritical": "Stok Kritis",
+    "loadFailed": "gagal dimuat",
+    "stockSafe": "semua stok aman",
+    "stockOut_one": "{{count}} habis",
+    "stockOut_other": "{{count}} habis",
+    "maintenance": "Pemeliharaan",
+    "noneOverdue": "tidak ada yang terlambat",
+    "overdueHint_one": "terlambat, {{count}} jatuh tempo minggu ini",
+    "overdueHint_other": "terlambat, {{count}} jatuh tempo minggu ini",
+    "revenue": "Omzet",
+    "revenueHint": "pendapatan periode",
+    "netProfit": "Laba Bersih",
+    "selectedPeriodHint": "pada periode terpilih",
+    "cashBank": "Kas & Bank",
+    "currentBalance": "saldo saat ini",
+    "receivables": "Piutang Usaha",
+    "payables": "Hutang Usaha",
+    "inventoryValue": "Nilai Persediaan",
+    "supplierDeposit": "Deposit Supplier"
+  },
+  "monthlyProfit": {
+    "title": "Tren Laba Bulanan",
+    "description": "Pendapatan dan beban per bulan",
+    "empty": "Belum ada data laba pada periode ini",
+    "summary": "Grafik batang pendapatan dan beban per bulan.",
+    "summaryWithLast": "Grafik batang pendapatan dan beban per bulan. Laba bulan terakhir ({{month}}) {{profit}}.",
+    "revenue": "Pendapatan",
+    "expense": "Beban",
+    "profit": "Laba",
+    "profitOf": "Laba {{month}}",
+    "caption": "Pendapatan, beban dan laba per bulan",
+    "month": "Bulan"
+  },
+  "movementTrend": {
+    "in": "Masuk",
+    "out": "Keluar",
+    "net": "Net",
+    "title": "Stok masuk vs keluar per bulan",
+    "description": "6 bulan terakhir",
+    "empty": "Tidak ada pergerakan stok dalam 6 bulan terakhir.",
+    "summary_one": "Grafik batang kuantitas stok masuk dan keluar per bulan dengan garis perubahan bersih, {{count}} bulan.",
+    "summary_other": "Grafik batang kuantitas stok masuk dan keluar per bulan dengan garis perubahan bersih, {{count}} bulan.",
+    "caption": "Pergerakan stok per bulan"
+  },
+  "negativeStock": {
+    "title": "Stok Minus Aktif",
+    "stock": "Stok",
+    "empty": "Tidak ada stok minus",
+    "notice": "Bypass Admin aktif. Pastikan produksi/penerimaan segera diinput supaya stok kembali positif.",
+    "listLabel": "Daftar stok minus"
+  },
+  "overdueInvoices": {
+    "title": "Invoice Jatuh Tempo",
+    "description": "Terlama lebih dulu, maksimal 10",
+    "empty": "Tidak ada invoice jatuh tempo",
+    "listLabel": "Daftar invoice jatuh tempo",
+    "receivable": "Piutang",
+    "payable": "Utang"
+  },
+  "pendingDo": {
+    "title": "Surat Jalan Belum Difakturkan",
+    "deliveryOrders": "Surat jalan",
+    "count_one": "{{count}} DO",
+    "count_other": "{{count}} DO",
+    "empty": "Semua surat jalan sudah difakturkan",
+    "notice_one": "<b>{{count}} DO</b> sudah {{days}} hari atau lebih belum difakturkan. Segera tagih ke customer.",
+    "notice_other": "<b>{{count}} DO</b> sudah {{days}} hari atau lebih belum difakturkan. Segera tagih ke customer.",
+    "listLabel": "Daftar surat jalan belum difakturkan",
+    "more_one": "+ {{count}} DO lain",
+    "more_other": "+ {{count}} DO lain"
+  },
+  "productionDeepDive": {
+    "topEmpty": "Tidak ada data pada periode ini. Ubah rentang tanggal di atas.",
+    "yieldEmpty": "Belum ada run dengan yield",
+    "title": "Produksi pada Periode",
+    "vsPrevious": "vs periode lalu",
+    "periodRuns": "Run periode",
+    "noPrevious": "belum ada periode lalu",
+    "inputQty": "Input qty",
+    "inputHint": "total bahan baku masuk",
+    "outputQty": "Output qty",
+    "byproductHint": "+ {{qty}} Kg byproduct",
+    "noByproduct": "tanpa byproduct",
+    "avgYield": "Rata-rata yield periode",
+    "historical": "historis {{value}}%",
+    "trendTitle": "Tren Yield Periode",
+    "trendDescription": "Rata-rata yield per hari produksi",
+    "trendEmpty": "Belum ada run dengan yield pada periode ini.",
+    "trendSummary_one": "Grafik garis yield produksi per hari, {{count}} titik. Rata-rata periode {{avg}} persen.",
+    "trendSummary_other": "Grafik garis yield produksi per hari, {{count}} titik. Rata-rata periode {{avg}} persen.",
+    "trendCaption": "Yield produksi per hari",
+    "yieldPct": "Yield (%)",
+    "runCount": "Jumlah run",
+    "topInput": "Top Input",
+    "topInputHint": "Bahan baku terbanyak periode",
+    "topOutput": "Top Output",
+    "topOutputHint": "Produk terbanyak periode",
+    "bestYield": "Yield Terbaik",
+    "worstYield": "Yield Terendah",
+    "loadedTitle": "Rincian Loaded HPP",
+    "loadedDescription_one": "{{count}} run dengan HPP terhitung pada periode",
+    "loadedDescription_other": "{{count}} run dengan HPP terhitung pada periode",
+    "material": "Material",
+    "inputCost": "Biaya Input",
+    "outputCost": "Biaya Output",
+    "byproductNrv": "Byproduct (NRV)",
+    "netHpp": "Net HPP",
+    "perProductCaption": "HPP per produk utama",
+    "mainProduct": "Produk Utama",
+    "outputQtyCol": "Qty Output",
+    "avgHppKg": "Rata-rata HPP/Kg",
+    "lastHpp": "HPP Terakhir",
+    "runs_one": "{{count}} run",
+    "runs_other": "{{count}} run"
+  },
+  "productionStats": {
+    "total": "Total Produksi",
+    "thisMonth": "Produksi Bulan Ini",
+    "avgYield": "Rata-rata Yield",
+    "title": "Statistik Produksi",
+    "production": "Produksi",
+    "empty": "Belum ada produksi yang diposting. Draf produksi belum dihitung sampai diposting."
+  },
+  "profitabilityPerSku": {
+    "title": "Profitabilitas per SKU",
+    "fallbackDescription": "Data terakhir: 12 bulan terakhir (tidak ada penjualan pada periode terpilih)",
+    "description": "Margin material vs loaded HPP (10 teratas berdasarkan pendapatan)",
+    "fullReport": "Laporan lengkap",
+    "empty": "Belum ada penjualan terkait inventory pada periode ini",
+    "revenue": "Pendapatan",
+    "materialMargin": "Margin material",
+    "loadedMargin": "Margin loaded",
+    "product": "Produk",
+    "matPct": "Mat %",
+    "loadedPct": "Loaded %",
+    "coverage": "Cakupan",
+    "coverageNote": "<b>Cakupan</b> = persentase baris yang terhubung ke batch. 100% berarti margin loaded paling akurat."
+  },
+  "recentActivities": {
+    "title": "Transaksi Kas Terakhir",
+    "empty": "Belum ada transaksi"
+  },
+  "recentMovements": {
+    "adjIn": "Adj+",
+    "adjOut": "Adj-",
+    "title": "Gerakan Stok Terkini",
+    "empty": "Belum ada gerakan stok",
+    "caption": "Gerakan stok terkini",
+    "type": "Tipe"
+  },
+  "revenueChart": {
+    "title": "Apakah pendapatan menutup beban?",
+    "description": "Per bulan pada periode terpilih",
+    "empty": "Belum ada transaksi pada periode ini",
+    "summary": "Grafik area pendapatan dan beban per bulan. Total pendapatan {{revenue}}, total beban {{expense}}.",
+    "caption": "Pendapatan dan beban per bulan"
+  },
+  "stockAlert": {
+    "description": "Stok di bawah atau sama dengan minimum",
+    "empty": "Semua stok aman",
+    "listLabel": "Daftar stok kritis",
+    "stockLine": "Stok {{current}} / Min {{min}} {{unit}}",
+    "out": "Habis",
+    "low": "Rendah",
+    "top20": "Menampilkan 20 teratas. Lihat semua stok"
+  },
+  "topAssets": {
+    "title": "Top 10 Aset (Nilai Buku)",
+    "description": "Aset dengan nilai buku tertinggi",
+    "caption": "Sepuluh aset tetap dengan nilai buku tertinggi",
+    "cost": "Harga Beli",
+    "bookValue": "Nilai Buku",
+    "depreciation": "Penyusutan",
+    "acquired": "Perolehan {{date}}"
+  },
+  "topCustomers": {
+    "title": "Customer Teratas",
+    "description": "Berdasarkan total penjualan",
+    "customers": "Customer",
+    "empty": "Belum ada invoice penjualan yang diposting. Customer teratas muncul setelah invoice pertama diposting."
+  },
+  "topItemsByStock": {
+    "level": {
+      "safe": "Aman",
+      "low": "Menipis",
+      "critical": "Kritis"
+    },
+    "title": "Daftar Stok Item",
+    "titleCount_one": "Daftar Stok Item ({{count}})",
+    "titleCount_other": "Daftar Stok Item ({{count}})",
+    "empty": "Belum ada item persediaan. Tambahkan item di Inventori.",
+    "caption": "Daftar stok item",
+    "min": "Min"
+  },
+  "topVendors": {
+    "title": "Supplier Teratas",
+    "description": "Berdasarkan total pembelian",
+    "suppliers": "Supplier",
+    "empty": "Belum ada invoice pembelian yang diposting. Supplier teratas muncul setelah invoice pertama diposting."
+  },
+  "upcomingDue": {
+    "title": "Segera Jatuh Tempo",
+    "description": "Invoice yang jatuh tempo dalam 14 hari",
+    "empty": "Tidak ada invoice yang jatuh tempo dalam 14 hari",
+    "listLabel": "Daftar invoice segera jatuh tempo",
+    "daysLeft_one": "{{count}} hari lagi",
+    "daysLeft_other": "{{count}} hari lagi"
+  },
+  "warehouseKpi": {
+    "title": "Ringkasan Stok",
+    "totalItems": "Total Item",
+    "activeItems": "Item Aktif",
+    "lowStock": "Stok Menipis",
+    "needRestock": "Perlu restock",
+    "movementsThisMonth": "Gerakan Bulan Ini"
+  },
+  "yieldTrend": {
+    "title": "Yield Produksi",
+    "description": "Rata-rata yield per bulan (6 bulan)",
+    "thisMonth": "Bulan Ini",
+    "average": "Rata-rata",
+    "vsLastMonth": "vs Bulan Lalu",
+    "summary_one": "Grafik garis yield produksi per bulan, {{count}} bulan. Bulan ini {{latest}} persen, rata-rata {{avg}} persen.",
+    "summary_other": "Grafik garis yield produksi per bulan, {{count}} bulan. Bulan ini {{latest}} persen, rata-rata {{avg}} persen.",
+    "caption": "Yield produksi per bulan",
+    "yield": "Yield",
+    "tooltipLabel_one": "{{label}} - {{count}} run",
+    "tooltipLabel_other": "{{label}} - {{count}} run",
+    "avgLine": "avg {{value}}%"
+  },
+  "widgetCatalog": {
+    "attentionList": {
+      "name": "Perlu Perhatian",
+      "description": "Invoice jatuh tempo, stok kritis, surat jalan tertunda, dan persetujuan menunggu"
+    },
+    "revenueChart": {
+      "name": "Grafik Pendapatan",
+      "description": "Area chart pendapatan vs beban 6 bulan terakhir"
+    },
+    "recentActivities": {
+      "name": "Aktivitas Terakhir",
+      "description": "Transaksi pembayaran terbaru"
+    },
+    "topCustomers": {
+      "name": "Customer Teratas",
+      "description": "Top 5 customer berdasarkan total penjualan"
+    },
+    "overdueInvoices": {
+      "name": "Invoice Jatuh Tempo",
+      "description": "Daftar invoice yang sudah melewati tanggal jatuh tempo"
+    },
+    "expenseBreakdown": {
+      "name": "Breakdown Beban",
+      "description": "Distribusi beban bulan ini dalam bentuk pie chart"
+    },
+    "stockAlert": {
+      "name": "Stok Alert",
+      "description": "Item dengan stok di bawah batas minimum"
+    },
+    "warehouseKpi": {
+      "name": "KPI Gudang",
+      "description": "Ringkasan total item, stok aktif, dan peringatan"
+    },
+    "movementTrend": {
+      "name": "Tren Pergerakan Stok",
+      "description": "Grafik masuk/keluar stok 6 bulan terakhir"
+    },
+    "categoryDistribution": {
+      "name": "Distribusi Kategori",
+      "description": "Distribusi stok berdasarkan kategori"
+    },
+    "topItems": {
+      "name": "Item Stok Terbanyak",
+      "description": "Top 10 item dengan stok terbanyak"
+    },
+    "recentMovements": {
+      "name": "Gerakan Stok Terkini",
+      "description": "10 gerakan stok terakhir"
+    },
+    "productionStats": {
+      "name": "Statistik Produksi",
+      "description": "Total produksi dan rata-rata yield"
+    },
+    "financialRatios": {
+      "name": "Rasio Keuangan",
+      "description": "Current ratio, debt-to-equity, dan debt-to-asset"
+    },
+    "monthlyProfit": {
+      "name": "Tren Laba Bulanan",
+      "description": "Grafik pendapatan vs beban 12 bulan terakhir"
+    },
+    "cashFlowSummary": {
+      "name": "Arus Kas",
+      "description": "Kas masuk, keluar, dan arus bersih bulan ini"
+    },
+    "agingSummary": {
+      "name": "Ringkasan Aging",
+      "description": "Aging piutang dan hutang per bucket"
+    },
+    "cashPosition": {
+      "name": "Posisi Kas & Bank",
+      "description": "Saldo per akun kas/bank dengan total"
+    },
+    "topVendors": {
+      "name": "Supplier Teratas",
+      "description": "Top 5 supplier berdasarkan total pembelian"
+    },
+    "yieldTrend": {
+      "name": "Tren Yield",
+      "description": "Rata-rata yield produksi 6 bulan terakhir"
+    },
+    "cogsBackfill": {
+      "name": "COGS Pending Settle",
+      "description": "Sales stok minus yang menunggu auto-koreksi COGS"
+    },
+    "maintenance": {
+      "name": "Pemeliharaan",
+      "description": "Ringkasan terlambat, perlu perhatian, dan daftar pemeliharaan/masa berlaku mendatang (jadwal, work order, kendaraan, dokumen)"
+    },
+    "upcomingDue": {
+      "name": "Segera Jatuh Tempo",
+      "description": "Invoice penjualan/pembelian yang jatuh tempo dalam 14 hari"
+    },
+    "fixedAssetsKpi": {
+      "name": "KPI Aset Tetap",
+      "description": "Total aset, harga perolehan, akumulasi penyusutan, nilai buku"
+    },
+    "fixedAssetsByCategory": {
+      "name": "Aset per Kategori",
+      "description": "Distribusi nilai buku aset tetap per kategori (pie chart)"
+    },
+    "depreciationDue": {
+      "name": "Penyusutan Mendatang",
+      "description": "Jadwal depresiasi bulan ini + 5 entry upcoming"
+    },
+    "topAssets": {
+      "name": "Top 10 Aset",
+      "description": "Aset tetap dengan nilai buku tertinggi"
+    },
+    "profitabilityPerSku": {
+      "name": "Profitabilitas per SKU",
+      "description": "Top 10 SKU dengan margin material vs loaded HPP"
+    },
+    "productionDeepDive": {
+      "name": "Production Deep Dive",
+      "description": "KPI run + tren yield + top input/output + best/worst + loaded HPP"
+    }
+  },
+  "periodFilter": {
+    "presets": {
+      "thisMonth": "Bulan Ini",
+      "lastMonth": "Bulan Lalu",
+      "thisQuarter": "Kuartal Ini",
+      "ytd": "Tahun Berjalan (YTD)",
+      "last12Months": "12 Bulan Terakhir",
+      "all": "Seluruh Periode",
+      "custom": "Kustom"
+    },
+    "ariaLabel": "Periode: {{label}}",
+    "from": "Dari tanggal",
+    "to": "Sampai tanggal",
+    "apply": "Terapkan"
+  },
+  "opsPeriod": {
+    "presets": {
+      "thisMonth": "Bulan ini",
+      "lastMonth": "Bulan lalu",
+      "last30": "30 hari terakhir",
+      "thisQuarter": "Kuartal ini",
+      "ytd": "Tahun berjalan",
+      "custom": "Rentang khusus"
+    },
+    "vsPrevious": "vs periode sebelumnya",
+    "points": "{{value}} poin",
+    "groupLabel": "Periode dashboard",
+    "period": "Periode",
+    "dateRange": "Rentang tanggal",
+    "loadingChart": "Memuat grafik",
+    "loadingData": "Memuat data"
+  },
+  "dashboardPage": {
+    "title": "Dasbor",
+    "yourCompany": "perusahaan Anda",
+    "description": "Ringkasan kinerja {{company}}",
+    "descriptionProduction": "Ringkasan stok, gudang & produksi {{company}}",
+    "configure": "Konfigurasi dasbor",
+    "trailingDescription": "6 bulan terakhir hingga akhir periode terpilih",
+    "nav": {
+      "overview": "Ringkasan",
+      "finance": "Keuangan",
+      "sales": "Sales",
+      "stock": "Stok",
+      "production": "Produksi",
+      "assets": "Aset"
+    },
+    "sections": {
+      "overview": "Angka utama periode terpilih",
+      "finance": "Laba, arus kas & rasio",
+      "sales": "Customer & aktivitas pembayaran",
+      "stockTitle": "Stok & Gudang",
+      "stock": "Inventori, pergerakan & peringatan stok",
+      "production": "Statistik produksi & yield",
+      "assetsTitle": "Aset Tetap",
+      "assets": "Nilai aset, distribusi, dan jadwal penyusutan"
+    }
+  },
+  "inventoryTab": {
+    "summaryLabel": "Ringkasan persediaan",
+    "valueHint": "stok × harga rata-rata, item aktif",
+    "activeHint": "item persediaan",
+    "outOfStock": "Stok Habis",
+    "outHint": "stok nol atau minus",
+    "belowMin": "Di Bawah Minimum",
+    "belowMinHint": "perlu dipesan ulang",
+    "movements": "Gerakan Stok",
+    "movementsHint": "{{in}} masuk · {{out}} keluar",
+    "summaryError": "Ringkasan persediaan gagal dimuat.",
+    "stockMin": "Stok / Min.",
+    "coverage": "{{pct}} dari stok minimum",
+    "actions": "Aksi",
+    "actionsFor": "Aksi untuk {{code}}",
+    "viewItem": "Lihat item",
+    "movementHistory": "Riwayat gerakan",
+    "attentionTitle": "Perlu tindakan",
+    "attentionDescription": "Item aktif yang stoknya habis atau di bawah minimum.",
+    "viewAll": "Lihat semua ({{count}})",
+    "allSafeDescription": "Tidak ada item aktif yang habis atau di bawah minimum.",
+    "attentionTableLabel": "Item yang perlu tindakan",
+    "warehouse": "Gudang",
+    "valueByCategory": "Nilai stok per kategori",
+    "valueByWarehouse": "Nilai stok per gudang",
+    "total": "Total {{total}}",
+    "totalPerWarehouse": "Total {{total}} · saldo per gudang",
+    "valueDescription": "Stok × harga rata-rata, item aktif.",
+    "groupToggle": "Kelompokkan nilai stok",
+    "valueEmptyTitle": "Belum ada nilai stok",
+    "valueEmptyDescription": "Nilai muncul setelah item memiliki stok dan harga rata-rata.",
+    "itemsWithStock": "Item berstok",
+    "movementNo": "No. Gerakan",
+    "itemMovementHistory": "Riwayat gerakan item",
+    "quantity": "Kuantitas",
+    "recentTitle": "Gerakan stok terbaru",
+    "allMovements": "Semua gerakan",
+    "recentEmptyTitle": "Belum ada gerakan",
+    "recentEmptyDescription": "Tidak ada gerakan stok pada periode ini."
+  },
+  "partiesTab": {
+    "aging": {
+      "current": "Belum Jatuh Tempo",
+      "d30": "1-30 hari",
+      "d60": "31-60 hari",
+      "d90": "61-90 hari",
+      "over90": "> 90 hari"
+    },
+    "noOpenBalance": "Tidak ada saldo terbuka saat ini.",
+    "loading": "Memuat ringkasan mitra…",
+    "errorTitle": "Ringkasan mitra gagal dimuat",
+    "errorDescription": "Permintaan ke server gagal. Periksa koneksi lalu coba lagi.",
+    "activeCustomers": "Customer Aktif",
+    "activeSuppliers": "Supplier Aktif",
+    "totalReceivables": "Total Piutang",
+    "totalPayables": "Total Hutang",
+    "customerDeposit": "UM Customer",
+    "supplierDeposit": "UM Supplier",
+    "agingAr": "Aging Piutang",
+    "agingAp": "Aging Hutang",
+    "topAr": "Top 10 Piutang Customer",
+    "topAp": "Top 10 Hutang Supplier",
+    "overdueAr": "Invoice Piutang Jatuh Tempo",
+    "overdueAp": "Invoice Hutang Jatuh Tempo",
+    "recentPayments": "Pembayaran Terakhir",
+    "noPayments": "Belum ada pembayaran.",
+    "paymentNo": "No. Pembayaran",
+    "partner": "Mitra",
+    "account": "Akun",
+    "receive": "Terima",
+    "pay": "Bayar",
+    "noOverdue": "Tidak ada invoice jatuh tempo.",
+    "invoice": "Invoice",
+    "outstanding": "Outstanding",
+    "days": "Hari",
+    "daysShort_one": "{{count}}h",
+    "daysShort_other": "{{count}}h"
+  },
+  "productionTab": {
+    "summaryLabel": "Ringkasan produksi",
+    "runs": "Proses Produksi",
+    "input": "Bahan Diproses",
+    "inputHint": "total input",
+    "mainOutput": "Output Utama",
+    "mainOutputHint": "tanpa produk samping",
+    "byproduct": "Produk Samping",
+    "ofOutput": "{{pct}} dari output",
+    "weightedYield": "Yield Tertimbang",
+    "weightedHint": "dibobot qty input",
+    "conversionCost": "Biaya Konversi",
+    "avgHpp": "HPP rata-rata {{value}}/kg",
+    "noHpp": "belum ada HPP pada periode",
+    "summaryError": "Ringkasan produksi gagal dimuat.",
+    "mixedUnits": "Kuantitas memakai satuan campuran; angka dijumlahkan apa adanya.",
+    "trendTitle": "Tren yield harian",
+    "trendDescription": "Rata-rata yield proses per hari · {{range}}",
+    "trendEmptyTitle": "Belum ada data yield",
+    "trendEmptyDescription": "Yield tampil setelah ada proses produksi pada periode ini.",
+    "avgYield": "Yield rata-rata",
+    "runCount": "Jumlah proses",
+    "weightedLine": "Tertimbang {{value}}",
+    "dailyYield": "Yield harian",
+    "pendingTitle": "Menunggu persetujuan",
+    "pendingCount": "{{count}} pengajuan proses produksi",
+    "pendingDescription": "Pengajuan proses produksi",
+    "openQueue": "Buka antrean",
+    "queueEmptyTitle": "Tidak ada antrean",
+    "queueEmptyDescription": "Semua pengajuan proses produksi sudah diputuskan.",
+    "kgInput": "{{qty}} kg input",
+    "today": "Hari ini",
+    "topTitle": "Produk teratas",
+    "topDescription": "Output terbesar pada periode, dengan HPP rata-rata.",
+    "topEmptyTitle": "Belum ada output",
+    "topEmptyDescription": "Hasil produksi pada periode ini akan muncul di sini.",
+    "hppPerUnit": "HPP {{value}}/{{unit}}",
+    "unit": "unit",
+    "noHppYet": "HPP belum ada",
+    "recentTitle": "Proses terbaru",
+    "recentDescription": "10 proses terakhir pada periode.",
+    "productionData": "Data produksi",
+    "recentEmptyTitle": "Belum ada proses",
+    "recentEmptyDescription": "Tidak ada proses produksi pada periode ini.",
+    "runAria": "{{run}}, {{date}}, yield {{yield}}",
+    "runsCount_one": "{{count}} proses",
+    "runsCount_other": "{{count}} proses"
+  },
+  "warehouseStock": {
+    "negativeStock": "Stok negatif",
+    "positiveStock": "Stok positif",
+    "otherCategory": "Lainnya",
+    "default": "(default)",
+    "avgCost": "Avg. Cost (Rp)",
+    "valueRp": "Nilai (Rp)",
+    "companyFallback": "Perusahaan",
+    "pdfFailed": "Gagal membuat PDF.",
+    "selectedWarehouse": "gudang terpilih",
+    "title": "Stok per Gudang",
+    "description": "Posisi stok per gudang pada akhir tanggal terpilih. Item dengan stok 0 tidak ditampilkan.",
+    "downloadTitle": "Unduh posisi stok per tanggal terpilih",
+    "downloadPdf": "Unduh PDF",
+    "activeWarehouseHint": "gudang aktif",
+    "itemsWithBalance": "Item Bersaldo",
+    "balancesPerWarehouse": "{{value}} saldo per gudang",
+    "itemTypes": "jenis item",
+    "valueHint": "estimasi avg cost terkini",
+    "negativeStockTitle": "Stok Negatif",
+    "needsFollowUp": "perlu ditindaklanjuti",
+    "none": "tidak ada",
+    "searchLabel": "Cari item",
+    "searchPlaceholder": "Cari nama atau kode item",
+    "stockCondition": "Kondisi stok",
+    "allStock": "Semua stok",
+    "allWarehouses": "Semua gudang",
+    "searchWarehouse": "Cari gudang…",
+    "allCategories": "Semua kategori",
+    "searchCategory": "Cari kategori…",
+    "asOf": "Posisi per",
+    "tableLabel": "Stok per gudang per {{date}}",
+    "itemLabel": "saldo",
+    "noWarehousesTitle": "Belum ada gudang aktif",
+    "noWarehousesDescription": "Aktifkan atau tambahkan gudang untuk melihat stok per lokasi.",
+    "openWarehouses": "Buka Daftar Gudang",
+    "emptyTitle": "Belum ada stok",
+    "emptyTitleAsOf": "Tidak ada stok per {{date}}",
+    "emptyDescription": "Saldo stok akan muncul setelah ada penerimaan barang atau pergerakan stok.",
+    "historicalNote": "Posisi historis dihitung mundur dari stok terkini.",
+    "activeWarehouses_one": "{{formatted}} gudang aktif",
+    "activeWarehouses_other": "{{formatted}} gudang aktif"
+  },
+  "kit": {
+    "dataTable": "Tabel data",
+    "dataTableOf": "{{caption}} (tabel data)",
+    "donut": {
+      "group": "Kelompok",
+      "share": "Porsi"
+    },
+    "widget": {
+      "loading": "Memuat widget",
+      "loadingTitle": "{{title}} (memuat)",
+      "error": "Data gagal dimuat",
+      "retry": "Coba lagi",
+      "empty": "Tidak ada data untuk ditampilkan pada periode ini.",
+      "viewAll": "Lihat semua"
+    }
+  }
+}

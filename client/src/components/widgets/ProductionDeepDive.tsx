@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { ArrowDownToLine, ArrowUpFromLine, Calculator, Factory, TrendingDown, TrendingUp } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import api from '../../lib/api';
@@ -58,12 +59,13 @@ interface Props {
   endDate: string;
 }
 
-const fmtShortDate = (d: string) => new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+const fmtShortDate = (d: string) => formatDate(d, 'short');
 
 function TopItemList({ title, hint, items, icon, tone }: { title: string; hint: string; items: TopItem[]; icon: typeof Factory; tone: string }) {
+  const { t } = useTranslation('dashboard');
   const max = items.length > 0 ? Math.max(...items.map((i) => i.quantity)) : 1;
   return (
-    <WidgetCard title={title} description={hint} icon={icon} isEmpty={items.length === 0} emptyText="Tidak ada data pada periode ini. Ubah rentang tanggal di atas." minHeight={90}>
+    <WidgetCard title={title} description={hint} icon={icon} isEmpty={items.length === 0} emptyText={t('productionDeepDive.topEmpty')} minHeight={90}>
       <ul className="space-y-2">
         {items.map((it) => (
           <li key={it.id}>
@@ -82,8 +84,9 @@ function TopItemList({ title, hint, items, icon, tone }: { title: string; hint: 
 }
 
 function YieldRankList({ title, runs, best }: { title: string; runs: YieldRun[]; best: boolean }) {
+  const { t } = useTranslation('dashboard');
   return (
-    <WidgetCard title={title} icon={best ? TrendingUp : TrendingDown} isEmpty={runs.length === 0} emptyText="Belum ada run dengan yield" minHeight={90}>
+    <WidgetCard title={title} icon={best ? TrendingUp : TrendingDown} isEmpty={runs.length === 0} emptyText={t('productionDeepDive.yieldEmpty')} minHeight={90}>
       <ul className="divide-y divide-border">
         {runs.slice(0, 5).map((r) => (
           <li key={r.runNumber} className="flex items-center justify-between py-1.5">
@@ -91,7 +94,7 @@ function YieldRankList({ title, runs, best }: { title: string; runs: YieldRun[];
               <p className="truncate font-mono text-xs text-foreground">{r.runNumber}</p>
               <p className="text-[11px] text-muted-foreground">{formatDate(r.date, 'short')}</p>
             </div>
-            <span className={cn('num text-xs font-semibold', best ? 'text-success-text' : 'text-danger-text')}>{r.yieldPct.toFixed(1)}%</span>
+            <span className={cn('num text-xs font-semibold', best ? 'text-success-text' : 'text-danger-text')}>{formatNumber(r.yieldPct, { decimals: 1 })}%</span>
           </li>
         ))}
       </ul>
@@ -100,6 +103,7 @@ function YieldRankList({ title, runs, best }: { title: string; runs: YieldRun[];
 }
 
 export default function ProductionDeepDive({ startDate, endDate }: Props) {
+  const { t } = useTranslation('dashboard');
   const animate = useChartAnimation();
   const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
     queryKey: ['dashboard-production-deep-dive', startDate, endDate],
@@ -107,7 +111,7 @@ export default function ProductionDeepDive({ startDate, endDate }: Props) {
   });
 
   if (isLoading || isError || !data) {
-    return <WidgetCard title="Produksi pada Periode" icon={Factory} isLoading={isLoading} isError={isError} onRetry={() => void refetch()} minHeight={420} />;
+    return <WidgetCard title={t('productionDeepDive.title')} icon={Factory} isLoading={isLoading} isError={isError} onRetry={() => void refetch()} minHeight={420} />;
   }
 
   const s = data.summary;
@@ -116,37 +120,53 @@ export default function ProductionDeepDive({ startDate, endDate }: Props) {
   const runDelta: StatDelta | undefined =
     periodDelta === null
       ? undefined
-      : { value: `${periodDelta >= 0 ? '+' : ''}${periodDelta}%`, direction: periodDelta > 0 ? 'up' : periodDelta < 0 ? 'down' : 'flat', label: 'vs periode lalu' };
+      : { value: `${periodDelta >= 0 ? '+' : ''}${periodDelta}%`, direction: periodDelta > 0 ? 'up' : periodDelta < 0 ? 'down' : 'flat', label: t('productionDeepDive.vsPrevious') };
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard label="Run periode" value={formatNumber(s.periodRuns)} icon={Factory} delta={runDelta} hint={periodDelta === null ? 'belum ada periode lalu' : undefined} />
-        <StatCard label="Input qty" value={`${formatNumber(s.totalInputQtyPeriod)} Kg`} icon={ArrowDownToLine} hint="total bahan baku masuk" />
         <StatCard
-          label="Output qty"
+          label={t('productionDeepDive.periodRuns')}
+          value={formatNumber(s.periodRuns)}
+          icon={Factory}
+          delta={runDelta}
+          hint={periodDelta === null ? t('productionDeepDive.noPrevious') : undefined}
+        />
+        <StatCard
+          label={t('productionDeepDive.inputQty')}
+          value={`${formatNumber(s.totalInputQtyPeriod)} Kg`}
+          icon={ArrowDownToLine}
+          hint={t('productionDeepDive.inputHint')}
+        />
+        <StatCard
+          label={t('productionDeepDive.outputQty')}
           value={`${formatNumber(s.totalOutputQtyPeriod)} Kg`}
           icon={ArrowUpFromLine}
-          hint={s.totalByProductQtyPeriod > 0 ? `+ ${formatNumber(s.totalByProductQtyPeriod)} Kg byproduct` : 'tanpa byproduct'}
+          hint={s.totalByProductQtyPeriod > 0 ? t('productionDeepDive.byproductHint', { qty: formatNumber(s.totalByProductQtyPeriod) }) : t('productionDeepDive.noByproduct')}
         />
-        <StatCard label="Rata-rata yield periode" value={`${s.avgYieldPeriod.toFixed(1)}%`} icon={TrendingUp} hint={`historis ${s.avgYield.toFixed(1)}%`} />
+        <StatCard
+          label={t('productionDeepDive.avgYield')}
+          value={`${formatNumber(s.avgYieldPeriod, { decimals: 1 })}%`}
+          icon={TrendingUp}
+          hint={t('productionDeepDive.historical', { value: formatNumber(s.avgYield, { decimals: 1 }) })}
+        />
       </div>
 
       <WidgetCard
-        title="Tren Yield Periode"
-        description="Rata-rata yield per hari produksi"
+        title={t('productionDeepDive.trendTitle')}
+        description={t('productionDeepDive.trendDescription')}
         icon={TrendingUp}
         isEmpty={data.yieldTrend.length === 0}
-        emptyText="Belum ada run dengan yield pada periode ini."
+        emptyText={t('productionDeepDive.trendEmpty')}
         minHeight={200}
       >
         <ChartFrame
           height={200}
-          summary={`Grafik garis yield produksi per hari, ${data.yieldTrend.length} titik. Rata-rata periode ${s.avgYieldPeriod.toFixed(1)} persen.`}
+          summary={t('productionDeepDive.trendSummary', { count: data.yieldTrend.length, avg: formatNumber(s.avgYieldPeriod, { decimals: 1 }) })}
           table={{
-            caption: 'Yield produksi per hari',
-            columns: ['Tanggal', 'Yield (%)', 'Jumlah run'],
-            rows: data.yieldTrend.map((p) => [fmtShortDate(p.date), p.avgYield.toFixed(2), String(p.count)]),
+            caption: t('productionDeepDive.trendCaption'),
+            columns: [t('widgetsShared.date'), t('productionDeepDive.yieldPct'), t('productionDeepDive.runCount')],
+            rows: data.yieldTrend.map((p) => [fmtShortDate(p.date), formatNumber(p.avgYield, { decimals: 2 }), String(p.count)]),
           }}
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -154,7 +174,7 @@ export default function ProductionDeepDive({ startDate, endDate }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
               <XAxis dataKey="date" tick={AXIS_TICK} tickLine={false} axisLine={false} tickFormatter={fmtShortDate} />
               <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} unit="%" />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${Number(v).toFixed(2)}%`} labelFormatter={(d) => formatDate(String(d))} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${formatNumber(Number(v), { decimals: 2 })}%`} labelFormatter={(d) => formatDate(String(d))} />
               <Line type="monotone" dataKey="avgYield" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3, fill: 'var(--chart-2)' }} isAnimationActive={animate} />
             </LineChart>
           </ResponsiveContainer>
@@ -162,41 +182,45 @@ export default function ProductionDeepDive({ startDate, endDate }: Props) {
       </WidgetCard>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <TopItemList title="Top Input" hint="Bahan baku terbanyak periode" items={data.topInputs} icon={ArrowDownToLine} tone="bg-chart-2" />
-        <TopItemList title="Top Output" hint="Produk terbanyak periode" items={data.topOutputs} icon={ArrowUpFromLine} tone="bg-chart-3" />
-        <YieldRankList title="Yield Terbaik" runs={data.bestYield} best />
-        <YieldRankList title="Yield Terendah" runs={data.worstYield} best={false} />
+        <TopItemList title={t('productionDeepDive.topInput')} hint={t('productionDeepDive.topInputHint')} items={data.topInputs} icon={ArrowDownToLine} tone="bg-chart-2" />
+        <TopItemList title={t('productionDeepDive.topOutput')} hint={t('productionDeepDive.topOutputHint')} items={data.topOutputs} icon={ArrowUpFromLine} tone="bg-chart-3" />
+        <YieldRankList title={t('productionDeepDive.bestYield')} runs={data.bestYield} best />
+        <YieldRankList title={t('productionDeepDive.worstYield')} runs={data.worstYield} best={false} />
       </div>
 
       {lh.runsWithHppCount > 0 && (
-        <WidgetCard title="Rincian Loaded HPP" description={`${lh.runsWithHppCount} run dengan HPP terhitung pada periode`} icon={Calculator}>
+        <WidgetCard
+          title={t('productionDeepDive.loadedTitle')}
+          description={t('productionDeepDive.loadedDescription', { count: lh.runsWithHppCount })}
+          icon={Calculator}
+        >
           <dl className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-5">
-            {[
-              ['Material', lh.totalMaterialCost, ''],
-              ['Biaya Input', lh.totalCostInputSide, '+ '],
-              ['Biaya Output', lh.totalCostOutputSide, '+ '],
-              ['Byproduct (NRV)', lh.totalByproductValue, '- '],
-              ['Net HPP', lh.totalLoadedHpp, '= '],
-            ].map(([k, v, sign]) => (
-              <div key={k as string} className={cn('rounded-md border px-2.5 py-2', k === 'Net HPP' ? 'border-border-strong bg-muted' : 'border-border')}>
+            {([
+              ['material', t('productionDeepDive.material'), lh.totalMaterialCost, ''],
+              ['input', t('productionDeepDive.inputCost'), lh.totalCostInputSide, '+ '],
+              ['output', t('productionDeepDive.outputCost'), lh.totalCostOutputSide, '+ '],
+              ['byproduct', t('productionDeepDive.byproductNrv'), lh.totalByproductValue, '- '],
+              ['net', t('productionDeepDive.netHpp'), lh.totalLoadedHpp, '= '],
+            ] as const).map(([id, k, v, sign]) => (
+              <div key={id} className={cn('rounded-md border px-2.5 py-2', id === 'net' ? 'border-border-strong bg-muted' : 'border-border')}>
                 <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</dt>
-                <dd className={cn('num mt-0.5 text-xs text-foreground', k === 'Net HPP' ? 'text-sm font-semibold' : 'font-medium')}>
+                <dd className={cn('num mt-0.5 text-xs text-foreground', id === 'net' ? 'text-sm font-semibold' : 'font-medium')}>
                   {sign}
-                  {formatRupiah(v as number)}
+                  {formatRupiah(v)}
                 </dd>
               </div>
             ))}
           </dl>
           {lh.perProduct.length > 0 && (
             <MiniTable
-              caption="HPP per produk utama"
+              caption={t('productionDeepDive.perProductCaption')}
               rows={lh.perProduct}
               rowKey={(p) => p.itemId}
               columns={[
-                { key: 'name', label: 'Produk Utama' },
-                { key: 'qty', label: 'Qty Output', numeric: true },
-                { key: 'avg', label: 'Rata-rata HPP/Kg', numeric: true },
-                { key: 'last', label: 'HPP Terakhir', numeric: true, hideOnMobile: true },
+                { key: 'name', label: t('productionDeepDive.mainProduct') },
+                { key: 'qty', label: t('productionDeepDive.outputQtyCol'), numeric: true },
+                { key: 'avg', label: t('productionDeepDive.avgHppKg'), numeric: true },
+                { key: 'last', label: t('productionDeepDive.lastHpp'), numeric: true, hideOnMobile: true },
               ]}
               cell={(p, k) => {
                 switch (k) {
@@ -204,7 +228,7 @@ export default function ProductionDeepDive({ startDate, endDate }: Props) {
                     return (
                       <div>
                         <p className="font-medium">{p.itemName}</p>
-                        <p className="font-mono text-[11px] text-muted-foreground">{p.itemCode} - {p.runs} run</p>
+                        <p className="font-mono text-[11px] text-muted-foreground">{p.itemCode} - {t('productionDeepDive.runs', { count: p.runs })}</p>
                       </div>
                     );
                   case 'qty':

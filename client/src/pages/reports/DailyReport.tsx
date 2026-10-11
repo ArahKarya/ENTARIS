@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { LOCALE, parseDate } from '@/lib/format';
 import { DailyReportPDF } from '@/lib/pdf/DailyReportPDF';
 import { useCompanyPDF } from '@/lib/pdf/useCompanyPDF';
 import {
@@ -16,6 +18,7 @@ import { FinanceSection, ReceivablesSection, PayablesSection, DepositsSection } 
 import type { DailyData } from './daily/types';
 
 const DailyReport = () => {
+  const { t } = useTranslation('reports');
   const { date, setDate } = useReportAsOf();
   const company = useCompanyPDF();
 
@@ -38,12 +41,15 @@ const DailyReport = () => {
     },
   });
 
-  const formattedDate = new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const parsed = parseDate(date);
+  const formattedDate = parsed
+    ? new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(parsed)
+    : date;
 
   return (
     <ReportPage
-      title="Laporan Harian"
-      description={`Ringkasan aktivitas bisnis pada ${formattedDate}`}
+      title={t('dailyReport.title')}
+      description={t('dailyReport.description', { date: formattedDate })}
       period={periodLabel(date)}
       actions={
         <ExportMenu

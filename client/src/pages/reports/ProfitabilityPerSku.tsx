@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Calculator, Coins, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import api from '@/lib/api';
 import { formatNumber, formatRupiah } from '@/lib/format';
@@ -57,11 +59,7 @@ interface ReportData {
 
 type MarginBasis = 'material' | 'loaded' | 'both';
 
-const BASIS_LABEL: Record<MarginBasis, string> = {
-  both: 'Material + Loaded (berdampingan)',
-  material: 'Material saja',
-  loaded: 'Loaded saja',
-};
+const BASIS_OPTIONS: readonly MarginBasis[] = ['both', 'material', 'loaded'];
 
 const LOADED_CELL = 'bg-info-subtle/40';
 
@@ -85,28 +83,28 @@ function coverageClass(pct: number): string {
   return 'bg-neutral-subtle text-neutral-text';
 }
 
-function buildColumns(showMaterial: boolean, showLoaded: boolean): DataColumn<ItemRow>[] {
+function buildColumns(t: TFunction<'reports'>, showMaterial: boolean, showLoaded: boolean): DataColumn<ItemRow>[] {
   const cols: DataColumn<ItemRow>[] = [
-    { key: 'code', header: 'Kode', className: 'whitespace-nowrap font-mono text-xs', render: (r) => r.itemCode },
-    { key: 'name', header: 'Produk', rowHeader: true, render: (r) => r.itemName },
-    { key: 'qty', header: 'Qty', numeric: true, render: (r) => formatNumber(r.totalQty) },
-    { key: 'revenue', header: 'Pendapatan', numeric: true, render: (r) => formatRupiah(r.totalRevenue, { symbol: false }) },
+    { key: 'code', header: t('hppReport.cols.code'), className: 'whitespace-nowrap font-mono text-xs', render: (r) => r.itemCode },
+    { key: 'name', header: t('hppReport.cols.product'), rowHeader: true, render: (r) => r.itemName },
+    { key: 'qty', header: t('dailyReport.cols.qty'), numeric: true, render: (r) => formatNumber(r.totalQty) },
+    { key: 'revenue', header: t('hppReport.cols.revenue'), numeric: true, render: (r) => formatRupiah(r.totalRevenue, { symbol: false }) },
   ];
   if (showMaterial) {
     cols.push(
-      { key: 'matCogs', header: 'HPP Material', numeric: true, render: (r) => formatRupiah(r.materialCogs, { symbol: false }) },
-      { key: 'matMargin', header: 'Margin Material', numeric: true, render: (r) => <MarginCell pct={r.materialMarginPct} amount={r.materialMargin} /> },
+      { key: 'matCogs', header: t('profitabilityPerSku.materialCogs'), numeric: true, render: (r) => formatRupiah(r.materialCogs, { symbol: false }) },
+      { key: 'matMargin', header: t('profitabilityPerSku.materialMargin'), numeric: true, render: (r) => <MarginCell pct={r.materialMarginPct} amount={r.materialMargin} /> },
     );
   }
   if (showLoaded) {
     cols.push(
-      { key: 'loadCogs', header: 'HPP Loaded', numeric: true, className: LOADED_CELL, render: (r) => formatRupiah(r.loadedCogs, { symbol: false }) },
-      { key: 'loadMargin', header: 'Margin Loaded', numeric: true, className: LOADED_CELL, render: (r) => <MarginCell pct={r.loadedMarginPct} amount={r.loadedMargin} /> },
+      { key: 'loadCogs', header: t('profitabilityPerSku.loadedCogs'), numeric: true, className: LOADED_CELL, render: (r) => formatRupiah(r.loadedCogs, { symbol: false }) },
+      { key: 'loadMargin', header: t('profitabilityPerSku.loadedMargin'), numeric: true, className: LOADED_CELL, render: (r) => <MarginCell pct={r.loadedMarginPct} amount={r.loadedMargin} /> },
     );
   }
   cols.push({
     key: 'coverage',
-    header: 'Cakupan',
+    header: t('profitabilityPerSku.coverage'),
     numeric: true,
     render: (r) => (
       <span className={cn('inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium', coverageClass(r.coveragePct))}>
@@ -118,6 +116,7 @@ function buildColumns(showMaterial: boolean, showLoaded: boolean): DataColumn<It
 }
 
 export default function ProfitabilityPerSku() {
+  const { t } = useTranslation('reports');
   const now = new Date();
   const { startDate, endDate, setRange } = useReportRange({ startDate: `${now.getFullYear()}-01-01`, endDate: toIso(now) });
   const [basis, setBasis] = useState<MarginBasis>('both');
@@ -134,47 +133,47 @@ export default function ProfitabilityPerSku() {
   const showLoaded = basis === 'loaded' || basis === 'both';
   const s = data?.summary;
 
-  const cards: SummaryItem[] = [{ label: 'Total Pendapatan', value: s?.totalRevenue ?? 0, icon: Wallet, tone: 'neutral' }];
+  const cards: SummaryItem[] = [{ label: t('profitLoss.totalRevenue'), value: s?.totalRevenue ?? 0, icon: Wallet, tone: 'neutral' }];
   if (showMaterial) {
     cards.push(
-      { label: 'HPP Material (WAC)', value: s?.totalMaterialCogs ?? 0, icon: Coins, tone: 'neutral' },
-      { label: 'Margin Material', value: s?.materialGrossProfit ?? 0, icon: TrendingUp, hint: `${s?.materialMarginPct ?? 0}% dari pendapatan` },
+      { label: t('profitabilityPerSku.materialCogsWac'), value: s?.totalMaterialCogs ?? 0, icon: Coins, tone: 'neutral' },
+      { label: t('profitabilityPerSku.materialMargin'), value: s?.materialGrossProfit ?? 0, icon: TrendingUp, hint: t('profitabilityPerSku.ofRevenue', { pct: s?.materialMarginPct ?? 0 }) },
     );
   }
   if (showLoaded) {
     cards.push(
-      { label: 'HPP Loaded', value: s?.totalLoadedCogs ?? 0, icon: Calculator, tone: 'neutral' },
-      { label: 'Margin Loaded', value: s?.loadedGrossProfit ?? 0, icon: TrendingUp, hint: `${s?.loadedMarginPct ?? 0}% dari pendapatan` },
+      { label: t('profitabilityPerSku.loadedCogs'), value: s?.totalLoadedCogs ?? 0, icon: Calculator, tone: 'neutral' },
+      { label: t('profitabilityPerSku.loadedMargin'), value: s?.loadedGrossProfit ?? 0, icon: TrendingUp, hint: t('profitabilityPerSku.ofRevenue', { pct: s?.loadedMarginPct ?? 0 }) },
     );
   }
 
   return (
     <ReportPage
-      title="Profitabilitas per SKU"
-      description="Margin per produk dengan basis HPP Material (WAC) dan HPP Loaded per batch"
+      title={t('profitabilityPerSku.title')}
+      description={t('profitabilityPerSku.description')}
       period={periodLabel({ startDate, endDate })}
       actions={<ExportMenu disabled={isLoading || isError} />}
       filters={
         <div className="flex flex-col gap-3">
           <ReportNotice tone="info">
-            <p className="font-medium">Material vs Loaded HPP</p>
+            <p className="font-medium">{t('profitabilityPerSku.notice.title')}</p>
             <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
-              <li><strong>Material</strong> = COGS pakai WAC saat ini (gambaran biaya material saja).</li>
-              <li><strong>Loaded</strong> = COGS pakai loaded HPP per batch, mencakup material + biaya produksi (listrik, buruh, dll) dikurangi produk samping NRV. Hanya tersedia untuk baris penjualan yang terhubung ke batch.</li>
-              <li><strong>Cakupan</strong> = persentase baris yang sudah terhubung ke batch. 100% = semua baris spesifik; 0% = belum ada batch dipilih.</li>
+              <li><Trans t={t} i18nKey="profitabilityPerSku.notice.material" components={{ b: <strong /> }} /></li>
+              <li><Trans t={t} i18nKey="profitabilityPerSku.notice.loaded" components={{ b: <strong /> }} /></li>
+              <li><Trans t={t} i18nKey="profitabilityPerSku.notice.coverage" components={{ b: <strong /> }} /></li>
             </ul>
           </ReportNotice>
           <ReportFilters mode="range" value={{ startDate, endDate }} onChange={setRange} />
           <ReportFilterSection>
             <div className="grid gap-1.5">
-              <Label htmlFor="sku-basis">Basis margin</Label>
+              <Label htmlFor="sku-basis">{t('profitabilityPerSku.basis')}</Label>
               <Select value={basis} onValueChange={(v) => setBasis(v as MarginBasis)}>
                 <SelectTrigger id="sku-basis" className="w-full sm:w-72 max-sm:h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(BASIS_LABEL) as MarginBasis[]).map((k) => (
-                    <SelectItem key={k} value={k}>{BASIS_LABEL[k]}</SelectItem>
+                  {BASIS_OPTIONS.map((k) => (
+                    <SelectItem key={k} value={k}>{t(`profitabilityPerSku.basisOptions.${k}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -186,8 +185,8 @@ export default function ProfitabilityPerSku() {
     >
       <ReportState isLoading={isLoading} isError={isError} isEmpty={!!data && data.items.length === 0} onRetry={() => refetch()}>
         <ReportDataTable
-          caption={`Profitabilitas per SKU, ${periodLabel({ startDate, endDate })}`}
-          columns={buildColumns(showMaterial, showLoaded)}
+          caption={t('profitabilityPerSku.caption', { period: periodLabel({ startDate, endDate }) })}
+          columns={buildColumns(t, showMaterial, showLoaded)}
           rows={data?.items ?? []}
           getRowKey={(r) => r.itemId}
         />

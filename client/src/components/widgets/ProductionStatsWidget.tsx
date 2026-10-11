@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Factory } from 'lucide-react';
 import api from '../../lib/api';
 import { formatNumber } from '@/lib/format';
@@ -11,6 +12,7 @@ interface ProductionStats {
 }
 
 export default function ProductionStatsWidget() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, isError, refetch } = useQuery<ProductionStats>({
     queryKey: ['warehouse-production-stats'],
     queryFn: async () => (await api.get('/inventory/dashboard/production-stats')).data,
@@ -18,24 +20,24 @@ export default function ProductionStatsWidget() {
 
   const items = data
     ? [
-        ['Total Produksi', formatNumber(data.totalRuns)],
-        ['Produksi Bulan Ini', formatNumber(data.thisMonthRuns)],
-        ['Rata-rata Yield', `${Number(data.avgYield).toFixed(1)}%`],
+        [t('productionStats.total'), formatNumber(data.totalRuns)],
+        [t('productionStats.thisMonth'), formatNumber(data.thisMonthRuns)],
+        [t('productionStats.avgYield'), `${formatNumber(Number(data.avgYield), { decimals: 1 })}%`],
       ]
     : [];
 
   return (
     <WidgetCard
-      title="Statistik Produksi"
+      title={t('productionStats.title')}
       icon={Factory}
       href="/inventory"
-      hrefLabel="Produksi"
+      hrefLabel={t('productionStats.production')}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => void refetch()}
       isEmpty={!isLoading && !isError && !data}
       emptyIcon={Factory}
-      emptyText="Belum ada produksi yang diposting. Draf produksi belum dihitung sampai diposting."
+      emptyText={t('productionStats.empty')}
       minHeight={150}
     >
       <dl className="grid grid-cols-3 gap-3 lg:grid-cols-1">

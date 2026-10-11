@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Activity } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
@@ -19,18 +20,18 @@ interface RecentActivitiesProps {
 }
 
 export default function RecentActivities({ data, isLoading, isError, onRetry }: RecentActivitiesProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <WidgetCard
-      title="Transaksi Kas Terakhir"
+      title={t('recentActivities.title')}
       icon={Activity}
       href="/payments"
-      hrefLabel="Lihat semua"
       isLoading={isLoading}
       isError={isError}
       onRetry={onRetry}
       isEmpty={!data?.length}
       emptyIcon={Activity}
-      emptyText="Belum ada transaksi"
+      emptyText={t('recentActivities.empty')}
     >
       <ul className="space-y-2.5">
         {(data ?? []).map((a) => {
@@ -43,7 +44,7 @@ export default function RecentActivities({ data, isLoading, isError, onRetry }: 
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-foreground">{a.paymentNumber}</p>
-                <p className="text-xs text-muted-foreground">{formatDate(a.date, 'short')} · {receive ? 'Masuk' : 'Keluar'}</p>
+                <p className="text-xs text-muted-foreground">{formatDate(a.date, 'short')} · {receive ? t('widgetsShared.in') : t('widgetsShared.out')}</p>
               </div>
               <span className={cn('num text-xs font-semibold', receive ? 'text-success-text' : 'text-danger-text')}>
                 {receive ? '+' : '—'}{formatRupiah(a.amount, { symbol: false })}

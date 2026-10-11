@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { focusRing } from '@/components/ui/styles';
 import { formatAmount, visibleRows, type ReportRow } from './rows';
@@ -49,12 +50,13 @@ export function ReportTable({
   columns,
   rows,
   footer,
-  labelHeader = 'Uraian',
+  labelHeader,
   codeHeader,
   zero = 'value',
   maxHeightClass = 'max-h-[70vh]',
   className,
 }: ReportTableProps) {
+  const { t } = useTranslation('reports');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const visible = useMemo(() => visibleRows(rows, collapsed), [rows, collapsed]);
   const span = columns.length + 1 + (codeHeader ? 1 : 0);
@@ -104,7 +106,7 @@ export function ReportTable({
                 type="button"
                 onClick={() => toggle(row.key)}
                 aria-expanded={!isCollapsed}
-                aria-label={`${isCollapsed ? 'Buka' : 'Tutup'} ${row.label}`}
+                aria-label={isCollapsed ? t('kit.table.expand', { label: row.label }) : t('kit.table.collapse', { label: row.label })}
                 className={cn('-ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent max-sm:size-9', focusRing)}
               >
                 {isCollapsed ? <ChevronRight className="size-4" aria-hidden /> : <ChevronDown className="size-4" aria-hidden />}
@@ -116,7 +118,7 @@ export function ReportTable({
               <button
                 type="button"
                 onClick={row.onSelect}
-                aria-label={row.selectLabel ?? `Lihat rincian ${row.label}`}
+                aria-label={row.selectLabel ?? t('kit.table.viewDetail', { label: row.label })}
                 className={cn('-mx-1 rounded-sm px-1 text-left font-medium text-primary underline-offset-2 hover:underline max-sm:min-h-11', focusRing)}
               >
                 {row.label}
@@ -165,7 +167,7 @@ export function ReportTable({
               </th>
             )}
             <th scope="col" className="sticky top-0 z-10 border-b border-border bg-muted px-4 py-2.5 max-sm:px-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {labelHeader}
+              {labelHeader ?? t('kit.table.description')}
             </th>
             {columns.map((col) => (
               <th key={col.key} scope="col" className="sticky top-0 z-10 whitespace-nowrap border-b border-border bg-muted px-4 py-2.5 max-sm:px-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">

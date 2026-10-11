@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { focusRing } from '@/components/ui/styles';
 
@@ -53,11 +54,12 @@ export function ReportDataTable<T>({
   afterRow,
   rowClassName,
   footer,
-  emptyText = 'Tidak ada baris pada periode ini.',
+  emptyText,
   variant = 'card',
   maxHeightClass = 'max-h-[70vh]',
   className,
 }: ReportDataTableProps<T>) {
+  const { t } = useTranslation('reports');
   return (
     <div
       role="region"
@@ -93,7 +95,7 @@ export function ReportDataTable<T>({
           {rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {emptyText}
+                {emptyText ?? t('kit.table.emptyRows')}
               </td>
             </tr>
           ) : (

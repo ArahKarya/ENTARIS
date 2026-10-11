@@ -1,1 +1,678 @@
-{}
+{
+  "reportsHub": {
+    "title": "All Reports",
+    "description": "Choose a report to view or print.",
+    "searchLabel": "Report search",
+    "searchInput": "Search reports",
+    "searchPlaceholder": "Search reports, e.g. tax, receivables, OEE",
+    "clearSearch": "Clear search",
+    "found_one": "{{count}} report found",
+    "found_other": "{{count}} reports found",
+    "notFoundTitle": "No reports found",
+    "noAccessTitle": "No reports available to you yet",
+    "notFoundDescription": "Try a different keyword.",
+    "noAccessDescription": "Contact your administrator to request access.",
+    "groups": {
+      "finance": "Finance",
+      "sales": "Sales & Receivables",
+      "purchasing": "Purchasing & Payables",
+      "production": "Production & Inventory"
+    },
+    "descriptions": {
+      "daily": "Full summary of sales, purchasing, production, finance, receivables, payables, and deposit activity.",
+      "trialBalance": "Check that debit and credit balances agree per account.",
+      "profitLoss": "Summary of revenue and expenses to calculate net profit.",
+      "balanceSheet": "The company's financial position: assets, liabilities, and equity.",
+      "cashFlow": "Cash movement from operating, investing, and financing activities.",
+      "ledgerBook": "Transactions per account with running balance (debit, credit, balance).",
+      "tax": "Summary of output VAT, input VAT, and income tax (PPh) by period.",
+      "agingAr": "Customer receivables aging by due date.",
+      "receivableSchedule": "Receivables by due date and collection status.",
+      "profitabilityPerSku": "Side-by-side margin: material WAC vs loaded COGS (includes production costs and by-product NRV).",
+      "agingAp": "Supplier payables aging by due date.",
+      "payableSchedule": "Payables by due date, status, and payment priority.",
+      "poOutstanding": "Purchase Order quantities not yet received per item, remaining value, and late POs.",
+      "supplierPerformance": "On-time delivery, lead time, fill rate, and invoice vs PO price variance per supplier.",
+      "hpp": "Cost of goods sold (COGS) analysis per product, margin, and profitability.",
+      "productionCostSummary": "Pure raw material cost/kg (actual purchase figures) vs GL COGS/kg per output type and warehouse, with yield and by-products.",
+      "oee": "Overall Equipment Effectiveness: availability, performance, and quality per machine and shift, daily trend, and downtime Pareto."
+    }
+  },
+  "reportsShared": {
+    "date": "Date",
+    "description": "Description",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance",
+    "reference": "Reference",
+    "status": "Status",
+    "openingBalance": "Opening Balance",
+    "closingBalance": "Closing Balance",
+    "totalUpper": "TOTAL",
+    "invoiceCount_one": "{{count}} invoice",
+    "invoiceCount_other": "{{count}} invoices",
+    "balanceRp": "Balance (Rp)",
+    "amountRp": "Amount (Rp)",
+    "debitRp": "Debit (Rp)",
+    "creditRp": "Credit (Rp)",
+    "accountName": "Account Name",
+    "accountNumber": "Account No.",
+    "noData": "No data",
+    "total": "Total",
+    "dateRange": "{{start}} to {{end}}"
+  },
+  "ledgerAccountCard": {
+    "entryCount_one": "{{count}} entry",
+    "entryCount_other": "{{count}} entries",
+    "regionLabel": "Entries for {{name}}",
+    "caption": "Entries for account {{number}} {{name}} with running balance",
+    "noEntries": "No entries in this period",
+    "totalEntries": "Total Entries"
+  },
+  "ledgerDetailDrawer": {
+    "subtitle": "General Ledger Detail",
+    "bodyLabel": "General ledger detail",
+    "loading": "Loading general ledger…",
+    "errorTitle": "Couldn't load the general ledger",
+    "errorDescription": "The request to the server failed, so this account's transactions can't be shown yet.",
+    "emptyTitle": "No transactions in this period",
+    "emptyDescription": "This account had no activity in the report's date range. Change the period on the report page to see other transactions.",
+    "tableLabel": "General ledger transactions"
+  },
+  "reportLayout": {
+    "periodRange": "Period: {{start}} to {{end}}",
+    "asOf": "As of: {{date}}",
+    "printed": "Printed: {{date}}",
+    "back": "Back to Reports",
+    "exportPdf": "Export PDF",
+    "exportExcel": "Export Excel",
+    "periodLabel": "Period:",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "asOfLabel": "As of:",
+    "error": "Couldn't load the report."
+  },
+  "scheduleReport": {
+    "status": {
+      "overdue": "Overdue",
+      "due_soon": "Due soon",
+      "on_track": "On Track",
+      "no_due_date": "No Due Date"
+    },
+    "daysOverdue_one": "{{count}} day overdue",
+    "daysOverdue_other": "{{count}} days overdue",
+    "daysLeft_one": "{{count}} day",
+    "daysLeft_other": "{{count}} days",
+    "currentPosition": "Current position",
+    "columns": {
+      "invoiceNumber": "Invoice No.",
+      "dueDate": "Due Date",
+      "outstanding": "Outstanding (Rp)",
+      "timeLeft": "Time Left"
+    }
+  },
+  "payableSchedule": {
+    "title": "Payables Schedule",
+    "description": "Payables by due date, status, and payment priority.",
+    "partyHeader": "Supplier",
+    "caption": "Payables schedule per purchase invoice",
+    "empty": "No outstanding payables.",
+    "summary": {
+      "total": "Total Payables",
+      "dueSoon": "Due Soon (7 days)"
+    }
+  },
+  "receivableSchedule": {
+    "title": "Receivables Schedule",
+    "description": "Receivables by due date and collection status.",
+    "partyHeader": "Customer",
+    "caption": "Receivables schedule per sales invoice",
+    "empty": "No outstanding receivables.",
+    "summary": {
+      "total": "Total Receivables"
+    }
+  },
+  "agingAnalysis": {
+    "columns": {
+      "current": "Not Due",
+      "d1": "1-30 Days",
+      "d31": "31-60 Days",
+      "d61": "61-90 Days",
+      "d91": ">90 Days",
+      "total": "Total"
+    },
+    "titleAr": "Receivables Aging",
+    "titleAp": "Payables Aging",
+    "descriptionAr": "Unpaid balances per customer",
+    "descriptionAp": "Payment obligations per supplier",
+    "excel": {
+      "name": "Partner Name",
+      "current": "Not Yet Due (Rp)",
+      "d1": "1-30 Days (Rp)",
+      "d31": "31-60 Days (Rp)",
+      "d61": "61-90 Days (Rp)",
+      "d91": ">90 Days (Rp)",
+      "total": "Total (Rp)"
+    },
+    "empty": "No outstanding balances right now.",
+    "criticalNotice": "Some bills are more than 90 days overdue. Follow up on collection promptly.",
+    "summary": {
+      "total": "Total Outstanding",
+      "current": "Not Yet Due",
+      "overdue": "Overdue 31-90 Days",
+      "critical": "Critical (>90 Days)"
+    },
+    "captionAr": "{{title}} per customer",
+    "captionAp": "{{title}} per supplier",
+    "totalRow": "Total Collectibility"
+  },
+  "balanceSheet": {
+    "title": "Balance Sheet",
+    "description": "Financial position: assets, liabilities, and equity",
+    "excel": {
+      "section": "Section"
+    },
+    "assets": "Assets",
+    "liabilities": "Liabilities",
+    "equity": "Equity",
+    "totalAssets": "Total Assets",
+    "totalLiabilities": "Total Liabilities",
+    "totalEquity": "Total Equity",
+    "totalPassiva": "Total Liabilities and Equity (L + E)",
+    "unbalanced": "Total assets don't match total liabilities and equity. Check for unbalanced journals.",
+    "assetsCaption": "Assets as of {{date}}",
+    "passivaCaption": "Liabilities and equity as of {{date}}",
+    "passivaHeader": "Liabilities and Equity"
+  },
+  "cashFlow": {
+    "title": "Cash Flow",
+    "description": "Cash coming into and going out of the company",
+    "operating": "Operating Activities",
+    "investing": "Investing Activities",
+    "financing": "Financing Activities",
+    "subtotal": "Subtotal {{label}}",
+    "noMovement": "No cash movement",
+    "netChange": "Net Change",
+    "netChangeRow": "Net Change (Increase/Decrease in Cash)",
+    "caption": "Cash flow statement, {{period}}",
+    "excel": {
+      "category": "Category",
+      "netChange": "NET CHANGE"
+    }
+  },
+  "ledgerBook": {
+    "title": "General Ledger",
+    "description": "Transactions per account with running balance.",
+    "search": "Search accounts",
+    "searchPlaceholder": "Account name or number",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "accountCount_one": "{{count}} account",
+    "accountCount_other": "{{count}} accounts",
+    "entryCount_one": "{{formatted}} entry",
+    "entryCount_other": "{{formatted}} entries",
+    "empty": "No general ledger data for this period.",
+    "pagination": "General ledger pages",
+    "pageInfo": "Page {{page}} of {{total}} · ~{{size}} entries/page",
+    "firstPage": "First page",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "lastPage": "Last page",
+    "excel": {
+      "openingMarker": "── OPENING BALANCE ──",
+      "totalMarker": "── TOTAL ──"
+    }
+  },
+  "profitLoss": {
+    "title": "Profit and Loss Statement",
+    "description": "Financial performance of {{company}}",
+    "companyFallback": "the company",
+    "revenueSection": "I. Revenue",
+    "expenseSection": "II. Expenses",
+    "noRevenue": "No revenue data",
+    "noExpense": "No expense data",
+    "totalRevenue": "Total Revenue",
+    "totalExpense": "Total Expenses",
+    "netRow": "Net Profit (Loss)",
+    "netProfit": "Net Profit",
+    "caption": "Profit and loss statement, {{period}}",
+    "excel": {
+      "revenue": "Revenue",
+      "expense": "Expenses",
+      "netProfit": "NET PROFIT"
+    }
+  },
+  "taxReport": {
+    "title": "Tax Report",
+    "description": "VAT and income tax (PPh) summary from invoice transactions",
+    "outputVat": "Output VAT",
+    "inputVat": "Input VAT",
+    "vatDiff": "VAT Difference",
+    "pph": "PPh",
+    "totalPph": "Total PPh",
+    "vatPayable": "VAT Underpaid/Overpaid",
+    "month": "Month",
+    "caption": "Monthly tax report, {{period}}",
+    "excel": {
+      "outputVat": "Output VAT (Rp)",
+      "inputVat": "Input VAT (Rp)",
+      "vatDiff": "VAT Difference (Rp)",
+      "pph": "PPh (Rp)"
+    }
+  },
+  "trialBalance": {
+    "title": "Trial Balance",
+    "description": "Check that debits and credits agree per account",
+    "viewLedger": "View general ledger for {{name}}",
+    "excel": {
+      "type": "Type"
+    },
+    "search": "Search account or number",
+    "searchPlaceholder": "Search account or number...",
+    "unbalanced": "The trial balance doesn't balance. Difference:",
+    "caption": "Trial balance per account, {{period}}",
+    "totalRow": "Total Balance"
+  },
+  "dailyReport": {
+    "title": "Daily Report",
+    "description": "Summary of business activity on {{date}}",
+    "invoiceCount": "Invoices",
+    "totalQty": "Total Qty",
+    "cols": {
+      "no": "No.",
+      "party": "Party",
+      "amount": "Amount",
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "d1": "1-30 days",
+      "d31": "31-60 days",
+      "d61": "61-90 days",
+      "d91": ">90 days",
+      "invoiceNo": "Invoice No.",
+      "item": "Item",
+      "qty": "Qty",
+      "remainingAr": "Remaining Receivable",
+      "remainingAp": "Remaining Payable"
+    },
+    "finance": {
+      "title": "Finance",
+      "summary": "Finance summary",
+      "in": "Cash In",
+      "out": "Cash Out",
+      "net": "Net Cash Flow",
+      "manualJournals": "Manual Journals",
+      "cashBank": "Cash & Bank Balances",
+      "inCount": "Cash In ({{count}})",
+      "outCount": "Cash Out ({{count}})",
+      "inCaption": "Cash received today",
+      "outCaption": "Cash paid out today"
+    },
+    "receivables": {
+      "title": "Trade Receivables",
+      "summary": "Receivables summary",
+      "count": "Customers",
+      "caption": "Receivables aging per customer",
+      "empty": "No receivables"
+    },
+    "payables": {
+      "title": "Trade Payables",
+      "summary": "Payables summary",
+      "total": "Total Payables",
+      "count": "Suppliers",
+      "caption": "Payables aging per supplier",
+      "empty": "No payables"
+    },
+    "deposits": {
+      "title": "Supplier Deposits",
+      "summary": "Supplier deposit summary",
+      "total": "Total Deposits",
+      "applied": "Applied",
+      "remaining": "Unapplied Balance",
+      "caption": "Supplier deposits",
+      "empty": "No supplier deposits",
+      "cols": {
+        "paymentNo": "Payment No.",
+        "amount": "Deposit Amount",
+        "applied": "Applied",
+        "remaining": "Remaining"
+      }
+    },
+    "sales": {
+      "title": "Sales",
+      "summary": "Sales summary",
+      "revenue": "Total Revenue",
+      "newAr": "New Receivables",
+      "caption": "Today's sales invoices",
+      "empty": "No sales today"
+    },
+    "purchases": {
+      "title": "Purchasing",
+      "summary": "Purchasing summary",
+      "spend": "Total Spend",
+      "newAp": "New Payables",
+      "caption": "Today's purchase invoices",
+      "empty": "No purchases today"
+    },
+    "production": {
+      "title": "Production",
+      "summary": "Production summary",
+      "runCount": "Runs",
+      "totalInput": "Total Input",
+      "totalOutput": "Total Output",
+      "avgYield": "Average Yield",
+      "caption": "Today's production",
+      "empty": "No production today",
+      "byProductNote": "* = by-product",
+      "cols": {
+        "runNo": "Run No.",
+        "input": "Input",
+        "output": "Output",
+        "yield": "Yield"
+      }
+    },
+    "stock": {
+      "title": "Stock Position",
+      "summary": "Stock summary",
+      "warehouseCount": "Warehouses",
+      "itemLines": "Item Lines",
+      "negative": "Items with Negative Stock",
+      "totalValue": "Total Stock Value",
+      "empty": "No stock on this date.",
+      "default": "(default)",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items",
+      "caption": "Stock in warehouse {{code}} {{name}}",
+      "cols": {
+        "code": "Code",
+        "name": "Item Name",
+        "unit": "Unit",
+        "stock": "Stock",
+        "avgCost": "Avg Cost",
+        "value": "Value"
+      }
+    }
+  },
+  "hppReport": {
+    "title": "COGS per Product",
+    "description": "Revenue, cost of goods sold, and gross margin per product",
+    "cols": {
+      "code": "Code",
+      "product": "Product",
+      "category": "Category",
+      "revenue": "Revenue",
+      "cogs": "COGS",
+      "margin": "Margin"
+    },
+    "grossProfit": "Gross Profit",
+    "totalCogs": "Total COGS",
+    "grossMargin": "Gross Margin",
+    "caption": "COGS per product, {{period}}"
+  },
+  "oeeReport": {
+    "title": "OEE Report",
+    "description": "Machine effectiveness: availability, performance, quality, and downtime",
+    "minutes": "{{value}} min",
+    "minutesHours": "{{minutes}} min ({{hours}} h)",
+    "hoursShort": "{{value}} h",
+    "minutesShort": "{{value}} min",
+    "band": {
+      "worldClass": "World class",
+      "medium": "Fair",
+      "low": "Low"
+    },
+    "cols": {
+      "name": "Name",
+      "runs": "Runs",
+      "availShort": "Avail.",
+      "perfShort": "Perf.",
+      "qualShort": "Qual.",
+      "runHours": "Run Hours",
+      "downtime": "Downtime",
+      "allocatedOutput": "Allocated Output",
+      "shift": "Shift"
+    },
+    "availability": "Availability",
+    "performance": "Performance",
+    "quality": "Quality",
+    "trendEmpty": "No OEE data for this period.",
+    "trendSummary_one": "Daily OEE trend over {{count}} day. Highest {{best}} on {{bestDate}}, lowest {{worst}} on {{worstDate}}. The dashed line at 85% marks the world-class benchmark (Nakajima, JIPM).",
+    "trendSummary_other": "Daily OEE trend over {{count}} days. Highest {{best}} on {{bestDate}}, lowest {{worst}} on {{worstDate}}. The dashed line at 85% marks the world-class benchmark (Nakajima, JIPM).",
+    "average": "average {{value}}",
+    "trendTitle": "Daily OEE trend",
+    "trendCaption": "Daily OEE trend data",
+    "worldClassLine": "World class 85%",
+    "tooltipLabel_one": "{{label}} · {{count}} run",
+    "tooltipLabel_other": "{{label}} · {{count}} runs",
+    "paretoLabel": "Downtime by category, largest first",
+    "paretoRow": "{{minutes}} min · {{count}}x · cum. {{cumulative}}%",
+    "totalRuns": "Total Runs",
+    "runsWithOee_one": "{{count}} run with OEE",
+    "runsWithOee_other": "{{count}} runs with OEE",
+    "totalDowntime": "Total Downtime",
+    "machinesUsed": "Machines Used",
+    "notice": "<b>OEE (Overall Equipment Effectiveness)</b> = Availability × Performance × Quality. All figures are <b>averages</b> of the per-run values recorded in the period. The 85% world-class benchmark follows Nakajima (JIPM).",
+    "summaryOee": "OEE summary",
+    "trendSection": "Daily OEE Trend",
+    "trendSectionEmpty": "No production runs with OEE data in this period. Change the period above.",
+    "perMachine": "Per Machine",
+    "perMachineCaption": "OEE per machine",
+    "perMachineEmpty": "No runs recorded per machine in this period.",
+    "perShift": "Per Shift",
+    "perShiftCaption": "OEE per shift",
+    "perShiftEmpty": "No runs recorded per shift in this period.",
+    "downtimeSection": "Downtime by Category (Pareto)",
+    "downtimeEmpty": "No downtime recorded in this period."
+  },
+  "poOutstanding": {
+    "title": "PO Outstanding",
+    "description": "Purchase Order quantities not yet received, per item",
+    "cols": {
+      "poNo": "PO No.",
+      "eta": "Expected Receipt",
+      "ordered": "Ordered",
+      "received": "Received",
+      "remaining": "Remaining",
+      "remainingValueRp": "Remaining Value (Rp)"
+    },
+    "lateDays_one": "{{count}} day late",
+    "lateDays_other": "{{count}} days late",
+    "excel": {
+      "poDate": "PO Date",
+      "warehouse": "Warehouse",
+      "unit": "Unit",
+      "qtyOrdered": "Qty Ordered",
+      "qtyReceived": "Qty Received",
+      "qtyRemaining": "Qty Remaining",
+      "unitNet": "Net Unit Price (Rp)",
+      "late": "Late",
+      "lateYes_one": "Yes ({{count}} day)",
+      "lateYes_other": "Yes ({{count}} days)",
+      "lateNo": "No"
+    },
+    "periodRange": "PO date {{start}} to {{end}}",
+    "periodStart": "start",
+    "periodEnd": "end",
+    "periodAll": "All PO dates",
+    "fromDate": "PO date from",
+    "clearDates": "Clear dates",
+    "overdueOnly": "Late only",
+    "invalidRange": "End date is before start date, so results may be empty.",
+    "summary": {
+      "remainingValue": "Remaining Value",
+      "openPo": "Open POs",
+      "lines": "Item Lines",
+      "latePo": "Late POs"
+    },
+    "caption": "Outstanding POs per item",
+    "empty": "No outstanding POs for these filters."
+  },
+  "productionCostSummary": {
+    "title": "Production Cost per Period",
+    "description": "Pure raw material cost and GL COGS per kg of output, by type and warehouse",
+    "noByproductSr": "(no by-product recorded)",
+    "cols": {
+      "inputKg": "Material (kg)",
+      "inputRp": "Actual Material Value",
+      "inputPerKg": "Material Cost/kg",
+      "outputKg": "Output (kg)",
+      "yield": "Yield",
+      "rawPerKg": "Pure Cost/kg",
+      "glPerKg": "GL COGS/kg",
+      "diffPerKg": "Difference/kg",
+      "byproductKg": "By-products (kg)",
+      "output": "Output Type"
+    },
+    "excel": {
+      "type": "Type",
+      "warehouse": "Warehouse",
+      "runs": "Production Runs",
+      "inputKg": "Material (kg)",
+      "inputRp": "Actual Material Value (Rp)",
+      "inputPerKg": "Material Cost/kg",
+      "outputKg": "Output (kg)",
+      "yield": "Yield (%)",
+      "rawPerKg": "Pure Raw Material Cost/kg",
+      "glPerKg": "GL COGS/kg",
+      "diffPerKg": "GL − Pure Difference/kg",
+      "byproductKg": "By-products (kg)",
+      "byproductRp": "By-product Value (Rp)",
+      "conversionRp": "Estimated Conversion Cost (Rp)"
+    },
+    "runDetailLabel": "Details per production number, {{output}}, {{warehouse}}",
+    "notice": {
+      "title": "Two ways to read cost",
+      "raw": "<b>Pure Raw Material Cost/kg</b> = actual raw material value (purchases) divided by kg of main output. Excludes estimated costs and by-products. A management report, not posted to the GL.",
+      "gl": "<b>GL COGS/kg</b> = the value posted to inventory = materials − by-product NRV + estimated conversion cost (per PSAK 14).",
+      "diff": "A <b>+</b> difference means GL COGS is higher (estimated costs exceed by-product value); <b>−</b> means the opposite."
+    },
+    "warehouseFilter": "Output warehouse",
+    "allWarehouses": "All warehouses",
+    "searchWarehouse": "Search warehouses…",
+    "summary": {
+      "production": "Production",
+      "runs_one": "{{count}} run",
+      "runs_other": "{{count}} runs",
+      "productionHint": "{{input}} kg material → {{output}} kg",
+      "perKgInput": "{{value}}/kg material",
+      "raw": "Pure Raw Material Cost",
+      "perKg": "{{value}}/kg",
+      "yieldHint": "yield {{value}}% (blended)",
+      "gl": "GL COGS",
+      "glHint": "<diff/>/kg difference from pure cost"
+    },
+    "caption": "Production cost per output type and warehouse, {{period}}",
+    "footnote": "Select an output type to see details per production number. Warning icon = production with no by-product recorded (check the input). The total blends all types and warehouses; compare row by row for decisions."
+  },
+  "profitabilityPerSku": {
+    "title": "Profitability per SKU",
+    "description": "Margin per product based on material COGS (WAC) and loaded COGS per batch",
+    "materialCogs": "Material COGS",
+    "materialMargin": "Material Margin",
+    "loadedCogs": "Loaded COGS",
+    "loadedMargin": "Loaded Margin",
+    "coverage": "Coverage",
+    "materialCogsWac": "Material COGS (WAC)",
+    "ofRevenue": "{{pct}}% of revenue",
+    "notice": {
+      "title": "Material vs loaded COGS",
+      "material": "<b>Material</b> = COGS at the current WAC (material cost only).",
+      "loaded": "<b>Loaded</b> = COGS at the loaded cost per batch, covering material + production costs (electricity, labor, etc.) less by-product NRV. Only available for sales lines linked to a batch.",
+      "coverage": "<b>Coverage</b> = share of lines linked to a batch. 100% = every line is specific; 0% = no batch selected yet."
+    },
+    "basis": "Margin basis",
+    "basisOptions": {
+      "both": "Material + Loaded (side by side)",
+      "material": "Material only",
+      "loaded": "Loaded only"
+    },
+    "caption": "Profitability per SKU, {{period}}"
+  },
+  "supplierPerformance": {
+    "title": "Supplier Performance",
+    "description": "On-time delivery, lead time, fill rate, and price variance per supplier (by PO date)",
+    "cols": {
+      "poCount": "POs",
+      "onTime": "On Time",
+      "leadTime": "Lead Time",
+      "fillRate": "Fill Rate",
+      "priceVariance": "Price Variance"
+    },
+    "ofPo_one": "of {{formatted}} PO",
+    "ofPo_other": "of {{formatted}} POs",
+    "days": "{{value}} days",
+    "excel": {
+      "evaluated": "POs Evaluated",
+      "onTime": "On Time (%)",
+      "firstOnTime": "First Delivery On Time (%)",
+      "leadTime": "Average Lead Time (days)",
+      "fillRate": "Fill Rate (%)",
+      "variancePct": "Invoice vs PO Price Variance (%)",
+      "varianceRp": "Price Variance (Rp)"
+    },
+    "notice": "On time = last goods receipt on or before the expected receipt date (POs with a target date that already have a receipt). Lead time = PO date to first goods receipt. Fill rate = qty received divided by qty ordered. Price variance = invoice price vs PO price after discount.",
+    "caption": "Supplier performance, {{period}}"
+  },
+  "kit": {
+    "state": {
+      "errorTitle": "Couldn't load the report",
+      "errorDescription": "Check your connection and try again.",
+      "retry": "Try again",
+      "loading": "Loading report...",
+      "noResultsTitle": "No results",
+      "noResultsDescription": "Try a different search term.",
+      "emptyTitle": "No data for this period",
+      "emptyDescription": "Change the period to see other data."
+    },
+    "filters": {
+      "label": "Report filters",
+      "choosePeriod": "Choose period",
+      "chooseAsOf": "Choose as-of date",
+      "allHistory": "All history",
+      "custom": "Custom",
+      "startDate": "From",
+      "endDate": "To",
+      "asOfDate": "As of",
+      "apply": "Apply",
+      "invalidRange": "The end date can't be before the start date."
+    },
+    "presets": {
+      "month": "This month",
+      "lastMonth": "Last month",
+      "quarter": "This quarter",
+      "year": "This year",
+      "today": "Today",
+      "lastMonthEnd": "End of last month",
+      "lastQuarterEnd": "End of last quarter",
+      "lastYearEnd": "End of last year"
+    },
+    "period": {
+      "range": "Period {{range}}",
+      "asOf": "As of {{date}}"
+    },
+    "summary": "Summary",
+    "summaryCards": "Report summary",
+    "table": {
+      "description": "Description",
+      "expand": "Expand {{label}}",
+      "collapse": "Collapse {{label}}",
+      "viewDetail": "View details for {{label}}",
+      "emptyRows": "No rows for this period."
+    },
+    "chart": {
+      "showTable": "Show table",
+      "hideTable": "Hide table",
+      "legend": "Series legend"
+    },
+    "export": {
+      "print": "Print",
+      "downloadPdf": "Download PDF",
+      "excel": "Export to Excel",
+      "pdfFailed": "Couldn't create the PDF. Try again.",
+      "excelFailed": "Couldn't export the data. Try again."
+    },
+    "page": {
+      "companyFallback": "Company",
+      "printedAt": "Printed on"
+    }
+  }
+}

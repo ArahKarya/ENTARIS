@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Table2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { shapePath, type SeriesStyle } from './chart-series';
@@ -38,6 +39,7 @@ export interface ChartFigureProps {
  * a legend that shows dash + marker + value, and a data-table toggle.
  */
 export function ChartFigure({ title, summary, legend, table, children, className }: ChartFigureProps) {
+  const { t } = useTranslation('reports');
   const [showTable, setShowTable] = useState(false);
   const tableId = useId();
   return (
@@ -53,12 +55,12 @@ export function ChartFigure({ title, summary, legend, table, children, className
           onClick={() => setShowTable((v) => !v)}
         >
           <Table2 aria-hidden />
-          {showTable ? 'Sembunyikan tabel' : 'Tampilkan tabel'}
+          {showTable ? t('kit.chart.hideTable') : t('kit.chart.showTable')}
         </Button>
       </div>
       <div aria-hidden>{children}</div>
       {legend && legend.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-foreground" aria-label="Keterangan seri">
+        <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-foreground" aria-label={t('kit.chart.legend')}>
           {legend.map((item) => (
             <li key={item.name} className="flex items-center gap-2">
               <SeriesSwatch style={item.style} />

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowRight, RotateCw, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,10 +30,12 @@ export interface WidgetCardProps {
 
 /** Skeleton body with a fixed height — also used as the lazy-chunk Suspense fallback. */
 export function WidgetSkeleton({ height = 220, title }: { height?: number; title?: string }) {
+  // Suspense fallback: must never suspend itself while the namespace loads.
+  const { t } = useTranslation('dashboard', { useSuspense: false });
   return (
     <section
       aria-busy="true"
-      aria-label={title ? `${title} (memuat)` : 'Memuat widget'}
+      aria-label={title ? t('kit.widget.loadingTitle', { title }) : t('kit.widget.loading')}
       className="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-1)]"
     >
       <Skeleton className="h-4 w-40" />
@@ -50,19 +53,20 @@ export function WidgetCard({
   description,
   icon: Icon,
   href,
-  hrefLabel = 'Lihat semua',
+  hrefLabel,
   actions,
   isLoading,
   isError,
   onRetry,
   isEmpty,
   emptyIcon: EmptyIcon,
-  emptyText = 'Tidak ada data untuk ditampilkan pada periode ini.',
+  emptyText,
   minHeight = 160,
   className,
   bodyClassName,
   children,
 }: WidgetCardProps) {
+  const { t } = useTranslation('dashboard');
   let body: ReactNode;
   if (isLoading) {
     body = (
@@ -76,10 +80,10 @@ export function WidgetCard({
     body = (
       <div role="alert" className="flex flex-col items-center justify-center gap-2 text-center" style={{ minHeight }}>
         <AlertTriangle className="size-6 text-danger-text" aria-hidden />
-        <p className="text-sm font-medium text-foreground">Data gagal dimuat</p>
+        <p className="text-sm font-medium text-foreground">{t('kit.widget.error')}</p>
         {onRetry && (
           <Button type="button" variant="outline" size="sm" onClick={onRetry} className="min-h-11 sm:min-h-8">
-            <RotateCw className="size-3.5" aria-hidden /> Coba lagi
+            <RotateCw className="size-3.5" aria-hidden /> {t('kit.widget.retry')}
           </Button>
         )}
       </div>
@@ -88,7 +92,7 @@ export function WidgetCard({
     body = (
       <div role="status" className="flex items-center gap-2.5 rounded-md bg-muted/40 px-3 py-3 text-muted-foreground">
         {EmptyIcon && <EmptyIcon className="size-5 shrink-0 opacity-70" strokeWidth={1.5} aria-hidden />}
-        <p className="text-sm">{emptyText}</p>
+        <p className="text-sm">{emptyText ?? t('kit.widget.empty')}</p>
       </div>
     );
   } else {
@@ -116,7 +120,7 @@ export function WidgetCard({
               to={href}
               className="inline-flex min-h-11 items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0"
             >
-              {hrefLabel} <ArrowRight className="size-3.5" aria-hidden />
+              {hrefLabel ?? t('kit.widget.viewAll')} <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           )}
         </div>

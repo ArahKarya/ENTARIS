@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CalendarClock, CheckCircle2, Wallet } from 'lucide-react';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -30,20 +31,21 @@ interface AgingApiRow {
   total: number;
 }
 
-const COLUMNS = [
-  { key: 'current', label: 'Belum JT' },
-  { key: 'd1', label: '1-30 Hari' },
-  { key: 'd31', label: '31-60 Hari' },
-  { key: 'd61', label: '61-90 Hari' },
-  { key: 'd91', label: '>90 Hari' },
-  { key: 'total', label: 'Total' },
-];
-
 const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
+  const { t } = useTranslation('reports');
+  const columns = [
+    { key: 'current', label: t('agingAnalysis.columns.current') },
+    { key: 'd1', label: t('agingAnalysis.columns.d1') },
+    { key: 'd31', label: t('agingAnalysis.columns.d31') },
+    { key: 'd61', label: t('agingAnalysis.columns.d61') },
+    { key: 'd91', label: t('agingAnalysis.columns.d91') },
+    { key: 'total', label: t('agingAnalysis.columns.total') },
+  ];
   // Judul = label registry rute (Umur Piutang / Umur Utang); nama file ekspor tetap.
-  const title = type === 'Customer' ? 'Umur Piutang' : 'Umur Utang';
-  const exportName = type === 'Customer' ? 'Aging Piutang' : 'Aging Hutang';
-  const subtitle = type === 'Customer' ? 'Analisis saldo tak tertagih per pelanggan' : 'Analisis kewajiban pembayaran per vendor';
+  const isCustomer = type === 'Customer';
+  const title = isCustomer ? t('agingAnalysis.titleAr') : t('agingAnalysis.titleAp');
+  const exportName = isCustomer ? 'Aging Piutang' : 'Aging Hutang';
+  const subtitle = isCustomer ? t('agingAnalysis.descriptionAr') : t('agingAnalysis.descriptionAp');
   const company = useCompanyPDF();
 
   const { data: agingData, isLoading, isError, refetch } = useQuery({
@@ -71,24 +73,25 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
   const stamp = new Date().toISOString().slice(0, 10);
 
   const handleExport = () => {
-    const excelRows = rows.map((r) => ({
-      'Nama Mitra': r.name,
-      'Belum Jatuh Tempo (Rp)': r.current,
-      '1-30 Hari (Rp)': r[1],
-      '31-60 Hari (Rp)': r[31],
-      '61-90 Hari (Rp)': r[61],
-      '>90 Hari (Rp)': r[91],
-      'Total (Rp)': r.total,
-    }));
-    excelRows.push({
-      'Nama Mitra': 'TOTAL',
-      'Belum Jatuh Tempo (Rp)': totals.current,
-      '1-30 Hari (Rp)': totals[1],
-      '31-60 Hari (Rp)': totals[31],
-      '61-90 Hari (Rp)': totals[61],
-      '>90 Hari (Rp)': totals[91],
-      'Total (Rp)': totals.total,
+    const h = {
+      name: t('agingAnalysis.excel.name'),
+      current: t('agingAnalysis.excel.current'),
+      d1: t('agingAnalysis.excel.d1'),
+      d31: t('agingAnalysis.excel.d31'),
+      d61: t('agingAnalysis.excel.d61'),
+      d91: t('agingAnalysis.excel.d91'),
+      total: t('agingAnalysis.excel.total'),
+    };
+    const toRow = (name: string, v: Omit<AgingApiRow, 'name'>) => ({
+      [h.name]: name,
+      [h.current]: v.current,
+      [h.d1]: v[1],
+      [h.d31]: v[31],
+      [h.d61]: v[61],
+      [h.d91]: v[91],
+      [h.total]: v.total,
     });
+    const excelRows = [...rows.map((r) => toRow(r.name, r)), toRow(t('reportsShared.totalUpper'), totals)];
     exportToExcel(excelRows, `${exportName}-${stamp}`);
   };
 
@@ -114,7 +117,7 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
 
   const tableRows: ReportRow[] =
     rows.length === 0
-      ? [{ key: 'empty', kind: 'note', label: 'Tidak ada saldo outstanding saat ini.' }]
+      ? [{ key: 'empty', kind: 'note', label: t('agingAnalysis.empty') }]
       : rows.map((r, idx) => ({
           key: `${idx}-${r.name}`,
           label: r.name,
@@ -125,7 +128,7 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
     <ReportPage
       title={title}
       description={subtitle}
-      period="Posisi saat ini"
+      period={t('scheduleReport.currentPosition')}
       actions={
         <ExportMenu
           disabled={isLoading || isError}
@@ -139,7 +142,7 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
       filters={
         totals[91] > 0 ? (
           <ReportNotice tone="warning">
-            Terdapat tagihan kritis yang menunggak lebih dari 90 hari. Mohon lakukan tindakan penagihan intensif.
+            {t('agingAnalysis.criticalNotice')}
           </ReportNotice>
         ) : undefined
       }
@@ -147,26 +150,26 @@ const AgingAnalysis: React.FC<AgingProps> = ({ type }) => {
         <ReportSummaryCards
           loading={isLoading}
           items={[
-            { label: 'Total Outstanding', value: totals.total, icon: Wallet, tone: 'neutral' },
-            { label: 'Belum Jatuh Tempo', value: totals.current, icon: CheckCircle2, tone: 'positive' },
-            { label: 'Menunggak 31-90 Hari', value: (totals[31] || 0) + (totals[61] || 0), icon: CalendarClock, tone: 'neutral' },
-            { label: 'Kritis (>90 Hari)', value: totals[91] || 0, icon: AlertTriangle, tone: totals[91] > 0 ? 'negative' : 'neutral' },
+            { label: t('agingAnalysis.summary.total'), value: totals.total, icon: Wallet, tone: 'neutral' },
+            { label: t('agingAnalysis.summary.current'), value: totals.current, icon: CheckCircle2, tone: 'positive' },
+            { label: t('agingAnalysis.summary.overdue'), value: (totals[31] || 0) + (totals[61] || 0), icon: CalendarClock, tone: 'neutral' },
+            { label: t('agingAnalysis.summary.critical'), value: totals[91] || 0, icon: AlertTriangle, tone: totals[91] > 0 ? 'negative' : 'neutral' },
           ]}
         />
       }
     >
       <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
         <ReportTable
-          caption={`${title} per ${type === 'Customer' ? 'pelanggan' : 'vendor'}`}
-          columns={COLUMNS}
-          labelHeader="Nama Mitra"
+          caption={isCustomer ? t('agingAnalysis.captionAr', { title }) : t('agingAnalysis.captionAp', { title })}
+          columns={columns}
+          labelHeader={t('agingAnalysis.excel.name')}
           zero="dash"
           rows={tableRows}
           footer={[
             {
               key: 'total',
               kind: 'total',
-              label: 'Total Kolektibilitas',
+              label: t('agingAnalysis.totalRow'),
               values: [totals.current, totals[1], totals[31], totals[61], totals[91], totals.total],
             },
           ]}

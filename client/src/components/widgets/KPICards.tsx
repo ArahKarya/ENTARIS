@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { HandCoins, Package, PackageX, Receipt, TrendingUp, Wallet, Wrench, Scale, ReceiptText } from 'lucide-react';
 import api from '../../lib/api';
+import i18n from '@/i18n';
 import { formatRupiah } from '@/lib/format';
 import { StatCard, type StatDelta } from '../shared/stat-card';
 import { WidgetCard } from '../dashboard-kit/WidgetCard';
@@ -39,7 +41,7 @@ const sumRevenue = (rows?: ChartPoint[]) => (rows ?? []).reduce((s, r) => s + r.
 function toDelta(cur: number | undefined, prev: number | undefined, enabled: boolean): StatDelta | undefined {
   if (!enabled || cur === undefined || prev === undefined) return undefined;
   const d = deltaPct(cur, prev);
-  return d ? { value: d.text, direction: d.direction, label: 'vs periode sebelumnya' } : undefined;
+  return d ? { value: d.text, direction: d.direction, label: i18n.t('kpiCards.vsPrevious', { ns: 'dashboard' }) } : undefined;
 }
 
 /** Executive KPI strip; the previous-period delta reuses the same endpoints with the comparison window. */
@@ -49,6 +51,7 @@ const gridClass = (count: number) =>
   `grid grid-cols-2 gap-3 sm:gap-4 ${LG_COLS[count] ?? 'lg:grid-cols-4'} [&>*:last-child:nth-child(odd)]:col-span-2 lg:[&>*:last-child:nth-child(odd)]:col-span-1`;
 
 export default function KPICards({ period, canFinance, canMaintenance = false }: KPICardsProps) {
+  const { t } = useTranslation('dashboard');
   const prev = previousPeriod(period);
   const params = { startDate: period.startDate, endDate: period.endDate };
   const prevParams = prev ?? params;
@@ -82,7 +85,7 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
   if (canFinance && (metrics.isError || charts.isError)) {
     return (
       <WidgetCard
-        title="Ringkasan Kinerja"
+        title={t('kpiCards.title')}
         isError
         minHeight={96}
         onRetry={() => {
@@ -104,11 +107,11 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
   const stockTile = (
     <StatCard
       key="stock"
-      label="Stok Kritis"
+      label={t('kpiCards.stockCritical')}
       value={stock.isError ? '—' : critical >= 20 ? '20+' : String(critical)}
       icon={PackageX}
       loading={stock.isLoading}
-      hint={stock.isError ? 'gagal dimuat' : critical === 0 ? 'semua stok aman' : `${empty} habis`}
+      hint={stock.isError ? t('kpiCards.loadFailed') : critical === 0 ? t('kpiCards.stockSafe') : t('kpiCards.stockOut', { count: empty })}
       href="/inventory"
     />
   );
@@ -118,17 +121,17 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
   const maintenanceTile = canMaintenance ? (
     <StatCard
       key="maintenance"
-      label="Pemeliharaan"
+      label={t('kpiCards.maintenance')}
       value={maintenance.isError ? '—' : mk ? String(mk.overdue) : '—'}
       icon={Wrench}
       loading={maintenance.isLoading}
       hint={
         maintenance.isError
-          ? 'gagal dimuat'
+          ? t('kpiCards.loadFailed')
           : mk
             ? mk.overdue === 0 && mk.dueThisWeek === 0
-              ? 'tidak ada yang terlambat'
-              : `terlambat, ${mk.dueThisWeek} jatuh tempo minggu ini`
+              ? t('kpiCards.noneOverdue')
+              : t('kpiCards.overdueHint', { count: mk.dueThisWeek })
             : undefined
       }
       href={mAccess?.maintenance === false ? (mAccess.vehicle ? '/ga/vehicle' : '/ga/documents') : '/ga/maintenance'}
@@ -142,29 +145,29 @@ export default function KPICards({ period, canFinance, canMaintenance = false }:
   return (
     <div className={gridClass(8 + (maintenanceTile ? 1 : 0))}>
       <StatCard
-        label="Omzet"
+        label={t('kpiCards.revenue')}
         {...money(revenue)}
         icon={TrendingUp}
         loading={loadingFin}
-        hint="pendapatan periode"
+        hint={t('kpiCards.revenueHint')}
         delta={toDelta(revenue, prevRevenue, !!prev)}
         href="/reports/profit-loss"
       />
       <StatCard
-        label="Laba Bersih"
+        label={t('kpiCards.netProfit')}
         {...money(m?.netProfit)}
         icon={Scale}
         loading={loadingFin}
-        hint="pada periode terpilih"
+        hint={t('kpiCards.selectedPeriodHint')}
         delta={toDelta(m?.netProfit, prevMetrics.data?.netProfit, !!prev)}
         href="/reports/profit-loss"
       />
-      <StatCard label="Kas & Bank" {...money(m?.cashBalance)} icon={Wallet} loading={loadingFin} hint="saldo saat ini" href="/payments" />
-      <StatCard label="Piutang Usaha" {...money(m?.accountsReceivable)} icon={Receipt} loading={loadingFin} hint="saldo saat ini" href="/reports/aging-ar" />
-      <StatCard label="Hutang Usaha" {...money(m?.accountsPayable)} icon={ReceiptText} loading={loadingFin} hint="saldo saat ini" href="/reports/aging-ap" />
+      <StatCard label={t('kpiCards.cashBank')} {...money(m?.cashBalance)} icon={Wallet} loading={loadingFin} hint={t('kpiCards.currentBalance')} href="/payments" />
+      <StatCard label={t('kpiCards.receivables')} {...money(m?.accountsReceivable)} icon={Receipt} loading={loadingFin} hint={t('kpiCards.currentBalance')} href="/reports/aging-ar" />
+      <StatCard label={t('kpiCards.payables')} {...money(m?.accountsPayable)} icon={ReceiptText} loading={loadingFin} hint={t('kpiCards.currentBalance')} href="/reports/aging-ap" />
       {stockTile}
-      <StatCard label="Nilai Persediaan" {...money(m?.inventoryValue)} icon={Package} loading={loadingFin} hint="saldo saat ini" href="/inventory" />
-      <StatCard label="Deposit Supplier" {...money(m?.vendorDeposit)} icon={HandCoins} loading={loadingFin} hint="saldo saat ini" href="/vendor-deposits" />
+      <StatCard label={t('kpiCards.inventoryValue')} {...money(m?.inventoryValue)} icon={Package} loading={loadingFin} hint={t('kpiCards.currentBalance')} href="/inventory" />
+      <StatCard label={t('kpiCards.supplierDeposit')} {...money(m?.vendorDeposit)} icon={HandCoins} loading={loadingFin} hint={t('kpiCards.currentBalance')} href="/vendor-deposits" />
       {maintenanceTile}
     </div>
   );

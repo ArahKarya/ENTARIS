@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { BalanceSheetPDF } from '@/lib/pdf/ReportPDF';
@@ -19,9 +20,9 @@ import {
   type ReportRow,
 } from '@/components/report-kit';
 
-const COLUMNS = [{ key: 'balance', label: 'Saldo (Rp)' }];
-
 const BalanceSheet: React.FC = () => {
+  const { t } = useTranslation('reports');
+  const columns = [{ key: 'balance', label: t('reportsShared.balanceRp') }];
   const { date, setDate } = useReportAsOf();
   const company = useCompanyPDF();
 
@@ -40,13 +41,18 @@ const BalanceSheet: React.FC = () => {
   const handleExport = () => {
     const flatten = (accounts: AccountNode[] | undefined, section: string): object[] =>
       accounts?.flatMap((a): object[] => [
-        { Seksi: section, 'Nama Akun': a.name, 'No. Akun': a.accountNumber, 'Saldo (Rp)': a.balance },
+        {
+          [t('balanceSheet.excel.section')]: section,
+          [t('reportsShared.accountName')]: a.name,
+          [t('reportsShared.accountNumber')]: a.accountNumber,
+          [t('reportsShared.balanceRp')]: a.balance,
+        },
         ...flatten(a.children || [], section),
       ]) || [];
     const data = [
-      ...flatten(report?.assets, 'Aset'),
-      ...flatten(report?.liabilities, 'Kewajiban'),
-      ...flatten(report?.equity, 'Ekuitas'),
+      ...flatten(report?.assets, t('balanceSheet.assets')),
+      ...flatten(report?.liabilities, t('balanceSheet.liabilities')),
+      ...flatten(report?.equity, t('balanceSheet.equity')),
     ];
     return exportToExcel(data, `Neraca-${date}`);
   };
@@ -63,30 +69,30 @@ const BalanceSheet: React.FC = () => {
     };
     const tree = (key: string, nodes: AccountNode[] | undefined): ReportRow[] => {
       const rows = flattenAccountTree(nodes, { onSelect: open });
-      return rows.length > 0 ? rows : [{ key: `${key}-empty`, kind: 'note', label: 'Tidak ada data' }];
+      return rows.length > 0 ? rows : [{ key: `${key}-empty`, kind: 'note', label: t('reportsShared.noData') }];
     };
     return {
       assetRows: [
         ...tree('assets', report?.assets),
-        { key: 'assets-total', kind: 'grand', label: 'Total Aset', values: [totalAssets] },
+        { key: 'assets-total', kind: 'grand', label: t('balanceSheet.totalAssets'), values: [totalAssets] },
       ] as ReportRow[],
       passivaRows: [
-        { key: 'liab-head', kind: 'section', label: 'Kewajiban' },
+        { key: 'liab-head', kind: 'section', label: t('balanceSheet.liabilities') },
         ...tree('liab', report?.liabilities),
-        { key: 'liab-total', kind: 'total', label: 'Total Kewajiban', values: [totalLiabilities] },
-        { key: 'eq-head', kind: 'section', label: 'Ekuitas' },
+        { key: 'liab-total', kind: 'total', label: t('balanceSheet.totalLiabilities'), values: [totalLiabilities] },
+        { key: 'eq-head', kind: 'section', label: t('balanceSheet.equity') },
         ...tree('eq', report?.equity),
-        { key: 'eq-total', kind: 'total', label: 'Total Ekuitas', values: [totalEquity] },
-        { key: 'passiva-total', kind: 'grand', label: 'Total Pasiva (L + E)', values: [totalLiabilities + totalEquity] },
+        { key: 'eq-total', kind: 'total', label: t('balanceSheet.totalEquity'), values: [totalEquity] },
+        { key: 'passiva-total', kind: 'grand', label: t('balanceSheet.totalPassiva'), values: [totalLiabilities + totalEquity] },
       ] as ReportRow[],
     };
-  }, [report, totalAssets, totalLiabilities, totalEquity]);
+  }, [report, totalAssets, totalLiabilities, totalEquity, t]);
 
   return (
     <>
       <ReportPage
-        title="Neraca (Balance Sheet)"
-        description="Posisi keuangan aset, liabilitas, dan ekuitas"
+        title={t('balanceSheet.title')}
+        description={t('balanceSheet.description')}
         period={periodLabel(date)}
         actions={
           <ExportMenu
@@ -113,7 +119,7 @@ const BalanceSheet: React.FC = () => {
           <>
             <ReportFilters mode="asOf" value={date} onChange={setDate} />
             {!isLoading && !isError && !isBalanced && (
-              <ReportNotice>Terdapat selisih antara total Aktiva dan Pasiva. Periksa jurnal yang tidak seimbang.</ReportNotice>
+              <ReportNotice>{t('balanceSheet.unbalanced')}</ReportNotice>
             )}
           </>
         }
@@ -121,17 +127,17 @@ const BalanceSheet: React.FC = () => {
         <ReportState isLoading={isLoading} isError={isError} onRetry={() => refetch()}>
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
             <ReportTable
-              caption={`Aset per ${date}`}
-              labelHeader="Aset"
-              codeHeader="No. Akun"
-              columns={COLUMNS}
+              caption={t('balanceSheet.assetsCaption', { date })}
+              labelHeader={t('balanceSheet.assets')}
+              codeHeader={t('reportsShared.accountNumber')}
+              columns={columns}
               rows={assetRows}
             />
             <ReportTable
-              caption={`Kewajiban dan ekuitas per ${date}`}
-              labelHeader="Kewajiban dan Ekuitas"
-              codeHeader="No. Akun"
-              columns={COLUMNS}
+              caption={t('balanceSheet.passivaCaption', { date })}
+              labelHeader={t('balanceSheet.passivaHeader')}
+              codeHeader={t('reportsShared.accountNumber')}
+              columns={columns}
               rows={passivaRows}
             />
           </div>
