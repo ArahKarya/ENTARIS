@@ -17,6 +17,7 @@ import { Pool } from 'pg';
 import { submitGoodsReceiptInTx } from '../../services/goodsReceiptSubmit';
 import { submitPurchaseInvoiceInTx } from '../../services/purchaseInvoiceSubmit';
 import { cancelPurchaseInvoiceInTx } from '../../services/invoiceCancellation';
+import { systemAccountNumber } from '../helpers/systemAccountNumbers';
 
 const hasDb = !!process.env.DATABASE_URL;
 const d = hasDb ? describe : describe.skip;
@@ -26,6 +27,12 @@ let pool: Pool;
 let userId: string;
 let warehouseId: string;
 let supplierId: string;
+
+// Account numbers resolved from Akun Sistem (they differ per chart of accounts).
+let accruedNo: string;
+let varianceNo: string;
+let apNo: string;
+let inventoryNo: string;
 
 beforeAll(async () => {
   if (!hasDb) return;
@@ -38,6 +45,11 @@ beforeAll(async () => {
 
   const wh = await prisma.warehouse.findFirst({ where: { isActive: true } });
   warehouseId = wh!.id;
+
+  accruedNo = await systemAccountNumber(prisma, 'ACCRUED_PAYABLE');
+  varianceNo = await systemAccountNumber(prisma, 'PURCHASE_PRICE_VARIANCE');
+  apNo = await systemAccountNumber(prisma, 'AP');
+  inventoryNo = await systemAccountNumber(prisma, 'INVENTORY');
 
   const supplier = await prisma.party.findFirst({
     where: { isActive: true, partyType: { in: ['Supplier', 'Both'] } },
@@ -55,7 +67,7 @@ class RollbackSentinel extends Error {
 }
 
 d('PI from STT — Phase 3 flow', () => {
-  it('skips stock, reverses accrual, posts variance, marks STT invoiced', async () => {
+  it('skips stock, reverses accrual, posts the landed-cost delta to inventory, marks STT invoiced', async () => {
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     try {
       await prisma.$transaction(async (tx) => {
@@ -145,20 +157,22 @@ d('PI from STT — Phase 3 flow', () => {
 
         // DR Hutang Belum Tagih @ 1_000_000 (provisional from STT)
         const accrualReverse = jv!.items.find(
-          (i) => i.account.accountNumber === '2.1.5' && Number(i.debit) > 0,
+          (i) => i.account.accountNumber === accruedNo && Number(i.debit) > 0,
         );
-        expect(accrualReverse).not.toBeNull();
+        expect(accrualReverse).toBeDefined();
         expect(Number(accrualReverse!.debit)).toBe(1_000_000);
 
-        // DR Selisih Harga Pembelian @ 100_000 (variance: actual > provisional)
-        const variance = jv!.items.find(
-          (i) => i.account.accountNumber === '5.11' && Number(i.debit) > 0,
+        // DR Persediaan @ 100_000: the landed-cost delta (actual > provisional) goes to inventory,
+        // not to Selisih Harga Pembelian, so the unit cost reflects the full PI cost.
+        const landed = jv!.items.find(
+          (i) => i.account.accountNumber === inventoryNo && Number(i.debit) > 0,
         );
-        expect(variance).not.toBeNull();
-        expect(Number(variance!.debit)).toBe(100_000);
+        expect(landed).toBeDefined();
+        expect(Number(landed!.debit)).toBe(100_000);
+        expect(jv!.items.some((i) => i.account.accountNumber === varianceNo)).toBe(false);
 
         // CR Hutang Usaha @ 1_100_000
-        const ap = jv!.items.find((i) => i.account.accountNumber === '2.1.1' && Number(i.credit) > 0);
+        const ap = jv!.items.find((i) => i.account.accountNumber === apNo && Number(i.credit) > 0);
         expect(Number(ap!.credit)).toBe(1_100_000);
         expect(ap!.partyId).toBe(supplierId);
 
@@ -169,7 +183,7 @@ d('PI from STT — Phase 3 flow', () => {
     }
   });
 
-  it('handles negative variance (PI cheaper than STT provisional) with CR Selisih Harga', async () => {
+  it('handles a negative delta (PI cheaper than STT provisional) with CR Persediaan', async () => {
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     try {
       await prisma.$transaction(async (tx) => {
@@ -209,14 +223,14 @@ d('PI from STT — Phase 3 flow', () => {
           where: { entryNumber: `JV-${pi.invoiceNumber}` },
           include: { items: { include: { account: true } } },
         });
-        // Variance = (9500 - 10000) × 100 = -50_000 → CR Selisih Harga 50_000
-        const varianceCr = jv!.items.find(
-          (i) => i.account.accountNumber === '5.11' && Number(i.credit) > 0,
+        // Delta = (9500 - 10000) × 100 = -50_000 → CR Persediaan 50_000 (landed cost down)
+        const landedCr = jv!.items.find(
+          (i) => i.account.accountNumber === inventoryNo && Number(i.credit) > 0,
         );
-        expect(varianceCr).not.toBeNull();
-        expect(Number(varianceCr!.credit)).toBe(50_000);
+        expect(landedCr).toBeDefined();
+        expect(Number(landedCr!.credit)).toBe(50_000);
 
-        // Balanced: DR 1M (accrual reverse) = CR 950k (AP) + 50k (Selisih)
+        // Balanced: DR 1M (accrual reverse) = CR 950k (AP) + 50k (Persediaan)
         const totalDr = jv!.items.reduce((s, i) => s + Number(i.debit), 0);
         const totalCr = jv!.items.reduce((s, i) => s + Number(i.credit), 0);
         expect(totalDr).toBe(totalCr);

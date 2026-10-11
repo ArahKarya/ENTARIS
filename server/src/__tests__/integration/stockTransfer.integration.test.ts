@@ -23,6 +23,7 @@ let pool: Pool;
 let userId: string;
 let warehouseAId: string;
 let warehouseBId: string;
+let tempWarehouseId: string | null = null;
 
 beforeAll(async () => {
   if (!hasDb) return;
@@ -39,12 +40,22 @@ beforeAll(async () => {
     orderBy: { code: 'asc' },
     take: 2,
   });
-  if (whs.length < 2) throw new Error('Test needs at least 2 active warehouses.');
+  if (whs.length === 0) throw new Error('Test needs at least 1 active warehouse.');
   warehouseAId = whs[0].id;
-  warehouseBId = whs[1].id;
+  if (whs.length > 1) {
+    warehouseBId = whs[1].id;
+  } else {
+    // Single-warehouse databases (fresh installs) get a temporary destination, removed in afterAll.
+    const temp = await prisma.warehouse.create({
+      data: { code: `ITEST-${Date.now().toString(36)}`, name: 'Gudang uji integrasi' },
+    });
+    warehouseBId = temp.id;
+    tempWarehouseId = temp.id;
+  }
 });
 
 afterAll(async () => {
+  if (prisma && tempWarehouseId) await prisma.warehouse.delete({ where: { id: tempWarehouseId } }).catch(() => {});
   if (prisma) await prisma.$disconnect();
   if (pool) await pool.end();
 });

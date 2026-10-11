@@ -61,11 +61,11 @@ Akun-akun berikut digunakan untuk auto GL posting. Defined in `server/src/consta
 | 1.4.0 | Persediaan (Umum) | Inventory account |
 | 1.5.6 | Uang Muka Karyawan | Role EMPLOYEE_ADVANCE — debit saat Pengajuan Pembayaran uang muka/perjalanan dinas dibayar |
 | 2.1.1 | Hutang Usaha (Dagang) | Auto-credit on purchase invoice |
-| 2.1.5 | Hutang Belum Tagih | Accrual saat STT/BPB submit, reversed saat PI submit |
+| 2.2.3 | Hutang Pembelian Belum Ditagih | Role `ACCRUED_PAYABLE`: accrual saat STT/BPB submit, reversed saat PI submit (nomor ikut pemetaan Akun Sistem) |
 | 4.1 | Penjualan | Auto-credit on sales revenue |
 | 4.2 | Pendapatan Jasa | Service revenue |
 | 5 | Beban Pokok Penjualan | COGS |
-| 5.11 | Selisih Harga Pembelian | Variance harga STT (provisional) vs PI (aktual) |
+| 5.11 | Selisih Harga Pembelian | Role `PURCHASE_PRICE_VARIANCE` (selisih STT vs PI kini masuk Persediaan, lihat aturan PI dari STT) |
 | 3.1 | Ekuitas Saldo Awal | Opening balance contra account (import/setup) |
 | 3.2 | Laba Ditahan | Retained earnings (year-end closing) |
 | 3.4 | Laba Tahun Berjalan | Computed current year profit |
@@ -75,8 +75,8 @@ Akun-akun berikut digunakan untuk auto GL posting. Defined in `server/src/consta
 Every transaction MUST produce balanced debit/credit GL entries:
 - **Sales Invoice submit** (standalone): DR Piutang (1.2.1) / CR Penjualan (4.1)
 - **Purchase Invoice submit** (legacy/standalone): DR Persediaan (1.4.0) / CR Hutang (2.1.1)
-- **STT/BPB submit** (Phase 2+): DR Persediaan (1.4.0) / CR Hutang Belum Tagih (2.1.5) — accrual
-- **PI submit from STT** (Phase 3+): DR Hutang Belum Tagih (2.1.5) + DR/CR Selisih Harga Pembelian (5.11) / CR Hutang Usaha (2.1.1)
+- **STT/BPB submit** (Phase 2+): DR Persediaan (1.4.0) / CR Hutang Belum Tagih (`ACCRUED_PAYABLE`, default 2.2.3) — accrual
+- **PI submit from STT** (Phase 3+): DR Hutang Belum Tagih (`ACCRUED_PAYABLE`) @ provisional + DR/CR Persediaan @ selisih landed cost (PI aktual − STT provisional) / CR Hutang Usaha (2.1.1)
 - **Payment receive**: DR Kas/Bank (1.1.x) / CR Piutang (1.2.1)
 - **Payment pay**: DR Hutang (2.1.1) / CR Kas/Bank (1.1.x)
 - **Journal Entry**: Manual balanced entries
@@ -103,7 +103,7 @@ Payment Pay
 Each step is **independent** — staff bisa skip PO, atau buat PI standalone
 (legacy mode, masih jalan). Untuk PI yang ter-link ke STT:
 - Stok TIDAK dibuat ulang (sudah dari STT)
-- JV reverse accrual + post variance
+- JV reverse accrual + selisih landed cost ke Persediaan
 - STT.invoiceId di-set
 
 Cancel cascade:

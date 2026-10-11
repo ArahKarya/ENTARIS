@@ -32,7 +32,9 @@ async function prepare(page: Page, testInfo: TestInfo, onboardedAt: string | nul
     if (route.request().method() !== 'GET') return route.fulfill({ json: {} })
     const res = await route.fetch()
     const body = await res.json()
-    await route.fulfill({ response: res, json: { ...body, onboardedAt } })
+    // A fresh install (onboardedAt null) has no company name yet, whatever the dev DB holds.
+    const fresh = onboardedAt === null ? { companyName: '' } : {}
+    await route.fulfill({ response: res, json: { ...body, ...fresh, onboardedAt } })
   })
   await page.route('**/api/settings/company/onboarding', (route) =>
     route.fulfill({ json: { id: 'stub', onboardedAt: new Date().toISOString() } }),
