@@ -7,6 +7,7 @@ import { CreatePurchaseInvoiceSchema, CreateProductionRunSchema } from '../utils
 import { decideApproval } from '../services/approvalDecision';
 import { buildApprovalComparison, isEditDocumentType, findPendingForTarget } from '../services/approvalEditRequests';
 import { loadApprovalLookups } from '../services/approvalContextLookups';
+import { parseApprovalCheckQuery } from '../utils/approvalCheckQuery';
 
 const router = Router();
 
@@ -361,12 +362,16 @@ router.put('/requests/:id/resubmit', async (req: AuthRequest, res) => {
 
 // GET /check — check if a document needs approval
 router.get('/check', async (req, res) => {
+  const parsed = parseApprovalCheckQuery(req.query);
+  if (!parsed) {
+    return res.status(400).json({ error: 'Parameter documentType dan amount (angka) wajib diisi.' });
+  }
+  const { documentType, amount } = parsed;
   try {
-    const { documentType, amount } = req.query;
     const rule = await prisma.approvalRule.findFirst({
       where: {
-        documentType: documentType as string,
-        minAmount: { lte: Number(amount) },
+        documentType,
+        minAmount: { lte: amount },
         isActive: true,
       },
       orderBy: { minAmount: 'desc' },

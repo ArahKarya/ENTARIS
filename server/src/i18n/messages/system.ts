@@ -28,6 +28,7 @@ export const SYSTEM_MESSAGES: MessageDictionary = {
   "Tipe dokumen tidak didukung.": "Document type is not supported.",
   "Gagal mengajukan ulang.": "Failed to resubmit.",
   "Gagal cek approval.": "Failed to check approval.",
+  "Parameter documentType dan amount (angka) wajib diisi.": "The documentType and amount (a number) parameters are required.",
   "Tipe file tidak didukung: {0}. Hanya JPG, PNG, WebP, dan PDF.": "File type not supported: {0}. Only JPG, PNG, WebP and PDF.",
   "referenceType dan referenceId wajib diisi.": "referenceType and referenceId are required.",
   "referenceType harus salah satu dari: {0}.": "referenceType must be one of: {0}.",

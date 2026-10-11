@@ -219,6 +219,10 @@ npm test                 # Vitest
 # commit the JSON. Never re-run `--suppress-all` to silence new code; use a targeted
 # `eslint-disable-next-line <rule> -- <reason>` only for justified false positives.
 
+# API smoke test (from root; butuh server jalan, curl + jq)
+API_PASSWORD=... ./test-api.sh           # baca-saja: auth, CSRF, bahasa, semua route GET tanpa parameter (dari inventori route)
+API_PASSWORD=... ./test-api.sh --write   # + alur tulis yang membersihkan sendiri (dev/staging saja)
+
 # Docker (from root)
 docker compose up -d --build    # Full stack
 docker compose logs -f app      # View logs
