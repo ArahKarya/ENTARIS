@@ -3,6 +3,8 @@ import { AuthRequest } from '../middleware/auth';
 import { can } from '../services/permissionService';
 import { loadMaintenanceDashboard } from '../services/dashboardMaintenance';
 import { logger } from '../lib/logger';
+import { translateFields } from '../i18n/translateFields';
+import { requestLanguage } from '../middleware/responseLanguage';
 
 const router = Router();
 
@@ -21,7 +23,8 @@ router.get('/', async (req: AuthRequest, res) => {
     if (!maintenance && !vehicle && !documents) {
       return res.status(403).json({ error: 'Akses ditolak: tidak punya izin modul pemeliharaan.' });
     }
-    return res.json(await loadMaintenanceDashboard({ maintenance, vehicle, documents }));
+    const dashboard = await loadMaintenanceDashboard({ maintenance, vehicle, documents });
+    return res.json(translateFields(dashboard, requestLanguage(req), ['kindLabel', 'title', 'detail']));
   } catch (error) {
     logger.error({ error }, 'GET /dashboard/maintenance error');
     return res.status(500).json({ error: 'Gagal mengambil data pemeliharaan.' });

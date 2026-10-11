@@ -42,6 +42,8 @@ import {
 } from '../../services/chat/sessionService';
 import { prepareTurn, TurnHttpError } from '../../services/chat/turnPrepare';
 import { runTurn } from '../../services/chat/turnRun';
+import { translateFields } from '../../i18n/translateFields';
+import { requestLanguage } from '../../middleware/responseLanguage';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: CHAT_ATTACHMENT_MAX_BYTES, files: 1 } });
@@ -137,7 +139,8 @@ router.get('/sessions/:id/messages', async (req: AuthRequest, res) => {
     if (!result) return res.status(404).json({ error: 'Sesi tidak ditemukan.' });
     if (!q.data.before) await markOpened(userId, id);
     const session = await getOwnedSession(userId, id);
-    return res.json({ ...result, session: session ? publicSession(session) : null });
+    const lang = requestLanguage(req);
+    return res.json({ ...translateFields(result, lang, ['error']), session: session ? publicSession(session) : null });
   } catch (error) {
     return handleRouteError(res, error, 'GET /ai/chat/sessions/:id/messages', 'Gagal memuat riwayat sesi.');
   }
@@ -264,13 +267,15 @@ router.post('/stream', upload.single('file'), async (req: AuthRequest, res) => {
     if (!res.writableEnded && !res.destroyed) res.write(': ping\n\n');
   }, 15_000);
 
+  const sseLang = requestLanguage(req);
   try {
     await runTurn(
       prepared,
       {
         event: (name, data) => {
           if (res.writableEnded || res.destroyed) return;
-          res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
+          const payload = name === 'error' ? translateFields(data, sseLang, ['message']) : data;
+          res.write(`event: ${name}\ndata: ${JSON.stringify(payload)}\n\n`);
         },
       },
       controller.signal,

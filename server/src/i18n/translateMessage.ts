@@ -7,6 +7,7 @@
 import type { Language } from '../utils/language';
 import type { MessageDictionary } from './types';
 import { AIRA_MESSAGES } from './messages/aira';
+import { DATA_MESSAGES } from './messages/data';
 import { EAM_MESSAGES } from './messages/eam';
 import { FINANCE_MESSAGES } from './messages/finance';
 import { INVENTORY_MESSAGES } from './messages/inventory';
@@ -22,6 +23,7 @@ export const MESSAGE_DICTIONARIES: readonly MessageDictionary[] = [
   FINANCE_MESSAGES,
   EAM_MESSAGES,
   AIRA_MESSAGES,
+  DATA_MESSAGES,
 ];
 
 const PLACEHOLDER = /\{(\d+)\}/g;
