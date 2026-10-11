@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Minus, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useMotion } from '@/contexts/motion-context';
 import { CountUp } from './count-up';
@@ -69,6 +70,7 @@ export function StatCard({
   loading,
   className,
 }: StatCardProps) {
+  const { t } = useTranslation('common');
   const { motion } = useMotion();
   const countUp = motion === 'lively' && (typeof value === 'string' || typeof value === 'number');
   const effectiveDelta: StatDelta | undefined =
@@ -104,7 +106,7 @@ export function StatCard({
       )}
       {href && (
         <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-          Lihat detail <ArrowRight className="size-3.5" aria-hidden />
+          {t('statCard.viewDetail')} <ArrowRight className="size-3.5" aria-hidden />
         </span>
       )}
     </>

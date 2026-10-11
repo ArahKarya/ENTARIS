@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,9 +33,9 @@ interface Props {
   importType: 'parties' | 'coa' | 'journals' | 'inventory';
 }
 
+/** Dialog title: `shell:importModal.titles.<importType>`. */
 const typeConfig = {
   parties: {
-    title: 'Import Mitra Bisnis',
     endpoint: '/import/parties',
     columns: ['name', 'partyType', 'phone', 'email', 'address', 'taxId', 'openingBalance', 'depositBalance', 'customerDepositBalance'],
     templateHeaders: 'name,partyType,phone,email,address,taxId,openingBalance,depositBalance,customerDepositBalance',
@@ -42,7 +43,6 @@ const typeConfig = {
     queryKeys: ['parties', 'coa', 'coa-all', 'balance-sheet', 'trial-balance', 'profit-loss', 'journals', 'dashboard-metrics'],
   },
   coa: {
-    title: 'Import Bagan Akun',
     endpoint: '/import/coa',
     columns: ['accountNumber', 'name', 'rootType', 'accountType', 'parentNumber', 'isGroup', 'openingBalance'],
     templateHeaders: 'accountNumber,name,rootType,accountType,parentNumber,isGroup,openingBalance',
@@ -50,7 +50,6 @@ const typeConfig = {
     queryKeys: ['coa', 'coa-all', 'balance-sheet', 'trial-balance', 'profit-loss', 'journals', 'dashboard-metrics'],
   },
   journals: {
-    title: 'Import Jurnal',
     endpoint: '/import/journals',
     columns: ['date', 'narration', 'accountNumber', 'debit', 'credit', 'description'],
     templateHeaders: 'date,narration,accountNumber,debit,credit,description',
@@ -58,7 +57,6 @@ const typeConfig = {
     queryKeys: ['journals', 'gl', 'coa', 'coa-all', 'balance-sheet', 'trial-balance', 'profit-loss', 'dashboard-metrics'],
   },
   inventory: {
-    title: 'Import Master Item',
     endpoint: '/import/inventory',
     columns: ['code', 'name', 'unit', 'category', 'description', 'minimumStock', 'openingQty', 'openingPrice', 'warehouseCode'],
     templateHeaders: 'code,name,unit,category,description,minimumStock,openingQty,openingPrice,warehouseCode',
@@ -68,6 +66,7 @@ const typeConfig = {
 };
 
 const ImportModal = ({ isOpen, onClose, importType }: Props) => {
+  const { t } = useTranslation(['shell', 'common']);
   const [step, setStep] = useState<'upload' | 'preview' | 'result'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -91,7 +90,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
       setStep('preview');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal memproses file.');
+      toast.error(err.response?.data?.error || t('importModal.processFailed'));
     },
   });
 
@@ -108,10 +107,10 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
       setResult(data);
       setStep('result');
       config.queryKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
-      if (data.success > 0) toast.success(`${data.success} data diimpor.`);
+      if (data.success > 0) toast.success(t('importModal.imported', { count: data.success }));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Gagal mengimport data.');
+      toast.error(err.response?.data?.error || t('importModal.importFailed'));
     },
   });
 
@@ -165,7 +164,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
 
   const STEPS = ['upload', 'preview', 'result'] as const;
   const busy = previewMutation.isPending || importMutation.isPending;
-  const stepLabel = { upload: 'Unggah file', preview: 'Pratinjau data', result: 'Hasil import' }[step];
+  const stepLabel = t(`importModal.steps.${step}`);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !busy && handleClose()}>
@@ -173,7 +172,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
         <OverlayHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="size-5 text-primary" aria-hidden />
-            {config.title}
+            {t(`importModal.titles.${importType}`)}
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2">
             <span className="flex items-center gap-1" aria-hidden>
@@ -187,7 +186,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
                 />
               ))}
             </span>
-            Langkah {STEPS.indexOf(step) + 1} dari {STEPS.length}: {stepLabel}
+            {t('importModal.stepOf', { current: STEPS.indexOf(step) + 1, total: STEPS.length, label: stepLabel })}
           </DialogDescription>
         </OverlayHeader>
 
@@ -209,13 +208,13 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
                 {previewMutation.isPending ? (
                   <span role="status" className="block">
                     <Loader2 className="mx-auto mb-3 size-8 animate-spin text-primary" aria-hidden />
-                    <span className="block text-sm font-medium text-foreground">Memproses file...</span>
+                    <span className="block text-sm font-medium text-foreground">{t('importModal.processing')}</span>
                   </span>
                 ) : (
                   <>
                     <Upload className="mx-auto mb-3 size-8 text-muted-foreground" aria-hidden />
-                    <span className="block text-sm font-medium text-foreground">Seret file ke sini, atau klik untuk memilih</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">Mendukung format CSV, XLSX, XLS (maks 5MB)</span>
+                    <span className="block text-sm font-medium text-foreground">{t('importModal.dropzone')}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{t('importModal.formats', { size: '5MB' })}</span>
                   </>
                 )}
               </button>
@@ -224,7 +223,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
                 type="file"
                 accept=".csv,.xlsx,.xls"
                 className="hidden"
-                aria-label="Pilih file import"
+                aria-label={t('importModal.chooseFile')}
                 tabIndex={-1}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -233,7 +232,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
                 }}
               />
               <Button type="button" variant="link" size="sm" className="justify-self-start" onClick={downloadTemplate}>
-                <Download aria-hidden /> Download Template Excel
+                <Download aria-hidden /> {t('importModal.downloadTemplate')}
               </Button>
             </div>
           )}
@@ -243,24 +242,24 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
               <div>
                 <p className="text-sm font-medium text-foreground">{selectedFile?.name}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {preview.data.length} data valid, {preview.errors.length} error
+                  {t('importModal.previewSummary', { valid: preview.data.length, errors: preview.errors.length })}
                 </p>
               </div>
 
               {preview.errors.length > 0 && (
                 <div role="alert" className="max-h-32 overflow-y-auto rounded-lg bg-danger-subtle p-3 text-danger-text">
-                  <p className="mb-1 text-xs font-semibold">Error ({preview.errors.length}):</p>
+                  <p className="mb-1 text-xs font-semibold">{t('importModal.errorsCount', { count: preview.errors.length })}</p>
                   {preview.errors.slice(0, 10).map((err, i) => (
-                    <p key={i} className="text-xs">Baris {err.row}: {err.message}</p>
+                    <p key={i} className="text-xs">{t('importModal.rowError', { row: err.row, message: err.message })}</p>
                   ))}
                   {preview.errors.length > 10 && (
-                    <p className="mt-1 text-xs">...dan {preview.errors.length - 10} error lainnya</p>
+                    <p className="mt-1 text-xs">{t('importModal.moreErrors', { count: preview.errors.length - 10 })}</p>
                   )}
                 </div>
               )}
 
               {preview.data.length > 0 && (
-                <ScrollRegion label="Pratinjau data import" className="max-h-72 overflow-y-auto border border-border">
+                <ScrollRegion label={t('importModal.previewLabel')} className="max-h-72 overflow-y-auto border border-border">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-muted">
                       <tr className="border-b border-border">
@@ -283,7 +282,7 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
                   </table>
                   {preview.data.length > 20 && (
                     <div className="px-3 py-2 text-center text-xs text-muted-foreground">
-                      ...menampilkan 20 dari {preview.data.length} data
+                      {t('importModal.showingOf', { shown: 20, total: preview.data.length })}
                     </div>
                   )}
                 </ScrollRegion>
@@ -299,16 +298,16 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
                 ) : (
                   <AlertCircle className="mx-auto mb-3 size-10 text-danger-text" aria-hidden />
                 )}
-                <p className="text-lg font-semibold text-foreground">Import Selesai</p>
+                <p className="text-lg font-semibold text-foreground">{t('importModal.done')}</p>
                 <div className="mt-2 flex items-center justify-center gap-4">
                   <div>
                     <p className="text-2xl font-bold tabular-nums text-success-text">{result.success}</p>
-                    <p className="text-xs text-muted-foreground">Berhasil</p>
+                    <p className="text-xs text-muted-foreground">{t('importModal.succeeded')}</p>
                   </div>
                   {result.failed > 0 && (
                     <div>
                       <p className="text-2xl font-bold tabular-nums text-danger-text">{result.failed}</p>
-                      <p className="text-xs text-muted-foreground">Gagal</p>
+                      <p className="text-xs text-muted-foreground">{t('importModal.failed')}</p>
                     </div>
                   )}
                 </div>
@@ -316,9 +315,9 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
 
               {result.errors.length > 0 && (
                 <div className="max-h-32 overflow-y-auto rounded-lg bg-danger-subtle p-3 text-danger-text">
-                  <p className="mb-1 text-xs font-semibold">Error Detail:</p>
+                  <p className="mb-1 text-xs font-semibold">{t('importModal.errorDetail')}</p>
                   {result.errors.map((err, i) => (
-                    <p key={i} className="text-xs">{err.row > 0 ? `Baris ${err.row}: ` : ''}{err.message}</p>
+                    <p key={i} className="text-xs">{err.row > 0 ? t('importModal.rowError', { row: err.row, message: err.message }) : err.message}</p>
                   ))}
                 </div>
               )}
@@ -328,21 +327,21 @@ const ImportModal = ({ isOpen, onClose, importType }: Props) => {
 
         <OverlayFooter>
           {step === 'upload' && (
-            <Button type="button" variant="ghost" onClick={handleClose} disabled={previewMutation.isPending}>Batal</Button>
+            <Button type="button" variant="ghost" onClick={handleClose} disabled={previewMutation.isPending}>{t('common:actions.cancel')}</Button>
           )}
           {step === 'preview' && preview && (
             <>
               <Button type="button" variant="ghost" disabled={importMutation.isPending}
                 onClick={() => { setStep('upload'); setSelectedFile(null); setPreview(null); }}>
-                Ganti File
+                {t('importModal.changeFile')}
               </Button>
               <Button type="button" onClick={handleConfirmImport}
                 disabled={preview.data.length === 0} loading={importMutation.isPending}>
-                {importMutation.isPending ? 'Mengimport…' : `Import ${preview.data.length} Data`}
+                {importMutation.isPending ? t('importModal.importing') : t('importModal.importCount', { count: preview.data.length })}
               </Button>
             </>
           )}
-          {step === 'result' && <Button type="button" onClick={handleClose}>Tutup</Button>}
+          {step === 'result' && <Button type="button" onClick={handleClose}>{t('common:actions.close')}</Button>}
         </OverlayFooter>
       </DialogContent>
     </Dialog>

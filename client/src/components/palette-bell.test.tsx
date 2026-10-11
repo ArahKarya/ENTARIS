@@ -118,8 +118,8 @@ describe('CommandPalette', () => {
     wrap(<CommandPalette isOpen onClose={() => {}} />);
     const input = await screen.findByRole('combobox');
     fireEvent.change(input, { target: { value: 'faktur' } });
-    expect(await screen.findByRole('option', { name: /Faktur Penjualan/ })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /Faktur Pembelian/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: /Invoice Penjualan/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Invoice Pembelian/ })).not.toBeInTheDocument();
   });
 
   it('keeps record search and drops records whose page is not allowed', async () => {
@@ -202,8 +202,8 @@ describe('ShortcutHelp', () => {
     wrap(<ShortcutHelp isOpen onClose={() => {}} />);
     const dialog = screen.getByRole('dialog', { name: 'Pintasan Keyboard' });
     expect(within(dialog).getByText('Cari halaman, data, atau aksi')).toBeInTheDocument();
-    expect(within(dialog).getByText('Buka Faktur Penjualan')).toBeInTheDocument();
-    expect(within(dialog).queryByText('Buka Faktur Pembelian')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('Buka Invoice Penjualan')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Buka Invoice Pembelian')).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/Buat baru/)).not.toBeInTheDocument();
   });
 });

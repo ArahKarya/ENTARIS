@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Mail, MessageCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { mailtoHref, whatsappHref } from './login-helpers';
 
 export interface HelpDialogProps {
@@ -25,6 +26,7 @@ const contactButton =
  * tenant administrator; this only offers ways to reach them.
  */
 export function HelpDialog({ open, onOpenChange, email, phone, reason = 'forgot' }: HelpDialogProps) {
+  const { t } = useTranslation('auth');
   const mail = mailtoHref(email);
   const wa = whatsappHref(phone);
   const hasContact = Boolean(mail || wa);
@@ -56,11 +58,10 @@ export function HelpDialog({ open, onOpenChange, email, phone, reason = 'forgot'
         >
           <div className="flex flex-col gap-1.5 pr-8">
             <DialogPrimitive.Title className="text-lg font-semibold leading-7 text-(--text)">
-              {reason === 'forgot' ? 'Lupa kata sandi?' : 'Bantuan masuk'}
+              {reason === 'forgot' ? t('help.forgotTitle') : t('help.helpTitle')}
             </DialogPrimitive.Title>
             <DialogPrimitive.Description className="text-sm leading-5 text-(--text-secondary)">
-              Kata sandi hanya dapat direset oleh administrator perusahaan Anda.
-              {hasContact ? ' Hubungi mereka lewat salah satu kanal di bawah.' : ' Hubungi mereka secara langsung.'}
+              {t('help.body')} {hasContact ? t('help.contactChannels') : t('help.contactDirect')}
             </DialogPrimitive.Description>
           </div>
 
@@ -88,7 +89,7 @@ export function HelpDialog({ open, onOpenChange, email, phone, reason = 'forgot'
                 focusRing
               }
             >
-              Tutup
+              {t('help.close')}
             </DialogPrimitive.Close>
           </div>
 
@@ -99,7 +100,7 @@ export function HelpDialog({ open, onOpenChange, email, phone, reason = 'forgot'
             }
           >
             <X className="size-4" aria-hidden />
-            <span className="sr-only">Tutup dialog</span>
+            <span className="sr-only">{t('help.closeDialog')}</span>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
