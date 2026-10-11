@@ -1,7 +1,15 @@
 /**
  * Field-by-field diff and formatting for audit entries. Values arrive already redacted by the
- * server; nothing here tries to reveal or re-derive them.
+ * server; nothing here tries to reveal or re-derive them. Labels come from `common:auditDiff.*`
+ * and follow the UI language.
  */
+import i18n from '@/i18n';
+import { LOCALE } from '@/lib/format';
+import type commonId from '@/locales/id/common.json';
+
+type AuditTextKey = Exclude<keyof (typeof commonId)['auditDiff'], 'actions'>;
+
+const tr = (key: AuditTextKey): string => i18n.t(`auditDiff.${key}`, { ns: 'common' });
 
 export type DiffChange = 'added' | 'removed' | 'changed' | 'unchanged';
 
@@ -36,7 +44,7 @@ export function diffAuditValues(oldValues: unknown, newValues: unknown): DiffRow
 
   if ((hasOld && !isPlainObject(oldValues)) || (hasNew && !isPlainObject(newValues))) {
     const change: DiffChange = !hasOld ? 'added' : !hasNew ? 'removed' : sameValue(oldValues, newValues) ? 'unchanged' : 'changed';
-    return [{ key: 'nilai', before: oldValues, after: newValues, change }];
+    return [{ key: tr('value'), before: oldValues, after: newValues, change }];
   }
 
   const before = (hasOld ? oldValues : {}) as Record<string, unknown>;
@@ -56,9 +64,9 @@ export function diffAuditValues(oldValues: unknown, newValues: unknown): DiffRow
 /** Short display of a JSON value; objects/arrays as compact JSON. */
 export function formatAuditValue(value: unknown): string {
   if (value === undefined) return '';
-  if (value === null) return '(kosong)';
-  if (typeof value === 'boolean') return value ? 'Ya' : 'Tidak';
-  if (typeof value === 'string') return value === '' ? '(kosong)' : value;
+  if (value === null) return tr('empty');
+  if (typeof value === 'boolean') return value ? tr('yes') : tr('no');
+  if (typeof value === 'string') return value === '' ? tr('empty') : value;
   if (typeof value === 'number') return String(value);
   try {
     return JSON.stringify(value, null, 2);
@@ -67,7 +75,15 @@ export function formatAuditValue(value: unknown): string {
   }
 }
 
-const RTF = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' });
+let rtf: Intl.RelativeTimeFormat | null = null;
+
+/** Formatter for the current UI locale (rebuilt when the language changes). */
+function relativeFormatter(): Intl.RelativeTimeFormat {
+  if (!rtf || rtf.resolvedOptions().locale !== new Intl.RelativeTimeFormat(LOCALE).resolvedOptions().locale) {
+    rtf = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+  }
+  return rtf;
+}
 
 const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ['year', 365 * 24 * 3600],
@@ -84,26 +100,27 @@ export function formatRelativeTime(value: string | number | Date, now: Date = ne
   if (Number.isNaN(d.getTime())) return '—';
   const diffSec = Math.round((d.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(diffSec);
-  if (abs < 45) return 'baru saja';
+  if (abs < 45) return tr('justNow');
   for (const [unit, sec] of UNITS) {
-    if (abs >= sec || unit === 'minute') return RTF.format(Math.round(diffSec / sec), unit);
+    if (abs >= sec || unit === 'minute') return relativeFormatter().format(Math.round(diffSec / sec), unit);
   }
-  return 'baru saja';
+  return tr('justNow');
 }
 
-/** Indonesian label for well-known audit actions; unknown actions shown as-is. */
-const ACTION_LABELS: Record<string, string> = {
-  CREATE: 'Buat',
-  UPDATE: 'Ubah',
-  DELETE: 'Hapus',
-  LOGIN: 'Masuk',
-  FIX_ALE_SYNC: 'Perbaikan sinkron ALE',
-  FIX_ACCOUNT_BALANCE_DRIFT: 'Perbaikan saldo akun',
-  FIX_ORPHAN_ALE: 'Perbaikan ALE yatim',
+/** `common:auditDiff.actions.*` key for well-known audit actions; unknown actions shown as-is. */
+const ACTION_KEYS: Record<string, keyof (typeof commonId)['auditDiff']['actions']> = {
+  CREATE: 'create',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  LOGIN: 'login',
+  FIX_ALE_SYNC: 'fixAleSync',
+  FIX_ACCOUNT_BALANCE_DRIFT: 'fixAccountBalanceDrift',
+  FIX_ORPHAN_ALE: 'fixOrphanAle',
 };
 
 export function auditActionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
+  const key = ACTION_KEYS[action];
+  return key ? i18n.t(`auditDiff.actions.${key}`, { ns: 'common' }) : action;
 }
 
 export type AuditActionTone = 'success' | 'info' | 'danger' | 'neutral' | 'warning';

@@ -1,17 +1,15 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle, FileQuestion, SearchX, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export type EmptyStateKind = 'empty' | 'no-results' | 'error';
 
-const PRESETS: Record<EmptyStateKind, { icon: LucideIcon; title: string; description: string }> = {
-  empty: { icon: FileQuestion, title: 'Belum ada data', description: 'Data yang Anda buat akan muncul di sini.' },
-  'no-results': {
-    icon: SearchX,
-    title: 'Tidak ada hasil',
-    description: 'Coba ubah kata kunci atau hapus sebagian filter.',
-  },
-  error: { icon: AlertTriangle, title: 'Data gagal dimuat', description: 'Periksa koneksi Anda lalu coba lagi.' },
+/** Icon and `common:emptyState.<preset>.*` key per kind (text translated at render). */
+const PRESETS: Record<EmptyStateKind, { icon: LucideIcon; key: 'empty' | 'noResults' | 'error' }> = {
+  empty: { icon: FileQuestion, key: 'empty' },
+  'no-results': { icon: SearchX, key: 'noResults' },
+  error: { icon: AlertTriangle, key: 'error' },
 };
 
 export interface EmptyStateProps {
@@ -28,7 +26,10 @@ export interface EmptyStateProps {
 }
 
 export function EmptyState({ kind = 'empty', icon, title, description, action, compact, className }: EmptyStateProps) {
+  const { t } = useTranslation('common');
   const preset = PRESETS[kind];
+  const presetTitle = t(`emptyState.${preset.key}.title`);
+  const presetDescription = t(`emptyState.${preset.key}.description`);
   const Icon = icon ?? preset.icon;
   return (
     <div
@@ -43,9 +44,9 @@ export function EmptyState({ kind = 'empty', icon, title, description, action, c
       >
         <Icon className="size-8" strokeWidth={1.5} aria-hidden />
       </div>
-      <p className="mt-4 text-base font-semibold text-foreground">{title ?? preset.title}</p>
-      {(description ?? preset.description) && (
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description ?? preset.description}</p>
+      <p className="mt-4 text-base font-semibold text-foreground">{title ?? presetTitle}</p>
+      {(description ?? presetDescription) && (
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description ?? presetDescription}</p>
       )}
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Menu, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Crumb } from '@/app/routes';
@@ -22,13 +23,14 @@ const iconButton =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card';
 
 export function Topbar({ breadcrumbs, onOpenMenu, onOpenSearch, notifications, userMenu }: TopbarProps) {
+  const { t } = useTranslation('shell');
   const shortcut = isMac ? '⌘K' : 'Ctrl K';
   return (
     <header
       data-no-print
       className="sticky top-0 z-[var(--z-sticky)] flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 sm:gap-3 lg:px-6"
     >
-      <button type="button" onClick={onOpenMenu} aria-label="Buka menu navigasi" className={cn(iconButton, '-ml-1 lg:hidden')}>
+      <button type="button" onClick={onOpenMenu} aria-label={t('topbar.openMenu')} className={cn(iconButton, '-ml-1 lg:hidden')}>
         <Menu size={20} strokeWidth={1.75} aria-hidden />
       </button>
 
@@ -38,7 +40,7 @@ export function Topbar({ breadcrumbs, onOpenMenu, onOpenSearch, notifications, u
         <button
           type="button"
           onClick={onOpenSearch}
-          aria-label="Cari halaman atau data"
+          aria-label={t('topbar.search')}
           aria-keyshortcuts="Control+K Meta+K"
           className={cn(
             iconButton,
@@ -47,8 +49,8 @@ export function Topbar({ breadcrumbs, onOpenMenu, onOpenSearch, notifications, u
         >
           <Search size={16} strokeWidth={1.75} aria-hidden />
           {/* Short placeholder below xl leaves the breadcrumb room next to the sidebar. */}
-          <span className="hidden flex-1 truncate text-left md:inline xl:hidden">Cari…</span>
-          <span className="hidden flex-1 truncate text-left xl:inline">Cari halaman atau data…</span>
+          <span className="hidden flex-1 truncate text-left md:inline xl:hidden">{t('topbar.searchShort')}</span>
+          <span className="hidden flex-1 truncate text-left xl:inline">{t('topbar.searchLong')}</span>
           <kbd className="hidden rounded border border-border bg-muted px-1.5 font-mono text-xs leading-5 text-muted-foreground md:inline">
             {shortcut}
           </kbd>
@@ -56,14 +58,14 @@ export function Topbar({ breadcrumbs, onOpenMenu, onOpenSearch, notifications, u
 
         <Link
           to="/aira"
-          aria-label="Tanya AIRA"
+          aria-label={t('topbar.askAira')}
           className={cn(
             iconButton,
             'sm:w-auto sm:gap-2 sm:border sm:border-border-strong sm:bg-card sm:px-3 sm:text-sm sm:font-medium sm:text-foreground',
           )}
         >
           <AiraIcon size={16} />
-          <span className="hidden sm:inline">Tanya AIRA</span>
+          <span className="hidden sm:inline">{t('topbar.askAira')}</span>
         </Link>
 
         {notifications}

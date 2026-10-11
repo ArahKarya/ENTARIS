@@ -1,6 +1,8 @@
 /**
  * Route registry: single source of page labels for the sidebar, breadcrumbs, document title
  * and command palette. App.tsx still owns the <Route> elements.
+ * - Labels are stored as `shell:nav.*` keys; `label` is a getter that translates on every read,
+ *   so callers that render during a language change get the new text.
  * - `module` is the RBAC module checked by <PermRoute>: the item shows with 'view'; no module = always.
  * - Pages with `nav: false` name a `parent` that supplies their active nav item and breadcrumb.
  */
@@ -53,6 +55,20 @@ import {
   NotebookPen,
 } from 'lucide-react';
 import { AiraIcon } from '@/components/shell/AiraIcon';
+import i18n from '@/i18n';
+import { LOCALE } from '@/lib/format';
+import type shellId from '@/locales/id/shell.json';
+
+type NavKeys = (typeof shellId)['nav'];
+/** `shell:nav.*` key of a page label. */
+export type NavLabelKey = `nav.${Exclude<keyof NavKeys, 'sections'>}`;
+/** `shell:nav.sections.*` key of a section label. */
+export type SectionLabelKey = `nav.sections.${keyof NavKeys['sections']}`;
+
+/** Translate a nav key in the current (or given) UI language. */
+export function navLabel(key: NavLabelKey | SectionLabelKey, lng?: string): string {
+  return i18n.t(key, { ns: 'shell', lng });
+}
 
 export interface RouteIconProps {
   size?: number;
@@ -75,15 +91,19 @@ export type SectionId =
 
 export interface NavSectionMeta {
   id: SectionId;
-  label: string;
+  labelKey: SectionLabelKey;
+  /** Translated label (getter: follows the UI language). */
+  readonly label: string;
   icon: RouteIcon;
 }
 
 export interface RouteEntry {
   /** Exact path as declared in App.tsx. */
   path: string;
-  /** Full Indonesian label: nav item, breadcrumb, document title. */
-  label: string;
+  /** Label key (`shell:nav.*`): nav item, breadcrumb, document title. */
+  labelKey: NavLabelKey;
+  /** Translated label (getter: follows the UI language). */
+  readonly label: string;
   /** Abbreviation shown as a chip next to the label (SO, PO, STT/BPB …). */
   shortLabel?: string;
   /** Sidebar section; null = top-level (above the sections). */
@@ -113,115 +133,130 @@ export interface NavSection {
   items: RouteEntry[];
 }
 
-export const NAV_SECTIONS: readonly NavSectionMeta[] = [
-  { id: 'sales', label: 'Penjualan', icon: ShoppingCart },
-  { id: 'purchasing', label: 'Pembelian', icon: Package },
-  { id: 'cash', label: 'Kas & Bank', icon: CreditCard },
-  { id: 'inventory', label: 'Persediaan & Produksi', icon: Warehouse },
-  { id: 'accounting', label: 'Akuntansi', icon: BookOpen },
-  { id: 'assets', label: 'Aset & Pemeliharaan', icon: Boxes },
-  { id: 'reports', label: 'Laporan', icon: FileBarChart },
-  { id: 'master', label: 'Data Induk', icon: Database },
-  { id: 'system', label: 'Sistem', icon: ServerCog },
-];
+type SectionInput = Omit<NavSectionMeta, 'label'>;
+type RouteInput = Omit<RouteEntry, 'label'>;
 
-const r = (entry: RouteEntry): RouteEntry => entry;
+const section = (input: SectionInput): NavSectionMeta => ({
+  ...input,
+  get label() {
+    return navLabel(input.labelKey);
+  },
+});
+
+const r = (input: RouteInput): RouteEntry => ({
+  ...input,
+  get label() {
+    return navLabel(input.labelKey);
+  },
+});
+
+export const NAV_SECTIONS: readonly NavSectionMeta[] = [
+  section({ id: 'sales', labelKey: 'nav.sections.sales', icon: ShoppingCart }),
+  section({ id: 'purchasing', labelKey: 'nav.sections.purchasing', icon: Package }),
+  section({ id: 'cash', labelKey: 'nav.sections.cash', icon: CreditCard }),
+  section({ id: 'inventory', labelKey: 'nav.sections.inventory', icon: Warehouse }),
+  section({ id: 'accounting', labelKey: 'nav.sections.accounting', icon: BookOpen }),
+  section({ id: 'assets', labelKey: 'nav.sections.assets', icon: Boxes }),
+  section({ id: 'reports', labelKey: 'nav.sections.reports', icon: FileBarChart }),
+  section({ id: 'master', labelKey: 'nav.sections.master', icon: Database }),
+  section({ id: 'system', labelKey: 'nav.sections.system', icon: ServerCog }),
+];
 
 export const ROUTES: readonly RouteEntry[] = [
   // Top-level
-  r({ path: '/', label: 'Dasbor', section: null, icon: LayoutDashboard, keywords: ['dashboard', 'beranda', 'home', 'ringkasan'] }),
-  r({ path: '/aira', label: 'Asisten AIRA', section: null, icon: AiraIcon, keywords: ['aira', 'ai', 'agen', 'tanya', 'chat', 'asisten'] }),
+  r({ path: '/', labelKey: 'nav.dashboard', section: null, icon: LayoutDashboard, keywords: ['dashboard', 'beranda', 'home', 'ringkasan'] }),
+  r({ path: '/aira', labelKey: 'nav.aira', section: null, icon: AiraIcon, keywords: ['aira', 'ai', 'agen', 'tanya', 'chat', 'asisten'] }),
   // Every logged-in user files payment requests (no module gate); finance tabs are gated in the page.
-  r({ path: '/payment-requests', label: 'Pengajuan Pembayaran', section: null, icon: HandCoins, keywords: ['pengajuan', 'payment request', 'reimbursement', 'reimburse', 'uang muka', 'kasbon', 'perjalanan dinas', 'klaim', 'tagihan eam', 'tagihan aset', 'tagihan ga', 'pajak kendaraan', 'stnk', 'biaya aset', 'posting'] }),
-  r({ path: '/payment-requests/new', label: 'Buat Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['ajukan', 'pengajuan baru', 'reimburse'] }),
-  r({ path: '/payment-requests/:id', label: 'Detail Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
-  r({ path: '/payment-requests/:id/edit', label: 'Ubah Pengajuan', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
-  r({ path: '/payment-requests/:id/settlement', label: 'Pertanggungjawaban Uang Muka', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['pertanggungjawaban', 'laporan uang muka', 'settlement'] }),
-  r({ path: '/notifications', label: 'Notifikasi', section: null, icon: Bell, nav: false, keywords: ['pemberitahuan', 'notification', 'peringatan'] }),
+  r({ path: '/payment-requests', labelKey: 'nav.paymentRequests', section: null, icon: HandCoins, keywords: ['pengajuan', 'payment request', 'reimbursement', 'reimburse', 'uang muka', 'kasbon', 'perjalanan dinas', 'klaim', 'tagihan eam', 'tagihan aset', 'tagihan ga', 'pajak kendaraan', 'stnk', 'biaya aset', 'posting'] }),
+  r({ path: '/payment-requests/new', labelKey: 'nav.paymentRequestNew', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['ajukan', 'pengajuan baru', 'reimburse'] }),
+  r({ path: '/payment-requests/:id', labelKey: 'nav.paymentRequestDetail', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
+  r({ path: '/payment-requests/:id/edit', labelKey: 'nav.paymentRequestEdit', section: null, icon: HandCoins, parent: '/payment-requests', nav: false }),
+  r({ path: '/payment-requests/:id/settlement', labelKey: 'nav.paymentRequestSettlement', section: null, icon: HandCoins, parent: '/payment-requests', nav: false, keywords: ['pertanggungjawaban', 'laporan uang muka', 'settlement'] }),
+  r({ path: '/notifications', labelKey: 'nav.notifications', section: null, icon: Bell, nav: false, keywords: ['pemberitahuan', 'notification', 'peringatan'] }),
 
   // Penjualan
-  r({ path: '/inquiries', label: 'Pertanyaan Pelanggan', section: 'sales', icon: Inbox, module: 'quotation', keywords: ['inquiry', 'permintaan', 'tanya harga', 'prospek'] }),
-  r({ path: '/quotations', label: 'Penawaran', section: 'sales', icon: FileSignature, module: 'quotation', keywords: ['quotation', 'sq', 'penawaran harga'] }),
-  r({ path: '/sales-orders', label: 'Pesanan Penjualan', shortLabel: 'SO', section: 'sales', icon: ClipboardList, module: 'sales_order', keywords: ['so', 'sales order', 'pesanan'] }),
-  r({ path: '/delivery-orders', label: 'Surat Jalan', shortLabel: 'DO', section: 'sales', icon: Truck, module: 'delivery_order', keywords: ['do', 'delivery order', 'pengiriman'] }),
-  r({ path: '/sales', label: 'Faktur Penjualan', section: 'sales', icon: Receipt, module: 'sales_invoice', keywords: ['invoice penjualan', 'sales invoice', 'tagihan pelanggan', 'piutang'] }),
-  r({ path: '/sales-returns', label: 'Retur Penjualan', section: 'sales', icon: Undo2, module: 'sales_return', keywords: ['retur', 'sales return', 'pengembalian'] }),
-  r({ path: '/customer-deposits', label: 'Uang Muka Pelanggan', section: 'sales', icon: Wallet, module: 'customer_deposit', keywords: ['dp', 'deposit pelanggan', 'down payment', 'customer deposit'] }),
+  r({ path: '/inquiries', labelKey: 'nav.inquiries', section: 'sales', icon: Inbox, module: 'quotation', keywords: ['inquiry', 'pertanyaan pelanggan', 'permintaan', 'tanya harga', 'prospek'] }),
+  r({ path: '/quotations', labelKey: 'nav.quotations', section: 'sales', icon: FileSignature, module: 'quotation', keywords: ['quotation', 'sq', 'penawaran harga'] }),
+  r({ path: '/sales-orders', labelKey: 'nav.salesOrders', shortLabel: 'SO', section: 'sales', icon: ClipboardList, module: 'sales_order', keywords: ['so', 'sales order', 'pesanan penjualan', 'pesanan'] }),
+  r({ path: '/delivery-orders', labelKey: 'nav.deliveryOrders', shortLabel: 'DO', section: 'sales', icon: Truck, module: 'delivery_order', keywords: ['do', 'delivery order', 'pengiriman'] }),
+  r({ path: '/sales', labelKey: 'nav.salesInvoices', section: 'sales', icon: Receipt, module: 'sales_invoice', keywords: ['faktur penjualan', 'invoice penjualan', 'sales invoice', 'tagihan pelanggan', 'tagihan customer', 'piutang'] }),
+  r({ path: '/sales-returns', labelKey: 'nav.salesReturns', section: 'sales', icon: Undo2, module: 'sales_return', keywords: ['retur', 'sales return', 'pengembalian'] }),
+  r({ path: '/customer-deposits', labelKey: 'nav.customerDeposits', section: 'sales', icon: Wallet, module: 'customer_deposit', keywords: ['dp', 'deposit pelanggan', 'uang muka pelanggan', 'down payment', 'customer deposit'] }),
 
   // Pembelian
-  r({ path: '/purchase-orders', label: 'Pesanan Pembelian', shortLabel: 'PO', section: 'purchasing', icon: ClipboardList, module: 'purchase_order', keywords: ['po', 'purchase order'] }),
-  r({ path: '/goods-receipts', label: 'Penerimaan Barang', shortLabel: 'STT', section: 'purchasing', icon: PackageCheck, module: 'goods_receipt', keywords: ['bpb', 'stt', 'goods receipt', 'terima barang'] }),
-  r({ path: '/purchase', label: 'Faktur Pembelian', section: 'purchasing', icon: ReceiptText, module: 'purchase_invoice', keywords: ['invoice pembelian', 'purchase invoice', 'tagihan vendor', 'hutang'] }),
-  r({ path: '/vendor-deposits', label: 'Uang Muka Vendor', section: 'purchasing', icon: Wallet2, module: 'vendor_deposit', keywords: ['dp vendor', 'deposit vendor', 'vendor deposit'] }),
+  r({ path: '/purchase-orders', labelKey: 'nav.purchaseOrders', shortLabel: 'PO', section: 'purchasing', icon: ClipboardList, module: 'purchase_order', keywords: ['po', 'purchase order', 'pesanan pembelian'] }),
+  r({ path: '/goods-receipts', labelKey: 'nav.goodsReceipts', shortLabel: 'STT', section: 'purchasing', icon: PackageCheck, module: 'goods_receipt', keywords: ['bpb', 'stt', 'goods receipt', 'terima barang'] }),
+  r({ path: '/purchase', labelKey: 'nav.purchaseInvoices', section: 'purchasing', icon: ReceiptText, module: 'purchase_invoice', keywords: ['faktur pembelian', 'invoice pembelian', 'purchase invoice', 'tagihan vendor', 'tagihan supplier', 'hutang'] }),
+  r({ path: '/vendor-deposits', labelKey: 'nav.supplierDeposits', section: 'purchasing', icon: Wallet2, module: 'vendor_deposit', keywords: ['dp vendor', 'deposit vendor', 'uang muka vendor', 'uang muka pemasok', 'vendor deposit', 'supplier deposit'] }),
 
   // Kas & Bank
-  r({ path: '/payments', label: 'Transaksi Kas & Bank', section: 'cash', icon: CreditCard, module: 'payment', keywords: ['pembayaran', 'payment', 'kas', 'bank', 'penerimaan', 'pengeluaran'] }),
-  r({ path: '/cash-book-drafts', label: 'Draft Buku Kas', section: 'cash', icon: NotebookPen, module: 'journal', keywords: ['buku kas', 'nota', 'kas harian', 'petty cash', 'kas kecil', 'struk', 'catatan kas', 'draft kas', 'kasbon', 'dkb', 'foto nota', 'aira'] }),
-  r({ path: '/cash-book-drafts/:id', label: 'Tinjau Draft Buku Kas', section: 'cash', icon: NotebookPen, module: 'journal', parent: '/cash-book-drafts', nav: false, keywords: ['tinjau draft kas', 'posting buku kas'] }),
-  r({ path: '/reconciliation', label: 'Rekonsiliasi Bank', section: 'cash', icon: Scale, module: 'reconciliation', keywords: ['rekonsiliasi', 'reconciliation', 'rekening koran'] }),
-  r({ path: '/recurring', label: 'Transaksi Berulang', section: 'cash', icon: Repeat, module: 'recurring', keywords: ['recurring', 'berulang', 'rutin'] }),
-  r({ path: '/project-guarantees', label: 'Uang Jaminan Proyek', section: 'cash', icon: Landmark, module: 'project_guarantee', keywords: ['jaminan', 'guarantee', 'retensi'] }),
+  r({ path: '/payments', labelKey: 'nav.payments', section: 'cash', icon: CreditCard, module: 'payment', keywords: ['pembayaran', 'payment', 'kas', 'bank', 'penerimaan', 'pengeluaran'] }),
+  r({ path: '/cash-book-drafts', labelKey: 'nav.cashBookDrafts', section: 'cash', icon: NotebookPen, module: 'journal', keywords: ['buku kas', 'nota', 'kas harian', 'petty cash', 'kas kecil', 'struk', 'catatan kas', 'draft kas', 'kasbon', 'dkb', 'foto nota', 'aira'] }),
+  r({ path: '/cash-book-drafts/:id', labelKey: 'nav.cashBookDraftReview', section: 'cash', icon: NotebookPen, module: 'journal', parent: '/cash-book-drafts', nav: false, keywords: ['tinjau draft kas', 'posting buku kas'] }),
+  r({ path: '/reconciliation', labelKey: 'nav.reconciliation', section: 'cash', icon: Scale, module: 'reconciliation', keywords: ['rekonsiliasi', 'reconciliation', 'rekening koran'] }),
+  r({ path: '/recurring', labelKey: 'nav.recurring', section: 'cash', icon: Repeat, module: 'recurring', keywords: ['recurring', 'berulang', 'rutin'] }),
+  r({ path: '/project-guarantees', labelKey: 'nav.projectGuarantees', section: 'cash', icon: Landmark, module: 'project_guarantee', keywords: ['jaminan', 'guarantee', 'retensi'] }),
 
   // Persediaan & Produksi
-  r({ path: '/inventory', label: 'Stok & Produksi', section: 'inventory', icon: Warehouse, module: 'inventory', keywords: ['stok', 'inventory', 'persediaan', 'produksi', 'barang', 'gudang'] }),
-  r({ path: '/warehouse-stock', label: 'Stok per Gudang', section: 'inventory', icon: LayoutDashboard, module: 'inventory', keywords: ['dashboard gudang', 'stok gudang', 'warehouse stock'] }),
-  r({ path: '/stock-opname', label: 'Stok Opname', section: 'inventory', icon: ClipboardCheck, module: 'stock_opname', keywords: ['opname', 'hitung fisik', 'stock opname'] }),
-  r({ path: '/stock-transfers', label: 'Transfer Stok', section: 'inventory', icon: ArrowLeftRight, module: 'stock_transfer', keywords: ['mutasi', 'pindah gudang', 'stock transfer'] }),
-  r({ path: '/warehouses', label: 'Daftar Gudang', section: 'inventory', icon: Building2, module: 'warehouse', keywords: ['gudang', 'warehouse', 'lokasi'] }),
+  r({ path: '/inventory', labelKey: 'nav.inventory', section: 'inventory', icon: Warehouse, module: 'inventory', keywords: ['stok', 'inventory', 'persediaan', 'produksi', 'barang', 'gudang'] }),
+  r({ path: '/warehouse-stock', labelKey: 'nav.warehouseStock', section: 'inventory', icon: LayoutDashboard, module: 'inventory', keywords: ['dashboard gudang', 'stok gudang', 'warehouse stock'] }),
+  r({ path: '/stock-opname', labelKey: 'nav.stockOpname', section: 'inventory', icon: ClipboardCheck, module: 'stock_opname', keywords: ['opname', 'hitung fisik', 'stock opname'] }),
+  r({ path: '/stock-transfers', labelKey: 'nav.stockTransfers', section: 'inventory', icon: ArrowLeftRight, module: 'stock_transfer', keywords: ['mutasi', 'pindah gudang', 'stock transfer'] }),
+  r({ path: '/warehouses', labelKey: 'nav.warehouses', section: 'inventory', icon: Building2, module: 'warehouse', keywords: ['gudang', 'warehouse', 'lokasi'] }),
 
   // Akuntansi
-  r({ path: '/coa', label: 'Bagan Akun', section: 'accounting', icon: Network, module: 'coa', keywords: ['coa', 'chart of accounts', 'akun', 'perkiraan'] }),
-  r({ path: '/gl', label: 'Jurnal Umum', section: 'accounting', icon: BookOpen, module: 'journal', keywords: ['buku besar', 'general ledger', 'gl', 'jurnal', 'journal'] }),
-  r({ path: '/fixed-assets', label: 'Aset Tetap', section: 'accounting', icon: Building, module: 'fixed_assets', keywords: ['fixed asset', 'penyusutan', 'depresiasi'] }),
-  r({ path: '/approvals', label: 'Persetujuan', section: 'accounting', icon: ShieldCheck, module: 'approvals', keywords: ['approval', 'otorisasi', 'setuju'] }),
+  r({ path: '/coa', labelKey: 'nav.coa', section: 'accounting', icon: Network, module: 'coa', keywords: ['coa', 'chart of accounts', 'akun', 'perkiraan'] }),
+  r({ path: '/gl', labelKey: 'nav.generalJournal', section: 'accounting', icon: BookOpen, module: 'journal', keywords: ['buku besar', 'general ledger', 'gl', 'jurnal', 'journal'] }),
+  r({ path: '/fixed-assets', labelKey: 'nav.fixedAssets', section: 'accounting', icon: Building, module: 'fixed_assets', keywords: ['fixed asset', 'penyusutan', 'depresiasi'] }),
+  r({ path: '/approvals', labelKey: 'nav.approvals', section: 'accounting', icon: ShieldCheck, module: 'approvals', keywords: ['approval', 'otorisasi', 'setuju'] }),
 
   // Aset & Pemeliharaan (GA/EAM)
-  r({ path: '/ga', label: 'Ringkasan', section: 'assets', icon: Gauge, module: 'ga_assets', keywords: ['dasbor aset', 'dashboard aset', 'ringkasan aset', 'ringkasan pemeliharaan', 'eam', 'ga', 'overview'] }),
-  r({ path: '/ga/assets', label: 'Daftar Aset', section: 'assets', icon: Boxes, module: 'ga_assets', keywords: ['aset', 'asset', 'ga', 'eam'] }),
-  r({ path: '/ga/vehicle', label: 'Kendaraan', section: 'assets', icon: Car, module: 'ga_vehicle', keywords: ['armada', 'vehicle', 'mobil', 'truk'] }),
-  r({ path: '/ga/vehicle/report', label: 'Laporan Armada', section: 'assets', icon: BarChart3, module: 'ga_vehicle', parent: '/ga/vehicle', keywords: ['report armada', 'fleet report', 'kendaraan'] }),
-  r({ path: '/ga/building', label: 'Gedung & Sewa', section: 'assets', icon: Building2, module: 'ga_building', keywords: ['gedung', 'sewa', 'building', 'properti'] }),
-  r({ path: '/ga/equipment', label: 'Peralatan & Kalibrasi', section: 'assets', icon: ScanLine, module: 'ga_equipment', keywords: ['equipment', 'kalibrasi', 'alat ukur'] }),
-  r({ path: '/ga/maintenance', label: 'Pemeliharaan', shortLabel: 'WO', section: 'assets', icon: Wrench, module: 'ga_maintenance', keywords: ['maintenance', 'wo', 'work order', 'perintah kerja', 'perbaikan'] }),
-  r({ path: '/ga/material-requests', label: 'Permintaan Barang', shortLabel: 'MR', section: 'assets', icon: PackageSearch, module: 'ga_material_request', keywords: ['mr', 'material request', 'permintaan'] }),
-  r({ path: '/ga/inventory', label: 'Inventaris Kantor', section: 'assets', icon: ClipboardList, module: 'ga_inventory', keywords: ['inventaris', 'inventory ga', 'atk'] }),
-  r({ path: '/ga/documents', label: 'Dokumen & Sertifikat', section: 'assets', icon: FileText, module: 'ga_documents', keywords: ['dokumen', 'sertifikat', 'izin', 'legalitas'] }),
-  r({ path: '/ga/master', label: 'Data Induk Aset', section: 'assets', icon: FolderCog, module: 'ga_master', keywords: ['master data ga', 'kategori aset', 'lokasi'] }),
+  r({ path: '/ga', labelKey: 'nav.gaOverview', section: 'assets', icon: Gauge, module: 'ga_assets', keywords: ['dasbor aset', 'dashboard aset', 'ringkasan aset', 'ringkasan pemeliharaan', 'eam', 'ga', 'overview'] }),
+  r({ path: '/ga/assets', labelKey: 'nav.gaAssets', section: 'assets', icon: Boxes, module: 'ga_assets', keywords: ['aset', 'asset', 'ga', 'eam'] }),
+  r({ path: '/ga/vehicle', labelKey: 'nav.gaVehicles', section: 'assets', icon: Car, module: 'ga_vehicle', keywords: ['armada', 'vehicle', 'mobil', 'truk'] }),
+  r({ path: '/ga/vehicle/report', labelKey: 'nav.gaFleetReport', section: 'assets', icon: BarChart3, module: 'ga_vehicle', parent: '/ga/vehicle', keywords: ['report armada', 'fleet report', 'kendaraan'] }),
+  r({ path: '/ga/building', labelKey: 'nav.gaBuildings', section: 'assets', icon: Building2, module: 'ga_building', keywords: ['gedung', 'sewa', 'building', 'properti'] }),
+  r({ path: '/ga/equipment', labelKey: 'nav.gaEquipment', section: 'assets', icon: ScanLine, module: 'ga_equipment', keywords: ['equipment', 'kalibrasi', 'alat ukur'] }),
+  r({ path: '/ga/maintenance', labelKey: 'nav.gaMaintenance', shortLabel: 'WO', section: 'assets', icon: Wrench, module: 'ga_maintenance', keywords: ['maintenance', 'wo', 'work order', 'perintah kerja', 'perbaikan'] }),
+  r({ path: '/ga/material-requests', labelKey: 'nav.gaMaterialRequests', shortLabel: 'MR', section: 'assets', icon: PackageSearch, module: 'ga_material_request', keywords: ['mr', 'material request', 'permintaan'] }),
+  r({ path: '/ga/inventory', labelKey: 'nav.gaInventory', section: 'assets', icon: ClipboardList, module: 'ga_inventory', keywords: ['inventaris', 'inventory ga', 'atk'] }),
+  r({ path: '/ga/documents', labelKey: 'nav.gaDocuments', section: 'assets', icon: FileText, module: 'ga_documents', keywords: ['dokumen', 'sertifikat', 'izin', 'legalitas'] }),
+  r({ path: '/ga/master', labelKey: 'nav.gaMaster', section: 'assets', icon: FolderCog, module: 'ga_master', keywords: ['master data ga', 'kategori aset', 'lokasi'] }),
 
   // Laporan
-  r({ path: '/reports', label: 'Semua Laporan', section: 'reports', icon: FileBarChart, module: 'reports', keywords: ['laporan', 'report', 'laporan keuangan'] }),
+  r({ path: '/reports', labelKey: 'nav.reports', section: 'reports', icon: FileBarChart, module: 'reports', keywords: ['laporan', 'report', 'laporan keuangan'] }),
   ...(
     [
-      ['/reports/daily', 'Laporan Harian', ['harian', 'daily']],
-      ['/reports/trial-balance', 'Neraca Saldo', ['trial balance', 'saldo']],
-      ['/reports/profit-loss', 'Laba Rugi', ['profit loss', 'p&l', 'pl', 'rugi laba']],
-      ['/reports/balance-sheet', 'Neraca', ['balance sheet', 'posisi keuangan']],
-      ['/reports/cash-flow', 'Arus Kas', ['cash flow']],
-      ['/reports/aging-ar', 'Umur Piutang', ['aging ar', 'aging piutang', 'piutang']],
-      ['/reports/aging-ap', 'Umur Utang', ['aging ap', 'aging hutang', 'hutang', 'utang']],
-      ['/reports/tax', 'Laporan Pajak', ['pajak', 'ppn', 'pph', 'tax']],
-      ['/reports/ledger-book', 'Buku Besar', ['ledger', 'buku besar', 'mutasi akun']],
-      ['/reports/hpp', 'HPP per Produk', ['hpp', 'harga pokok', 'cogs']],
-      ['/reports/profitability-per-sku', 'Profitabilitas per SKU', ['profitability', 'margin', 'sku']],
-      ['/reports/production-cost-summary', 'Modal Produksi per Periode', ['biaya produksi', 'rendemen', 'production cost']],
-      ['/reports/oee', 'Laporan OEE', ['oee', 'efektivitas mesin', 'downtime']],
-      ['/reports/payable-schedule', 'Jadwal Utang', ['jadwal hutang', 'payable']],
-      ['/reports/receivable-schedule', 'Jadwal Piutang', ['receivable', 'penagihan']],
-      ['/reports/po-outstanding', 'PO Outstanding', ['po outstanding', 'sisa po', 'pesanan pembelian', 'po terlambat']],
-      ['/reports/supplier-performance', 'Kinerja Pemasok', ['kinerja pemasok', 'supplier performance', 'vendor', 'lead time', 'fill rate']],
+      ['/reports/daily', 'nav.reportDaily', ['harian', 'daily']],
+      ['/reports/trial-balance', 'nav.reportTrialBalance', ['trial balance', 'saldo']],
+      ['/reports/profit-loss', 'nav.reportProfitLoss', ['profit loss', 'p&l', 'pl', 'rugi laba']],
+      ['/reports/balance-sheet', 'nav.reportBalanceSheet', ['balance sheet', 'posisi keuangan']],
+      ['/reports/cash-flow', 'nav.reportCashFlow', ['cash flow']],
+      ['/reports/aging-ar', 'nav.reportAgingAr', ['aging ar', 'aging piutang', 'piutang']],
+      ['/reports/aging-ap', 'nav.reportAgingAp', ['aging ap', 'aging hutang', 'hutang', 'utang']],
+      ['/reports/tax', 'nav.reportTax', ['pajak', 'ppn', 'pph', 'tax']],
+      ['/reports/ledger-book', 'nav.reportLedgerBook', ['ledger', 'buku besar', 'mutasi akun']],
+      ['/reports/hpp', 'nav.reportCogs', ['hpp', 'harga pokok', 'cogs']],
+      ['/reports/profitability-per-sku', 'nav.reportProfitabilitySku', ['profitability', 'margin', 'sku']],
+      ['/reports/production-cost-summary', 'nav.reportProductionCost', ['biaya produksi', 'rendemen', 'production cost']],
+      ['/reports/oee', 'nav.reportOee', ['oee', 'efektivitas mesin', 'downtime']],
+      ['/reports/payable-schedule', 'nav.reportPayableSchedule', ['jadwal hutang', 'payable']],
+      ['/reports/receivable-schedule', 'nav.reportReceivableSchedule', ['receivable', 'penagihan']],
+      ['/reports/po-outstanding', 'nav.reportPoOutstanding', ['po outstanding', 'sisa po', 'pesanan pembelian', 'po terlambat']],
+      ['/reports/supplier-performance', 'nav.reportSupplierPerformance', ['kinerja pemasok', 'supplier performance', 'vendor', 'pemasok', 'lead time', 'fill rate']],
     ] as const
-  ).map(([path, label, keywords]) =>
-    r({ path, label, section: 'reports', icon: FileBarChart, module: 'reports', parent: '/reports', nav: false, keywords: [...keywords] }),
+  ).map(([path, labelKey, keywords]) =>
+    r({ path, labelKey, section: 'reports', icon: FileBarChart, module: 'reports', parent: '/reports', nav: false, keywords: [...keywords] }),
   ),
 
   // Data Induk
-  r({ path: '/parties', label: 'Pelanggan & Vendor', section: 'master', icon: Users, module: 'parties', keywords: ['mitra', 'customer', 'supplier', 'pemasok', 'kontak', 'party'] }),
+  r({ path: '/parties', labelKey: 'nav.parties', section: 'master', icon: Users, module: 'parties', keywords: ['mitra', 'customer', 'supplier', 'pelanggan', 'vendor', 'pemasok', 'kontak', 'party'] }),
 
   // Sistem
-  r({ path: '/settings', label: 'Pengaturan', section: 'system', icon: Settings, module: 'settings', keywords: ['settings', 'konfigurasi', 'perusahaan'] }),
-  r({ path: '/users', label: 'Manajemen Pengguna', section: 'system', icon: Shield, module: 'users', keywords: ['user', 'pengguna', 'akun', 'peran', 'role'] }),
-  r({ path: '/audit', label: 'Jejak Audit', section: 'system', icon: ScrollText, module: 'audit', keywords: ['audit trail', 'log', 'riwayat'] }),
-  r({ path: '/health-check', label: 'Pemeriksaan Sistem', section: 'system', icon: HeartPulse, module: 'audit', keywords: ['health check', 'kesehatan data', 'integritas'] }),
+  r({ path: '/settings', labelKey: 'nav.settings', section: 'system', icon: Settings, module: 'settings', keywords: ['settings', 'konfigurasi', 'perusahaan'] }),
+  r({ path: '/users', labelKey: 'nav.users', section: 'system', icon: Shield, module: 'users', keywords: ['user', 'pengguna', 'akun', 'peran', 'role'] }),
+  r({ path: '/audit', labelKey: 'nav.audit', section: 'system', icon: ScrollText, module: 'audit', keywords: ['audit trail', 'log', 'riwayat'] }),
+  r({ path: '/health-check', labelKey: 'nav.healthCheck', section: 'system', icon: HeartPulse, module: 'audit', keywords: ['health check', 'kesehatan data', 'integritas'] }),
 ];
 
 /** Fallback when a path is unknown (App.tsx redirects those to "/"). */
@@ -299,8 +334,8 @@ export function breadcrumbsFor(pathname: string): Crumb[] {
   if (!entry) return [];
   const chain = lineage(entry);
   const crumbs: Crumb[] = [];
-  const section = getSection(chain[0].section);
-  if (section) crumbs.push({ label: section.label });
+  const sectionMeta = getSection(chain[0].section);
+  if (sectionMeta) crumbs.push({ label: sectionMeta.label });
   chain.forEach((e, i) => {
     const last = i === chain.length - 1;
     crumbs.push(last ? { label: e.label } : { label: e.label, href: e.path });
@@ -313,7 +348,7 @@ export function routeLabel(pathname: string): string {
   return matchRoute(pathname)?.label ?? APP_TITLE;
 }
 
-/** Browser tab title: "Pesanan Penjualan · PT Contoh" (company name optional). */
+/** Browser tab title: "Sales Order · PT Contoh" (company name optional). */
 export function documentTitleFor(pathname: string, companyName?: string | null): string {
   const label = matchRoute(pathname)?.label;
   const org = companyName?.trim() || APP_TITLE;
@@ -332,7 +367,12 @@ export function navSections(canView: CanView): NavSection[] {
   const visible = ROUTES.filter((e) => isNavVisible(e) && allowed(e, canView));
   const main: NavSection = { id: 'main', items: visible.filter((e) => e.section === null) };
   const sections: NavSection[] = NAV_SECTIONS.map((s) => ({
-    ...s,
+    id: s.id,
+    icon: s.icon,
+    // Getter, not a copy: a memoized model keeps following the UI language.
+    get label() {
+      return s.label;
+    },
     items: visible.filter((e) => e.section === s.id),
   }));
   return [main, ...sections].filter((s) => s.items.length > 0);
@@ -343,7 +383,7 @@ export function accessibleRoutes(canView: CanView): RouteEntry[] {
   return ROUTES.filter((e) => allowed(e, canView));
 }
 
-const fold = (s: string) => s.toLocaleLowerCase('id-ID').normalize('NFD').replace(/[̀-ͯ]/g, '');
+const fold = (s: string) => s.toLocaleLowerCase(LOCALE).normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
  * Page search for the command palette. Matches label, short label, section
@@ -357,8 +397,9 @@ export function searchRoutes(query: string, canView: CanView, limit = 8): RouteE
   for (const entry of pool) {
     const label = fold(entry.label);
     const short = fold(entry.shortLabel ?? '');
-    const section = fold(getSection(entry.section)?.label ?? '');
-    const keys = (entry.keywords ?? []).map(fold);
+    const sectionLabel = fold(getSection(entry.section)?.label ?? '');
+    // Keywords plus the label in every UI language, so "sales invoice" finds the page in either language.
+    const keys = [...(entry.keywords ?? []), navLabel(entry.labelKey, 'id'), navLabel(entry.labelKey, 'en')].map(fold);
     let score = 0;
     if (label === q || short === q) score = 100;
     else if (label.startsWith(q)) score = 80;
@@ -366,11 +407,11 @@ export function searchRoutes(query: string, canView: CanView, limit = 8): RouteE
     else if (keys.some((k) => k === q)) score = 55;
     else if (label.includes(q)) score = 40;
     else if (keys.some((k) => k.includes(q))) score = 30;
-    else if (section.includes(q)) score = 10;
+    else if (sectionLabel.includes(q)) score = 10;
     if (score > 0) scored.push({ entry, score });
   }
   return scored
-    .sort((a, b) => b.score - a.score || a.entry.label.localeCompare(b.entry.label, 'id-ID'))
+    .sort((a, b) => b.score - a.score || a.entry.label.localeCompare(b.entry.label, LOCALE))
     .slice(0, limit)
     .map((s) => s.entry);
 }

@@ -44,8 +44,8 @@ describe('Sidebar', () => {
     const nav = screen.getByRole('navigation', { name: 'Navigasi utama' });
     const current = within(nav).getAllByRole('link', { current: 'page' });
     expect(current).toHaveLength(1);
-    expect(current[0]).toHaveAccessibleName(/Pesanan Penjualan/);
-    expect(within(nav).getByRole('link', { name: 'Faktur Penjualan' })).not.toHaveAttribute('aria-current');
+    expect(current[0]).toHaveAccessibleName(/Sales Order/);
+    expect(within(nav).getByRole('link', { name: 'Invoice Penjualan' })).not.toHaveAttribute('aria-current');
   });
 
   it('highlights the parent item for nav-hidden report pages and opens its section', () => {
@@ -64,9 +64,9 @@ describe('Sidebar', () => {
     expect(sales).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(sales);
     expect(sales).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: 'Faktur Penjualan' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Invoice Penjualan' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dasbor' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Pesanan Penjualan/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Sales Order/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sistem' })).not.toBeInTheDocument();
   });
 
