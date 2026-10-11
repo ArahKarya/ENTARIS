@@ -197,6 +197,7 @@ npm run lint:prune       # Drop stale baseline entries after fixing violations (
 npm run test             # Run Vitest
 npm run prisma:migrate   # Create new migration
 npm run seed             # Seed database
+npm run db:loose         # Jalankan migrasi .sql lepas yang belum tercatat (_loose_sql_migrations); juga otomatis saat container boot
 npm run ai-tools:inventory  # Inventori STATIS semua route API (+guard) -> scripts/ai-tools/out/route-inventory.json
 npm run ai-tools:docs       # Bangkitkan docs/ai-tools/ dari registry (idempoten; commit hasilnya)
 npm run ai-tools:check      # Drift guard: docs mutakhir + test route<->registry (juga dijalankan CI setelah test)
