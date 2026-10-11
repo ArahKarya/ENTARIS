@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Field } from '@/components/shared';
 import { DOCUMENTS_ENDPOINT, errorMessage, formatFileSize, type GaDocumentRow } from './ga-document-model';
+import { useTranslation } from 'react-i18next';
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
@@ -40,6 +41,7 @@ function UploadForm({
   onClose: () => void;
   onUploaded: () => void;
 }) {
+  const { t } = useTranslation('eam');
   const [file, setFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -49,29 +51,29 @@ function UploadForm({
     setError(null);
     if (f && f.type !== 'application/pdf') {
       setFile(null);
-      return setError('File harus PDF.');
+      return setError(t('gaDocuments.upload.pdfOnly'));
     }
     if (f && f.size > MAX_PDF_BYTES) {
       setFile(null);
-      return setError('Ukuran file maksimal 20 MB.');
+      return setError(t('gaDocuments.upload.tooLarge'));
     }
     setFile(f);
   };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!file) return setError('Pilih file PDF terlebih dahulu.');
+    if (!file) return setError(t('gaDocuments.upload.required'));
     setSaving(true);
     try {
       const fd = new FormData();
       fd.append('file', file);
       if (notes) fd.append('notes', notes);
       await api.post(`${DOCUMENTS_ENDPOINT}/${doc.id}/versions`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Versi dokumen diunggah.');
+      toast.success(t('gaDocuments.upload.uploaded'));
       onUploaded();
       onClose();
     } catch (err) {
-      toast.error(errorMessage(err, 'Gagal mengunggah versi.'));
+      toast.error(errorMessage(err, t('gaDocuments.upload.failed')));
     } finally {
       setSaving(false);
     }
@@ -80,12 +82,12 @@ function UploadForm({
   return (
     <form onSubmit={submit} noValidate className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>Unggah Versi Baru</DialogTitle>
+        <DialogTitle>{t('gaDocuments.upload.title')}</DialogTitle>
         <DialogDescription>
           <span className="num font-mono">{doc.code}</span> · {doc.title}
         </DialogDescription>
       </DialogHeader>
-      <Field label="File PDF" required error={error} hint={file ? `${file.name} · ${formatFileSize(file.size)}` : 'PDF, maks 20 MB.'}>
+      <Field label={t('gaDocuments.upload.file')} required error={error} hint={file ? `${file.name} · ${formatFileSize(file.size)}` : t('gaDocuments.upload.fileHint')}>
         <Input
           type="file"
           accept="application/pdf"
@@ -93,16 +95,16 @@ function UploadForm({
           className="h-auto py-1.5 file:mr-3 file:rounded-sm file:border-0 file:bg-primary-subtle file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-primary-subtle-foreground"
         />
       </Field>
-      <Field label="Catatan versi">
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="mis. Perpanjangan 2027" autoComplete="off" />
+      <Field label={t('gaDocuments.upload.notes')}>
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('gaDocuments.upload.notesPlaceholder')} autoComplete="off" />
       </Field>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
-          Batal
+          {t('shared.cancel')}
         </Button>
         <Button type="submit" loading={saving}>
           <FileUp aria-hidden />
-          Unggah
+          {t('gaDocuments.upload.upload')}
         </Button>
       </DialogFooter>
     </form>

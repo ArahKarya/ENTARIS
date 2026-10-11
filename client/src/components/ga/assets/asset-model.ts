@@ -4,6 +4,20 @@
  */
 import { parseDate } from '@/lib/format';
 import type { StatusTone } from '@/lib/status';
+import { tEam } from '../eam-i18n';
+
+/** `{ value, label }` options whose label is translated on every read (`eam:<prefix>.<value>`). */
+function translatedOptions<V extends string>(values: readonly V[], prefix: string): ReadonlyArray<{ value: V; readonly label: string }> {
+  return values.map((value) => ({ value, get label() { return tEam(`${prefix}.${value}`); } }));
+}
+
+/** Like translatedOptions, with a tone per value. */
+function tonedOptions<V extends string>(
+  tones: ReadonlyArray<readonly [V, StatusTone]>,
+  prefix: string,
+): ReadonlyArray<{ value: V; readonly label: string; tone: StatusTone }> {
+  return tones.map(([value, tone]) => ({ value, tone, get label() { return tEam(`${prefix}.${value}`); } }));
+}
 
 // Asset register
 
@@ -12,12 +26,10 @@ export type AssetCondition = 'GOOD' | 'FAIR' | 'POOR' | 'BROKEN';
 
 export const ASSET_STATUSES: readonly AssetStatus[] = ['ACTIVE', 'IN_REPAIR', 'RETIRED', 'LOST'];
 
-export const CONDITION_OPTIONS: ReadonlyArray<{ value: AssetCondition; label: string; tone: StatusTone }> = [
-  { value: 'GOOD', label: 'Baik', tone: 'success' },
-  { value: 'FAIR', label: 'Cukup', tone: 'info' },
-  { value: 'POOR', label: 'Kurang', tone: 'warning' },
-  { value: 'BROKEN', label: 'Rusak', tone: 'danger' },
-];
+export const CONDITION_OPTIONS: ReadonlyArray<{ value: AssetCondition; readonly label: string; tone: StatusTone }> = tonedOptions<AssetCondition>(
+  [['GOOD', 'success'], ['FAIR', 'info'], ['POOR', 'warning'], ['BROKEN', 'danger']],
+  'assets.condition',
+);
 
 export function conditionMeta(condition: string | null | undefined): { label: string; tone: StatusTone } {
   const found = CONDITION_OPTIONS.find((o) => o.value === condition);
@@ -115,7 +127,7 @@ export interface DueInfo {
   state: DueState;
   /** Days until the date (negative when past). */
   days: number;
-  /** Indonesian text shown next to the icon. */
+  /** Text shown next to the icon (current UI language). */
   label: string;
 }
 
@@ -124,9 +136,9 @@ export const RENTAL_SOON_DAYS = 60;
 export const CALIBRATION_SOON_DAYS = 30;
 
 function dueInfo(days: number, soonDays: number, words: { overdue: string; today: string; soon: string; ok: string }): DueInfo {
-  if (days < 0) return { state: 'overdue', days, label: `${words.overdue} ${-days} hari` };
+  if (days < 0) return { state: 'overdue', days, label: tEam('assets.due.overdueDays', { label: words.overdue, count: -days }) };
   if (days === 0) return { state: 'dueSoon', days, label: words.today };
-  if (days <= soonDays) return { state: 'dueSoon', days, label: `${words.soon} ${days} hari lagi` };
+  if (days <= soonDays) return { state: 'dueSoon', days, label: tEam('assets.due.soonDays', { label: words.soon, count: days }) };
   return { state: 'ok', days, label: words.ok };
 }
 
@@ -142,10 +154,10 @@ export function rentalExpiry(
   const days = daysUntil(rental.tanggalAkhir, today);
   if (days === null) return null;
   return dueInfo(days, RENTAL_SOON_DAYS, {
-    overdue: 'Lewat masa sewa',
-    today: 'Berakhir hari ini',
-    soon: 'Berakhir',
-    ok: 'Berlaku',
+    overdue: tEam('assets.due.rental.overdue'),
+    today: tEam('assets.due.rental.today'),
+    soon: tEam('assets.due.rental.soon'),
+    ok: tEam('assets.due.rental.ok'),
   });
 }
 
@@ -154,10 +166,10 @@ export function calibrationDue(nextDue: string | null | undefined, today: Date =
   const days = daysUntil(nextDue, today);
   if (days === null) return null;
   return dueInfo(days, CALIBRATION_SOON_DAYS, {
-    overdue: 'Lewat jatuh tempo',
-    today: 'Jatuh tempo hari ini',
-    soon: 'Jatuh tempo',
-    ok: 'Masih berlaku',
+    overdue: tEam('assets.due.calibration.overdue'),
+    today: tEam('assets.due.calibration.today'),
+    soon: tEam('assets.due.calibration.soon'),
+    ok: tEam('assets.due.calibration.ok'),
   });
 }
 
@@ -175,54 +187,35 @@ export function nearestActiveRental<T extends { status: string; tanggalAkhir: st
 
 // Building & equipment enums
 
-export const BUILDING_TYPE_OPTIONS = [
-  { value: 'KANTOR', label: 'Kantor' },
-  { value: 'GUDANG', label: 'Gudang' },
-  { value: 'PABRIK', label: 'Pabrik' },
-  { value: 'RUMAH', label: 'Rumah' },
-  { value: 'MESS', label: 'Mess' },
-  { value: 'RUKO', label: 'Ruko' },
-  { value: 'LAINNYA', label: 'Lainnya' },
-] as const;
+export const BUILDING_TYPE_OPTIONS = translatedOptions(
+  ['KANTOR', 'GUDANG', 'PABRIK', 'RUMAH', 'MESS', 'RUKO', 'LAINNYA'] as const,
+  'assets.buildingType',
+);
 
-export const OWNERSHIP_OPTIONS = [
-  { value: 'MILIK_SENDIRI', label: 'Milik sendiri' },
-  { value: 'SEWA_MASUK', label: 'Disewa (sewa masuk)' },
-  { value: 'SEWA_KELUAR', label: 'Disewakan (sewa keluar)' },
-  { value: 'PINJAM_PAKAI', label: 'Pinjam pakai' },
-] as const;
+export const OWNERSHIP_OPTIONS = translatedOptions(
+  ['MILIK_SENDIRI', 'SEWA_MASUK', 'SEWA_KELUAR', 'PINJAM_PAKAI'] as const,
+  'assets.ownership',
+);
 
-export const CERTIFICATE_OPTIONS = [
-  { value: 'HM', label: 'HM (Hak Milik)' },
-  { value: 'HGB', label: 'HGB (Hak Guna Bangunan)' },
-  { value: 'HGU', label: 'HGU (Hak Guna Usaha)' },
-  { value: 'HP_AKTA', label: 'Hak Pakai / Akta' },
-  { value: 'GIRIK', label: 'Girik' },
-  { value: 'BELUM_SERTIFIKAT', label: 'Belum bersertifikat' },
-] as const;
+export const CERTIFICATE_OPTIONS = translatedOptions(
+  ['HM', 'HGB', 'HGU', 'HP_AKTA', 'GIRIK', 'BELUM_SERTIFIKAT'] as const,
+  'assets.certificate',
+);
 
-export const RENTAL_DIRECTION_OPTIONS = [
-  { value: 'SEWA_MASUK', label: 'Sewa masuk', hint: 'Kita menyewa dari pemilik' },
-  { value: 'SEWA_KELUAR', label: 'Sewa keluar', hint: 'Kita menyewakan ke penyewa' },
-] as const;
+export const RENTAL_DIRECTION_OPTIONS = (['SEWA_MASUK', 'SEWA_KELUAR'] as const).map((value) => ({
+  value,
+  get label() { return tEam(`assets.rentalDirection.${value}.label`); },
+  get hint() { return tEam(`assets.rentalDirection.${value}.hint`); },
+}));
 
-export const RENTAL_PERIOD_OPTIONS = [
-  { value: 'BULANAN', label: 'Bulanan' },
-  { value: 'TAHUNAN', label: 'Tahunan' },
-] as const;
+export const RENTAL_PERIOD_OPTIONS = translatedOptions(['BULANAN', 'TAHUNAN'] as const, 'assets.rentalPeriod');
 
 export const WEIGHING_UNIT_OPTIONS = ['KG', 'GRAM', 'TON', 'LBS'] as const;
 
-export const CALIBRATION_MODE_OPTIONS = [
-  { value: 'ON_SITE', label: 'Di lokasi' },
-  { value: 'SHIPPED', label: 'Dikirim ke lembaga' },
-] as const;
+export const CALIBRATION_MODE_OPTIONS = translatedOptions(['ON_SITE', 'SHIPPED'] as const, 'assets.calibrationMode');
 
-export const CALIBRATION_RESULT_OPTIONS: ReadonlyArray<{ value: 'PASS' | 'FAIL' | 'CONDITIONAL'; label: string; tone: StatusTone }> = [
-  { value: 'PASS', label: 'Lulus', tone: 'success' },
-  { value: 'CONDITIONAL', label: 'Lulus bersyarat', tone: 'warning' },
-  { value: 'FAIL', label: 'Gagal', tone: 'danger' },
-];
+export const CALIBRATION_RESULT_OPTIONS: ReadonlyArray<{ value: 'PASS' | 'FAIL' | 'CONDITIONAL'; readonly label: string; tone: StatusTone }> =
+  tonedOptions<'PASS' | 'FAIL' | 'CONDITIONAL'>([['PASS', 'success'], ['CONDITIONAL', 'warning'], ['FAIL', 'danger']], 'assets.calibrationResult');
 
 export function optionLabel(options: ReadonlyArray<{ value: string; label: string }>, value: string | null | undefined): string {
   if (!value) return '—';

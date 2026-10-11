@@ -30,6 +30,7 @@ import { DueDate } from '@/components/ProjectGuaranteeDueDate';
 import { PriorityBadge } from './wo-badges';
 import { AssignModal, CompleteModal } from './wo-forms';
 import { WO_FILTER_KEYS, useGaAssetOptions } from './queries';
+import { useTranslation } from 'react-i18next';
 import {
   PRIORITY_LABELS,
   PRIORITY_ORDER,
@@ -46,16 +47,7 @@ import {
 
 const ENDPOINT = '/ga/maintenance/work-orders';
 
-const STATUS_FILTER = [
-  { value: WO_STATUS_ACTIVE, label: 'Aktif (belum selesai)' },
-  ...statusOptions(WO_STATUSES, 'ga_work_order'),
-];
-const PRIORITY_FILTER = PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_LABELS[p] }));
-const TYPE_FILTER = (Object.keys(TYPE_LABELS) as WoType[]).map((t) => ({ value: t, label: TYPE_LABELS[t] }));
-const DUE_FILTER = [
-  { value: 'overdue', label: 'Lewat jatuh tempo' },
-  { value: 'dueSoon', label: 'Jatuh tempo 7 hari' },
-];
+const DUE_FILTER_VALUES = ['overdue', 'dueSoon'] as const;
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-44';
 
 const withUnit = (label: string) => (
@@ -79,6 +71,16 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
   const [rowForm, setRowForm] = useState<RowForm>(null);
   const [cancelTarget, setCancelTarget] = useState<WorkOrderRow | null>(null);
   const assetsQuery = useGaAssetOptions();
+  const { t } = useTranslation('eam');
+  const filters = useMemo(
+    () => ({
+      status: [{ value: WO_STATUS_ACTIVE, label: t('workOrder.tab.statusActive') }, ...statusOptions(WO_STATUSES, 'ga_work_order')],
+      priority: PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_LABELS[p] })),
+      type: (Object.keys(TYPE_LABELS) as WoType[]).map((type) => ({ value: type, label: TYPE_LABELS[type] })),
+      due: DUE_FILTER_VALUES.map((value) => ({ value, label: t(`workOrder.tab.dueFilter.${value}`) })),
+    }),
+    [t],
+  );
 
   const listQuery = useQuery({
     queryKey: ['ga-work-orders', 'list', list.params],
@@ -99,19 +101,19 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
   const startMutation = useMutation({
     mutationFn: (wo: WorkOrderRow) => api.patch(`${ENDPOINT}/${wo.id}/start`),
     onSuccess: (_res, wo) => {
-      toast.success(`${wo.code} mulai dikerjakan.`);
+      toast.success(t('workOrder.tab.started', { code: wo.code }));
       invalidate(wo.id);
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal memulai work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.tab.startFailed'))),
   });
   const cancelMutation = useMutation({
     mutationFn: ({ wo, reason }: { wo: WorkOrderRow; reason: string }) =>
       api.patch(`${ENDPOINT}/${wo.id}/cancel`, { reason }),
     onSuccess: (_res, { wo }) => {
-      toast.success(`${wo.code} dibatalkan.`);
+      toast.success(t('workOrder.tab.cancelled', { code: wo.code }));
       invalidate(wo.id);
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal membatalkan work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.tab.cancelFailed'))),
   });
 
   const startWorkOrder = startMutation.mutate;
@@ -125,7 +127,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
     () => [
       {
         id: 'code',
-        header: 'Kode',
+        header: t('workOrder.tab.code'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => {
@@ -147,7 +149,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
       },
       {
         id: 'title',
-        header: 'Pekerjaan',
+        header: t('workOrder.tab.work'),
         meta: { hideBelow: 'sm', cellClassName: 'min-w-48 max-w-80' },
         cell: ({ row }) => {
           const wo = row.original;
@@ -163,7 +165,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
       },
       {
         id: 'priority',
-        header: 'Prioritas',
+        header: t('workOrder.tab.priority'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md' },
@@ -171,7 +173,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
       },
       {
         id: 'dueAt',
-        header: 'Jatuh Tempo',
+        header: t('workOrder.tab.dueDate'),
         enableSorting: true,
         meta: { hideBelow: 'md' },
         cell: ({ row }) =>
@@ -183,24 +185,24 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
       },
       {
         id: 'assignee',
-        header: 'Teknisi',
+        header: t('workOrder.tab.technician'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-40' },
         cell: ({ row }) =>
           row.original.assignee ? (
-            <span className="block truncate text-foreground">{row.original.assignee.fullName ?? 'Ditugaskan'}</span>
+            <span className="block truncate text-foreground">{row.original.assignee.fullName ?? t('workOrder.tab.assigned')}</span>
           ) : (
-            <span className="text-muted-foreground">Belum ada</span>
+            <span className="text-muted-foreground">{t('workOrder.tab.none')}</span>
           ),
       },
       {
         id: 'type',
-        header: 'Tipe',
+        header: t('workOrder.tab.type'),
         meta: { hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => TYPE_LABELS[row.original.type] ?? row.original.type,
       },
       {
         id: 'totalCost',
-        header: () => withUnit('Biaya'),
+        header: () => withUnit(t('workOrder.tab.cost')),
         meta: { align: 'right', hideBelow: 'lg' },
         cell: ({ row }) => {
           const cost = row.original.totalCost;
@@ -213,42 +215,42 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         enableSorting: true,
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="ga_work_order" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const wo = row.original;
           const can = woActions(wo.status);
           return (
             <RowActions
-              label={`Aksi untuk ${wo.code}`}
+              label={t('shared.actionsFor', { name: wo.code })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => onOpen(wo) },
+                { label: t('workOrder.tab.viewDetail'), icon: Eye, onSelect: () => onOpen(wo) },
                 {
-                  label: wo.status === 'ASSIGNED' ? 'Ubah teknisi' : 'Tugaskan teknisi',
+                  label: wo.status === 'ASSIGNED' ? t('workOrder.tab.changeTechnician') : t('workOrder.tab.assignTechnician'),
                   icon: UserPlus,
                   hidden: !canEdit || !can.assign,
                   onSelect: () => setRowForm({ kind: 'assign', wo }),
                 },
                 {
-                  label: 'Mulai kerjakan',
+                  label: t('workOrder.tab.start'),
                   icon: Play,
                   hidden: !canEdit || !can.start,
                   onSelect: () => startWorkOrder(wo),
                 },
                 {
-                  label: 'Selesaikan',
+                  label: t('workOrder.tab.complete'),
                   icon: CheckCircle2,
                   hidden: !canEdit || !can.complete,
                   onSelect: () => setRowForm({ kind: 'complete', wo }),
                 },
                 {
-                  label: 'Batalkan WO',
+                  label: t('workOrder.tab.cancelWo'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !canEdit || !can.cancel,
@@ -260,7 +262,7 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
         },
       },
     ],
-    [canEdit, onOpen, startWorkOrder],
+    [canEdit, onOpen, startWorkOrder, t],
   );
 
   const summary = summaryQuery.data;
@@ -269,66 +271,66 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan work order sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('workOrder.tab.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="WO Aktif"
+          label={t('workOrder.tab.kpiActive')}
           icon={ClipboardList}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.active) : '—'}
-          hint={summary ? `dari ${formatNumber(summary.count)} work order` : undefined}
+          hint={summary ? t('workOrder.tab.kpiActiveHint', { total: formatNumber(summary.count) }) : undefined}
         />
         <StatCard
-          label="Lewat Jatuh Tempo"
+          label={t('workOrder.tab.kpiOverdue')}
           icon={CalendarClock}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.overdue) : '—'}
-          hint="WO aktif melewati tanggal jatuh tempo"
+          hint={t('workOrder.tab.kpiOverdueHint')}
         />
         <StatCard
-          label="Selesai Bulan Ini"
+          label={t('workOrder.tab.kpiDone')}
           icon={CheckCircle2}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.doneThisMonth) : '—'}
-          hint="status Selesai atau Ditutup"
+          hint={t('workOrder.tab.kpiDoneHint')}
         />
         <StatCard
-          label="Total Biaya"
+          label={t('workOrder.tab.kpiCost')}
           icon={Wallet}
           loading={kpiLoading}
           value={summary ? formatRupiah(summary.totalCost, { compact: true }) : '—'}
           valueTitle={summary ? formatRupiah(summary.totalCost) : undefined}
-          hint="tenaga + vendor + part"
+          hint={t('workOrder.tab.kpiCostHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari work order"
-          searchPlaceholder="Cari kode, judul, komponen, atau aset"
-          status={{ options: STATUS_FILTER }}
-          dateRange={{ label: 'Rentang tanggal lapor' }}
+          searchLabel={t('workOrder.tab.searchLabel')}
+          searchPlaceholder={t('workOrder.tab.searchPlaceholder')}
+          status={{ options: filters.status }}
+          dateRange={{ label: t('workOrder.tab.dateRange') }}
         >
           <ComboboxFilter
-            label="Filter prioritas"
-            allLabel="Semua prioritas"
+            label={t('workOrder.tab.priorityFilter')}
+            allLabel={t('workOrder.tab.allPriorities')}
             value={list.filters.priority}
             onChange={(v) => list.setFilter('priority', v)}
-            options={PRIORITY_FILTER}
+            options={filters.priority}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter tipe"
-            allLabel="Semua tipe"
+            label={t('workOrder.tab.typeFilter')}
+            allLabel={t('workOrder.tab.allTypes')}
             value={list.filters.type}
             onChange={(v) => list.setFilter('type', v)}
-            options={TYPE_FILTER}
+            options={filters.type}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter aset"
-            allLabel="Semua aset"
-            searchPlaceholder="Cari aset…"
+            label={t('workOrder.tab.assetFilter')}
+            allLabel={t('workOrder.tab.allAssets')}
+            searchPlaceholder={t('workOrder.tab.assetSearch')}
             value={list.filters.assetId}
             onChange={(v) => list.setFilter('assetId', v)}
             options={assetFilterOptions}
@@ -336,11 +338,11 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter jatuh tempo"
-            allLabel="Semua jatuh tempo"
+            label={t('workOrder.tab.dueFilterLabel')}
+            allLabel={t('workOrder.tab.allDue')}
             value={list.filters.due}
             onChange={(v) => list.setFilter('due', v)}
-            options={DUE_FILTER}
+            options={filters.due}
             className={FILTER_CLASS}
           />
           <Button
@@ -350,14 +352,14 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
             className={cn(FILTER_CLASS, 'h-10 md:h-9')}
           >
             <UserCheck aria-hidden />
-            WO Saya
+            {t('workOrder.tab.mine')}
           </Button>
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, listQuery.data?.total)}
-          label="Daftar work order"
-          itemLabel="work order"
+          label={t('workOrder.tab.tableLabel')}
+          itemLabel={t('workOrder.tab.itemLabel')}
           columns={columns}
           data={listQuery.data?.data}
           getRowId={(row) => row.id}
@@ -370,12 +372,12 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada work order',
-            description: 'Work order perbaikan dan perawatan aset akan muncul di sini.',
+            title: t('workOrder.tab.emptyTitle'),
+            description: t('workOrder.tab.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={onCreate}>
                 <Plus aria-hidden />
-                Buat work order pertama
+                {t('workOrder.tab.createFirst')}
               </Button>
             ) : undefined,
           }}
@@ -397,10 +399,10 @@ export function WorkOrdersTab({ canEdit, onOpen, onCreate }: WorkOrdersTabProps)
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
-        title="Batalkan work order?"
-        description={cancelTarget ? `${cancelTarget.code} · ${cancelTarget.title}. WO yang dibatalkan tidak bisa dikembalikan.` : undefined}
-        confirmLabel="Batalkan WO"
-        requireReason={{ label: 'Alasan pembatalan', minLength: 1 }}
+        title={t('workOrder.tab.cancelTitle')}
+        description={cancelTarget ? t('workOrder.tab.cancelDescription', { code: cancelTarget.code, title: cancelTarget.title }) : undefined}
+        confirmLabel={t('workOrder.tab.cancelWo')}
+        requireReason={{ label: t('workOrder.tab.cancelReason'), minLength: 1 }}
         loading={cancelMutation.isPending}
         onConfirm={(reason) =>
           cancelTarget ? cancelMutation.mutateAsync({ wo: cancelTarget, reason: (reason ?? '').slice(0, 500) }) : undefined

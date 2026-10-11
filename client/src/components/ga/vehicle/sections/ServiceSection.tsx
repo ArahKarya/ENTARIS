@@ -23,12 +23,14 @@ import {
 } from '../vehicle-model';
 import { UnitHeader } from '../vehicle-ui';
 import { FLUSH_TABLE } from '../ui-classes';
+import { useTranslation } from 'react-i18next';
 
 const ALL = '__all__';
 const money = (v: string | number | null | undefined) => formatRupiah(toNumber(v) ?? 0, { symbol: false });
 
 export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext) {
   const invalidate = useInvalidateVehicle(assetId);
+  const { t } = useTranslation('eam');
   const [showLogModal, setShowLogModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [deleteLog, setDeleteLog] = useState<ServiceLog | null>(null);
@@ -54,35 +56,35 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
   const postJournal = useMutation({
     mutationFn: (id: string) => api.post(`/ga/vehicle/assets/${assetId}/services/${id}/journal`, {}),
     onSuccess: (r) => {
-      toast.success((r?.data as { message?: string } | undefined)?.message || 'Jurnal dibuat.');
+      toast.success((r?.data as { message?: string } | undefined)?.message || t('vehicleSections.service.journalCreated'));
       invalidate(['services'], { fleet: false });
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal posting jurnal.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.service.journalFailed'))),
   });
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${assetId}/services/${id}`),
     onSuccess: () => {
-      toast.success('Service log dihapus.');
+      toast.success(t('vehicleSections.service.logDeleted'));
       invalidate(['services']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal hapus service log.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.service.logDeleteFailed'))),
   });
   const approveReq = useMutation({
     mutationFn: (id: string) => api.patch(`/ga/vehicle/service-requests/${id}/approve`),
     onSuccess: () => {
-      toast.success('Pengajuan disetujui.');
+      toast.success(t('vehicleSections.service.approved'));
       invalidate(['requests'], { fleet: false });
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal approve.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.service.approveFailed'))),
   });
   const rejectReq = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.patch(`/ga/vehicle/service-requests/${id}/reject`, { reason }),
     onSuccess: () => {
-      toast.success('Pengajuan ditolak.');
+      toast.success(t('vehicleSections.service.rejected'));
       invalidate(['requests'], { fleet: false });
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal reject.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.service.rejectFailed'))),
   });
 
   const canPost = (l: ServiceLog) => canEdit && !l.journalEntry && (!l.source || l.source === 'EAM') && Number(l.biaya ?? 0) > 0;
@@ -91,13 +93,13 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
     () => [
       {
         id: 'tanggal',
-        header: 'Tanggal',
+        header: t('shared.date'),
         meta: { cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => formatDate(row.original.tanggal),
       },
       {
         id: 'deskripsi',
-        header: 'Pekerjaan',
+        header: t('vehicleSections.service.work'),
         meta: { cellClassName: 'min-w-48 max-w-96' },
         cell: ({ row }) => {
           const l = row.original;
@@ -114,19 +116,19 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
       },
       {
         id: 'odometer',
-        header: () => <UnitHeader label="Odometer" unit="km" />,
+        header: () => <UnitHeader label={t('vehicleSections.service.odometer')} unit="km" />,
         meta: { align: 'right', hideBelow: 'md' },
         cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '—'),
       },
       {
         id: 'biaya',
-        header: () => <UnitHeader label="Biaya" />,
+        header: () => <UnitHeader label={t('vehicleSections.service.cost')} />,
         meta: { align: 'right' },
         cell: ({ row }) => (row.original.biaya != null ? money(row.original.biaya) : '—'),
       },
       {
         id: 'jurnal',
-        header: 'Jurnal',
+        header: t('vehicleSections.service.journal'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => {
           const l = row.original;
@@ -138,23 +140,23 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
             );
           }
           if (l.source && l.source !== 'EAM') {
-            return <StatusBadge label="Historis" tone="neutral" dot={false} />;
+            return <StatusBadge label={t('vehicleSections.service.historical')} tone="neutral" dot={false} />;
           }
-          return <span className="text-xs text-muted-foreground">Belum diposting</span>;
+          return <span className="text-xs text-muted-foreground">{t('vehicleSections.service.notPosted')}</span>;
         },
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const l = row.original;
           return (
             <RowActions
-              label={`Aksi untuk servis ${formatDate(l.tanggal)}`}
+              label={t('vehicleSections.service.actionsFor', { date: formatDate(l.tanggal) })}
               actions={[
-                { label: 'Posting ke jurnal', icon: FileCheck2, hidden: !canPost(l), disabled: postJournal.isPending, onSelect: () => postJournal.mutate(l.id) },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteLog(l) },
+                { label: t('vehicleSections.service.postJournal'), icon: FileCheck2, hidden: !canPost(l), disabled: postJournal.isPending, onSelect: () => postJournal.mutate(l.id) },
+                { label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteLog(l) },
               ]}
             />
           );
@@ -163,14 +165,14 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
     ],
     // canPost depends on canEdit only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, postJournal.isPending],
+    [canEdit, postJournal.isPending, t],
   );
 
   const requestColumns = useMemo<ColumnDef<ServiceRequest>[]>(
     () => [
       {
         id: 'deskripsi',
-        header: 'Pengajuan',
+        header: t('vehicleSections.service.request'),
         meta: { cellClassName: 'min-w-48 max-w-96' },
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -181,13 +183,13 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
       },
       {
         id: 'urgensi',
-        header: 'Urgensi',
+        header: t('vehicleSections.service.urgency'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => URGENCY_LABELS[row.original.urgensi] ?? row.original.urgensi,
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
             <StatusBadge status={row.original.status} />
@@ -199,17 +201,17 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           const pending = r.status === 'SUBMITTED' && canEdit && canApprove;
           return (
             <RowActions
-              label={`Aksi untuk pengajuan ${r.deskripsi}`}
+              label={t('vehicleSections.service.requestActionsFor', { name: r.deskripsi })}
               actions={[
-                { label: 'Setujui', icon: Check, hidden: !pending, onSelect: () => approveReq.mutate(r.id) },
-                { label: 'Tolak', icon: X, tone: 'danger', hidden: !pending, onSelect: () => setRejectTarget(r) },
+                { label: t('vehicleSections.service.approve'), icon: Check, hidden: !pending, onSelect: () => approveReq.mutate(r.id) },
+                { label: t('vehicleSections.service.reject'), icon: X, tone: 'danger', hidden: !pending, onSelect: () => setRejectTarget(r) },
               ]}
             />
           );
@@ -217,7 +219,7 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, canApprove],
+    [canEdit, canApprove, t],
   );
 
   const bucketKeys = Object.keys(SERVICE_BUCKET_LABELS) as ServiceBucket[];
@@ -225,35 +227,35 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
   return (
     <div className="space-y-4">
       <Panel
-        title="Riwayat Servis"
-        description={filtering ? `${formatNumber(filtered.length)} dari ${formatNumber(logs.length)} catatan sesuai filter` : `${formatNumber(logs.length)} catatan`}
+        title={t('vehicleSections.service.historyTitle')}
+        description={filtering ? t('vehicleSections.service.filteredCount', { shown: formatNumber(filtered.length), total: formatNumber(logs.length) }) : t('vehicleSections.service.count', { count: logs.length, n: formatNumber(logs.length) })}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" onClick={() => setShowLogModal(true)}>
               <Plus aria-hidden />
-              Catat servis
+              {t('vehicleSections.service.logService')}
             </Button>
           )
         }
       >
         <div className="space-y-3 border-b border-border p-4">
-          <div role="group" aria-label="Filter riwayat servis" className="flex flex-wrap items-center gap-2">
+          <div role="group" aria-label={t('vehicleSections.service.filterLabel')} className="flex flex-wrap items-center gap-2">
             <fieldset className="flex w-full items-center gap-1.5 sm:w-auto">
-              <legend className="sr-only">Rentang tanggal servis</legend>
-              <label htmlFor="svc-from" className="sr-only">Dari tanggal</label>
+              <legend className="sr-only">{t('vehicleSections.service.dateRange')}</legend>
+              <label htmlFor="svc-from" className="sr-only">{t('vehicleSections.service.from')}</label>
               <DateInput id="svc-from" value={startDate} max={endDate || undefined} onChange={setStartDate} className="min-w-0 flex-1 sm:w-36 sm:flex-none" />
               <span className="text-muted-foreground" aria-hidden>–</span>
-              <label htmlFor="svc-to" className="sr-only">Sampai tanggal</label>
+              <label htmlFor="svc-to" className="sr-only">{t('vehicleSections.service.to')}</label>
               <DateInput id="svc-to" value={endDate} min={startDate || undefined} onChange={setEndDate} className="min-w-0 flex-1 sm:w-36 sm:flex-none" />
             </fieldset>
-            <label htmlFor="svc-bucket" className="sr-only">Jenis biaya</label>
+            <label htmlFor="svc-bucket" className="sr-only">{t('vehicleSections.service.costType')}</label>
             <Select value={bucket || ALL} onValueChange={(v) => setBucket(v === ALL ? '' : (v as ServiceBucket))}>
               <SelectTrigger id="svc-bucket" className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>Semua jenis biaya</SelectItem>
+                <SelectItem value={ALL}>{t('vehicleSections.service.allCostTypes')}</SelectItem>
                 {bucketKeys.map((k) => (
                   <SelectItem key={k} value={k}>
                     {SERVICE_BUCKET_LABELS[k]}
@@ -273,13 +275,13 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
                 }}
               >
                 <RotateCcw aria-hidden />
-                Reset
+                {t('vehicleSections.service.reset')}
               </Button>
             )}
           </div>
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
             <div className="rounded-md border border-border bg-muted/40 px-3 py-2">
-              <dt className="text-xs text-muted-foreground">Total</dt>
+              <dt className="text-xs text-muted-foreground">{t('vehicleSections.service.total')}</dt>
               <dd className="num text-sm font-semibold text-foreground" title={formatRupiah(summary.total)}>
                 {formatRupiah(summary.total, { compact: true })}
               </dd>
@@ -287,7 +289,7 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
             {bucketKeys.map((k) => (
               <div key={k} className="rounded-md border border-border px-3 py-2">
                 <dt className="truncate text-xs text-muted-foreground">{SERVICE_BUCKET_LABELS[k]}</dt>
-                <dd className="num text-sm text-foreground" title={`${formatRupiah(summary.buckets[k].amount)} · ${summary.buckets[k].count} catatan`}>
+                <dd className="num text-sm text-foreground" title={t('vehicleSections.service.bucketTitle', { amount: formatRupiah(summary.buckets[k].amount), count: summary.buckets[k].count })}>
                   {formatRupiah(summary.buckets[k].amount, { compact: true })}
                 </dd>
               </div>
@@ -295,8 +297,8 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
           </dl>
         </div>
         <DataTable
-          label="Riwayat servis kendaraan"
-          itemLabel="catatan"
+          label={t('vehicleSections.service.historyTable')}
+          itemLabel={t('vehicleSections.service.itemLabel')}
           columns={logColumns}
           data={filtered}
           getRowId={(r) => r.id}
@@ -311,26 +313,26 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
           }}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada riwayat servis', description: 'Servis yang dicatat untuk kendaraan ini akan muncul di sini.' }}
+          empty={{ title: t('vehicleSections.service.emptyTitle'), description: t('vehicleSections.service.emptyDescription') }}
         />
       </Panel>
 
       <Panel
-        title="Pengajuan Servis"
-        description="Pengajuan menunggu persetujuan sebelum dikerjakan."
+        title={t('vehicleSections.service.requestsTitle')}
+        description={t('vehicleSections.service.requestsDescription')}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" variant="outline" onClick={() => setShowRequestModal(true)}>
               <ClipboardList aria-hidden />
-              Ajukan servis
+              {t('vehicleSections.service.requestService')}
             </Button>
           )
         }
       >
         <DataTable
-          label="Pengajuan servis kendaraan"
-          itemLabel="pengajuan"
+          label={t('vehicleSections.service.requestsTable')}
+          itemLabel={t('vehicleSections.service.requestsItem')}
           columns={requestColumns}
           data={requestsQuery.data}
           getRowId={(r) => r.id}
@@ -339,7 +341,7 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
           onRetry={() => requestsQuery.refetch()}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada pengajuan servis' }}
+          empty={{ title: t('vehicleSections.service.requestsEmpty') }}
         />
       </Panel>
 
@@ -366,9 +368,9 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
       <ConfirmDialog
         open={deleteLog !== null}
         onOpenChange={(o) => !o && setDeleteLog(null)}
-        title="Hapus Service Log"
-        description={`Hapus service log "${deleteLog ? `${formatDate(deleteLog.tanggal)} · ${deleteLog.deskripsi}` : ''}"?`}
-        confirmLabel="Ya, Hapus"
+        title={t('vehicleSections.service.deleteTitle')}
+        description={t('vehicleSections.service.deleteConfirm', { name: deleteLog ? `${formatDate(deleteLog.tanggal)} · ${deleteLog.deskripsi}` : '' })}
+        confirmLabel={t('shared.confirmDelete')}
         tone="danger"
         loading={deleteMut.isPending}
         onConfirm={async () => {
@@ -380,11 +382,11 @@ export function ServiceSection({ assetId, canEdit, canApprove }: VehicleContext)
       <ConfirmDialog
         open={rejectTarget !== null}
         onOpenChange={(o) => !o && setRejectTarget(null)}
-        title="Tolak Pengajuan Servis"
+        title={t('vehicleSections.service.rejectTitle')}
         description={rejectTarget?.deskripsi}
-        confirmLabel="Tolak"
+        confirmLabel={t('vehicleSections.service.reject')}
         tone="danger"
-        requireReason={{ label: 'Alasan penolakan', minLength: 1 }}
+        requireReason={{ label: t('vehicleSections.service.rejectReason'), minLength: 1 }}
         loading={rejectReq.isPending}
         onConfirm={async (reason) => {
           if (!rejectTarget || !reason) return;

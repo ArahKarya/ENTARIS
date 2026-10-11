@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { OverlayBody, OverlayFooter, OverlayHeader } from '@/components/sales/dialog-parts-b';
 import { dialogShellClass } from '@/components/sales/dialog-classes-b';
+import { useTranslation } from 'react-i18next';
 
 export interface FormModalProps {
   title: ReactNode;
@@ -33,6 +34,7 @@ export function FormModal({
   size = 'md',
   children,
 }: FormModalProps) {
+  const { t } = useTranslation('eam');
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (submitting || submitDisabled) return;
@@ -50,7 +52,7 @@ export function FormModal({
           <OverlayBody>{children}</OverlayBody>
           <OverlayFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-              Batal
+              {t('shared.cancel')}
             </Button>
             <Button
               type="submit"

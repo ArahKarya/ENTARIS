@@ -28,8 +28,10 @@ import {
   type GaItemSummary,
 } from './ga-inventory-model';
 import { useGaCategories, useGaLocations } from './queries';
+import { useTranslation } from 'react-i18next';
 
-const STOCK_FILTER = statusOptions(['out', 'low', 'ok'], 'inventory_item');
+
+const STOCK_STATES = ['out', 'low', 'ok'] as const;
 
 interface GaItemsTabProps {
   canEdit: boolean;
@@ -41,11 +43,15 @@ interface GaItemsTabProps {
 }
 
 export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPreview }: GaItemsTabProps) {
+  const { t } = useTranslation('eam');
   const list = useListState({ filters: ITEM_FILTER_KEYS });
   const [density, setDensity] = useTableDensity();
   const { data: categories = [] } = useGaCategories();
   const { data: locations = [] } = useGaLocations();
-  const location = locations.find((l) => l.id === list.filters.locationId);
+  const locationName = locations.find((l) => l.id === list.filters.locationId)?.name;
+  const tableLabel = locationName
+    ? t('gaInventory.items.tableLabelAt', { location: locationName })
+    : t('gaInventory.items.tableLabel');
 
   const itemsQuery = useQuery({
     queryKey: [GA_INVENTORY_KEY, 'items', list.params],
@@ -69,13 +75,13 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
     () => [
       {
         id: 'photo',
-        header: () => <span className="sr-only">Foto</span>,
+        header: () => <span className="sr-only">{t('gaInventory.items.photo')}</span>,
         meta: { headerClassName: 'w-14', cellClassName: 'w-14 py-1.5' },
         cell: ({ row }) => <ItemThumb item={row.original} onPreview={onPreview} />,
       },
       {
         id: 'name',
-        header: 'Item',
+        header: t('gaInventory.items.item'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36 max-w-80' },
         cell: ({ row }) => {
@@ -95,14 +101,14 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
       },
       {
         id: 'category',
-        header: 'Kategori',
+        header: t('gaInventory.items.category'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => row.original.category?.name ?? '—',
       },
       {
         id: 'totalStock',
-        header: atLocation ? 'Stok di Lokasi' : 'Stok',
+        header: atLocation ? t('gaInventory.items.stockAtLocation') : t('gaInventory.items.stock'),
         enableSorting: !atLocation,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -120,7 +126,7 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
               </span>
               {atLocation && (
                 <span className="text-xs text-muted-foreground">
-                  total {formatQty(it.totalStock)} {it.uom}
+                  {t('gaInventory.items.totalQty', { qty: formatQty(it.totalStock), uom: it.uom })}
                 </span>
               )}
               {/* Mobile: stock state stacked here because its column is hidden. */}
@@ -131,7 +137,7 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
       },
       {
         id: 'minStock',
-        header: 'Stok Min.',
+        header: t('gaInventory.items.minStock'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md', cellClassName: 'text-muted-foreground' },
@@ -139,82 +145,82 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
       },
       {
         id: 'stockStatus',
-        header: 'Status Stok',
+        header: t('gaInventory.items.stockStatus'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={gaStockState(row.original)} docType="inventory_item" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const it = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${it.sku}`}
+              label={t('shared.actionsFor', { name: it.sku })}
               actions={[
-                { label: 'Edit item', icon: Pencil, hidden: !canEdit, onSelect: () => onEdit(it) },
-                { label: 'Catat pergerakan', icon: ArrowLeftRight, hidden: !canEdit, onSelect: () => onMove(it) },
-                { label: 'Stok opname', icon: ClipboardCheck, hidden: !canEdit, onSelect: () => onOpname(it) },
+                { label: t('gaInventory.items.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => onEdit(it) },
+                { label: t('gaInventory.items.recordMovement'), icon: ArrowLeftRight, hidden: !canEdit, onSelect: () => onMove(it) },
+                { label: t('gaInventory.items.stockCount'), icon: ClipboardCheck, hidden: !canEdit, onSelect: () => onOpname(it) },
               ]}
             />
           );
         },
       },
     ],
-    [atLocation, canEdit, onEdit, onMove, onOpname, onPreview],
+    [atLocation, canEdit, onEdit, onMove, onOpname, onPreview, t],
   );
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan item sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('gaInventory.items.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Item"
+          label={t('gaInventory.items.kpiCount')}
           icon={Boxes}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary ? `${formatNumber(summary.activeCount)} aktif` : undefined}
+          hint={summary ? t('gaInventory.items.kpiCountHint', { active: formatNumber(summary.activeCount) }) : undefined}
         />
         <StatCard
-          label="Stok Aman"
+          label={t('gaInventory.items.kpiOk')}
           icon={CheckCircle2}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.okCount) : '—'}
-          hint="di atas stok minimum"
+          hint={t('gaInventory.items.kpiOkHint')}
         />
         <StatCard
-          label="Stok Menipis"
+          label={t('gaInventory.items.kpiLow')}
           icon={AlertTriangle}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.lowCount) : '—'}
-          hint="di bawah stok minimum"
+          hint={t('gaInventory.items.kpiLowHint')}
         />
         <StatCard
-          label="Stok Habis"
+          label={t('gaInventory.items.kpiOut')}
           icon={PackageX}
           loading={kpiLoading}
           value={summary ? formatNumber(summary.outCount) : '—'}
-          hint="stok nol"
+          hint={t('gaInventory.items.kpiOutHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari item"
-          searchPlaceholder="Cari SKU atau nama item"
-          status={{ options: STOCK_FILTER, key: 'stockStatus', label: 'Status stok', allLabel: 'Semua stok' }}
+          searchLabel={t('gaInventory.items.searchLabel')}
+          searchPlaceholder={t('gaInventory.items.searchPlaceholder')}
+          status={{ options: statusOptions(STOCK_STATES, 'inventory_item'), key: 'stockStatus', label: t('gaInventory.items.stockStatusFilter'), allLabel: t('gaInventory.items.allStock') }}
         >
           <SelectFilter
-            label="Kategori"
-            allLabel="Semua kategori"
+            label={t('gaInventory.items.category')}
+            allLabel={t('gaInventory.items.allCategories')}
             options={categoryOptions}
             value={list.filters.categoryId}
             onChange={(v) => list.setFilter('categoryId', v)}
           />
           <SelectFilter
-            label="Lokasi"
-            allLabel="Semua lokasi"
+            label={t('gaInventory.items.location')}
+            allLabel={t('gaInventory.items.allLocations')}
             options={locationOptions}
             value={list.filters.locationId}
             onChange={(v) => list.setFilter('locationId', v)}
@@ -223,8 +229,8 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
 
         <DataTable
           {...listTableProps(list, itemsQuery.data?.total)}
-          label={location ? `Daftar item inventaris di ${location.name}` : 'Daftar item inventaris kantor'}
-          itemLabel="item"
+          label={tableLabel}
+          itemLabel={t('gaInventory.items.itemLabel')}
           columns={columns}
           data={itemsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -235,12 +241,12 @@ export function GaItemsTab({ canEdit, onCreate, onEdit, onMove, onOpname, onPrev
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada item inventaris',
-            description: 'Tambahkan item ATK, sparepart, atau perlengkapan kantor untuk mulai mencatat stok.',
+            title: t('gaInventory.items.emptyTitle'),
+            description: t('gaInventory.items.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={onCreate}>
                 <Plus aria-hidden />
-                Tambah item pertama
+                {t('gaInventory.items.addFirst')}
               </Button>
             ) : undefined,
           }}

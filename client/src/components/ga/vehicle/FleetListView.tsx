@@ -22,6 +22,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
@@ -56,13 +57,7 @@ import {
 import { DueMarker, UnitHeader } from './vehicle-ui';
 
 const FILTER_KEYS = ['status', 'due', 'doc'] as const;
-const STATUS_FILTER = statusOptions(ASSET_STATUSES, 'ga_asset');
-const DUE_FILTER = [
-  { value: 'attention', label: 'Perlu tindakan' },
-  { value: 'overdue', label: 'Lewat jatuh tempo' },
-  { value: 'dueSoon', label: 'Segera jatuh tempo (30 hari)' },
-];
-const DOC_FILTER = FLEET_DOCS.map((d) => ({ value: d, label: FLEET_DOC_LABELS[d] }));
+const DUE_FILTER_VALUES = ['attention', 'overdue', 'dueSoon'] as const;
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-48';
 
 type QuickModal = { kind: 'service' | 'fuel' | 'incident'; row: FleetRow } | null;
@@ -73,16 +68,17 @@ interface FleetListViewProps {
 }
 
 function ComplianceCell({ row }: { row: FleetRow }) {
+  const { t } = useTranslation('eam');
   const items = attentionItems(row);
   if (items.length === 0) {
     const tracked = FLEET_DOCS.some((d) => row.due[d].state);
     return tracked ? (
       <span className="inline-flex items-center gap-1 text-xs font-medium text-success-text">
         <CheckCircle2 className="size-3.5" aria-hidden />
-        Semua berlaku
+        {t('fleet.list.allValid')}
       </span>
     ) : (
-      <span className="text-xs text-muted-foreground">Belum ada data</span>
+      <span className="text-xs text-muted-foreground">{t('fleet.list.noData')}</span>
     );
   }
   const shown = items.slice(0, 2);
@@ -95,7 +91,7 @@ function ComplianceCell({ row }: { row: FleetRow }) {
         </li>
       ))}
       {items.length > shown.length && (
-        <li className="text-xs text-muted-foreground">+{items.length - shown.length} lainnya</li>
+        <li className="text-xs text-muted-foreground">{t('fleet.list.moreItems', { count: items.length - shown.length })}</li>
       )}
     </ul>
   );
@@ -106,6 +102,10 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'code', desc: false } });
   const [density, setDensity] = useTableDensity();
   const [quick, setQuick] = useState<QuickModal>(null);
+  const { t } = useTranslation('eam');
+  const statusFilter = useMemo(() => statusOptions(ASSET_STATUSES, 'ga_asset'), []);
+  const dueFilter = useMemo(() => DUE_FILTER_VALUES.map((value) => ({ value, label: t(`fleet.list.dueFilter.${value}`) })), [t]);
+  const docFilter = useMemo(() => FLEET_DOCS.map((d) => ({ value: d, label: FLEET_DOC_LABELS[d] })), []);
 
   const fleetQuery = useQuery({
     queryKey: [...vehicleKeys.fleetList, 'list', list.params],
@@ -130,7 +130,7 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
     () => [
       {
         id: 'noPlat',
-        header: 'Kendaraan',
+        header: t('fleet.list.columns.vehicle'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-40' },
         cell: ({ row }) => {
@@ -156,20 +156,20 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
       },
       {
         id: 'driver',
-        header: 'Driver',
+        header: t('fleet.list.columns.driver'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-44' },
         cell: ({ row }) => {
           const d = row.original.driver;
           return d ? (
             <span className="block truncate text-foreground">{d.fullName ?? '—'}</span>
           ) : (
-            <span className="text-muted-foreground">Belum ditugaskan</span>
+            <span className="text-muted-foreground">{t('fleet.list.unassigned')}</span>
           );
         },
       },
       {
         id: 'odometer',
-        header: () => <UnitHeader label="Odometer" unit="km" />,
+        header: () => <UnitHeader label={t('fleet.list.columns.odometer')} unit="km" />,
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'md' },
@@ -177,20 +177,20 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
       },
       {
         id: 'nextDue',
-        header: 'Kepatuhan',
+        header: t('fleet.list.columns.compliance'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-36' },
         cell: ({ row }) => <ComplianceCell row={row.original} />,
       },
       {
         id: 'incidents',
-        header: 'Insiden',
+        header: t('fleet.list.columns.incidents'),
         meta: { align: 'right', hideBelow: 'xl' },
         cell: ({ row }) =>
           row.original.openIncidentCount > 0 ? (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-text">
               <TriangleAlert className="size-3.5" aria-hidden />
-              {formatNumber(row.original.openIncidentCount)} terbuka
+              {t('fleet.list.openCount', { count: formatNumber(row.original.openIncidentCount) })}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -198,34 +198,34 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('fleet.list.columns.status'),
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="ga_asset" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('fleet.list.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const v = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${vehicleTitle(v)}`}
+              label={t('fleet.list.actionsFor', { name: vehicleTitle(v) })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => onOpen(v.id) },
-                { label: 'Pajak & STNK', icon: FileWarning, onSelect: () => onOpen(v.id, 'pajak') },
-                { label: 'Laporan biaya', icon: BarChart3, onSelect: () => onOpen(v.id, 'laporan') },
-                { label: 'Catat servis', icon: Wrench, hidden: !canEdit, onSelect: () => setQuick({ kind: 'service', row: v }) },
-                { label: 'Isi BBM', icon: Fuel, hidden: !canEdit, onSelect: () => setQuick({ kind: 'fuel', row: v }) },
-                { label: 'Laporkan insiden', icon: TriangleAlert, hidden: !canEdit, onSelect: () => setQuick({ kind: 'incident', row: v }) },
+                { label: t('fleet.list.action.view'), icon: Eye, onSelect: () => onOpen(v.id) },
+                { label: t('fleet.list.action.tax'), icon: FileWarning, onSelect: () => onOpen(v.id, 'pajak') },
+                { label: t('fleet.list.action.costReport'), icon: BarChart3, onSelect: () => onOpen(v.id, 'laporan') },
+                { label: t('fleet.list.action.logService'), icon: Wrench, hidden: !canEdit, onSelect: () => setQuick({ kind: 'service', row: v }) },
+                { label: t('fleet.list.action.logFuel'), icon: Fuel, hidden: !canEdit, onSelect: () => setQuick({ kind: 'fuel', row: v }) },
+                { label: t('fleet.list.action.reportIncident'), icon: TriangleAlert, hidden: !canEdit, onSelect: () => setQuick({ kind: 'incident', row: v }) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit, onOpen],
+    [canEdit, onOpen, t],
   );
 
   const taxDue = s ? s.taxExpired + s.taxExpiringSoon : 0;
@@ -236,106 +236,106 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Kendaraan"
-        description="Armada: data kendaraan, driver, pajak/STNK/KIR, asuransi, BBM, servis, inspeksi, dan insiden."
+        title={t('fleet.list.title')}
+        description={t('fleet.list.description')}
         actions={
           <Button variant="outline" asChild>
             <Link to="/ga/vehicle/report">
               <BarChart3 aria-hidden />
-              Laporan Armada
+              {t('fleet.list.fleetReport')}
             </Link>
           </Button>
         }
       />
 
-      <section aria-label="Ringkasan armada" className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <section aria-label={t('fleet.list.summaryLabel')} className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatCard
-          label="Total Armada"
+          label={t('fleet.list.kpi.total')}
           icon={Car}
           loading={kpiLoading}
           value={s ? formatNumber(s.totalVehicles) : '—'}
-          hint={s ? `${formatNumber(s.openIncidents)} insiden terbuka` : undefined}
+          hint={s ? t('fleet.list.kpi.openIncidents', { count: formatNumber(s.openIncidents) }) : undefined}
         />
         <StatCard
-          label="Pajak/STNK/KIR"
+          label={t('fleet.list.kpi.tax')}
           icon={FileWarning}
           loading={kpiLoading}
           value={s ? formatNumber(taxDue) : '—'}
-          hint={s ? `${formatNumber(s.taxExpired)} lewat · ${formatNumber(s.taxExpiringSoon)} ≤30 hari` : undefined}
+          hint={s ? t('fleet.list.kpi.overdueSoon', { overdue: formatNumber(s.taxExpired), soon: formatNumber(s.taxExpiringSoon) }) : undefined}
         />
         <StatCard
-          label="Asuransi"
+          label={t('fleet.list.kpi.insurance')}
           icon={ShieldCheck}
           loading={kpiLoading}
           value={s ? formatNumber(insDue) : '—'}
-          hint={s ? `${formatNumber(s.insuranceExpired)} lewat · ${formatNumber(s.insuranceExpiringSoon)} ≤30 hari` : undefined}
+          hint={s ? t('fleet.list.kpi.overdueSoon', { overdue: formatNumber(s.insuranceExpired), soon: formatNumber(s.insuranceExpiringSoon) }) : undefined}
         />
         <StatCard
-          label="Inspeksi"
+          label={t('fleet.list.kpi.inspection')}
           icon={ClipboardCheck}
           loading={kpiLoading}
           value={s ? formatNumber(inspDue) : '—'}
           hint={
             s
-              ? `${formatNumber(s.inspectionOverdue ?? 0)} lewat · ${formatNumber(s.inspectionNeverDone ?? 0)} belum pernah`
+              ? t('fleet.list.kpi.inspectionHint', { overdue: formatNumber(s.inspectionOverdue ?? 0), never: formatNumber(s.inspectionNeverDone ?? 0) })
               : undefined
           }
         />
         <StatCard
-          label="Servis Bulan Ini"
+          label={t('fleet.list.kpi.serviceMonth')}
           icon={Wrench}
           loading={kpiLoading}
           value={s ? formatRupiah(s.serviceCostThisMonth, { compact: true }) : '—'}
           valueTitle={s ? formatRupiah(s.serviceCostThisMonth) : undefined}
-          hint="biaya servis tercatat"
+          hint={t('fleet.list.kpi.serviceMonthHint')}
         />
         <StatCard
-          label="Biaya Bulan Ini"
+          label={t('fleet.list.kpi.costMonth')}
           icon={Wallet}
           loading={kpiLoading}
           value={s ? formatRupiah(monthCost, { compact: true }) : '—'}
           valueTitle={s ? formatRupiah(monthCost) : undefined}
-          hint={s ? `BBM ${formatRupiah(s.fuelCostThisMonth, { compact: true })}` : undefined}
+          hint={s ? t('fleet.list.kpi.fuelHint', { amount: formatRupiah(s.fuelCostThisMonth, { compact: true }) }) : undefined}
         />
       </section>
       {summaryQuery.isError && (
         <p role="alert" className="flex items-center gap-1.5 text-sm text-danger-text">
           <AlertTriangle className="size-4" aria-hidden />
-          Ringkasan armada gagal dimuat.
+          {t('fleet.list.summaryError')}
         </p>
       )}
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari kendaraan"
-          searchPlaceholder="Cari plat, kode, merek, atau driver"
-          status={{ options: STATUS_FILTER, label: 'Filter status aset' }}
+          searchLabel={t('fleet.list.searchLabel')}
+          searchPlaceholder={t('fleet.list.searchPlaceholder')}
+          status={{ options: statusFilter, label: t('fleet.list.statusFilter') }}
         >
           <ComboboxFilter
-            label="Filter kepatuhan"
-            allLabel="Semua kepatuhan"
-            searchPlaceholder="Cari…"
+            label={t('fleet.list.dueFilterLabel')}
+            allLabel={t('fleet.list.dueFilterAll')}
+            searchPlaceholder={t('fleet.list.searchShort')}
             value={list.filters.due}
             onChange={(v) => list.setFilter('due', v)}
-            options={DUE_FILTER}
+            options={dueFilter}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter dokumen"
-            allLabel="Semua dokumen"
-            searchPlaceholder="Cari dokumen…"
+            label={t('fleet.list.docFilterLabel')}
+            allLabel={t('fleet.list.docFilterAll')}
+            searchPlaceholder={t('fleet.list.docFilterSearch')}
             value={list.filters.doc}
             onChange={(v) => list.setFilter('doc', v)}
-            options={DOC_FILTER}
+            options={docFilter}
             className={FILTER_CLASS}
           />
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, fleetQuery.data?.total)}
-          label="Daftar kendaraan"
-          itemLabel="kendaraan"
+          label={t('fleet.list.tableLabel')}
+          itemLabel={t('fleet.list.itemLabel')}
           columns={columns}
           data={fleetQuery.data?.data}
           getRowId={(row) => row.id}
@@ -348,11 +348,11 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada kendaraan',
-            description: 'Daftarkan aset dengan kategori Kendaraan di menu Aset agar muncul di sini.',
+            title: t('fleet.list.empty.title'),
+            description: t('fleet.list.empty.description'),
             action: can('ga_assets', 'view') ? (
               <Button size="sm" variant="outline" asChild>
-                <Link to="/ga/assets">Buka daftar aset</Link>
+                <Link to="/ga/assets">{t('fleet.list.empty.action')}</Link>
               </Button>
             ) : undefined,
           }}

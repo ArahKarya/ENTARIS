@@ -1,5 +1,6 @@
 import type { FieldControlProps } from '@/components/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next';
 
 /** Radix Select cannot hold "" — this sentinel stands for "none". */
 const NONE = '__none__';
@@ -20,6 +21,7 @@ export interface OptionSelectProps extends Partial<FieldControlProps> {
  */
 export function OptionSelect({ value, onChange, options, noneLabel, placeholder, disabled, ...field }: OptionSelectProps) {
   // `required` is not valid on the trigger <button>; aria-required carries it.
+  const { t } = useTranslation('eam');
   const { required, ...control } = field;
   void required;
   return (
@@ -29,7 +31,7 @@ export function OptionSelect({ value, onChange, options, noneLabel, placeholder,
       disabled={disabled}
     >
       <SelectTrigger {...control}>
-        <SelectValue placeholder={placeholder ?? 'Pilih…'} />
+        <SelectValue placeholder={placeholder ?? t('assets.select')} />
       </SelectTrigger>
       <SelectContent>
         {noneLabel && <SelectItem value={NONE}>{noneLabel}</SelectItem>}

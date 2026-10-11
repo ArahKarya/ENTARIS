@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { DateInput, Field } from '@/components/shared';
 import { FormSection, FormSheet } from '@/components/inventory/master-data-kit';
 import { FormSelect } from '@/components/ga/inventory/form-select';
+import { useTranslation } from 'react-i18next';
 import {
   DOCUMENTS_ENDPOINT,
   DOC_STATUSES,
@@ -34,7 +35,7 @@ interface FormState {
 
 type Errors = Partial<Record<keyof FormState, string>>;
 
-const STATUS_OPTIONS = DOC_STATUSES.map((s) => ({ value: s, label: getStatusLabel(s, 'ga_document') }));
+const STATUS_OPTIONS = DOC_STATUSES.map((s) => ({ value: s, get label() { return getStatusLabel(s, 'ga_document'); } }));
 
 interface GaDocumentFormSheetProps {
   /** null = create. */
@@ -47,6 +48,7 @@ interface GaDocumentFormSheetProps {
 
 /** Mount per open (keyed by document id) so the form starts fresh. */
 export function GaDocumentFormSheet({ doc, docTypes, assets, onClose, onSaved }: GaDocumentFormSheetProps) {
+  const { t } = useTranslation('eam');
   const [form, setForm] = useState<FormState>({
     title: doc?.title ?? '',
     typeId: doc?.typeId ?? '',
@@ -68,10 +70,10 @@ export function GaDocumentFormSheet({ doc, docTypes, assets, onClose, onSaved }:
 
   const submit = async () => {
     const e: Errors = {};
-    if (!form.title.trim()) e.title = 'Judul wajib diisi.';
-    if (!form.typeId) e.typeId = 'Jenis dokumen wajib dipilih.';
+    if (!form.title.trim()) e.title = t('gaDocuments.form.titleRequired');
+    if (!form.typeId) e.typeId = t('gaDocuments.form.typeRequired');
     if (form.effectiveDate && form.expiryDate && form.expiryDate < form.effectiveDate) {
-      e.expiryDate = 'Tanggal kedaluwarsa sebelum tanggal efektif.';
+      e.expiryDate = t('gaDocuments.form.expiryBefore');
     }
     setErrors(e);
     if (Object.keys(e).length > 0) return;
@@ -90,11 +92,11 @@ export function GaDocumentFormSheet({ doc, docTypes, assets, onClose, onSaved }:
     try {
       if (doc) await api.put(`${DOCUMENTS_ENDPOINT}/${doc.id}`, body);
       else await api.post(DOCUMENTS_ENDPOINT, body);
-      toast.success(doc ? 'Dokumen diperbarui.' : 'Dokumen dibuat.');
+      toast.success(doc ? t('gaDocuments.form.updated') : t('gaDocuments.form.created'));
       onSaved();
       onClose();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal menyimpan dokumen.'));
+      setServerError(errorMessage(err, t('gaDocuments.form.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -104,51 +106,51 @@ export function GaDocumentFormSheet({ doc, docTypes, assets, onClose, onSaved }:
     <FormSheet
       open
       onOpenChange={(next) => !next && onClose()}
-      title={doc ? 'Edit Dokumen' : 'Dokumen Baru'}
-      description={doc ? `${doc.code} · ${doc.title}` : 'Kode dokumen dibuat otomatis dari jenis dan tahun.'}
+      title={doc ? t('gaDocuments.form.editTitle') : t('gaDocuments.form.newTitle')}
+      description={doc ? `${doc.code} · ${doc.title}` : t('gaDocuments.form.newDescription')}
       error={serverError}
       saving={saving}
-      submitLabel={doc ? 'Simpan Perubahan' : 'Simpan Dokumen'}
+      submitLabel={doc ? t('gaDocuments.form.saveChanges') : t('gaDocuments.form.saveDocument')}
       onSubmit={submit}
     >
-      <FormSection title="Dokumen">
-        <Field label="Judul" required error={errors.title}>
+      <FormSection title={t('gaDocuments.form.sectionDocument')}>
+        <Field label={t('gaDocuments.form.title')} required error={errors.title}>
           <Input value={form.title} onChange={(ev) => set('title', ev.target.value)} autoComplete="off" />
         </Field>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Jenis dokumen" required error={errors.typeId}>
+          <Field label={t('gaDocuments.form.type')} required error={errors.typeId}>
             <FormSelect
               value={form.typeId}
               onChange={(v) => set('typeId', v)}
-              options={docTypes.map((t) => ({ value: t.id, label: t.name }))}
-              placeholder="Pilih jenis…"
+              options={docTypes.map((dt) => ({ value: dt.id, label: dt.name }))}
+              placeholder={t('gaDocuments.form.typePlaceholder')}
             />
           </Field>
-          <Field label="Aset terkait">
+          <Field label={t('gaDocuments.form.asset')}>
             <FormSelect
               value={form.assetId}
               onChange={(v) => set('assetId', v)}
               options={assets.map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` }))}
-              noneLabel="Tidak terkait aset"
+              noneLabel={t('gaDocuments.form.noAsset')}
             />
           </Field>
         </div>
       </FormSection>
 
-      <FormSection title="Penerbitan">
+      <FormSection title={t('gaDocuments.form.sectionIssue')}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Diterbitkan oleh">
+          <Field label={t('gaDocuments.form.issuedBy')}>
             <Input value={form.issuedBy} onChange={(ev) => set('issuedBy', ev.target.value)} autoComplete="off" />
           </Field>
-          <Field label="Nomor penerbitan">
+          <Field label={t('gaDocuments.form.issuedNumber')}>
             <Input value={form.issuedNumber} onChange={(ev) => set('issuedNumber', ev.target.value)} autoComplete="off" />
           </Field>
         </div>
       </FormSection>
 
-      <FormSection title="Masa berlaku">
+      <FormSection title={t('gaDocuments.form.sectionValidity')}>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Tanggal efektif">
+          <Field label={t('gaDocuments.form.effectiveDate')}>
             {(control) => (
               <DateInput
                 id={control.id}
@@ -158,7 +160,7 @@ export function GaDocumentFormSheet({ doc, docTypes, assets, onClose, onSaved }:
               />
             )}
           </Field>
-          <Field label="Tanggal kedaluwarsa" error={errors.expiryDate} hint="Kosongkan bila tanpa batas">
+          <Field label={t('gaDocuments.form.expiryDate')} error={errors.expiryDate} hint={t('gaDocuments.form.expiryHint')}>
             {(control) => (
               <DateInput
                 id={control.id}
@@ -169,7 +171,7 @@ export function GaDocumentFormSheet({ doc, docTypes, assets, onClose, onSaved }:
             )}
           </Field>
         </div>
-        <Field label="Status">
+        <Field label={t('shared.status')}>
           <FormSelect value={form.status} onChange={(v) => set('status', v as GaDocStatus)} options={STATUS_OPTIONS} />
         </Field>
       </FormSection>

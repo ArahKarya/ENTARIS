@@ -14,9 +14,11 @@ import type { Incident, VehicleContext } from '../types';
 import { FLUSH_TABLE } from '../ui-classes';
 import { useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
 import { ToneBadge, UnitHeader } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 export function IncidentSection({ assetId, canEdit }: VehicleContext) {
   const invalidate = useInvalidateVehicle(assetId);
+  const { t } = useTranslation('eam');
   const [modal, setModal] = useState<{ id?: string } | null>(null);
 
   const query = useQuery<Incident[]>({
@@ -28,13 +30,13 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
     () => [
       {
         id: 'tanggal',
-        header: 'Tanggal',
+        header: t('shared.date'),
         meta: { cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => formatDate(row.original.tanggal),
       },
       {
         id: 'description',
-        header: 'Kejadian',
+        header: t('vehicleSections.incidents.event'),
         meta: { cellClassName: 'min-w-48 max-w-96' },
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -47,7 +49,7 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
       },
       {
         id: 'severity',
-        header: 'Tingkat',
+        header: t('vehicleSections.incidents.severity'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => {
           const m = INCIDENT_SEVERITY_META[row.original.severity];
@@ -56,12 +58,12 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'cost',
-        header: () => <UnitHeader label="Biaya" />,
+        header: () => <UnitHeader label={t('vehicleSections.incidents.cost')} />,
         meta: { align: 'right', hideBelow: 'md' },
         cell: ({ row }) => {
           const i = row.original;
@@ -69,7 +71,7 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
           if (actual !== null) return formatRupiah(actual, { symbol: false });
           const est = toNumber(i.estimatedCost);
           return est !== null ? (
-            <span className="text-muted-foreground" title="Estimasi">
+            <span className="text-muted-foreground" title={t('vehicleSections.incidents.estimate')}>
               ±{formatRupiah(est, { symbol: false })}
             </span>
           ) : (
@@ -79,37 +81,37 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk insiden ${formatDate(row.original.tanggal)}`}
-            actions={[{ label: 'Lihat / ubah', icon: Eye, hidden: !canEdit, onSelect: () => setModal({ id: row.original.id }) }]}
+            label={t('vehicleSections.incidents.actionsFor', { date: formatDate(row.original.tanggal) })}
+            actions={[{ label: t('vehicleSections.incidents.viewEdit'), icon: Eye, hidden: !canEdit, onSelect: () => setModal({ id: row.original.id }) }]}
           />
         ),
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   return (
     <>
       <Panel
-        title="Insiden / Kecelakaan"
-        description="Biaya aktual ditampilkan bila sudah diisi; tanda ± berarti estimasi."
+        title={t('vehicleSections.incidents.title')}
+        description={t('vehicleSections.incidents.description')}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" onClick={() => setModal({})}>
               <Plus aria-hidden />
-              Laporkan insiden
+              {t('vehicleSections.incidents.report')}
             </Button>
           )
         }
       >
         <DataTable
-          label="Insiden kendaraan"
-          itemLabel="insiden"
+          label={t('vehicleSections.incidents.tableLabel')}
+          itemLabel={t('vehicleSections.incidents.itemLabel')}
           columns={columns}
           data={query.data}
           getRowId={(r) => r.id}
@@ -119,7 +121,7 @@ export function IncidentSection({ assetId, canEdit }: VehicleContext) {
           onRowClick={canEdit ? (r) => setModal({ id: r.id }) : undefined}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada insiden dilaporkan' }}
+          empty={{ title: t('vehicleSections.incidents.empty') }}
         />
       </Panel>
       {modal && (

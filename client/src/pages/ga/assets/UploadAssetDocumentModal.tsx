@@ -16,6 +16,7 @@ import {
 import { Field } from '@/components/shared/field';
 import { DateInput } from '@/components/shared/date-input';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 // Modal buat dokumen baru untuk sebuah aset lalu unggah file versi pertama.
 // Alur 2 langkah: (a) POST /ga/documents {..., assetId} -> dapat doc.id,
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props) => {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; typeId?: string; file?: string }>({});
@@ -68,7 +70,7 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
         expiryDate: expiryDate || null,
       });
       const docId: string = createRes.data?.id;
-      if (!docId) throw new Error('Dokumen dibuat tetapi ID tidak diterima.');
+      if (!docId) throw new Error(t('assetDocuments.upload.noId'));
 
       // Langkah (b): unggah file versi pertama. FormData 'file' — jangan set
       // Content-Type manual agar boundary multipart benar.
@@ -82,25 +84,25 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
         const e = uploadErr as { response?: { data?: { error?: string } } };
         throw new Error(
           e.response?.data?.error ||
-            'Dokumen dibuat tetapi file gagal diunggah. Buka dokumen dan unggah ulang filenya.',
+            t('assetDocuments.upload.uploadFailed'),
         );
       }
     },
     onSuccess: () => {
-      toast.success('Dokumen dan file diunggah.');
+      toast.success(t('assetDocuments.upload.saved'));
       queryClient.invalidateQueries({ queryKey: ['ga-asset-documents', assetId] });
       onClose();
     },
     onError: (err: unknown) => {
       const e = err as { response?: { data?: { error?: string } }; message?: string };
-      setError(e.response?.data?.error || e.message || 'Gagal menyimpan dokumen.');
+      setError(e.response?.data?.error || e.message || t('assetDocuments.upload.saveFailed'));
     },
   });
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
     if (f && f.size > MAX_FILE_BYTES) {
-      setError('Ukuran file melebihi 20 MB.');
+      setError(t('assetDocuments.upload.tooLarge'));
       setFile(null);
       e.target.value = '';
       return;
@@ -113,9 +115,9 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
     e.preventDefault();
     setError('');
     const next = {
-      title: title.trim() ? undefined : 'Judul dokumen wajib diisi.',
-      typeId: typeId ? undefined : 'Tipe dokumen wajib dipilih.',
-      file: file ? undefined : 'File dokumen (PDF) wajib diunggah.',
+      title: title.trim() ? undefined : t('assetDocuments.upload.titleRequired'),
+      typeId: typeId ? undefined : t('assetDocuments.upload.typeRequired'),
+      file: file ? undefined : t('assetDocuments.upload.fileRequired'),
     };
     setFieldErrors(next);
     if (next.title || next.typeId || next.file) return;
@@ -128,7 +130,7 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
     <Dialog open onOpenChange={(next) => !next && !busy && onClose()}>
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg" hideClose={busy}>
         <DialogHeader className="border-b border-border px-6 py-4">
-          <DialogTitle>Tambah Dokumen Aset</DialogTitle>
+          <DialogTitle>{t('assetDocuments.upload.title')}</DialogTitle>
           <DialogDescription>{assetLabel}</DialogDescription>
         </DialogHeader>
 
@@ -140,23 +142,23 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
               </div>
             )}
 
-            <Field label="Judul" required error={fieldErrors.title}>
+            <Field label={t('assetDocuments.upload.docTitle')} required error={fieldErrors.title}>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="mis. Sertifikat, Manual, BPKB, Faktur"
+                placeholder={t('assetDocuments.upload.docTitlePlaceholder')}
               />
             </Field>
 
-            <Field label="Tipe Dokumen" required error={fieldErrors.typeId}>
+            <Field label={t('assetDocuments.upload.type')} required error={fieldErrors.typeId}>
               {(control) => (
                 <Select value={typeId} onValueChange={setTypeId}>
                   <SelectTrigger {...control}>
-                    <SelectValue placeholder="Pilih tipe dokumen" />
+                    <SelectValue placeholder={t('assetDocuments.upload.typePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {docTypes.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    {docTypes.map((dt) => (
+                      <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -164,32 +166,32 @@ export const UploadAssetDocumentModal = ({ assetId, assetLabel, onClose }: Props
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="No. Dokumen">
+              <Field label={t('assetDocuments.upload.number')}>
                 <Input value={issuedNumber} onChange={(e) => setIssuedNumber(e.target.value)} />
               </Field>
-              <Field label="Diterbitkan oleh">
+              <Field label={t('assetDocuments.upload.issuedBy')}>
                 <Input value={issuedBy} onChange={(e) => setIssuedBy(e.target.value)} />
               </Field>
-              <Field label="Tgl Berlaku">
+              <Field label={t('assetDocuments.upload.effective')}>
                 {(c) => <DateInput id={c.id} value={effectiveDate} onChange={setEffectiveDate} />}
               </Field>
-              <Field label="Tgl Kadaluarsa">
+              <Field label={t('assetDocuments.upload.expiry')}>
                 {(c) => <DateInput id={c.id} value={expiryDate} onChange={setExpiryDate} />}
               </Field>
             </div>
 
-            <Field label="File (PDF)" required hint="Format PDF, maksimal 20 MB." error={fieldErrors.file}>
+            <Field label={t('assetDocuments.upload.file')} required hint={t('assetDocuments.upload.fileHint')} error={fieldErrors.file}>
               <Input type="file" accept="application/pdf" onChange={handleFile} />
             </Field>
           </div>
 
           <DialogFooter className="border-t border-border px-6 py-3">
             <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-              Batal
+              {t('shared.cancel')}
             </Button>
             <Button type="submit" loading={busy}>
               {!busy && <Upload aria-hidden />}
-              {busy ? 'Mengunggah…' : 'Unggah'}
+              {busy ? t('assetDocuments.upload.uploading') : t('assetDocuments.upload.upload')}
             </Button>
           </DialogFooter>
         </form>

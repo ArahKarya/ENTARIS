@@ -1,6 +1,7 @@
 /** Fleet modal building blocks: dialog shell and labelled native controls. */
 import { useId, type FormEvent, type ReactNode } from 'react';
 import { Save, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { controlBase } from '@/components/ui/styles';
@@ -51,13 +52,14 @@ interface ModalFormProps {
 export function ModalForm({
   onSubmit,
   onCancel,
-  submitLabel = 'Simpan',
+  submitLabel,
   submitIcon: SubmitIcon = Save,
   submitting,
   submitDisabled,
   submitTone = 'primary',
   children,
 }: ModalFormProps) {
+  const { t } = useTranslation('eam');
   const submit = (e: FormEvent) => {
     e.preventDefault();
     onSubmit();
@@ -67,11 +69,11 @@ export function ModalForm({
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-4">{children}</div>
       <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-card px-6 py-3 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Batal
+          {t('fleet.form.cancel')}
         </Button>
         <Button type="submit" variant={submitTone} loading={submitting} disabled={submitDisabled}>
           {!submitting && <SubmitIcon aria-hidden />}
-          {submitLabel}
+          {submitLabel ?? t('fleet.form.save')}
         </Button>
       </div>
     </form>

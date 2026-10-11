@@ -41,13 +41,15 @@ import { AssetDetailSheet } from '@/components/ga/assets/AssetDetailSheet';
 import { AssetFormSheet } from '@/components/ga/assets/AssetFormSheet';
 import { useGaMaster } from '@/components/ga/assets/useGaMaster';
 import AssetDocumentsDrawer from './assets/AssetDocumentsDrawer';
+import { useTranslation } from 'react-i18next';
 
 const ENDPOINT = '/ga/assets';
 const ASSET_PARAM = 'asset';
-const STATUS_FILTER = statusOptions(ASSET_STATUSES, 'ga_asset');
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-44';
 
 export const GaAssetsPage = () => {
+  const { t } = useTranslation('eam');
+  const statusFilter = useMemo(() => statusOptions(ASSET_STATUSES, 'ga_asset'), []);
   const queryClient = useQueryClient();
   const list = useListState({ filters: ASSET_FILTER_KEYS, defaultSort: { id: 'code', desc: false } });
   const [density, setDensity] = useTableDensity();
@@ -99,11 +101,11 @@ export const GaAssetsPage = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.post('/ga/assets/bulk/delete', { ids: [id] }),
     onSuccess: (_res, id) => {
-      toast.success('Aset dihapus.');
+      toast.success(t('assets.page.deleted'));
       queryClient.invalidateQueries({ queryKey: ['ga-assets'] }); // prefix: register + per-kind lists
       if (assetId === id) setAssetParam(null);
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal menghapus aset.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('assets.page.deleteFailed'))),
   });
 
   // The QR modal and documents drawer render outside the sheet, so the sheet
@@ -127,13 +129,13 @@ export const GaAssetsPage = () => {
     () => [
       {
         id: 'photo',
-        header: () => <span className="sr-only">Foto</span>,
+        header: () => <span className="sr-only">{t('assets.page.photo')}</span>,
         meta: { headerClassName: 'w-14', cellClassName: 'w-14 py-1.5' },
-        cell: ({ row }) => <AssetThumb filePath={row.original.photos?.[0]?.filePath} alt={`Foto ${row.original.name}`} />,
+        cell: ({ row }) => <AssetThumb filePath={row.original.photos?.[0]?.filePath} alt={t('assets.page.photoAlt', { name: row.original.name })} />,
       },
       {
         id: 'code',
-        header: 'Kode',
+        header: t('assets.page.code'),
         enableSorting: true,
         meta: { cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
@@ -151,7 +153,7 @@ export const GaAssetsPage = () => {
       },
       {
         id: 'name',
-        header: 'Nama Aset',
+        header: t('assets.page.name'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-80' },
         cell: ({ row }) => {
@@ -164,7 +166,7 @@ export const GaAssetsPage = () => {
                   <StatusBadge
                     tone="info"
                     dot={false}
-                    label="Aset Tetap"
+                    label={t('assets.page.fixedAsset')}
                     className="text-[11px]"
                   />
                 )}
@@ -180,19 +182,19 @@ export const GaAssetsPage = () => {
       },
       {
         id: 'category',
-        header: 'Kategori',
+        header: t('assets.page.category'),
         meta: { hideBelow: 'md', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => row.original.category?.name ?? '—',
       },
       {
         id: 'branch',
-        header: 'Cabang',
+        header: t('assets.page.branch'),
         meta: { hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => row.original.branch?.name ?? '—',
       },
       {
         id: 'condition',
-        header: 'Kondisi',
+        header: t('assets.page.condition'),
         enableSorting: true,
         meta: { hideBelow: 'md' },
         cell: ({ row }) => {
@@ -202,33 +204,33 @@ export const GaAssetsPage = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="ga_asset" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const a = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${a.code}`}
+              label={t('shared.actionsFor', { name: a.code })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => openAsset(a) },
-                { label: 'QR aset', icon: QrCode, onSelect: () => setQrTarget(a) },
-                { label: 'Dokumen', icon: FileText, hidden: !canViewDocs, onSelect: () => setDocTarget(a) },
-                { label: 'Edit', icon: Pencil, hidden: !canEdit, onSelect: () => setForm({ asset: a }) },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(a) },
+                { label: t('assets.page.viewDetail'), icon: Eye, onSelect: () => openAsset(a) },
+                { label: t('assets.page.qr'), icon: QrCode, onSelect: () => setQrTarget(a) },
+                { label: t('assets.page.documents'), icon: FileText, hidden: !canViewDocs, onSelect: () => setDocTarget(a) },
+                { label: t('shared.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setForm({ asset: a }) },
+                { label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(a) },
               ]}
             />
           );
         },
       },
     ],
-    [canEdit, canViewDocs, openAsset],
+    [canEdit, canViewDocs, openAsset, t],
   );
 
   const rows = assetsQuery.data?.data;
@@ -237,13 +239,13 @@ export const GaAssetsPage = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Daftar Aset"
-        description="Registri aset fisik perusahaan beserta foto, QR, dokumen, status, dan kondisinya."
+        title={t('assets.page.title')}
+        description={t('assets.page.description')}
         actions={
           canEdit && (
             <Button onClick={() => setForm({ asset: null })}>
               <Plus aria-hidden />
-              Tambah Aset
+              {t('assets.page.add')}
             </Button>
           )
         }
@@ -252,14 +254,14 @@ export const GaAssetsPage = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari aset"
-          searchPlaceholder="Cari kode, nama, seri, lokasi"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('assets.page.searchLabel')}
+          searchPlaceholder={t('assets.page.searchPlaceholder')}
+          status={{ options: statusFilter }}
         >
           {!categories.isError && (
             <SelectFilter
-              label="Filter kategori"
-              allLabel="Semua kategori"
+              label={t('assets.page.categoryFilter')}
+              allLabel={t('assets.page.allCategories')}
               value={list.filters.categoryId}
               onChange={(v) => list.setFilter('categoryId', v)}
               options={categoryOptions}
@@ -267,8 +269,8 @@ export const GaAssetsPage = () => {
             />
           )}
           <SelectFilter
-            label="Filter kondisi"
-            allLabel="Semua kondisi"
+            label={t('assets.page.conditionFilter')}
+            allLabel={t('assets.page.allConditions')}
             value={list.filters.condition}
             onChange={(v) => list.setFilter('condition', v)}
             options={CONDITION_OPTIONS}
@@ -276,8 +278,8 @@ export const GaAssetsPage = () => {
           />
           {!branches.isError && (
             <SelectFilter
-              label="Filter cabang"
-              allLabel="Semua cabang"
+              label={t('assets.page.branchFilter')}
+              allLabel={t('assets.page.allBranches')}
               value={list.filters.branchId}
               onChange={(v) => list.setFilter('branchId', v)}
               options={branchOptions}
@@ -288,8 +290,8 @@ export const GaAssetsPage = () => {
 
         <DataTable
           {...listTableProps(list, assetsQuery.data?.total)}
-          label="Daftar aset"
-          itemLabel="aset"
+          label={t('assets.page.tableLabel')}
+          itemLabel={t('assets.page.itemLabel')}
           columns={columns}
           data={rows}
           getRowId={(row) => row.id}
@@ -302,12 +304,12 @@ export const GaAssetsPage = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada aset',
-            description: 'Daftarkan aset fisik perusahaan (kendaraan, gedung, peralatan, perangkat IT) beserta foto dan QR-nya.',
+            title: t('assets.page.emptyTitle'),
+            description: t('assets.page.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setForm({ asset: null })}>
                 <Boxes aria-hidden />
-                Tambah aset pertama
+                {t('assets.page.addFirst')}
               </Button>
             ) : undefined,
           }}
@@ -348,9 +350,9 @@ export const GaAssetsPage = () => {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         tone="danger"
-        title="Hapus aset?"
-        description={`Hapus aset ${deleteTarget?.code ?? ''} · ${deleteTarget?.name ?? ''}? Foto dan QR-nya ikut terhapus. Tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Ya, hapus"
+        title={t('assets.page.deleteTitle')}
+        description={t('assets.page.deleteDescription', { code: deleteTarget?.code ?? '', name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('shared.confirmDelete')}
         loading={deleteMutation.isPending}
         onConfirm={async () => {
           if (!deleteTarget) return;

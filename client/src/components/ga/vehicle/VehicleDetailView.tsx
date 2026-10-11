@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, QrCode } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,6 +40,7 @@ interface VehicleDetailViewProps {
 
 export function VehicleDetailView({ assetId, section, onSectionChange, onBack, backHref, canEdit, canApprove }: VehicleDetailViewProps) {
   const [showQr, setShowQr] = useState(false);
+  const { t } = useTranslation('eam');
 
   const rowQuery = useQuery({
     queryKey: [...vehicleKeys.fleetList, 'row', assetId],
@@ -54,19 +56,19 @@ export function VehicleDetailView({ assetId, section, onSectionChange, onBack, b
   const row = rowQuery.data ?? null;
   const asset = assetQuery.data;
 
-  if (rowQuery.isLoading) return <LoadingState label="Memuat data kendaraan…" />;
+  if (rowQuery.isLoading) return <LoadingState label={t('fleet.detail.loading')} />;
   if (rowQuery.isError || !row) {
     return (
       <div className="space-y-5 pb-8">
-        <PageHeader title="Kendaraan" breadcrumbs={[{ label: 'Kendaraan', href: backHref }, { label: 'Detail' }]} />
+        <PageHeader title={t('fleet.detail.vehicles')} breadcrumbs={[{ label: t('fleet.detail.vehicles'), href: backHref }, { label: t('fleet.detail.detail') }]} />
         <EmptyState
           kind={rowQuery.isError ? 'error' : 'empty'}
-          title={rowQuery.isError ? undefined : 'Kendaraan tidak ditemukan'}
-          description={rowQuery.isError ? undefined : 'Aset ini tidak ada atau bukan kategori kendaraan.'}
+          title={rowQuery.isError ? undefined : t('fleet.detail.notFound')}
+          description={rowQuery.isError ? undefined : t('fleet.detail.notFoundDescription')}
           action={
             <Button variant="outline" onClick={onBack}>
               <ArrowLeft aria-hidden />
-              Kembali ke daftar
+              {t('fleet.detail.backToList')}
             </Button>
           }
         />
@@ -83,12 +85,12 @@ export function VehicleDetailView({ assetId, section, onSectionChange, onBack, b
     <div className="space-y-4 pb-8">
       <PageHeader
         title={title}
-        breadcrumbs={[{ label: 'Kendaraan', href: backHref }, { label: title }]}
+        breadcrumbs={[{ label: t('fleet.detail.vehicles'), href: backHref }, { label: title }]}
         description={
           <>
             {model || row.name}
             <span className="num"> · {row.code}</span>
-            {row.driver?.fullName ? ` · Driver: ${row.driver.fullName}` : ''}
+            {row.driver?.fullName ? ` · ${t('fleet.detail.driver', { name: row.driver.fullName })}` : ''}
           </>
         }
         actions={
@@ -96,19 +98,19 @@ export function VehicleDetailView({ assetId, section, onSectionChange, onBack, b
             <StatusBadge status={row.status} docType="ga_asset" />
             <Button variant="outline" size="sm" onClick={onBack} className="sm:hidden">
               <ArrowLeft aria-hidden />
-              Daftar
+              {t('fleet.detail.list')}
             </Button>
             {asset?.qr && (
               <Button variant="outline" size="sm" onClick={() => setShowQr(true)}>
                 <QrCode aria-hidden />
-                QR aset
+                {t('fleet.detail.assetQr')}
               </Button>
             )}
           </>
         }
       >
         {issues.length > 0 && (
-          <ul aria-label="Perlu tindakan" className="flex flex-wrap gap-x-4 gap-y-1">
+          <ul aria-label={t('fleet.detail.needsAction')} className="flex flex-wrap gap-x-4 gap-y-1">
             {issues.map((i) => (
               <li key={i.doc}>
                 <DueMarker state={i.state} prefix={FLEET_DOC_LABELS[i.doc]} />
@@ -119,7 +121,7 @@ export function VehicleDetailView({ assetId, section, onSectionChange, onBack, b
       </PageHeader>
 
       <Tabs value={section} onValueChange={(v) => onSectionChange(v as VehicleSection)}>
-        <TabsList variant="underline" aria-label="Bagian detail kendaraan" className="-mx-4 px-4 sm:mx-0 sm:px-0">
+        <TabsList variant="underline" aria-label={t('fleet.detail.sections')} className="-mx-4 px-4 sm:mx-0 sm:px-0">
           {VEHICLE_SECTIONS.map((s) => (
             <TabsTrigger key={s.key} value={s.key}>
               {s.label}

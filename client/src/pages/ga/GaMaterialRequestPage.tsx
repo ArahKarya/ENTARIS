@@ -25,13 +25,15 @@ import {
 import { CreateMrModal } from './materialRequest/CreateMrModal';
 import { MrDetailDrawer } from './materialRequest/MrDetailDrawer';
 import { MR_STATUS_FILTERS, type MrListRow, type MrSummary } from './materialRequest/types';
+import { useTranslation } from 'react-i18next';
 
 const ENDPOINT = '/ga/material-requests';
 const FILTER_KEYS = ['status', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(MR_STATUS_FILTERS, 'ga_material_request');
 const MR_PARAM = 'mr';
 
 export function GaMaterialRequestPage() {
+  const { t } = useTranslation('eam');
+  const statusFilter = useMemo(() => statusOptions(MR_STATUS_FILTERS, 'ga_material_request'), []);
   const canEdit = can('ga_material_request', 'edit');
   const canViewWorkOrder = can('ga_maintenance', 'view');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'requestedAt', desc: true } });
@@ -80,7 +82,7 @@ export function GaMaterialRequestPage() {
     () => [
       {
         id: 'code',
-        header: 'Kode',
+        header: t('materialRequest.page.code'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => {
@@ -99,7 +101,7 @@ export function GaMaterialRequestPage() {
       },
       {
         id: 'requestedAt',
-        header: 'Tanggal',
+        header: t('shared.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -107,7 +109,7 @@ export function GaMaterialRequestPage() {
       },
       {
         id: 'target',
-        header: 'Aset / Mesin',
+        header: t('materialRequest.page.target'),
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => {
           const mr = row.original;
@@ -124,7 +126,7 @@ export function GaMaterialRequestPage() {
       },
       {
         id: 'workOrder',
-        header: 'WO',
+        header: t('materialRequest.page.wo'),
         meta: { hideBelow: 'lg' },
         cell: ({ row }) =>
           row.original.workOrder ? (
@@ -138,35 +140,35 @@ export function GaMaterialRequestPage() {
       },
       {
         id: 'requester',
-        header: 'Pemohon',
+        header: t('materialRequest.page.requester'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-40 truncate' },
         cell: ({ row }) => row.original.requester?.fullName ?? '—',
       },
       {
         id: 'items',
-        header: 'Item',
+        header: t('materialRequest.page.items'),
         meta: { align: 'right', hideBelow: 'md' },
         cell: ({ row }) => formatNumber(row.original._count?.items ?? row.original.items.length),
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         enableSorting: true,
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="ga_material_request" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk ${row.original.code}`}
-            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => openDetail(row.original) }]}
+            label={t('shared.actionsFor', { name: row.original.code })}
+            actions={[{ label: t('materialRequest.page.viewDetail'), icon: Eye, onSelect: () => openDetail(row.original) }]}
           />
         ),
       },
     ],
-    [openDetail],
+    [openDetail, t],
   );
 
   const s = summaryQuery.data;
@@ -176,37 +178,37 @@ export function GaMaterialRequestPage() {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Permintaan Barang"
-        description="Permintaan barang & pengadaan sparepart pemeliharaan, dari permintaan sampai barang masuk stok."
+        title={t('materialRequest.page.title')}
+        description={t('materialRequest.page.description')}
         actions={
           canEdit && (
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus aria-hidden />
-              Buat Permintaan
+              {t('materialRequest.page.create')}
             </Button>
           )
         }
       />
 
-      <section aria-label="Ringkasan permintaan barang" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Menunggu Persetujuan" icon={Clock} loading={kpiLoading} value={n(s?.byStatus.SUBMITTED)} hint={s ? `${formatNumber(s.byStatus.DRAFT)} masih draf` : undefined} />
-        <StatCard label="Proses Pengadaan" icon={PackageCheck} loading={kpiLoading} value={n(s?.byStatus.APPROVED)} hint="disetujui, menunggu barang" />
-        <StatCard label="Selesai" icon={CheckCircle2} loading={kpiLoading} value={n(s?.byStatus.FULFILLED)} hint="semua barang diterima" />
-        <StatCard label="Dibayar" icon={Wallet} loading={kpiLoading} value={n(s?.byStatus.PAID)} hint={s ? `dari ${formatNumber(s.total)} permintaan` : undefined} />
+      <section aria-label={t('materialRequest.page.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('materialRequest.page.kpiWaiting')} icon={Clock} loading={kpiLoading} value={n(s?.byStatus.SUBMITTED)} hint={s ? t('materialRequest.page.kpiWaitingHint', { drafts: formatNumber(s.byStatus.DRAFT) }) : undefined} />
+        <StatCard label={t('materialRequest.page.kpiProcurement')} icon={PackageCheck} loading={kpiLoading} value={n(s?.byStatus.APPROVED)} hint={t('materialRequest.page.kpiProcurementHint')} />
+        <StatCard label={t('materialRequest.page.kpiDone')} icon={CheckCircle2} loading={kpiLoading} value={n(s?.byStatus.FULFILLED)} hint={t('materialRequest.page.kpiDoneHint')} />
+        <StatCard label={t('materialRequest.page.kpiPaid')} icon={Wallet} loading={kpiLoading} value={n(s?.byStatus.PAID)} hint={s ? t('materialRequest.page.kpiPaidHint', { total: formatNumber(s.total) }) : undefined} />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari permintaan barang"
-          searchPlaceholder="Cari kode, aset, WO, atau nama barang"
-          status={{ options: STATUS_FILTER }}
-          dateRange={{ label: 'Rentang tanggal permintaan' }}
+          searchLabel={t('materialRequest.page.searchLabel')}
+          searchPlaceholder={t('materialRequest.page.searchPlaceholder')}
+          status={{ options: statusFilter }}
+          dateRange={{ label: t('materialRequest.page.dateRange') }}
         />
         <DataTable
           {...listTableProps(list, listQuery.data?.total)}
-          label="Daftar permintaan barang"
-          itemLabel="permintaan"
+          label={t('materialRequest.page.tableLabel')}
+          itemLabel={t('materialRequest.page.itemLabel')}
           columns={columns}
           data={rows}
           getRowId={(row) => row.id}
@@ -219,12 +221,12 @@ export function GaMaterialRequestPage() {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada permintaan barang',
-            description: 'Permintaan sparepart dari work order atau permintaan mandiri akan muncul di sini.',
+            title: t('materialRequest.page.emptyTitle'),
+            description: t('materialRequest.page.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setIsCreateOpen(true)}>
                 <Plus aria-hidden />
-                Buat permintaan pertama
+                {t('materialRequest.page.createFirst')}
               </Button>
             ) : undefined,
           }}

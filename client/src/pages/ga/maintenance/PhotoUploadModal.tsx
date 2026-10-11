@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/shared';
 import { FormModal } from '@/components/ga/maintenance/form-modal';
+import { useTranslation } from 'react-i18next';
 
 // Upload a BEFORE/AFTER photo for a work order.
 // POSTs multipart/form-data to /ga/maintenance/work-orders/:id/photos with field `photo`.
@@ -13,10 +14,7 @@ const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 type PhotoType = 'BEFORE' | 'AFTER';
-const PHOTO_TYPES: Array<{ value: PhotoType; label: string }> = [
-  { value: 'BEFORE', label: 'Sebelum' },
-  { value: 'AFTER', label: 'Sesudah' },
-];
+const PHOTO_TYPES: readonly PhotoType[] = ['BEFORE', 'AFTER'];
 
 export const PhotoUploadModal = ({
   id,
@@ -27,6 +25,7 @@ export const PhotoUploadModal = ({
   onClose: () => void;
   onDone: () => void;
 }) => {
+  const { t } = useTranslation('eam');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | undefined>();
   const [type, setType] = useState<PhotoType>('BEFORE');
@@ -41,12 +40,12 @@ export const PhotoUploadModal = ({
     }
     if (!ACCEPTED.includes(f.type)) {
       setFile(null);
-      setFileError('Format harus JPG, PNG, atau WEBP.');
+      setFileError(t('maintenance.photo.format'));
       return;
     }
     if (f.size > MAX_BYTES) {
       setFile(null);
-      setFileError('Ukuran file maksimal 5 MB.');
+      setFileError(t('maintenance.photo.size'));
       return;
     }
     setFile(f);
@@ -54,7 +53,7 @@ export const PhotoUploadModal = ({
 
   const submit = async () => {
     if (!file) {
-      setFileError('File foto wajib dipilih.');
+      setFileError(t('maintenance.photo.required'));
       return;
     }
     setSubmitting(true);
@@ -65,20 +64,20 @@ export const PhotoUploadModal = ({
       if (caption.trim()) fd.append('caption', caption.trim());
       // Do NOT set Content-Type manually — axios sets the multipart boundary.
       await api.post(`/ga/maintenance/work-orders/${id}/photos`, fd);
-      toast.success('Foto diunggah.');
+      toast.success(t('maintenance.photo.uploaded'));
       onDone();
       onClose();
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg || 'Gagal mengunggah foto.');
+      toast.error(msg || t('maintenance.photo.uploadFailed'));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <FormModal title="Tambah Foto" onClose={onClose} onSubmit={submit} submitLabel="Unggah" submitting={submitting}>
-      <Field label="File foto" required hint="JPG, PNG, atau WEBP, maks. 5 MB." error={fileError}>
+    <FormModal title={t('maintenance.photo.title')} onClose={onClose} onSubmit={submit} submitLabel={t('maintenance.photo.upload')} submitting={submitting}>
+      <Field label={t('maintenance.photo.file')} required hint={t('maintenance.photo.fileHint')} error={fileError}>
         <Input
           type="file"
           accept="image/jpeg,image/png,image/webp"
@@ -92,24 +91,24 @@ export const PhotoUploadModal = ({
         </p>
       )}
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="mb-1.5 text-sm font-medium text-foreground">Tipe</legend>
+        <legend className="mb-1.5 text-sm font-medium text-foreground">{t('maintenance.photo.type')}</legend>
         <div className="flex gap-4">
-          {PHOTO_TYPES.map((t) => (
-            <label key={t.value} className="flex items-center gap-2 text-sm text-foreground">
+          {PHOTO_TYPES.map((value) => (
+            <label key={value} className="flex items-center gap-2 text-sm text-foreground">
               <input
                 type="radio"
                 name="photo-type"
-                value={t.value}
-                checked={type === t.value}
-                onChange={() => setType(t.value)}
+                value={value}
+                checked={type === value}
+                onChange={() => setType(value)}
                 className="size-4 accent-[var(--primary)]"
               />
-              {t.label}
+              {value === 'BEFORE' ? t('maintenance.photo.before') : t('maintenance.photo.after')}
             </label>
           ))}
         </div>
       </fieldset>
-      <Field label="Keterangan" hint="Opsional">
+      <Field label={t('maintenance.photo.caption')} hint={t('maintenance.photo.optional')}>
         <Input value={caption} onChange={(e) => setCaption(e.target.value)} />
       </Field>
     </FormModal>

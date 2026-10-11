@@ -24,6 +24,7 @@ import { FLUSH_TABLE } from '../ui-classes';
 import { fetchInspectionCategories, useInspectionCategories, useInvalidateVehicle, vehicleKeys } from '../vehicle-queries';
 import { apiError, daysUntil, dueStateOf } from '../vehicle-model';
 import { DetailItem, DueDateCell, DueMarker, ToneBadge, UnitHeader } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 interface InspectionSectionProps extends VehicleContext {
   pdfAsset: InspectionPdfAsset;
@@ -47,15 +48,16 @@ function InspectionDetailDialog({
   onClose: () => void;
   onPhotoDeleted: () => void;
 }) {
+  const { t } = useTranslation('eam');
   const categories = useInspectionCategories();
   const deletePhoto = useMutation({
     mutationFn: (photoId: string) =>
       api.delete(`/ga/vehicle/assets/${assetId}/inspections/${inspection?.id}/photos/${photoId}`),
     onSuccess: () => {
-      toast.success('Foto dihapus.');
+      toast.success(t('vehicleSections.inspections.photoDeleted'));
       onPhotoDeleted();
     },
-    onError: () => toast.error('Gagal menghapus foto.'),
+    onError: () => toast.error(t('vehicleSections.inspections.photoDeleteFailed')),
   });
 
   const checklist = inspection?.checklist ?? {};
@@ -85,20 +87,20 @@ function InspectionDetailDialog({
         {inspection && (
           <>
             <DialogHeader>
-              <DialogTitle>Inspeksi {formatDate(inspection.tanggal)}</DialogTitle>
+              <DialogTitle>{t('vehicleSections.inspections.dialogTitle', { date: formatDate(inspection.tanggal) })}</DialogTitle>
               <DialogDescription asChild>
                 <div className="flex items-center gap-2">
-                  Hasil: <ResultBadge result={inspection.overallResult} />
+                  {t('vehicleSections.inspections.resultLabel')} <ResultBadge result={inspection.overallResult} />
                 </div>
               </DialogDescription>
             </DialogHeader>
             <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <DetailItem label="Inspektor">{inspection.inspectorName || '—'}</DetailItem>
-              <DetailItem label="Level BBM">{inspection.fuelLevel ? FUEL_LEVEL_LABELS[inspection.fuelLevel] ?? inspection.fuelLevel : '—'}</DetailItem>
-              <DetailItem label="Odometer">
+              <DetailItem label={t('vehicleSections.inspections.inspector')}>{inspection.inspectorName || '—'}</DetailItem>
+              <DetailItem label={t('vehicleSections.inspections.fuelLevel')}>{inspection.fuelLevel ? FUEL_LEVEL_LABELS[inspection.fuelLevel] ?? inspection.fuelLevel : '—'}</DetailItem>
+              <DetailItem label={t('vehicleSections.inspections.odometer')}>
                 <span className="num">{inspection.odometer != null ? `${formatNumber(inspection.odometer)} km` : '—'}</span>
               </DetailItem>
-              <DetailItem label="Inspeksi berikutnya">
+              <DetailItem label={t('vehicleSections.inspections.nextInspection')}>
                 <DueDateCell date={inspection.nextDueDate} state={dueStateOf(inspection.nextDueDate)} />
               </DetailItem>
             </dl>
@@ -115,13 +117,13 @@ function InspectionDetailDialog({
                       <ul className="mt-2 flex flex-wrap gap-2">
                         {catPhotos.map((ph) => (
                           <li key={ph.id} className="relative">
-                            <img src={`${photoBase}/${ph.id}/file`} alt={`Foto ${cat.label}`} className="h-24 w-32 rounded-md border border-border object-cover" />
+                            <img src={`${photoBase}/${ph.id}/file`} alt={t('vehicleSections.inspections.photoAlt', { name: cat.label })} className="h-24 w-32 rounded-md border border-border object-cover" />
                             {canEdit && (
                               <Button
                                 variant="danger"
                                 size="icon-sm"
                                 className="absolute right-1 top-1 size-7"
-                                aria-label={`Hapus foto ${cat.label}`}
+                                aria-label={t('vehicleSections.inspections.deletePhoto', { name: cat.label })}
                                 onClick={() => deletePhoto.mutate(ph.id)}
                               >
                                 <Trash2 className="size-3.5" aria-hidden />
@@ -135,15 +137,15 @@ function InspectionDetailDialog({
                 );
               })}
               {legacyKeys.length > 0 && (
-                <section aria-label="Checklist format lama">
-                  <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checklist (format lama)</h3>
+                <section aria-label={t('vehicleSections.inspections.legacy')}>
+                  <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('vehicleSections.inspections.legacyHeading')}</h3>
                   {items(legacyKeys)}
                 </section>
               )}
-              {Object.keys(checklist).length === 0 && <p className="text-sm text-muted-foreground">Checklist tidak tersedia untuk inspeksi ini.</p>}
+              {Object.keys(checklist).length === 0 && <p className="text-sm text-muted-foreground">{t('vehicleSections.inspections.noChecklist')}</p>}
               {inspection.notes && (
-                <section aria-label="Catatan">
-                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Catatan</h3>
+                <section aria-label={t('shared.notes')}>
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('shared.notes')}</h3>
                   <p className="text-sm text-foreground">{inspection.notes}</p>
                 </section>
               )}
@@ -157,6 +159,7 @@ function InspectionDetailDialog({
 
 export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSectionProps) {
   const invalidate = useInvalidateVehicle(assetId);
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const company = useCompanyPDF();
   const [showModal, setShowModal] = useState(false);
@@ -174,10 +177,10 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/vehicle/assets/${assetId}/inspections/${id}`),
     onSuccess: () => {
-      toast.success('Data inspeksi dihapus.');
+      toast.success(t('vehicleSections.inspections.deleted'));
       invalidate(['inspections']);
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal hapus data inspeksi.')),
+    onError: (e) => toast.error(apiError(e, t('vehicleSections.inspections.deleteFailed'))),
   });
 
   const exportPdf = async (insp: Inspection) => {
@@ -196,7 +199,7 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
           failed += 1;
         }
       }
-      if (failed > 0) toast.warning(`${failed} foto gagal dimuat, PDF tetap dibuat.`);
+      if (failed > 0) toast.warning(t('vehicleSections.inspections.pdfPhotosFailed', { count: failed }));
       const blob = await pdf(
         <InspectionDetailPDF
           inspection={insp}
@@ -204,13 +207,13 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
           categories={categories}
           photos={photos}
           company={{ name: company.name, address: company.address, logoUrl: company.logoUrl }}
-          printedBy={getStoredUser()?.fullName ?? 'Pengguna'}
+          printedBy={getStoredUser()?.fullName ?? t('vehicleSections.inspections.defaultUser')}
           generatedAt={new Date()}
         />,
       ).toBlob();
-      downloadBlob(blob, `Inspeksi_${pdfAsset.noPlat || pdfAsset.code}_${String(insp.tanggal ?? '').slice(0, 10)}.pdf`);
+      downloadBlob(blob, `${t('vehicleSections.inspections.filePrefix')}_${pdfAsset.noPlat || pdfAsset.code}_${String(insp.tanggal ?? '').slice(0, 10)}.pdf`);
     } catch (e) {
-      toast.error(apiError(e, 'Gagal membuat PDF inspeksi.'));
+      toast.error(apiError(e, t('vehicleSections.inspections.pdfFailed')));
     } finally {
       setPdfBusy(null);
     }
@@ -225,7 +228,7 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
     () => [
       {
         id: 'tanggal',
-        header: 'Tanggal',
+        header: t('shared.date'),
         cell: ({ row }) => (
           <div>
             <p className="num whitespace-nowrap text-foreground">{formatDate(row.original.tanggal)}</p>
@@ -235,24 +238,24 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
       },
       {
         id: 'result',
-        header: 'Hasil',
+        header: t('vehicleSections.inspections.result'),
         cell: ({ row }) => <ResultBadge result={row.original.overallResult} />,
       },
       {
         id: 'odometer',
-        header: () => <UnitHeader label="Odometer" unit="km" />,
+        header: () => <UnitHeader label={t('vehicleSections.inspections.odometer')} unit="km" />,
         meta: { align: 'right', hideBelow: 'md' },
         cell: ({ row }) => (row.original.odometer != null ? formatNumber(row.original.odometer) : '—'),
       },
       {
         id: 'next',
-        header: 'Berikutnya',
+        header: t('vehicleSections.inspections.next'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <DueDateCell date={row.original.nextDueDate} state={dueStateOf(row.original.nextDueDate)} />,
       },
       {
         id: 'photos',
-        header: 'Foto',
+        header: t('vehicleSections.inspections.photos'),
         meta: { hideBelow: 'lg' },
         cell: ({ row }) =>
           row.original.photos?.length ? (
@@ -266,17 +269,17 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const i = row.original;
           return (
             <RowActions
-              label={`Aksi untuk inspeksi ${formatDate(i.tanggal)}`}
+              label={t('vehicleSections.inspections.actionsFor', { date: formatDate(i.tanggal) })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setDetailId(i.id) },
-                { label: pdfBusy === i.id ? 'Membuat PDF…' : 'Unduh PDF', icon: FileDown, disabled: !!pdfBusy, onSelect: () => exportPdf(i) },
-                { label: 'Hapus', icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(i) },
+                { label: t('vehicleSections.inspections.viewDetail'), icon: Eye, onSelect: () => setDetailId(i.id) },
+                { label: pdfBusy === i.id ? t('vehicleSections.inspections.pdfBusy') : t('vehicleSections.inspections.downloadPdf'), icon: FileDown, disabled: !!pdfBusy, onSelect: () => exportPdf(i) },
+                { label: t('shared.delete'), icon: Trash2, tone: 'danger', hidden: !canEdit, onSelect: () => setDeleteTarget(i) },
               ]}
             />
           );
@@ -285,20 +288,20 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
     ],
     // exportPdf reads pdfAsset/company at call time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canEdit, pdfBusy, pdfAsset, company],
+    [canEdit, pdfBusy, pdfAsset, company, t],
   );
 
   return (
     <>
       <Panel
-        title="Inspeksi Berkala"
-        description="Klik baris untuk melihat checklist dan foto."
+        title={t('vehicleSections.inspections.title')}
+        description={t('vehicleSections.inspections.description')}
         bodyClassName="p-0"
         action={
           canEdit && (
             <Button size="sm" onClick={() => setShowModal(true)}>
               <Plus aria-hidden />
-              Inspeksi baru
+              {t('vehicleSections.inspections.add')}
             </Button>
           )
         }
@@ -311,18 +314,18 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
             )}
           >
             <CalendarClock className="size-4 text-muted-foreground" aria-hidden />
-            Jadwal inspeksi berikutnya <strong className="num">{formatDate(next)}</strong>
+            {t('vehicleSections.inspections.nextSchedule')} <strong className="num">{formatDate(next)}</strong>
             {nextDays !== null && (
               <span className="text-muted-foreground">
-                ({nextDays < 0 ? `terlambat ${Math.abs(nextDays)} hari` : `${nextDays} hari lagi`})
+                ({nextDays < 0 ? t('vehicleSections.inspections.lateDays', { count: Math.abs(nextDays) }) : t('vehicleSections.inspections.inDays', { count: nextDays })})
               </span>
             )}
             <DueMarker state={nextState} hideOk />
           </p>
         )}
         <DataTable
-          label="Riwayat inspeksi"
-          itemLabel="inspeksi"
+          label={t('vehicleSections.inspections.tableLabel')}
+          itemLabel={t('vehicleSections.inspections.itemLabel')}
           columns={columns}
           data={query.data}
           getRowId={(r) => r.id}
@@ -332,7 +335,7 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
           onRowClick={(r) => setDetailId(r.id)}
           stickyHeader={false}
           className={FLUSH_TABLE}
-          empty={{ title: 'Belum ada data inspeksi', description: 'Inspeksi berkala menjaga kendaraan tetap laik jalan.' }}
+          empty={{ title: t('vehicleSections.inspections.emptyTitle'), description: t('vehicleSections.inspections.emptyDescription') }}
         />
       </Panel>
 
@@ -356,9 +359,9 @@ export function InspectionSection({ assetId, canEdit, pdfAsset }: InspectionSect
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Hapus Data Inspeksi"
-        description={`Hapus data inspeksi "${deleteTarget ? formatDate(deleteTarget.tanggal) : ''}"?`}
-        confirmLabel="Ya, Hapus"
+        title={t('vehicleSections.inspections.deleteTitle')}
+        description={t('vehicleSections.inspections.deleteConfirm', { name: deleteTarget ? formatDate(deleteTarget.tanggal) : '' })}
+        confirmLabel={t('shared.confirmDelete')}
         tone="danger"
         loading={deleteMut.isPending}
         onConfirm={async () => {

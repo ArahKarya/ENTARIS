@@ -5,6 +5,8 @@
  */
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { formatNumber } from '@/lib/format';
+import { labelMap, tEam } from '../eam-i18n';
 
 export type GaDocStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'ARCHIVED';
 /** Server-derived on paged rows (services/gaDocumentList). */
@@ -66,16 +68,12 @@ export const EXPIRING_SOON_DAYS = 30;
 
 export const DOC_STATUSES: readonly GaDocStatus[] = ['ACTIVE', 'EXPIRED', 'REVOKED', 'ARCHIVED'];
 
-export const EXPIRY_LABEL: Record<GaExpiryState, string> = {
-  expired: 'Kedaluwarsa',
-  expiring: 'Segera kedaluwarsa',
-  valid: 'Berlaku',
-};
+export const EXPIRY_LABEL: Record<GaExpiryState, string> = labelMap(['expired', 'expiring', 'valid'], 'gaDocuments.expiry');
 
 export const EXPIRY_FILTER = [
-  { value: 'expired', label: 'Kedaluwarsa' },
-  { value: 'expiring', label: `Segera kedaluwarsa (${EXPIRING_SOON_DAYS} hari)` },
-  { value: 'valid', label: 'Berlaku' },
+  { value: 'expired', get label() { return tEam('gaDocuments.expiry.expired'); } },
+  { value: 'expiring', get label() { return tEam('gaDocuments.expiryFilterExpiring', { days: EXPIRING_SOON_DAYS }); } },
+  { value: 'valid', get label() { return tEam('gaDocuments.expiry.valid'); } },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -119,16 +117,16 @@ export function deriveExpiryState(
 /** "12 hari lagi" / "hari ini" / "lewat 5 hari". */
 export function expiryDistance(expiryDate: string, now: Date = new Date()): string {
   const days = daysUntil(expiryDate, now);
-  if (days === 0) return 'hari ini';
-  if (days > 0) return `${days} hari lagi`;
-  return `lewat ${Math.abs(days)} hari`;
+  if (days === 0) return tEam('gaDocuments.distance.today');
+  if (days > 0) return tEam('gaDocuments.distance.inDays', { count: days });
+  return tEam('gaDocuments.distance.overdueDays', { count: Math.abs(days) });
 }
 
 export function formatFileSize(bytes: number | null | undefined): string {
   if (!bytes || bytes <= 0) return '—';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
+  return `${formatNumber(bytes / (1024 * 1024), { decimals: 1 })} MB`;
 }
 
 /** YYYY-MM-DD for date inputs from an API timestamp. */
@@ -152,6 +150,6 @@ export async function downloadVersion(doc: Pick<GaDocumentRow, 'id' | 'code'>, v
     a.remove();
     URL.revokeObjectURL(url);
   } catch {
-    toast.error('Gagal mengunduh file dokumen.');
+    toast.error(tEam('gaDocuments.downloadFailed'));
   }
 }

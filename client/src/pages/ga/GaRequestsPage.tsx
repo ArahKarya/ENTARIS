@@ -8,6 +8,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { AlertTriangle, Ban, Check, CheckCircle2, Clock, ListChecks, Plus, ReceiptText, Wrench, X } from 'lucide-react';
 import api from '@/lib/api';
+import i18n from '@/i18n';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
 import { useListState } from '@/hooks/useListState';
@@ -24,6 +25,7 @@ import {
   listTableProps,
 } from '@/components/shared';
 import { compareNullable, includesText, pageRows, sortRows, type Comparators } from '@/components/ga/maintenance/local-list';
+import { useTranslation } from 'react-i18next';
 import {
   REQUEST_FILTER_KEYS,
   REQ_STATUS_FILTERS,
@@ -40,13 +42,8 @@ import {
 } from './requests/types';
 
 
-const STATUS_FILTER = statusOptions(REQ_STATUS_FILTERS);
-const KIND_FILTER = [
-  { value: 'SERVICE', label: 'Servis' },
-  { value: 'TAX', label: 'Pajak / STNK / KIR' },
-];
+const KIND_VALUES = ['SERVICE', 'TAX'] as const;
 const URGENSI_ORDER: Urgensi[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
-const URGENSI_FILTER = URGENSI_ORDER.map((u) => ({ value: u, label: URGENSI_LABELS[u] }));
 const FILTER_CLASS = 'w-[calc(50%-0.25rem)] sm:w-44';
 
 const STATUS_RANK: Record<ReqStatus, number> = { SUBMITTED: 0, APPROVED: 1, REJECTED: 2, COMPLETED: 3, CANCELLED: 4 };
@@ -70,7 +67,9 @@ const withUnit = (label: string) => (
   </>
 );
 
-function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = []): UnifiedRow[] {
+/** `language` is the UI language the text is built in (recomputed when it changes). */
+function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = [], language: string): UnifiedRow[] {
+  const tr = i18n.getFixedT(language, 'eam');
   const s: UnifiedRow[] = svc.map((r) => ({
     kind: 'SERVICE',
     id: r.id,
@@ -81,21 +80,29 @@ function toUnified(svc: ServiceRequestRow[] = [], tax: TaxRequestRow[] = []): Un
     assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '—',
     nominal: null,
     createdAt: r.createdAt,
-    tindakLanjut: r.workOrder ? `WO ${r.workOrder.code}` : r.rejectedReason ? `Ditolak: ${r.rejectedReason}` : null,
+    tindakLanjut: r.workOrder
+      ? tr('gaRequests.followUp.workOrder', { code: r.workOrder.code })
+      : r.rejectedReason
+        ? tr('gaRequests.followUp.rejected', { reason: r.rejectedReason })
+        : null,
   }));
-  const t: UnifiedRow[] = tax.map((r) => ({
+  const taxRows: UnifiedRow[] = tax.map((r) => ({
     kind: 'TAX',
     id: r.id,
     status: r.status,
     urgensi: r.urgensi,
     jenis: `${TAX_TYPE_LABELS[r.type] ?? r.type} ${r.periodYear}`,
-    keterangan: r.deskripsi || `Jatuh tempo ${formatDate(r.dueDate)}`,
+    keterangan: r.deskripsi || tr('gaRequests.followUp.due', { date: formatDate(r.dueDate) }),
     assetLabel: r.asset ? `${r.asset.code} · ${r.asset.name}` : '—',
     nominal: r.estimatedAmount != null ? Number(r.estimatedAmount) : null,
     createdAt: r.createdAt,
-    tindakLanjut: r.tax ? `Pajak ${r.tax.periodYear} (${r.tax.status})` : r.rejectedReason ? `Ditolak: ${r.rejectedReason}` : null,
+    tindakLanjut: r.tax
+      ? tr('gaRequests.followUp.tax', { year: r.tax.periodYear, status: r.tax.status })
+      : r.rejectedReason
+        ? tr('gaRequests.followUp.rejected', { reason: r.rejectedReason })
+        : null,
   }));
-  return [...s, ...t].sort(inboxOrder);
+  return [...s, ...taxRows].sort(inboxOrder);
 }
 
 const basePath = (r: UnifiedRow) =>
@@ -108,6 +115,16 @@ export interface RequestsTabProps {
 }
 
 export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
+  const { t, i18n: i18nInstance } = useTranslation('eam');
+  const language = i18nInstance.language;
+  const filters = useMemo(
+    () => ({
+      status: statusOptions(REQ_STATUS_FILTERS),
+      kind: KIND_VALUES.map((value) => ({ value, label: t(`gaRequests.tab.kind.${value}`) })),
+      urgensi: URGENSI_ORDER.map((u) => ({ value: u, label: URGENSI_LABELS[u] })),
+    }),
+    [t],
+  );
   const queryClient = useQueryClient();
   const list = useListState({ filters: REQUEST_FILTER_KEYS });
   const [density, setDensity] = useTableDensity();
@@ -125,7 +142,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
 
   const isLoading = svcQuery.isLoading || taxQuery.isLoading;
   const error = svcQuery.error ?? taxQuery.error;
-  const all = useMemo(() => toUnified(svcQuery.data, taxQuery.data), [svcQuery.data, taxQuery.data]);
+  const all = useMemo(() => toUnified(svcQuery.data, taxQuery.data, language), [svcQuery.data, taxQuery.data, language]);
 
   const { status, kind, urgensi } = list.filters;
   const filtered = useMemo(
@@ -161,50 +178,50 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
   const approve = useMutation({
     mutationFn: (r: UnifiedRow) => api.patch(`${basePath(r)}/${r.id}/approve`),
     onSuccess: (_res, r) => {
-      toast.success(r.kind === 'SERVICE' ? 'Pengajuan disetujui; work order dibuat.' : 'Pengajuan disetujui.');
+      toast.success(r.kind === 'SERVICE' ? t('gaRequests.tab.approvedWo') : t('gaRequests.tab.approved'));
       refresh();
     },
-    onError: (e) => toast.error(apiErrorMessage(e, 'Gagal menyetujui pengajuan.')),
+    onError: (e) => toast.error(apiErrorMessage(e, t('gaRequests.tab.approveFailed'))),
   });
   const reject = useMutation({
     mutationFn: ({ row, reason }: { row: UnifiedRow; reason: string }) =>
       api.patch(`${basePath(row)}/${row.id}/reject`, { reason }),
     onSuccess: () => {
-      toast.success('Pengajuan ditolak.');
+      toast.success(t('gaRequests.tab.rejected'));
       refresh();
     },
-    onError: (e) => toast.error(apiErrorMessage(e, 'Gagal menolak pengajuan.')),
+    onError: (e) => toast.error(apiErrorMessage(e, t('gaRequests.tab.rejectFailed'))),
   });
   const cancel = useMutation({
     mutationFn: (r: UnifiedRow) => api.patch(`${basePath(r)}/${r.id}/cancel`),
     onSuccess: () => {
-      toast.success('Pengajuan dibatalkan.');
+      toast.success(t('gaRequests.tab.cancelled'));
       refresh();
     },
-    onError: (e) => toast.error(apiErrorMessage(e, 'Gagal membatalkan pengajuan.')),
+    onError: (e) => toast.error(apiErrorMessage(e, t('gaRequests.tab.cancelFailed'))),
   });
 
   const approveRow = approve.mutate;
   const actionsFor = useCallback(
     (r: UnifiedRow) => [
-      { label: 'Setujui', icon: Check, hidden: !canEdit || r.status !== 'SUBMITTED', onSelect: () => approveRow(r) },
-      { label: 'Tolak…', icon: X, hidden: !canEdit || r.status !== 'SUBMITTED', onSelect: () => setRejectTarget(r) },
+      { label: t('gaRequests.tab.approve'), icon: Check, hidden: !canEdit || r.status !== 'SUBMITTED', onSelect: () => approveRow(r) },
+      { label: t('gaRequests.tab.rejectEllipsis'), icon: X, hidden: !canEdit || r.status !== 'SUBMITTED', onSelect: () => setRejectTarget(r) },
       {
-        label: 'Batalkan pengajuan',
+        label: t('gaRequests.tab.cancelRequest'),
         icon: Ban,
         tone: 'danger' as const,
         hidden: !canEdit || (r.status !== 'SUBMITTED' && r.status !== 'APPROVED'),
         onSelect: () => setCancelTarget(r),
       },
     ],
-    [canEdit, approveRow],
+    [canEdit, approveRow, t],
   );
 
   const columns = useMemo<ColumnDef<UnifiedRow>[]>(
     () => [
       {
         id: 'jenis',
-        header: 'Pengajuan',
+        header: t('gaRequests.tab.request'),
         meta: { cellClassName: 'min-w-44 max-w-72' },
         cell: ({ row }) => {
           const r = row.original;
@@ -213,7 +230,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 font-medium text-foreground">
                 <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="sr-only">{r.kind === 'SERVICE' ? 'Servis:' : 'Pajak:'}</span>
+                <span className="sr-only">{r.kind === 'SERVICE' ? t('gaRequests.tab.serviceSr') : t('gaRequests.tab.taxSr')}</span>
                 <span className="truncate">{r.jenis}</span>
               </p>
               <p className="truncate text-xs text-muted-foreground">{r.assetLabel}</p>
@@ -228,7 +245,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
       },
       {
         id: 'createdAt',
-        header: 'Tanggal',
+        header: t('shared.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'sm', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -236,7 +253,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
       },
       {
         id: 'keterangan',
-        header: 'Keterangan',
+        header: t('gaRequests.tab.remarks'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-72' },
         cell: ({ row }) => (
           <span className="line-clamp-2 text-muted-foreground" title={row.original.keterangan}>
@@ -246,7 +263,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
       },
       {
         id: 'nominal',
-        header: () => withUnit('Estimasi'),
+        header: () => withUnit(t('gaRequests.tab.estimate')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'xl' },
@@ -259,7 +276,7 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
       },
       {
         id: 'urgensi',
-        header: 'Urgensi',
+        header: t('gaRequests.tab.urgency'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'sm' },
@@ -269,12 +286,12 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'tindakLanjut',
-        header: 'Tindak Lanjut',
+        header: t('gaRequests.tab.followUp'),
         meta: { hideBelow: 'xl', cellClassName: 'max-w-52' },
         cell: ({ row }) => (
           <span className="block truncate text-muted-foreground" title={row.original.tindakLanjut ?? ''}>
@@ -284,54 +301,54 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
-          <RowActions label={`Aksi untuk pengajuan ${row.original.jenis}`} actions={actionsFor(row.original)} />
+          <RowActions label={t('gaRequests.tab.actionsFor', { name: row.original.jenis })} actions={actionsFor(row.original)} />
         ),
       },
     ],
-    [actionsFor],
+    [actionsFor, t],
   );
 
   return (
     <div className="space-y-5">
-      <section aria-label="Ringkasan pengajuan" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Menunggu Persetujuan" value={formatNumber(counts.submitted)} icon={Clock} loading={isLoading} hint="status Diajukan" />
-        <StatCard label="Mendesak" value={formatNumber(counts.urgent)} icon={AlertTriangle} loading={isLoading} hint="menunggu, urgensi Tinggi/Mendesak" />
-        <StatCard label="Disetujui" value={formatNumber(counts.approved)} icon={CheckCircle2} loading={isLoading} hint="sedang ditindaklanjuti" />
-        <StatCard label="Total Pengajuan" value={formatNumber(counts.total)} icon={ListChecks} loading={isLoading} hint="servis + pajak/KIR" />
+      <section aria-label={t('gaRequests.tab.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('gaRequests.tab.kpiWaiting')} value={formatNumber(counts.submitted)} icon={Clock} loading={isLoading} hint={t('gaRequests.tab.kpiWaitingHint')} />
+        <StatCard label={t('gaRequests.tab.kpiUrgent')} value={formatNumber(counts.urgent)} icon={AlertTriangle} loading={isLoading} hint={t('gaRequests.tab.kpiUrgentHint')} />
+        <StatCard label={t('gaRequests.tab.kpiApproved')} value={formatNumber(counts.approved)} icon={CheckCircle2} loading={isLoading} hint={t('gaRequests.tab.kpiApprovedHint')} />
+        <StatCard label={t('gaRequests.tab.kpiTotal')} value={formatNumber(counts.total)} icon={ListChecks} loading={isLoading} hint={t('gaRequests.tab.kpiTotalHint')} />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari pengajuan"
-          searchPlaceholder="Cari jenis, kendaraan, atau keterangan"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('gaRequests.tab.searchLabel')}
+          searchPlaceholder={t('gaRequests.tab.searchPlaceholder')}
+          status={{ options: filters.status }}
         >
           <ComboboxFilter
-            label="Filter jenis pengajuan"
-            allLabel="Semua jenis"
+            label={t('gaRequests.tab.kindFilter')}
+            allLabel={t('gaRequests.tab.allKinds')}
             value={list.filters.kind}
             onChange={(v) => list.setFilter('kind', v)}
-            options={KIND_FILTER}
+            options={filters.kind}
             className={FILTER_CLASS}
           />
           <ComboboxFilter
-            label="Filter urgensi"
-            allLabel="Semua urgensi"
+            label={t('gaRequests.tab.urgencyFilter')}
+            allLabel={t('gaRequests.tab.allUrgency')}
             value={list.filters.urgensi}
             onChange={(v) => list.setFilter('urgensi', v)}
-            options={URGENSI_FILTER}
+            options={filters.urgensi}
             className={FILTER_CLASS}
           />
         </FilterBar>
 
         <DataTable
           {...listTableProps(list, filtered.length)}
-          label="Daftar pengajuan servis dan pajak kendaraan"
-          itemLabel="pengajuan"
+          label={t('gaRequests.tab.tableLabel')}
+          itemLabel={t('gaRequests.tab.itemLabel')}
           columns={columns}
           data={svcQuery.data && taxQuery.data ? rows : undefined}
           getRowId={(row) => `${row.kind}-${row.id}`}
@@ -345,12 +362,12 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada pengajuan',
-            description: 'Pengajuan servis kendaraan dan pajak/STNK/KIR akan muncul di sini.',
+            title: t('gaRequests.tab.emptyTitle'),
+            description: t('gaRequests.tab.emptyDescription'),
             action: canEdit ? (
               <Button size="sm" onClick={() => onCreate('SERVICE')}>
                 <Plus aria-hidden />
-                Ajukan servis
+                {t('gaRequests.tab.requestService')}
               </Button>
             ) : undefined,
           }}
@@ -361,10 +378,10 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
         open={rejectTarget !== null}
         onOpenChange={(open) => !open && setRejectTarget(null)}
         tone="danger"
-        title="Tolak pengajuan?"
+        title={t('gaRequests.tab.rejectTitle')}
         description={rejectTarget ? `${rejectTarget.jenis} · ${rejectTarget.assetLabel}` : undefined}
-        confirmLabel="Tolak"
-        requireReason={{ label: 'Alasan penolakan', minLength: 1 }}
+        confirmLabel={t('gaRequests.tab.reject')}
+        requireReason={{ label: t('gaRequests.tab.rejectReason'), minLength: 1 }}
         onConfirm={(reason) => (rejectTarget && reason ? reject.mutateAsync({ row: rejectTarget, reason }) : undefined)}
         loading={reject.isPending}
       />
@@ -372,10 +389,10 @@ export function RequestsTab({ canEdit, onCreate }: RequestsTabProps) {
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
-        title="Batalkan pengajuan?"
+        title={t('gaRequests.tab.cancelTitle')}
         description={cancelTarget ? `${cancelTarget.jenis} · ${cancelTarget.assetLabel}` : undefined}
-        confirmLabel="Batalkan pengajuan"
-        cancelLabel="Kembali"
+        confirmLabel={t('gaRequests.tab.cancelRequest')}
+        cancelLabel={t('gaRequests.tab.back')}
         onConfirm={() => (cancelTarget ? cancel.mutateAsync(cancelTarget) : undefined)}
         loading={cancel.isPending}
       />

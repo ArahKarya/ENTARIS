@@ -13,23 +13,20 @@ import { formatDate } from '../../../lib/formatters';
 import { can } from '../../../lib/permissions';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { toast } from 'sonner';
+import { labelMap } from '@/components/ga/eam-i18n';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/shared/loading-state';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import UploadAssetDocumentModal from './UploadAssetDocumentModal';
+import { useTranslation } from 'react-i18next';
 
 // Drawer daftar dokumen/lampiran milik satu aset EAM. Konsumsi endpoint
 // /ga/documents?assetId=<id> (backend GaDocument sudah lengkap). Menampilkan
 // judul, tipe, no dokumen, masa berlaku (badge kadaluarsa/segera), status,
 // jumlah versi, tombol download versi terakhir, tambah dokumen, dan hapus.
 
-const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Aktif',
-  EXPIRED: 'Kadaluarsa',
-  REVOKED: 'Dicabut',
-  ARCHIVED: 'Diarsipkan',
-};
+const STATUS_LABEL: Record<string, string> = labelMap(['ACTIVE', 'EXPIRED', 'REVOKED', 'ARCHIVED'], 'assetDocuments.status');
 
 const STATUS_TONE: Record<string, 'success' | 'danger' | 'neutral'> = {
   ACTIVE: 'success',
@@ -67,6 +64,7 @@ interface Props {
 }
 
 export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }: Props) => {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const canEdit = can('ga_documents', 'edit');
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -80,12 +78,12 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ga/documents/${id}`),
     onSuccess: () => {
-      toast.success('Dokumen dihapus.');
+      toast.success(t('assetDocuments.drawer.deleted'));
       queryClient.invalidateQueries({ queryKey: ['ga-asset-documents', assetId] });
     },
     onError: (err: unknown) => {
       const e = err as { response?: { data?: { error?: string } } };
-      toast.error(e.response?.data?.error || 'Gagal menghapus dokumen.');
+      toast.error(e.response?.data?.error || t('assetDocuments.drawer.deleteFailed'));
     },
   });
 
@@ -104,10 +102,10 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
         a.remove();
         URL.revokeObjectURL(url);
       } catch {
-        toast.error('Gagal mengunduh file dokumen.');
+        toast.error(t('assetDocuments.drawer.downloadFailed'));
       }
     },
-    [],
+    [t],
   );
 
   const assetLabel = `${assetCode} · ${assetName}`;
@@ -117,7 +115,7 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
       <Sheet open onOpenChange={(next) => !next && onClose()}>
         <SheetContent size="md" aria-describedby="asset-docs-desc">
           <SheetHeader>
-            <SheetTitle>Dokumen Aset</SheetTitle>
+            <SheetTitle>{t('assetDocuments.drawer.title')}</SheetTitle>
             <SheetDescription id="asset-docs-desc">
               <span className="font-mono">{assetCode}</span> · {assetName}
             </SheetDescription>
@@ -126,23 +124,23 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
           {canEdit && (
             <div className="shrink-0 border-b border-border px-6 py-3">
               <Button onClick={() => setUploadOpen(true)}>
-                <Plus aria-hidden /> Tambah Dokumen
+                <Plus aria-hidden /> {t('assetDocuments.drawer.add')}
               </Button>
             </div>
           )}
 
           <SheetBody className="space-y-3 bg-muted/40">
             {isLoading ? (
-              <div role="status" aria-label="Memuat dokumen">
-                <LoadingState label="Memuat dokumen aset…" />
+              <div role="status" aria-label={t('assetDocuments.drawer.loadingShort')}>
+                <LoadingState label={t('assetDocuments.drawer.loading')} />
               </div>
             ) : documents.length === 0 ? (
               <div className="py-16 text-center">
                 <FileText className="mx-auto mb-2 size-10 text-muted-foreground/60" aria-hidden />
-                <p className="text-sm text-muted-foreground">Belum ada dokumen untuk aset ini.</p>
+                <p className="text-sm text-muted-foreground">{t('assetDocuments.drawer.empty')}</p>
                 {canEdit && (
                   <Button variant="link" className="mt-2" onClick={() => setUploadOpen(true)}>
-                    + Tambah dokumen pertama
+                    + {t('assetDocuments.drawer.addFirst')}
                   </Button>
                 )}
               </div>
@@ -167,13 +165,13 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
 
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
                       {d.type?.name && <Badge variant="info">{d.type.name}</Badge>}
-                      {d.issuedNumber && <span className="text-muted-foreground">No. {d.issuedNumber}</span>}
-                      {versionCount > 0 && <span className="text-muted-foreground">{versionCount} versi</span>}
+                      {d.issuedNumber && <span className="text-muted-foreground">{t('assetDocuments.drawer.number', { number: d.issuedNumber })}</span>}
+                      {versionCount > 0 && <span className="text-muted-foreground">{t('assetDocuments.drawer.versions', { count: versionCount })}</span>}
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
                       <div className="space-y-0.5 text-[11px] text-muted-foreground">
-                        {d.effectiveDate && <div>Berlaku: {formatDate(d.effectiveDate)}</div>}
+                        {d.effectiveDate && <div>{t('assetDocuments.drawer.effective', { date: formatDate(d.effectiveDate) })}</div>}
                         {d.expiryDate ? (
                           <div
                             className={cn(
@@ -186,9 +184,9 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
                             )}
                           >
                             {(isExpired || isExpiring) && <AlertTriangle size={11} aria-hidden />}
-                            Kadaluarsa: {formatDate(d.expiryDate)}
-                            {isExpired && <Badge variant="danger" className="text-xs">Kadaluarsa</Badge>}
-                            {!isExpired && isExpiring && <Badge variant="warning" className="text-xs">Segera</Badge>}
+                            {t('assetDocuments.drawer.expires', { date: formatDate(d.expiryDate) })}
+                            {isExpired && <Badge variant="danger" className="text-xs">{t('assetDocuments.drawer.expired')}</Badge>}
+                            {!isExpired && isExpiring && <Badge variant="warning" className="text-xs">{t('assetDocuments.drawer.soon')}</Badge>}
                           </div>
                         ) : null}
                       </div>
@@ -200,8 +198,8 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
                             size="icon"
                             className="size-11 text-muted-foreground sm:size-9"
                             onClick={() => handleDownload(d.id, latest, d.code)}
-                            aria-label={`Unduh ${d.title} versi v${latest.versionNo}`}
-                            title={`Unduh versi v${latest.versionNo}`}
+                            aria-label={t('assetDocuments.drawer.downloadLabel', { title: d.title, version: latest.versionNo })}
+                            title={t('assetDocuments.drawer.downloadTitle', { version: latest.versionNo })}
                           >
                             <Download aria-hidden />
                           </Button>
@@ -212,8 +210,8 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
                             size="icon"
                             className="size-11 text-danger-text sm:size-9"
                             onClick={() => setDeleteTarget(d)}
-                            aria-label={`Hapus dokumen ${d.title}`}
-                            title="Hapus dokumen"
+                            aria-label={t('assetDocuments.drawer.deleteLabel', { title: d.title })}
+                            title={t('assetDocuments.drawer.delete')}
                           >
                             <Trash2 aria-hidden />
                           </Button>
@@ -245,9 +243,9 @@ export const AssetDocumentsDrawer = ({ assetId, assetCode, assetName, onClose }:
             setDeleteTarget(null);
           }
         }}
-        title="Hapus Dokumen"
-        message={`Hapus dokumen "${deleteTarget?.title}"? Semua versi file ikut terhapus dan tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Ya, Hapus"
+        title={t('assetDocuments.drawer.deleteTitle')}
+        message={t('assetDocuments.drawer.deleteMessage', { title: deleteTarget?.title ?? '' })}
+        confirmLabel={t('shared.confirmDelete')}
         variant="danger"
       />
     </>

@@ -3,6 +3,7 @@
  * oil life, URL section parsing. No React, no API — unit-tested.
  */
 import { parseDate } from '@/lib/format';
+import { labelMap } from '../eam-i18n';
 import { DEFAULT_SECTION, VEHICLE_SECTIONS, type VehicleSection } from './constants';
 
 // Fleet list rows (GET /ga/vehicle/fleet)
@@ -11,13 +12,7 @@ export type DueState = 'overdue' | 'dueSoon' | 'ok';
 export const FLEET_DOCS = ['tax', 'stnk', 'kir', 'insurance', 'inspection'] as const;
 export type FleetDoc = (typeof FLEET_DOCS)[number];
 
-export const FLEET_DOC_LABELS: Record<FleetDoc, string> = {
-  tax: 'Pajak tahunan',
-  stnk: 'STNK 5 tahunan',
-  kir: 'KIR',
-  insurance: 'Asuransi',
-  inspection: 'Inspeksi',
-};
+export const FLEET_DOC_LABELS: Record<FleetDoc, string> = labelMap(FLEET_DOCS, 'vehicle.fleetDoc');
 
 export interface FleetDueInfo {
   dueDate: string | null;
@@ -110,15 +105,9 @@ export function daysUntil(date: string | Date | null | undefined, today: Date = 
 
 export type ServiceBucket = 'oli' | 'ban' | 'rem' | 'elektrikal' | 'ac' | 'service' | 'lainnya';
 
-export const SERVICE_BUCKET_LABELS: Record<ServiceBucket, string> = {
-  oli: 'Oli',
-  ban: 'Ban & roda',
-  rem: 'Rem',
-  elektrikal: 'Elektrikal',
-  ac: 'AC',
-  service: 'Servis & perbaikan',
-  lainnya: 'Lainnya',
-};
+export const SERVICE_BUCKETS: readonly ServiceBucket[] = ['oli', 'ban', 'rem', 'elektrikal', 'ac', 'service', 'lainnya'];
+
+export const SERVICE_BUCKET_LABELS: Record<ServiceBucket, string> = labelMap(SERVICE_BUCKETS, 'vehicle.serviceBucket');
 
 export interface ServiceLogLike {
   tanggal?: string | null;

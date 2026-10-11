@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { tEam } from '../eam-i18n';
 import { Input } from '@/components/ui/input';
 import { DateInput, Field } from '@/components/shared';
 import { ChoiceCards, FormNumberInput, FormSheet } from '@/components/inventory/master-data-kit';
 import { RENTAL_DIRECTION_OPTIONS, RENTAL_PERIOD_OPTIONS, apiErrorMessage, numOrNull } from './asset-model';
 import { OptionSelect } from './OptionSelect';
+import { useTranslation } from 'react-i18next';
 
 export interface BuildingRental {
   id: string;
@@ -37,13 +39,13 @@ type ErrorKey = 'pihak' | 'nilaiSewa' | 'tanggalMulai' | 'tanggalAkhir';
 
 function validateRental(f: RentalForm): Partial<Record<ErrorKey, string>> {
   const errors: Partial<Record<ErrorKey, string>> = {};
-  if (!f.pihak.trim()) errors.pihak = 'Nama pihak wajib diisi.';
+  if (!f.pihak.trim()) errors.pihak = tEam('assets.rentalForm.partyRequired');
   const nilai = numOrNull(f.nilaiSewa);
-  if (nilai === null) errors.nilaiSewa = 'Nilai sewa wajib diisi.';
-  else if (nilai < 0) errors.nilaiSewa = 'Nilai sewa tidak boleh negatif.';
-  if (!f.tanggalMulai) errors.tanggalMulai = 'Tanggal mulai wajib diisi.';
-  if (!f.tanggalAkhir) errors.tanggalAkhir = 'Tanggal akhir wajib diisi.';
-  else if (f.tanggalMulai && f.tanggalAkhir < f.tanggalMulai) errors.tanggalAkhir = 'Tanggal akhir sebelum tanggal mulai.';
+  if (nilai === null) errors.nilaiSewa = tEam('assets.rentalForm.amountRequired');
+  else if (nilai < 0) errors.nilaiSewa = tEam('assets.rentalForm.amountNegative');
+  if (!f.tanggalMulai) errors.tanggalMulai = tEam('assets.rentalForm.startRequired');
+  if (!f.tanggalAkhir) errors.tanggalAkhir = tEam('assets.rentalForm.endRequired');
+  else if (f.tanggalMulai && f.tanggalAkhir < f.tanggalMulai) errors.tanggalAkhir = tEam('assets.rentalForm.endBefore');
   return errors;
 }
 
@@ -54,6 +56,7 @@ interface RentalFormSheetProps {
 }
 
 export function RentalFormSheet({ assetId, onClose, onSaved }: RentalFormSheetProps) {
+  const { t } = useTranslation('eam');
   const [form, setForm] = useState<RentalForm>({
     arah: 'SEWA_MASUK',
     pihak: '',
@@ -82,10 +85,10 @@ export function RentalFormSheet({ assetId, onClose, onSaved }: RentalFormSheetPr
         notes: form.notes.trim() || null,
       }),
     onSuccess: () => {
-      toast.success('Kontrak sewa ditambahkan.');
+      toast.success(t('assets.rentalForm.saved'));
       onSaved();
     },
-    onError: (e) => setServerError(apiErrorMessage(e, 'Gagal simpan kontrak sewa.')),
+    onError: (e) => setServerError(apiErrorMessage(e, t('assets.rentalForm.saveFailed'))),
   });
 
   const submit = () => {
@@ -95,43 +98,43 @@ export function RentalFormSheet({ assetId, onClose, onSaved }: RentalFormSheetPr
     save.mutate();
   };
 
-  const partyLabel = form.arah === 'SEWA_MASUK' ? 'Pemilik / yang menyewakan' : 'Penyewa';
+  const partyLabel = form.arah === 'SEWA_MASUK' ? t('assets.rentalForm.owner') : t('assets.rentalForm.tenant');
 
   return (
     <FormSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title="Kontrak sewa baru"
-      description="Masa sewa dipakai untuk menandai kontrak yang segera atau sudah berakhir."
+      title={t('assets.rentalForm.title')}
+      description={t('assets.rentalForm.description')}
       error={serverError}
       saving={save.isPending}
-      submitLabel="Simpan kontrak"
+      submitLabel={t('assets.rentalForm.submit')}
       onSubmit={submit}
     >
-      <ChoiceCards label="Arah sewa" value={form.arah} options={RENTAL_DIRECTION_OPTIONS} onChange={(v) => set('arah', v)} />
+      <ChoiceCards label={t('assets.rentalForm.direction')} value={form.arah} options={RENTAL_DIRECTION_OPTIONS} onChange={(v) => set('arah', v)} />
       <Field label={partyLabel} required error={errors.pihak}>
         <Input value={form.pihak} onChange={(e) => set('pihak', e.target.value)} maxLength={200} />
       </Field>
-      <Field label="Kontak">
-        <Input value={form.kontak} onChange={(e) => set('kontak', e.target.value)} maxLength={100} placeholder="Telepon atau email" />
+      <Field label={t('assets.rentalForm.contact')}>
+        <Input value={form.kontak} onChange={(e) => set('kontak', e.target.value)} maxLength={100} placeholder={t('assets.rentalForm.contactPlaceholder')} />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Nilai sewa (Rp)" required error={errors.nilaiSewa}>
+        <Field label={t('assets.rentalForm.amount')} required error={errors.nilaiSewa}>
           <FormNumberInput value={form.nilaiSewa} onChange={(e) => set('nilaiSewa', e.target.value)} min={0} className="num text-right" />
         </Field>
-        <Field label="Periode bayar">
+        <Field label={t('assets.rentalForm.period')}>
           <OptionSelect value={form.periode} onChange={(v) => set('periode', v)} options={RENTAL_PERIOD_OPTIONS} />
         </Field>
-        <Field label="Tanggal mulai" required error={errors.tanggalMulai}>
+        <Field label={t('assets.rentalForm.start')} required error={errors.tanggalMulai}>
           {(control) => <DateInput id={control.id} required={control.required} value={form.tanggalMulai} onChange={(v) => set('tanggalMulai', v)} />}
         </Field>
-        <Field label="Tanggal akhir" required error={errors.tanggalAkhir}>
+        <Field label={t('assets.rentalForm.end')} required error={errors.tanggalAkhir}>
           {(control) => (
             <DateInput id={control.id} required={control.required} value={form.tanggalAkhir} min={form.tanggalMulai || undefined} onChange={(v) => set('tanggalAkhir', v)} />
           )}
         </Field>
       </div>
-      <Field label="Catatan">
+      <Field label={t('shared.notes')}>
         <Input value={form.notes} onChange={(e) => set('notes', e.target.value)} />
       </Field>
     </FormSheet>

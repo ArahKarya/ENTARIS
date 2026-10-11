@@ -22,6 +22,7 @@ import { JournalPreview } from '@/components/fixed-assets/JournalPreview';
 import { apiError } from '@/components/fixed-assets/errors';
 import { PR_ENDPOINT } from '../payment-request';
 import { KIND_META, type GaBill } from './eam-bills';
+import { useTranslation } from 'react-i18next';
 
 type Method = 'JOURNAL' | 'PURCHASE_INVOICE';
 
@@ -39,14 +40,12 @@ interface EamBillPayDialogProps {
   onSuccess: () => void;
 }
 
-const METHODS: { value: Method; title: string; description: string }[] = [
-  { value: 'JOURNAL', title: 'Jurnal Langsung', description: 'Lunas seketika dari kas/bank' },
-  { value: 'PURCHASE_INVOICE', title: 'Faktur Pembelian', description: 'Ditagih vendor, masuk hutang usaha' },
-];
+const METHODS: readonly Method[] = ['JOURNAL', 'PURCHASE_INVOICE'];
 
 const toIsoDay = (d: string | null) => (d ? String(d).split('T')[0] : new Date().toISOString().split('T')[0]);
 
 export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogProps) {
+  const { t } = useTranslation('eam');
   const open = bill !== null;
   const [method, setMethod] = useState<Method>('JOURNAL');
   const [accountId, setAccountId] = useState('');
@@ -121,18 +120,18 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
         notes: notes || null,
       }),
     onSuccess: () => {
-      toast.success(method === 'JOURNAL' ? 'Jurnal diposting.' : 'Faktur pembelian dibuat.');
+      toast.success(method === 'JOURNAL' ? t('eamBills.pay.journalPosted') : t('eamBills.pay.invoiceCreated'));
       onSuccess();
     },
-    onError: (e) => setError(apiError(e, 'Gagal memposting tagihan.')),
+    onError: (e) => setError(apiError(e, t('eamBills.pay.postFailed'))),
   });
 
   const submit = () => {
     setError('');
-    if (!accountId) return setError('Pilih akun beban (debit) terlebih dahulu.');
-    if (method === 'JOURNAL' && !creditAccountId) return setError('Pilih akun kas/bank sumber pembayaran.');
-    if (method === 'PURCHASE_INVOICE' && !partyId) return setError('Pilih vendor penagih.');
-    if (!amount || Number(amount) <= 0) return setError('Nilai tagihan harus lebih dari 0.');
+    if (!accountId) return setError(t('eamBills.pay.expenseRequired'));
+    if (method === 'JOURNAL' && !creditAccountId) return setError(t('eamBills.pay.cashRequired'));
+    if (method === 'PURCHASE_INVOICE' && !partyId) return setError(t('eamBills.pay.supplierRequired'));
+    if (!amount || Number(amount) <= 0) return setError(t('eamBills.pay.amountRequired'));
     mutation.mutate();
   };
 
@@ -149,7 +148,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
         {bill && meta && (
           <>
             <DialogHeader>
-              <DialogTitle>Bayar / Posting Tagihan</DialogTitle>
+              <DialogTitle>{t('eamBills.pay.title')}</DialogTitle>
               <DialogDescription>
                 {meta.label} · {bill.assetName ?? '—'}
               </DialogDescription>
@@ -159,7 +158,7 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
               <div className="rounded-md border border-border bg-muted/50 px-3 py-2.5">
                 <p className="text-sm font-medium text-foreground">{bill.description}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Nilai pengajuan: <span className="num font-medium text-foreground">{formatRupiah(bill.amount)}</span>
+                  {t('eamBills.pay.requestedAmount')} <span className="num font-medium text-foreground">{formatRupiah(bill.amount)}</span>
                   {bill.notes ? ` · ${bill.notes}` : ''}
                 </p>
                 {bill.items && bill.items.length > 0 && (
@@ -177,9 +176,9 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
               </div>
 
               <fieldset>
-                <legend className="mb-1.5 text-sm font-medium text-foreground">Cara bayar</legend>
+                <legend className="mb-1.5 text-sm font-medium text-foreground">{t('eamBills.pay.method')}</legend>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {METHODS.map((o) => (
+                  {METHODS.map((m) => ({ value: m, title: t(`eamBills.pay.methods.${m}.title`), description: t(`eamBills.pay.methods.${m}.description`) })).map((o) => (
                     <label
                       key={o.value}
                       htmlFor={`ga-pay-method-${o.value}`}
@@ -206,10 +205,10 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
               </fieldset>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Tanggal">
+                <Field label={t('shared.date')}>
                   {(control) => <DateInput id={control.id} value={date} onChange={setDate} />}
                 </Field>
-                <Field label="Nilai (Rp)">
+                <Field label={t('eamBills.pay.amount')}>
                   <NumberInput
                     className={`${controlBase} h-10 px-3 md:h-9`}
                     inputMode="decimal"
@@ -220,56 +219,56 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
               </div>
 
               <AccountPicker
-                label="Akun beban (debit)"
+                label={t('eamBills.pay.expenseAccount')}
                 required
                 value={accountId}
                 onChange={setAccountId}
                 accounts={expenseAccounts}
-                placeholder="Pilih akun beban…"
+                placeholder={t('eamBills.pay.expensePlaceholder')}
                 loading={accountsQuery.isLoading}
               />
 
               {method === 'JOURNAL' ? (
                 <AccountPicker
-                  label="Sumber dana / kas-bank (kredit)"
+                  label={t('eamBills.pay.cashAccount')}
                   required
                   value={creditAccountId}
                   onChange={setCreditAccountId}
                   accounts={cashAccounts}
-                  placeholder="Pilih kas/bank…"
+                  placeholder={t('eamBills.pay.cashPlaceholder')}
                   loading={accountsQuery.isLoading}
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <ComboField
-                    label="Vendor"
+                    label={t('eamBills.pay.supplier')}
                     required
                     value={partyId}
                     onChange={setPartyId}
                     {...vendorPicker.pickerProps}
-                    placeholder="Pilih vendor…"
-                    searchPlaceholder="Cari vendor…"
+                    placeholder={t('eamBills.pay.supplierPlaceholder')}
+                    searchPlaceholder={t('eamBills.pay.supplierSearch')}
                   />
-                  <Field label="Jatuh tempo">
+                  <Field label={t('eamBills.pay.dueDate')}>
                     {(control) => <DateInput id={control.id} value={dueDate} onChange={setDueDate} />}
                   </Field>
                 </div>
               )}
 
-              <Field label="Catatan">
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Opsional…" />
+              <Field label={t('shared.notes')}>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t('eamBills.pay.optional')} />
               </Field>
 
               <JournalPreview
-                title="Pratinjau jurnal"
+                title={t('eamBills.pay.preview')}
                 lines={[
-                  { side: 'DR', account: label(expenseAccounts, accountId) ?? '(pilih akun beban)', amount: value },
+                  { side: 'DR', account: label(expenseAccounts, accountId) ?? t('eamBills.pay.pickExpense'), amount: value },
                   {
                     side: 'CR',
                     account:
                       method === 'JOURNAL'
-                        ? label(cashAccounts, creditAccountId) ?? '(pilih kas/bank)'
-                        : '2.1.1 · Hutang Usaha',
+                        ? label(cashAccounts, creditAccountId) ?? t('eamBills.pay.pickCash')
+                        : `2.1.1 · ${t('eamBills.pay.payables')}`,
                     amount: value,
                   },
                 ]}
@@ -285,10 +284,10 @@ export function EamBillPayDialog({ bill, onClose, onSuccess }: EamBillPayDialogP
 
             <DialogFooter>
               <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
-                Batal
+                {t('shared.cancel')}
               </Button>
               <Button onClick={submit} loading={mutation.isPending}>
-                {method === 'JOURNAL' ? 'Posting Jurnal' : 'Buat Faktur'}
+                {method === 'JOURNAL' ? t('eamBills.pay.postJournal') : t('eamBills.pay.createInvoice')}
               </Button>
             </DialogFooter>
           </>

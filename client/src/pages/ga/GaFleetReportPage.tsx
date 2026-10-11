@@ -11,6 +11,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { AlertTriangle, Car, Download, Gauge, Search, TrendingUp, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { labelMap } from '@/components/ga/eam-i18n';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { formatDate, formatNumber, formatPercent, formatRupiah } from '@/lib/format';
@@ -25,6 +26,7 @@ import { monthLabel } from '@/components/ga/vehicle/fleet-report-model';
 import { DueMarker, UnitHeader } from '@/components/ga/vehicle/vehicle-ui';
 import { FLUSH_TABLE } from '@/components/ga/vehicle/ui-classes';
 import { useChartAnimation } from '@/contexts/motion-context';
+import { useTranslation } from 'react-i18next';
 
 type ComplianceState = 'EXPIRED' | 'EXPIRING' | 'OK' | 'NONE';
 type CostCategory = 'service' | 'fuel' | 'tax' | 'insurance' | 'incident' | 'workorder';
@@ -67,14 +69,7 @@ interface FleetReport {
 }
 
 const CATS: CostCategory[] = ['service', 'fuel', 'tax', 'insurance', 'incident', 'workorder'];
-const CAT_LABEL: Record<CostCategory, string> = {
-  service: 'Servis & perawatan',
-  fuel: 'Bahan bakar',
-  tax: 'Pajak kendaraan',
-  insurance: 'Asuransi',
-  incident: 'Insiden & perbaikan',
-  workorder: 'Work order & sparepart',
-};
+const CAT_LABEL: Record<CostCategory, string> = labelMap(CATS, 'fleetReport.category');
 const CAT_COLOR: Record<CostCategory, string> = {
   service: 'var(--chart-1)',
   fuel: 'var(--chart-2)',
@@ -83,10 +78,8 @@ const CAT_COLOR: Record<CostCategory, string> = {
   incident: 'var(--chart-5)',
   workorder: 'var(--chart-6)',
 };
-const CAT_SHORT: Record<CostCategory, string> = {
-  service: 'Servis', fuel: 'BBM', tax: 'Pajak', insurance: 'Asuransi', incident: 'Insiden', workorder: 'Work order',
-};
-const STATE_LABEL: Record<ComplianceState, string> = { EXPIRED: 'Lewat', EXPIRING: 'Segera', OK: 'Aman', NONE: '—' };
+const CAT_SHORT: Record<CostCategory, string> = labelMap(CATS, 'fleetReport.categoryShort');
+const STATE_LABEL: Record<ComplianceState, string> = labelMap(['EXPIRED', 'EXPIRING', 'OK', 'NONE'], 'fleetReport.state');
 const toDue = (s: ComplianceState) => (s === 'EXPIRED' ? 'overdue' : s === 'EXPIRING' ? 'dueSoon' : s === 'OK' ? 'ok' : null);
 const money = (v: number) => formatRupiah(v, { symbol: false });
 const compact = (v: number) => formatRupiah(v, { compact: true, symbol: false });
@@ -96,6 +89,7 @@ function vehicleLink(assetId: string, section?: string) {
 }
 
 export function GaFleetReportPage() {
+  const { t } = useTranslation('eam');
   const animate = useChartAnimation();
   const { period, setPreset, setRange } = useReportPeriod();
   const [search, setSearch] = useState('');
@@ -125,45 +119,45 @@ export function GaFleetReportPage() {
 
   const handleExport = async () => {
     if (!rows.length) {
-      toast.error('Tidak ada data untuk diekspor.');
+      toast.error(t('fleetReport.page.noExportData'));
       return;
     }
     try {
       await exportToExcel(
         rows.map((v) => ({
-          'Kode Aset': v.code,
-          Nama: v.name,
-          'No. Plat': v.noPlat ?? '',
-          Merek: v.brand ?? '',
-          Tipe: v.tipe ?? '',
-          Kategori: v.categoryName ?? '',
-          Status: v.status,
-          Kondisi: v.condition,
-          'Odometer (km)': v.odometerTerakhir ?? '',
-          Service: v.breakdown.service,
-          BBM: v.breakdown.fuel,
-          Pajak: v.breakdown.tax,
-          Asuransi: v.breakdown.insurance,
-          Insiden: v.breakdown.incident,
-          'Work Order & Sparepart': v.breakdown.workorder,
-          'Total Biaya': v.totalCost,
-          'Biaya/Bulan': Math.round(v.costPerMonth),
-          'Liter BBM': v.totalLiters,
-          'Status Pajak': STATE_LABEL[v.taxState],
-          'Jatuh Tempo Pajak': v.taxDueDate ? formatDate(v.taxDueDate) : '',
-          'Status Asuransi': STATE_LABEL[v.insuranceState],
-          'Akhir Asuransi': v.insuranceEndDate ? formatDate(v.insuranceEndDate) : '',
-          'Insiden Terbuka': v.openIncidentCount,
-          'Jumlah WO': v.workOrderCount,
-          'WO Terbuka': v.openWorkOrderCount,
-          'Jumlah MR Dibayar': v.materialRequestCount,
-          'Total Isu': v.issueCount,
+          [t('fleetReport.export.code')]: v.code,
+          [t('fleetReport.export.name')]: v.name,
+          [t('fleetReport.export.plate')]: v.noPlat ?? '',
+          [t('fleetReport.export.brand')]: v.brand ?? '',
+          [t('fleetReport.export.type')]: v.tipe ?? '',
+          [t('fleetReport.export.category')]: v.categoryName ?? '',
+          [t('fleetReport.export.status')]: v.status,
+          [t('fleetReport.export.condition')]: v.condition,
+          [t('fleetReport.export.odometer')]: v.odometerTerakhir ?? '',
+          [t('fleetReport.export.service')]: v.breakdown.service,
+          [t('fleetReport.export.fuel')]: v.breakdown.fuel,
+          [t('fleetReport.export.tax')]: v.breakdown.tax,
+          [t('fleetReport.export.insurance')]: v.breakdown.insurance,
+          [t('fleetReport.export.incident')]: v.breakdown.incident,
+          [t('fleetReport.export.workorder')]: v.breakdown.workorder,
+          [t('fleetReport.export.totalCost')]: v.totalCost,
+          [t('fleetReport.export.costPerMonth')]: Math.round(v.costPerMonth),
+          [t('fleetReport.export.liters')]: v.totalLiters,
+          [t('fleetReport.export.taxStatus')]: STATE_LABEL[v.taxState],
+          [t('fleetReport.export.taxDue')]: v.taxDueDate ? formatDate(v.taxDueDate) : '',
+          [t('fleetReport.export.insuranceStatus')]: STATE_LABEL[v.insuranceState],
+          [t('fleetReport.export.insuranceEnd')]: v.insuranceEndDate ? formatDate(v.insuranceEndDate) : '',
+          [t('fleetReport.export.openIncidents')]: v.openIncidentCount,
+          [t('fleetReport.export.woCount')]: v.workOrderCount,
+          [t('fleetReport.export.openWo')]: v.openWorkOrderCount,
+          [t('fleetReport.export.mrPaid')]: v.materialRequestCount,
+          [t('fleetReport.export.issues')]: v.issueCount,
         })),
-        `Laporan-Armada-${period.startDate}_${period.endDate}`,
+        `${t('fleetReport.page.filePrefix')}-${period.startDate}_${period.endDate}`,
       );
-      toast.success('Laporan armada diekspor.');
+      toast.success(t('fleetReport.page.exported'));
     } catch {
-      toast.error('Gagal mengekspor laporan.');
+      toast.error(t('fleetReport.page.exportFailed'));
     }
   };
 
@@ -171,7 +165,7 @@ export function GaFleetReportPage() {
     () => [
       {
         id: 'vehicle',
-        header: 'Kendaraan',
+        header: t('fleetReport.page.vehicle'),
         meta: { cellClassName: 'min-w-40' },
         cell: ({ row }) => {
           const v = row.original;
@@ -187,31 +181,31 @@ export function GaFleetReportPage() {
       },
       ...(['service', 'fuel', 'tax', 'insurance', 'incident', 'workorder'] as CostCategory[]).map<ColumnDef<FleetVehicle>>((k) => ({
         id: k,
-        header: () => <UnitHeader label={{ service: 'Servis', fuel: 'BBM', tax: 'Pajak', insurance: 'Asuransi', incident: 'Insiden', workorder: 'WO' }[k]} />,
+        header: () => <UnitHeader label={t(`fleetReport.page.colShort.${k}`)} />,
         meta: { align: 'right', hideBelow: k === 'service' || k === 'fuel' ? 'md' : 'xl' },
         cell: ({ row }) => (row.original.breakdown[k] ? money(row.original.breakdown[k]) : <span className="text-muted-foreground">—</span>),
       })),
       {
         id: 'total',
-        header: () => <UnitHeader label="Total" />,
+        header: () => <UnitHeader label={t('fleetReport.page.total')} />,
         meta: { align: 'right' },
         cell: ({ row }) => <span className="font-semibold text-foreground">{money(row.original.totalCost)}</span>,
       },
       {
         id: 'perMonth',
-        header: () => <UnitHeader label="Per bulan" />,
+        header: () => <UnitHeader label={t('fleetReport.page.perMonth')} />,
         meta: { align: 'right', hideBelow: 'lg' },
         cell: ({ row }) => money(row.original.costPerMonth),
       },
       {
         id: 'compliance',
-        header: 'Kepatuhan',
+        header: t('fleetReport.page.compliance'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => {
           const v = row.original;
           const tax = toDue(v.taxState);
           const ins = toDue(v.insuranceState);
-          const flagged = [tax !== 'ok' && tax && { p: 'Pajak', s: tax }, ins !== 'ok' && ins && { p: 'Asuransi', s: ins }].filter(Boolean) as { p: string; s: 'overdue' | 'dueSoon' }[];
+          const flagged = [tax !== 'ok' && tax && { p: t('fleetReport.page.tax'), s: tax }, ins !== 'ok' && ins && { p: t('fleetReport.page.insurance'), s: ins }].filter(Boolean) as { p: string; s: 'overdue' | 'dueSoon' }[];
           return (
             <div className="flex flex-col items-start gap-0.5">
               {flagged.map((f) => (
@@ -220,16 +214,16 @@ export function GaFleetReportPage() {
               {v.openIncidentCount > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-text">
                   <AlertTriangle className="size-3.5" aria-hidden />
-                  {v.openIncidentCount} insiden
+                  {t('fleetReport.page.incidents', { count: v.openIncidentCount })}
                 </span>
               )}
-              {flagged.length === 0 && v.openIncidentCount === 0 && <span className="text-xs text-muted-foreground">Tidak ada isu</span>}
+              {flagged.length === 0 && v.openIncidentCount === 0 && <span className="text-xs text-muted-foreground">{t('fleetReport.page.noIssues')}</span>}
             </div>
           );
         },
       },
     ],
-    [],
+    [t],
   );
 
   const top = data?.distribution.length ? [...data.distribution].sort((a, b) => b.amount - a.amount)[0] : undefined;
@@ -238,13 +232,13 @@ export function GaFleetReportPage() {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Laporan Armada"
-        description="Biaya kepemilikan lintas kendaraan: distribusi biaya, tren bulanan, kendaraan terboros, dan kepatuhan dokumen."
-        breadcrumbs={[{ label: 'Kendaraan', href: '/ga/vehicle' }, { label: 'Laporan Armada' }]}
+        title={t('fleetReport.page.title')}
+        description={t('fleetReport.page.description')}
+        breadcrumbs={[{ label: t('fleetReport.page.vehicles'), href: '/ga/vehicle' }, { label: t('fleetReport.page.title') }]}
         actions={
           <Button variant="outline" onClick={handleExport} disabled={!rows.length}>
             <Download aria-hidden />
-            Export Excel
+            {t('fleetReport.page.exportExcel')}
           </Button>
         }
       >
@@ -257,45 +251,45 @@ export function GaFleetReportPage() {
         </PanelState>
       ) : (
         <>
-          <section aria-label="Ringkasan biaya armada" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section aria-label={t('fleetReport.page.summaryLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
-              label="Total Biaya"
+              label={t('fleetReport.page.totalCost')}
               icon={Wallet}
               loading={loading}
               value={data ? formatRupiah(data.totals.totalCost, { compact: true }) : '—'}
               valueTitle={data ? formatRupiah(data.totals.totalCost) : undefined}
-              hint={data ? `${formatRupiah(data.totals.totalCost / data.period.months, { compact: true })} / bulan` : undefined}
+              hint={data ? t('fleetReport.page.perMonthHint', { amount: formatRupiah(data.totals.totalCost / data.period.months, { compact: true }) }) : undefined}
             />
             <StatCard
-              label="Kendaraan"
+              label={t('fleetReport.page.vehicles')}
               icon={Car}
               loading={loading}
               value={data ? formatNumber(data.totals.vehicleCount) : '—'}
-              hint={data ? `${formatRupiah(data.totals.costPerVehicle, { compact: true })} / kendaraan` : undefined}
+              hint={data ? t('fleetReport.page.perVehicleHint', { amount: formatRupiah(data.totals.costPerVehicle, { compact: true }) }) : undefined}
             />
             <StatCard
-              label="Biaya Terbesar"
+              label={t('fleetReport.page.topCost')}
               icon={TrendingUp}
               loading={loading}
               value={top && top.amount > 0 ? CAT_SHORT[top.category] : '—'}
-              hint={top && top.amount > 0 ? `${CAT_LABEL[top.category]} · ${formatPercent(top.percentage / 100)}` : 'Belum ada biaya'}
+              hint={top && top.amount > 0 ? `${CAT_LABEL[top.category]} · ${formatPercent(top.percentage / 100)}` : t('fleetReport.page.noCostShort')}
             />
             <StatCard
-              label="Kendaraan Bermasalah"
+              label={t('fleetReport.page.withIssues')}
               icon={AlertTriangle}
               loading={loading}
               value={data ? formatNumber(data.compliance.vehiclesWithIssues) : '—'}
               hint={
                 data
-                  ? `${data.compliance.taxIssues} pajak · ${data.compliance.insuranceIssues} asuransi · ${data.compliance.openIncidents} insiden`
+                  ? t('fleetReport.page.issuesHint', { tax: data.compliance.taxIssues, insurance: data.compliance.insuranceIssues, incidents: data.compliance.openIncidents })
                   : undefined
               }
             />
           </section>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Panel title="Tren Biaya Bulanan" description={data ? `${data.period.months} bulan · ${formatDate(data.period.from)} – ${formatDate(data.period.to)}` : undefined}>
-              <PanelState loading={loading} skeleton="chart" empty={!hasTrend} emptyTitle="Belum ada biaya pada periode ini">
+            <Panel title={t('fleetReport.page.monthlyTrend')} description={data ? t('fleetReport.page.periodDescription', { count: data.period.months, from: formatDate(data.period.from), to: formatDate(data.period.to) }) : undefined}>
+              <PanelState loading={loading} skeleton="chart" empty={!hasTrend} emptyTitle={t('fleetReport.page.noCost')}>
                 <figure className="m-0">
                   <div className="h-64" aria-hidden>
                     <ResponsiveContainer width="100%" height="100%">
@@ -313,7 +307,7 @@ export function GaFleetReportPage() {
                                 title={m.label}
                                 rows={[
                                   ...CATS.filter((c) => m[c] > 0).map((c) => ({ label: CAT_LABEL[c], value: formatRupiah(m[c]), color: CAT_COLOR[c] })),
-                                  { label: 'Total', value: formatRupiah(m.total) },
+                                  { label: t('fleetReport.page.total'), value: formatRupiah(m.total) },
                                 ]}
                               />
                             );
@@ -333,15 +327,15 @@ export function GaFleetReportPage() {
                       </span>
                     ))}
                     <span className="sr-only">
-                      Total per bulan: {trend.map((m) => `${m.label} ${formatRupiah(m.total)}`).join('; ')}
+                      {t('fleetReport.page.monthlyCaption', { list: trend.map((m) => `${m.label} ${formatRupiah(m.total)}`).join('; ') })}
                     </span>
                   </figcaption>
                 </figure>
               </PanelState>
             </Panel>
 
-            <Panel title="Distribusi Biaya per Kategori">
-              <PanelState loading={loading} skeleton="chart" empty={distribution.length === 0} emptyTitle="Belum ada biaya pada periode ini">
+            <Panel title={t('fleetReport.page.distribution')}>
+              <PanelState loading={loading} skeleton="chart" empty={distribution.length === 0} emptyTitle={t('fleetReport.page.noCost')}>
                 <figure className="m-0">
                   <div style={{ height: Math.max(120, distribution.length * 40) }} aria-hidden>
                     <ResponsiveContainer width="100%" height="100%">
@@ -358,8 +352,8 @@ export function GaFleetReportPage() {
                               <ChartTooltipBox
                                 title={CAT_LABEL[d.category]}
                                 rows={[
-                                  { label: 'Biaya', value: formatRupiah(d.amount) },
-                                  { label: 'Porsi', value: formatPercent(d.percentage / 100) },
+                                  { label: t('fleetReport.page.cost'), value: formatRupiah(d.amount) },
+                                  { label: t('fleetReport.page.share'), value: formatPercent(d.percentage / 100) },
                                 ]}
                               />
                             );
@@ -381,8 +375,8 @@ export function GaFleetReportPage() {
             </Panel>
           </div>
 
-          <Panel title="10 Kendaraan Biaya Tertinggi" description="Klik untuk membuka laporan per kendaraan.">
-            <PanelState loading={loading} empty={!data?.topSpenders.length} emptyTitle="Belum ada data biaya">
+          <Panel title={t('fleetReport.page.topTitle')} description={t('fleetReport.page.topDescription')}>
+            <PanelState loading={loading} empty={!data?.topSpenders.length} emptyTitle={t('fleetReport.page.noCostData')}>
               <ol className="grid grid-cols-1 gap-x-8 gap-y-2 md:grid-cols-2">
                 {(data?.topSpenders ?? []).map((v, i) => {
                   const max = data?.topSpenders[0]?.totalCost || 1;
@@ -408,22 +402,22 @@ export function GaFleetReportPage() {
           </Panel>
 
           <Panel
-            title="Detail per Kendaraan"
-            description={data ? `${formatNumber(rows.length)} dari ${formatNumber(data.vehicles.length)} kendaraan · urut total biaya` : undefined}
+            title={t('fleetReport.page.detailTitle')}
+            description={data ? t('fleetReport.page.detailDescription', { shown: formatNumber(rows.length), total: formatNumber(data.vehicles.length) }) : undefined}
             bodyClassName="p-0"
             action={
               <div className="relative w-full sm:w-64">
                 <label htmlFor="fleet-report-q" className="sr-only">
-                  Cari kendaraan
+                  {t('fleetReport.page.search')}
                 </label>
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                <Input id="fleet-report-q" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari plat, kode, merek" className="pl-9" />
+                <Input id="fleet-report-q" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('fleetReport.page.searchPlaceholder')} className="pl-9" />
               </div>
             }
           >
             <DataTable
-              label="Biaya per kendaraan"
-              itemLabel="kendaraan"
+              label={t('fleetReport.page.tableLabel')}
+              itemLabel={t('fleetReport.page.itemLabel')}
               columns={columns}
               data={rows}
               getRowId={(r) => r.assetId}
@@ -434,12 +428,12 @@ export function GaFleetReportPage() {
               stickyHeader={false}
               pageSize={25}
               className={FLUSH_TABLE}
-              empty={{ title: 'Belum ada kendaraan', description: 'Kendaraan dengan data kendaraan terisi akan muncul di sini.' }}
+              empty={{ title: t('fleetReport.page.emptyTitle'), description: t('fleetReport.page.emptyDescription') }}
             />
             {rows.length > 0 && (
               <p className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 border-t border-border px-4 py-2.5 text-sm">
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Gauge className="size-4" aria-hidden /> Total {formatNumber(rows.length)} kendaraan
+                  <Gauge className="size-4" aria-hidden /> {t('fleetReport.page.footerTotal', { count: rows.length, n: formatNumber(rows.length) })}
                 </span>
                 <span className="num font-semibold text-foreground">{formatRupiah(rows.reduce((s, v) => s + v.totalCost, 0))}</span>
               </p>

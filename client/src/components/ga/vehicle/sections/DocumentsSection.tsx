@@ -15,6 +15,7 @@ import { FLUSH_TABLE } from '../ui-classes';
 import { vehicleKeys } from '../vehicle-queries';
 import { dueStateOf } from '../vehicle-model';
 import { DueDateCell } from '../vehicle-ui';
+import { useTranslation } from 'react-i18next';
 
 interface GaDocumentRow {
   id: string;
@@ -29,6 +30,7 @@ interface GaDocumentRow {
 
 export function DocumentsSection({ assetId }: VehicleContext) {
   const allowed = can('ga_documents', 'view');
+  const { t } = useTranslation('eam');
   const query = useQuery<GaDocumentRow[]>({
     queryKey: vehicleKeys.documents(assetId),
     queryFn: async () => (await api.get('/ga/documents', { params: { assetId } })).data,
@@ -39,7 +41,7 @@ export function DocumentsSection({ assetId }: VehicleContext) {
     () => [
       {
         id: 'title',
-        header: 'Dokumen',
+        header: t('vehicleSections.documents.document'),
         meta: { cellClassName: 'min-w-48' },
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -53,48 +55,48 @@ export function DocumentsSection({ assetId }: VehicleContext) {
       },
       {
         id: 'expiry',
-        header: 'Berlaku Hingga',
+        header: t('vehicleSections.documents.validUntil'),
         cell: ({ row }) => (
           <DueDateCell date={row.original.expiryDate} state={dueStateOf(row.original.expiryDate, row.original.status === 'ACTIVE')} />
         ),
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('shared.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('shared.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const latest = row.original.versions?.[0];
           return (
             <RowActions
-              label={`Aksi untuk ${row.original.title}`}
+              label={t('shared.actionsFor', { name: row.original.title })}
               actions={[
-                { label: latest ? `Buka versi ${latest.versionNo}` : 'Belum ada file', icon: Download, disabled: !latest, onSelect: () => viewDocument(row.original.id, latest?.id) },
+                { label: latest ? t('vehicleSections.documents.openVersion', { version: latest.versionNo }) : t('vehicleSections.documents.noFile'), icon: Download, disabled: !latest, onSelect: () => viewDocument(row.original.id, latest?.id) },
               ]}
             />
           );
         },
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <Panel
-      title="Dokumen Kendaraan"
-      description="Scan STNK, KIR, polis, dan dokumen lain yang ditautkan ke aset ini."
+      title={t('vehicleSections.documents.title')}
+      description={t('vehicleSections.documents.description')}
       bodyClassName="p-0"
       action={
         allowed && (
           <Button size="sm" variant="outline" asChild>
             <Link to="/ga/documents">
               <FolderOpen aria-hidden />
-              Kelola dokumen
+              {t('vehicleSections.documents.manage')}
             </Link>
           </Button>
         )
@@ -102,8 +104,8 @@ export function DocumentsSection({ assetId }: VehicleContext) {
     >
       {allowed ? (
         <DataTable
-          label="Dokumen kendaraan"
-          itemLabel="dokumen"
+          label={t('vehicleSections.documents.tableLabel')}
+          itemLabel={t('vehicleSections.documents.itemLabel')}
           columns={columns}
           data={query.data}
           getRowId={(r) => r.id}
@@ -113,12 +115,12 @@ export function DocumentsSection({ assetId }: VehicleContext) {
           stickyHeader={false}
           className={FLUSH_TABLE}
           empty={{
-            title: 'Belum ada dokumen',
-            description: 'Scan yang diunggah saat mencatat pajak atau asuransi juga muncul di sini.',
+            title: t('vehicleSections.documents.emptyTitle'),
+            description: t('vehicleSections.documents.emptyDescription'),
           }}
         />
       ) : (
-        <EmptyState compact title="Tidak ada akses" description="Anda tidak memiliki akses ke modul Dokumen GA." />
+        <EmptyState compact title={t('shared.noAccess')} description={t('vehicleSections.documents.noAccess')} />
       )}
     </Panel>
   );

@@ -1,5 +1,6 @@
 /** Options for the asset PIC (penanggung jawab) picker. */
 import type { ComboboxOption } from '@/components/shared';
+import { tEam } from '../eam-i18n';
 
 export interface PicUserOption {
   id: string;
@@ -16,7 +17,7 @@ export function picOptions(
 ): ComboboxOption[] {
   const options = (users ?? []).map((u) => ({ value: u.id, label: u.fullName }));
   if (current && !options.some((o) => o.value === current.id)) {
-    options.unshift({ value: current.id, label: current.fullName ?? 'Pengguna tidak dikenal' });
+    options.unshift({ value: current.id, label: current.fullName ?? tEam('assets.unknownUser') });
   }
   return options;
 }

@@ -13,6 +13,7 @@ import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHea
 import { EmptyState, StatusBadge } from '@/components/shared';
 import { conditionMeta, photoUrl, type AssetRow } from './asset-model';
 import { AssetThumb, Detail } from './asset-ui';
+import { useTranslation } from 'react-i18next';
 
 interface AssetDetailSheetProps {
   /** Asset id from the URL; null closes the sheet. */
@@ -29,6 +30,7 @@ interface AssetDetailSheetProps {
 }
 
 export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments, onEdit, onDelete }: AssetDetailSheetProps) {
+  const { t } = useTranslation('eam');
   const detailQuery = useQuery({
     queryKey: ['ga-asset-detail', assetId],
     queryFn: async () => (await api.get<AssetRow>(`/ga/assets/${assetId}`)).data,
@@ -47,18 +49,18 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
         {!asset ? (
           <>
             <SheetHeader>
-              <SheetTitle>Detail aset</SheetTitle>
-              <SheetDescription>{detailQuery.isError ? 'Aset tidak dapat dimuat.' : 'Memuat…'}</SheetDescription>
+              <SheetTitle>{t('assets.detail.title')}</SheetTitle>
+              <SheetDescription>{detailQuery.isError ? t('assets.detail.loadError') : t('assets.detail.loading')}</SheetDescription>
             </SheetHeader>
             <SheetBody>
               {detailQuery.isError ? (
                 <EmptyState
                   kind="error"
                   compact
-                  description="Aset mungkin sudah dihapus, atau koneksi terputus."
+                  description={t('assets.detail.loadErrorDescription')}
                   action={
                     <Button variant="outline" size="sm" onClick={() => detailQuery.refetch()}>
-                      Coba lagi
+                      {t('assets.detail.retry')}
                     </Button>
                   }
                 />
@@ -82,13 +84,13 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
             </SheetHeader>
             <SheetBody className="space-y-5">
               {photos.length > 0 ? (
-                <ul className="grid grid-cols-3 gap-2" aria-label="Foto aset">
+                <ul className="grid grid-cols-3 gap-2" aria-label={t('assets.detail.photos')}>
                   {photos.map((ph, i) => (
                     <li key={ph.id} className={i === 0 ? 'col-span-3' : undefined}>
                       <a href={photoUrl(ph.filePath)} target="_blank" rel="noreferrer" className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <img
                           src={photoUrl(ph.filePath)}
-                          alt={ph.caption ?? `Foto ${asset.name}${photos.length > 1 ? ` (${i + 1})` : ''}`}
+                          alt={ph.caption ?? `${t('assets.detail.photoAlt', { name: asset.name })}${photos.length > 1 ? ` (${i + 1})` : ''}`}
                           className={i === 0 ? 'h-48 w-full rounded-md border border-border object-cover' : 'h-20 w-full rounded-md border border-border object-cover'}
                         />
                       </a>
@@ -98,36 +100,36 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
               ) : (
                 <div className="flex items-center gap-3 rounded-md border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
                   <AssetThumb alt="" />
-                  {detailQuery.isLoading ? 'Memuat foto…' : onEdit ? 'Belum ada foto. Tambahkan lewat Edit.' : 'Belum ada foto.'}
+                  {detailQuery.isLoading ? t('assets.detail.loadingPhotos') : onEdit ? t('assets.detail.noPhotoEdit') : t('assets.detail.noPhoto')}
                 </div>
               )}
 
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <Detail label="Kategori">{asset.category?.name ?? '—'}</Detail>
-                <Detail label="Kondisi">
+                <Detail label={t('assets.detail.category')}>{asset.category?.name ?? '—'}</Detail>
+                <Detail label={t('assets.detail.condition')}>
                   <StatusBadge label={condition.label} tone={condition.tone} dot={false} />
                 </Detail>
-                <Detail label="Cabang">{asset.branch ? `${asset.branch.name} (${asset.branch.code})` : '—'}</Detail>
-                <Detail label="Lokasi">{asset.location || '—'}</Detail>
-                <Detail label="Cost center">{asset.costCenter ? `${asset.costCenter.code} · ${asset.costCenter.name}` : '—'}</Detail>
-                <Detail label="Penanggung jawab">{asset.pic?.fullName ?? '—'}</Detail>
-                <Detail label="No. seri">{asset.serialNumber ? <span className="font-mono">{asset.serialNumber}</span> : '—'}</Detail>
-                <Detail label="Tanggal perolehan">
+                <Detail label={t('assets.detail.branch')}>{asset.branch ? `${asset.branch.name} (${asset.branch.code})` : '—'}</Detail>
+                <Detail label={t('assets.detail.location')}>{asset.location || '—'}</Detail>
+                <Detail label={t('assets.detail.costCenter')}>{asset.costCenter ? `${asset.costCenter.code} · ${asset.costCenter.name}` : '—'}</Detail>
+                <Detail label={t('assets.detail.pic')}>{asset.pic?.fullName ?? '—'}</Detail>
+                <Detail label={t('assets.detail.serial')}>{asset.serialNumber ? <span className="font-mono">{asset.serialNumber}</span> : '—'}</Detail>
+                <Detail label={t('assets.detail.acquisitionDate')}>
                   <span className="num">{formatDate(acquisitionDate)}</span>
                 </Detail>
-                <Detail label="Nilai perolehan">
+                <Detail label={t('assets.detail.acquisitionCost')}>
                   <span className="num">{acquisitionCost != null ? formatRupiah(acquisitionCost) : '—'}</span>
                 </Detail>
-                {asset.vehicleData?.noPlat && <Detail label="No. polisi">{asset.vehicleData.noPlat}</Detail>}
+                {asset.vehicleData?.noPlat && <Detail label={t('assets.detail.plate')}>{asset.vehicleData.noPlat}</Detail>}
                 {asset.fixedAsset && (
-                  <Detail label="Aset tetap (akuntansi)" wide>
+                  <Detail label={t('assets.detail.fixedAsset')} wide>
                     <span className="num font-mono">{asset.fixedAsset.assetNumber}</span>
-                    <span className="text-muted-foreground"> · nilai buku </span>
+                    <span className="text-muted-foreground"> · {t('assets.detail.bookValue')} </span>
                     <span className="num">{formatRupiah(asset.fixedAsset.bookValue)}</span>
                   </Detail>
                 )}
                 {asset.notes && (
-                  <Detail label="Catatan" wide>
+                  <Detail label={t('shared.notes')} wide>
                     <span className="whitespace-pre-line">{asset.notes}</span>
                   </Detail>
                 )}
@@ -137,12 +139,12 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => onQr(asset)}>
                   <QrCode aria-hidden />
-                  QR aset
+                  {t('assets.detail.qr')}
                 </Button>
                 {onDocuments && (
                   <Button variant="outline" onClick={() => onDocuments(asset)}>
                     <FileText aria-hidden />
-                    Dokumen
+                    {t('assets.detail.documents')}
                   </Button>
                 )}
               </div>
@@ -151,13 +153,13 @@ export function AssetDetailSheet({ assetId, fallback, onClose, onQr, onDocuments
                   {onDelete && (
                     <Button variant="ghost" className="text-danger-text hover:bg-danger-subtle" onClick={() => onDelete(asset)}>
                       <Trash2 aria-hidden />
-                      Hapus
+                      {t('shared.delete')}
                     </Button>
                   )}
                   {onEdit && (
                     <Button onClick={() => onEdit(asset)}>
                       <Pencil aria-hidden />
-                      Edit
+                      {t('shared.edit')}
                     </Button>
                   )}
                 </div>

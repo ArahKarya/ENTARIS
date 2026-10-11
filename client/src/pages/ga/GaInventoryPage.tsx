@@ -20,6 +20,7 @@ import { GaOpnameFormSheet } from '@/components/ga/inventory/GaOpnameFormSheet';
 import { ItemImageDialog } from '@/components/ga/inventory/ItemImage';
 import { useGaLocations } from '@/components/ga/inventory/queries';
 import { ITEM_FILTER_KEYS, MOVEMENT_FILTER_KEYS, type GaItemRow } from '@/components/ga/inventory/ga-inventory-model';
+import { Trans, useTranslation } from 'react-i18next';
 
 type Tab = 'dashboard' | 'items' | 'movements' | 'tools';
 
@@ -30,16 +31,10 @@ const LIST_KEYS = [
   ...new Set<string>([LIST_PARAM.page, LIST_PARAM.search, LIST_PARAM.sort, ...ITEM_FILTER_KEYS, ...MOVEMENT_FILTER_KEYS]),
 ];
 
-const DESCRIPTION: Record<Tab, string> = {
-  dashboard: 'Ringkasan stok ATK, sparepart, dan perlengkapan kantor per lokasi.',
-  items: 'Kelola item inventaris kantor dan pantau stoknya.',
-  movements: 'Riwayat stok masuk, keluar, transfer antar lokasi, dan penyesuaian.',
-  tools: 'Stok opname cepat dan ekspor data ke CSV.',
-};
-
 type ItemPreview = Pick<GaItemRow, 'id' | 'name' | 'imagePath'>;
 
 export const GaInventoryPage = () => {
+  const { t } = useTranslation('eam');
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get(TAB_PARAM) as Tab | null;
   const tab: Tab = rawTab && TABS.includes(rawTab) ? rawTab : 'dashboard';
@@ -80,14 +75,14 @@ export const GaInventoryPage = () => {
     actions = (
       <Button onClick={() => setItemSheet({ item: null })}>
         <Plus aria-hidden />
-        Item Baru
+        {t('gaInventory.page.newItem')}
       </Button>
     );
   } else if (canEdit && (tab === 'movements' || tab === 'dashboard')) {
     actions = (
       <Button onClick={() => setMovementSheet({})} disabled={noLocations}>
         <ArrowLeftRight aria-hidden />
-        Catat Pergerakan
+        {t('gaInventory.page.recordMovement')}
       </Button>
     );
   }
@@ -96,13 +91,13 @@ export const GaInventoryPage = () => {
     // Manual activation: automatic activation fires onValueChange on mousedown
     // AND focus before the URL-driven value updates → two history entries.
     <Tabs value={tab} onValueChange={changeTab} activationMode="manual" className="pb-8">
-      <PageHeader title="Inventaris Kantor" description={DESCRIPTION[tab]} actions={actions}>
+      <PageHeader title={t('gaInventory.page.title')} description={t(`gaInventory.page.description.${tab}`)} actions={actions}>
         <div className="max-w-full overflow-x-auto">
-          <TabsList variant="underline" aria-label="Bagian inventaris kantor">
-            <TabsTrigger value="dashboard">Dashboard Stok</TabsTrigger>
-            <TabsTrigger value="items">Item</TabsTrigger>
-            <TabsTrigger value="movements">Pergerakan</TabsTrigger>
-            <TabsTrigger value="tools">Opname &amp; Ekspor</TabsTrigger>
+          <TabsList variant="underline" aria-label={t('gaInventory.page.tabsLabel')}>
+            <TabsTrigger value="dashboard">{t('gaInventory.page.tabDashboard')}</TabsTrigger>
+            <TabsTrigger value="items">{t('gaInventory.page.tabItems')}</TabsTrigger>
+            <TabsTrigger value="movements">{t('gaInventory.page.tabMovements')}</TabsTrigger>
+            <TabsTrigger value="tools">{t('gaInventory.page.tabTools')}</TabsTrigger>
           </TabsList>
         </div>
       </PageHeader>
@@ -114,16 +109,14 @@ export const GaInventoryPage = () => {
         >
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
           <p>
-            Belum ada <strong>lokasi gudang</strong>. Stok tidak bisa dicatat sampai lokasi dibuat. Tambahkan minimal satu
-            lokasi di{' '}
-            {canOpenMaster ? (
-              <Link to="/ga/master" className="font-medium underline underline-offset-2">
-                Data Induk Aset → Lokasi
-              </Link>
-            ) : (
-              <strong>Data Induk Aset → Lokasi</strong>
-            )}
-            .
+            <Trans
+              t={t}
+              i18nKey="gaInventory.page.noLocations"
+              components={{
+                strong: <strong />,
+                place: canOpenMaster ? <Link to="/ga/master" className="font-medium underline underline-offset-2" /> : <strong />,
+              }}
+            />
           </p>
         </div>
       )}

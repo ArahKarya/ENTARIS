@@ -34,6 +34,7 @@ import { OptionSelect } from '@/components/ga/assets/OptionSelect';
 import { CalibrationFormSheet, type CalibrationLog } from '@/components/ga/assets/CalibrationFormSheet';
 import { useAssetSelection } from '@/components/ga/assets/useAssetSelection';
 import { scrollBehavior } from '@/lib/motion';
+import { useTranslation } from 'react-i18next';
 
 /** Equipment markers are fetched per asset; cap the fan-out for very long lists. */
 const MARKER_LIMIT = 40;
@@ -79,6 +80,7 @@ const equipKey = (id: string | null) => ['ga-equipment', id];
 const fetchEquipment = async (id: string) => (await api.get<EquipmentData | null>(`/ga/equipment/assets/${id}`)).data ?? null;
 
 export const GaEquipmentPage = () => {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const canEdit = can('ga_equipment', 'edit');
   const canEditAssets = can('ga_assets', 'edit');
@@ -138,7 +140,7 @@ export const GaEquipmentPage = () => {
     () => [
       {
         id: 'tanggal',
-        header: 'Tanggal',
+        header: t('shared.date'),
         meta: { cellClassName: 'num whitespace-nowrap' },
         cell: ({ row }) => (
           <div className="flex flex-col gap-0.5">
@@ -149,7 +151,7 @@ export const GaEquipmentPage = () => {
       },
       {
         id: 'lembaga',
-        header: 'Lembaga',
+        header: t('equipment.lab'),
         meta: { hideBelow: 'md', cellClassName: 'min-w-40' },
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -160,13 +162,13 @@ export const GaEquipmentPage = () => {
       },
       {
         id: 'noSertifikat',
-        header: 'No. Sertifikat',
+        header: t('equipment.certNo'),
         meta: { hideBelow: 'lg', cellClassName: 'num font-mono text-xs' },
         cell: ({ row }) => row.original.noSertifikat,
       },
       {
         id: 'hasil',
-        header: 'Hasil',
+        header: t('equipment.result'),
         cell: ({ row }) => {
           const r = CALIBRATION_RESULT_OPTIONS.find((o) => o.value === row.original.hasil);
           return <StatusBadge label={r?.label ?? row.original.hasil} tone={r?.tone ?? 'neutral'} />;
@@ -174,7 +176,7 @@ export const GaEquipmentPage = () => {
       },
       {
         id: 'validUntil',
-        header: 'Berlaku s/d',
+        header: t('equipment.validUntil'),
         meta: { hideBelow: 'sm', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => formatDate(row.original.validUntil),
       },
@@ -182,14 +184,14 @@ export const GaEquipmentPage = () => {
         id: 'biaya',
         header: () => (
           <>
-            Biaya <span className="normal-case">(Rp)</span>
+            {t('equipment.cost')} <span className="normal-case">(Rp)</span>
           </>
         ),
         meta: { align: 'right' },
         cell: ({ row }) => (row.original.biaya != null ? formatRupiah(row.original.biaya, { symbol: false }) : '—'),
       },
     ],
-    [],
+    [t],
   );
 
   const equip = equipQuery.data;
@@ -198,30 +200,30 @@ export const GaEquipmentPage = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Peralatan & Kalibrasi"
-        description="Data alat ukur & timbang, jatuh tempo kalibrasi, dan riwayat sertifikat kalibrasi per aset."
+        title={t('equipment.title')}
+        description={t('equipment.description')}
       />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
         <AssetPickerList
-          label="Daftar peralatan"
+          label={t('equipment.listLabel')}
           assets={assets ?? []}
           loading={assetsQuery.isLoading}
           error={assetsQuery.error}
           onRetry={() => assetsQuery.refetch()}
           selectedId={selectedId}
           onSelect={onSelect}
-          searchPlaceholder="Cari kode, nama, atau lokasi"
+          searchPlaceholder={t('equipment.searchPlaceholder')}
           renderMarker={(a) => {
             const e = equipByAsset.get(a.id);
             return e?.nextCalibrationDue ? <DueMarker info={calibrationDue(e.nextCalibrationDue)} hideOk className="mt-0.5" /> : null;
           }}
           empty={{
-            title: 'Belum ada peralatan',
-            description: 'Daftarkan aset dengan kategori Peralatan di Daftar Aset.',
+            title: t('equipment.emptyTitle'),
+            description: t('equipment.emptyDescription'),
             action: canEditAssets ? (
               <Button asChild size="sm" variant="outline">
-                <Link to="/ga/assets">Buka Daftar Aset</Link>
+                <Link to="/ga/assets">{t('equipment.openAssets')}</Link>
               </Button>
             ) : undefined,
           }}
@@ -233,7 +235,7 @@ export const GaEquipmentPage = () => {
               <Skeleton className="h-64 w-full" />
             ) : (
               <div className="rounded-lg border border-border bg-card">
-                <EmptyState icon={ScanLine} title="Pilih peralatan" description="Pilih peralatan di daftar untuk melihat data dan riwayat kalibrasinya." />
+                <EmptyState icon={ScanLine} title={t('equipment.pickTitle')} description={t('equipment.pickDescription')} />
               </div>
             )
           ) : (
@@ -251,38 +253,38 @@ export const GaEquipmentPage = () => {
                     ) : equip?.nextCalibrationDue ? (
                       <span className="flex flex-wrap items-center gap-x-2">
                         <span>
-                          Kalibrasi berikutnya <span className="num font-medium">{formatDate(equip.nextCalibrationDue)}</span>
+                          {t('equipment.nextCalibration')} <span className="num font-medium">{formatDate(equip.nextCalibrationDue)}</span>
                         </span>
                         <DueMarker info={due} />
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">Jatuh tempo kalibrasi belum ada.</span>
+                      <span className="text-muted-foreground">{t('equipment.noDue')}</span>
                     )}
                   </div>
                 </div>
                 <Button variant="outline" onClick={() => setShowQr(true)} disabled={!assetDetail.data}>
                   <QrCode aria-hidden />
-                  QR aset
+                  {t('equipment.qr')}
                 </Button>
               </div>
 
               <EquipmentDataSection key={selectedAsset.id} assetId={selectedAsset.id} canEdit={canEdit} query={equipQuery} />
 
               <TableSection
-                title="Riwayat Kalibrasi"
+                title={t('equipment.history')}
                 icon={<ClipboardCheck />}
                 actions={
                   canEdit && (
                     <Button size="sm" onClick={() => setShowCalSheet(true)}>
                       <Plus aria-hidden />
-                      Tambah Log
+                      {t('equipment.addLog')}
                     </Button>
                   )
                 }
               >
                 <DataTable
-                  label={`Riwayat kalibrasi ${selectedAsset.name}`}
-                  itemLabel="log"
+                  label={t('equipment.historyOf', { name: selectedAsset.name })}
+                  itemLabel={t('equipment.logItem')}
                   columns={logColumns}
                   data={logsQuery.data}
                   getRowId={(r) => r.id}
@@ -291,8 +293,8 @@ export const GaEquipmentPage = () => {
                   onRetry={() => logsQuery.refetch()}
                   stickyHeader={false}
                   empty={{
-                    title: 'Belum ada log kalibrasi',
-                    description: 'Catat setiap kalibrasi beserta masa berlaku sertifikatnya.',
+                    title: t('equipment.noLogs'),
+                    description: t('equipment.noLogsDescription'),
                   }}
                 />
               </TableSection>
@@ -330,6 +332,7 @@ interface EquipmentDataSectionProps {
 }
 
 function EquipmentDataSection({ assetId, canEdit, query }: EquipmentDataSectionProps) {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const [form, setForm] = useState<EquipForm>(() => toForm(query.data ?? null));
   const [dirty, setDirty] = useState(false);
@@ -361,23 +364,23 @@ function EquipmentDataSection({ assetId, canEdit, query }: EquipmentDataSectionP
         notes: form.notes || null,
       }),
     onSuccess: () => {
-      toast.success('Data peralatan tersimpan.');
+      toast.success(t('equipment.data.saved'));
       queryClient.invalidateQueries({ queryKey: equipKey(assetId) });
     },
-    onError: (e) => toast.error(apiErrorMessage(e, 'Gagal menyimpan.')),
+    onError: (e) => toast.error(apiErrorMessage(e, t('equipment.data.saveFailed'))),
   });
 
   const ro = !canEdit;
 
   return (
     <Section
-      title="Data Peralatan"
+      title={t('equipment.data.title')}
       icon={<ScanLine />}
       actions={
         canEdit && (
           <Button size="sm" onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty || query.isLoading}>
             <Save aria-hidden />
-            Simpan
+            {t('shared.save')}
           </Button>
         )
       }
@@ -390,40 +393,40 @@ function EquipmentDataSection({ assetId, canEdit, query }: EquipmentDataSectionP
           compact
           action={
             <Button variant="outline" size="sm" onClick={() => query.refetch()}>
-              Coba lagi
+              {t('equipment.data.retry')}
             </Button>
           }
         />
       ) : (
         <div className="space-y-4">
           {!query.data && (
-            <p className="text-sm text-muted-foreground">Data peralatan belum diisi{canEdit ? '. Lengkapi lalu simpan.' : '.'}</p>
+            <p className="text-sm text-muted-foreground">{canEdit ? t('equipment.data.emptyEditable') : t('equipment.data.empty')}</p>
           )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Kapasitas maks">
+            <Field label={t('equipment.data.maxCapacity')}>
               <FormNumberInput value={form.maxCapacity} onChange={(e) => set('maxCapacity', e.target.value)} disabled={ro} min={0} step="0.001" className="num text-right" />
             </Field>
-            <Field label="Satuan">
-              <OptionSelect value={form.unit} onChange={(v) => set('unit', v)} options={UNIT_OPTIONS} noneLabel="Tidak diisi" disabled={ro} />
+            <Field label={t('equipment.data.unit')}>
+              <OptionSelect value={form.unit} onChange={(v) => set('unit', v)} options={UNIT_OPTIONS} noneLabel={t('equipment.data.notFilled')} disabled={ro} />
             </Field>
-            <Field label="Akurasi">
+            <Field label={t('equipment.data.accuracy')}>
               <FormNumberInput value={form.accuracy} onChange={(e) => set('accuracy', e.target.value)} disabled={ro} min={0} step="0.0001" className="num text-right" />
             </Field>
-            <Field label="Kelas">
+            <Field label={t('equipment.data.class')}>
               <Input value={form.classLabel} onChange={(e) => set('classLabel', e.target.value)} disabled={ro} maxLength={50} />
             </Field>
-            <Field label="Lembaga kalibrator default">
+            <Field label={t('equipment.data.defaultLab')}>
               <Input value={form.defaultCalibrator} onChange={(e) => set('defaultCalibrator', e.target.value)} disabled={ro} maxLength={200} />
             </Field>
-            <Field label="Interval kalibrasi (bulan)">
+            <Field label={t('equipment.data.interval')}>
               <FormNumberInput value={form.intervalMonths} onChange={(e) => set('intervalMonths', e.target.value)} disabled={ro} min={1} step="1" className="num" />
             </Field>
-            <Field label="Terakhir dikalibrasi" hint="Jatuh tempo dihitung dari tanggal ini + interval.">
+            <Field label={t('equipment.data.lastCalibrated')} hint={t('equipment.data.lastCalibratedHint')}>
               {(control) => (
                 <DateInput id={control.id} value={form.lastCalibratedAt} onChange={(v) => set('lastCalibratedAt', v)} disabled={ro} />
               )}
             </Field>
-            <Field label="Catatan" className="sm:col-span-2">
+            <Field label={t('shared.notes')} className="sm:col-span-2">
               <Input value={form.notes} onChange={(e) => set('notes', e.target.value)} disabled={ro} />
             </Field>
           </div>

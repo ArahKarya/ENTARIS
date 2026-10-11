@@ -1,7 +1,9 @@
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { formatDate } from '@/lib/format';
+import { labelMap } from '../eam-i18n';
 import { cn } from '@/lib/utils';
 import { EXPIRY_LABEL, expiryDistance, type GaExpiryState } from './ga-document-model';
+import { useTranslation } from 'react-i18next';
 
 const ICON = { expired: AlertTriangle, expiring: Clock, valid: CheckCircle2 } as const;
 const TONE: Record<GaExpiryState, string> = {
@@ -10,7 +12,7 @@ const TONE: Record<GaExpiryState, string> = {
   valid: 'text-success-text',
 };
 /** Narrow-screen variant (mobile stack). */
-const SHORT: Record<GaExpiryState, string> = { expired: 'Kedaluwarsa', expiring: 'Segera habis', valid: 'Berlaku' };
+const SHORT: Record<GaExpiryState, string> = labelMap(['expired', 'expiring', 'valid'], 'gaDocuments.expiryShort');
 
 interface ExpiryDateProps {
   date?: string | null;
@@ -28,6 +30,7 @@ interface ExpiryDateProps {
  * expired / expiring; the detail sheet uses ExpiryStateLine.
  */
 export function ExpiryDate({ date, state, markerOnly = false, showDistance = true, className }: ExpiryDateProps) {
+  const { t } = useTranslation('eam');
   // Mobile stack: only the states that need attention.
   const marked = markerOnly ? (state === 'expired' || state === 'expiring' ? state : null) : state ?? null;
   if (markerOnly && !marked) return null;
@@ -38,7 +41,7 @@ export function ExpiryDate({ date, state, markerOnly = false, showDistance = tru
     <span className={cn('inline-flex flex-col items-start gap-0.5', className)}>
       {!markerOnly && (
         <span className={cn('num whitespace-nowrap', alert ? 'font-medium text-foreground' : 'text-muted-foreground')}>
-          {date ? formatDate(date) : 'Tanpa batas'}
+          {date ? formatDate(date) : t('gaDocuments.expiryDate.noLimit')}
         </span>
       )}
       {marked && Icon && (
@@ -65,7 +68,8 @@ export function ExpiryDate({ date, state, markerOnly = false, showDistance = tru
 
 /** Full state line for the detail sheet, including "Berlaku". */
 export function ExpiryStateLine({ date, state }: { date?: string | null; state: GaExpiryState | null }) {
-  if (!state) return <span className="text-muted-foreground">Tidak dipantau (dicabut/diarsipkan)</span>;
+  const { t } = useTranslation('eam');
+  if (!state) return <span className="text-muted-foreground">{t('gaDocuments.expiryDate.notTracked')}</span>;
   const Icon = ICON[state];
   return (
     <span className={cn('inline-flex flex-wrap items-center gap-1 text-sm font-medium', TONE[state])}>
@@ -74,7 +78,7 @@ export function ExpiryStateLine({ date, state }: { date?: string | null; state: 
       {date ? (
         <span className="font-normal text-muted-foreground">· {expiryDistance(date)}</span>
       ) : (
-        <span className="font-normal text-muted-foreground">· tanpa tanggal kedaluwarsa</span>
+        <span className="font-normal text-muted-foreground">· {t('gaDocuments.expiryDate.noExpiryDate')}</span>
       )}
     </span>
   );

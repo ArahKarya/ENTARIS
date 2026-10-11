@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Panel } from '@/components/inventory/dashboard-kit';
+import { Trans, useTranslation } from 'react-i18next';
 
 type ExportType = 'items' | 'movements';
 
@@ -31,15 +32,16 @@ async function downloadCsv(type: ExportType) {
 }
 
 export function GaInventoryTools({ canEdit, hasLocations, onOpname }: GaInventoryToolsProps) {
+  const { t } = useTranslation('eam');
   const [exporting, setExporting] = useState<ExportType | null>(null);
 
   const handleExport = async (type: ExportType) => {
     setExporting(type);
     try {
       await downloadCsv(type);
-      toast.success('File CSV diunduh.');
+      toast.success(t('gaInventory.tools.downloaded'));
     } catch {
-      toast.error('Gagal mengunduh file.');
+      toast.error(t('gaInventory.tools.downloadFailed'));
     } finally {
       setExporting(null);
     }
@@ -47,29 +49,28 @@ export function GaInventoryTools({ canEdit, hasLocations, onOpname }: GaInventor
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Panel title="Stok Opname Cepat" description="Samakan stok sistem dengan hitungan fisik">
+      <Panel title={t('gaInventory.tools.opnameTitle')} description={t('gaInventory.tools.opnameDescription')}>
         <p className="text-sm text-muted-foreground">
-          Isi stok hasil hitung per item dan lokasi. Selisih terhadap stok sistem otomatis tercatat sebagai mutasi{' '}
-          <strong className="font-medium text-foreground">Penyesuaian</strong>, jadi riwayat tetap utuh.
+          <Trans t={t} i18nKey="gaInventory.tools.opnameBody" components={{ strong: <strong className="font-medium text-foreground" /> }} />
         </p>
         {canEdit ? (
           <div className="mt-4 space-y-2">
             <Button onClick={onOpname} disabled={!hasLocations}>
               <ClipboardCheck aria-hidden />
-              Mulai Opname
+              {t('gaInventory.tools.startOpname')}
             </Button>
             {!hasLocations && (
-              <p className="text-xs text-danger-text">Buat lokasi gudang dulu di Data Induk Aset → Lokasi.</p>
+              <p className="text-xs text-danger-text">{t('gaInventory.tools.needLocation')}</p>
             )}
           </div>
         ) : (
-          <p className="mt-4 text-xs text-muted-foreground">Butuh izin ubah Inventaris Kantor untuk melakukan opname.</p>
+          <p className="mt-4 text-xs text-muted-foreground">{t('gaInventory.tools.needPermission')}</p>
         )}
       </Panel>
 
-      <Panel title="Ekspor CSV" description="Pemisah titik koma, siap dibuka di Excel">
+      <Panel title={t('gaInventory.tools.exportTitle')} description={t('gaInventory.tools.exportDescription')}>
         <p className="text-sm text-muted-foreground">
-          Unduh daftar item lengkap dengan stok dan status, atau riwayat mutasi (maks. 5.000 baris terbaru).
+          {t('gaInventory.tools.exportBody')}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
@@ -79,7 +80,7 @@ export function GaInventoryTools({ canEdit, hasLocations, onOpname }: GaInventor
             disabled={exporting !== null}
           >
             <Download aria-hidden />
-            Daftar Item
+            {t('gaInventory.tools.exportItems')}
           </Button>
           <Button
             variant="outline"
@@ -88,29 +89,18 @@ export function GaInventoryTools({ canEdit, hasLocations, onOpname }: GaInventor
             disabled={exporting !== null}
           >
             <Download aria-hidden />
-            Riwayat Mutasi
+            {t('gaInventory.tools.exportMovements')}
           </Button>
         </div>
       </Panel>
 
-      <Panel title="Cara Stok Dihitung" className="md:col-span-2" action={<Info className="size-4 text-muted-foreground" aria-hidden />}>
+      <Panel title={t('gaInventory.tools.howTitle')} className="md:col-span-2" action={<Info className="size-4 text-muted-foreground" aria-hidden />}>
         <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          <li>
-            <strong className="font-medium text-foreground">Total stok</strong> = jumlah stok semua lokasi, murni turunan
-            dari mutasi. Tidak bisa diketik manual di form item.
-          </li>
-          <li>
-            <strong className="font-medium text-foreground">Stok minimum</strong> hanya ambang peringatan, mengisinya tidak
-            menambah stok.
-          </li>
-          <li>
-            Stok pertama kali: tab <strong className="font-medium text-foreground">Pergerakan</strong> → Catat Pergerakan →
-            tipe Masuk.
-          </li>
-          <li>
-            Inventaris kantor <strong className="font-medium text-foreground">tidak</strong> membuat jurnal/GL, terpisah
-            dari persediaan akuntansi.
-          </li>
+          {(['total', 'minimum', 'first', 'noGl'] as const).map((key) => (
+            <li key={key}>
+              <Trans t={t} i18nKey={`gaInventory.tools.how.${key}`} components={{ strong: <strong className="font-medium text-foreground" /> }} />
+            </li>
+          ))}
         </ul>
       </Panel>
     </div>

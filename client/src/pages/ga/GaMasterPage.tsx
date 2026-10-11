@@ -5,10 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared';
 import { DEFAULT_MASTER_TAB, MASTER_ENTITIES, findMasterEntity } from '@/components/ga/assets/master-config';
 import { GaMasterTab } from '@/components/ga/assets/GaMasterTab';
+import { useTranslation } from 'react-i18next';
 
 const TAB_PARAM = 'tab';
 
 export const GaMasterPage = () => {
+  const { t } = useTranslation('eam');
   const [searchParams, setSearchParams] = useSearchParams();
   const active = findMasterEntity(searchParams.get(TAB_PARAM));
   const canEdit = can('ga_master', 'edit');
@@ -24,9 +26,9 @@ export const GaMasterPage = () => {
   return (
     // Manual activation: one history entry per tab change.
     <Tabs value={active.id} onValueChange={changeTab} activationMode="manual" className="pb-8">
-      <PageHeader title="Data Induk Aset" description="Kategori aset, cabang, cost center, lokasi, dan tipe dokumen untuk modul Aset & Pemeliharaan.">
+      <PageHeader title={t('master.page.title')} description={t('master.page.description')}>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <TabsList variant="underline" aria-label="Jenis data induk" className="w-max">
+          <TabsList variant="underline" aria-label={t('master.page.tabsLabel')} className="w-max">
             {MASTER_ENTITIES.map((e) => (
               <TabsTrigger key={e.id} value={e.id}>
                 {e.label}

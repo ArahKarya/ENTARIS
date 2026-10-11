@@ -7,6 +7,7 @@ import { Camera, Trash2, X, Loader2, Upload } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface AssetPhoto {
   id: string;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -37,11 +39,11 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
       return;
     }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
-      toast.error('Format foto harus JPG, PNG, atau WEBP.');
+      toast.error(t('assetPhotos.format'));
       return;
     }
     if (f.size > 5 * 1024 * 1024) {
-      toast.error('Ukuran foto maksimal 5 MB.');
+      toast.error(t('assetPhotos.size'));
       return;
     }
     setFile(f);
@@ -57,36 +59,36 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
       await api.post(`/ga/assets/${assetId}/photos`, fd);
     },
     onSuccess: () => {
-      toast.success('Foto diunggah.');
+      toast.success(t('assetPhotos.uploaded'));
       setFile(null);
       setPreview(null);
       queryClient.invalidateQueries({ queryKey: ['ga-asset-photos', assetId] });
     },
     onError: (e: unknown) =>
-      toast.error((e as { response?: { data?: { error?: string } } }).response?.data?.error || 'Gagal mengunggah foto.'),
+      toast.error((e as { response?: { data?: { error?: string } } }).response?.data?.error || t('assetPhotos.uploadFailed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (photoId: string) => api.delete(`/ga/assets/${assetId}/photos/${photoId}`),
     onSuccess: () => {
-      toast.success('Foto dihapus.');
+      toast.success(t('assetPhotos.deleted'));
       queryClient.invalidateQueries({ queryKey: ['ga-asset-photos', assetId] });
     },
-    onError: () => toast.error('Gagal menghapus foto.'),
+    onError: () => toast.error(t('assetPhotos.deleteFailed')),
   });
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex min-h-12 items-center justify-between border-b border-border px-4 py-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Camera className="size-4 text-muted-foreground" aria-hidden /> Foto Aset
+          <Camera className="size-4 text-muted-foreground" aria-hidden /> {t('assetPhotos.title')}
         </h2>
-        {photos.length > 0 && <span className="num text-xs text-muted-foreground">{photos.length} foto</span>}
+        {photos.length > 0 && <span className="num text-xs text-muted-foreground">{t('assetPhotos.count', { count: photos.length })}</span>}
       </div>
       <div className="p-4">
 
       {isLoading ? (
-        <div className="py-4 text-center"><Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" aria-label="Memuat foto" /></div>
+        <div className="py-4 text-center"><Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" aria-label={t('assetPhotos.loading')} /></div>
       ) : (
         <>
           {photos.length > 0 && (
@@ -95,15 +97,15 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
                 <li key={ph.id} className="relative">
                   <img
                     src={`/uploads/${ph.filePath}`}
-                    alt={ph.caption ?? 'Foto aset'}
+                    alt={ph.caption ?? t('assetPhotos.alt')}
                     className="h-24 w-full rounded-md border border-border object-cover"
                   />
                   {canEdit && (
                     <button
                       type="button"
                       onClick={() => deleteMutation.mutate(ph.id)}
-                      title="Hapus foto"
-                      aria-label="Hapus foto"
+                      title={t('assetPhotos.delete')}
+                      aria-label={t('assetPhotos.delete')}
                       className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-md bg-overlay text-white hover:bg-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
@@ -115,19 +117,19 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
           )}
 
           {photos.length === 0 && !file && (
-            <p className="mb-3 text-sm text-muted-foreground">Belum ada foto.</p>
+            <p className="mb-3 text-sm text-muted-foreground">{t('assetPhotos.empty')}</p>
           )}
 
           {canEdit && (
             preview ? (
               <div className="flex items-center gap-3">
                 <div className="relative inline-block">
-                  <img src={preview} alt="Pratinjau foto baru" className="h-20 rounded-md border border-border object-cover" />
+                  <img src={preview} alt={t('assetPhotos.preview')} className="h-20 rounded-md border border-border object-cover" />
                   <button
                     type="button"
                     onClick={() => pickFile(null)}
-                    title="Batalkan"
-                    aria-label="Batalkan foto"
+                    title={t('shared.cancel')}
+                    aria-label={t('assetPhotos.removePhoto')}
                     className="absolute -right-1.5 -top-1.5 rounded-sm bg-foreground p-0.5 text-background hover:bg-danger hover:text-danger-foreground"
                   >
                     <X size={12} aria-hidden />
@@ -139,13 +141,13 @@ export const AssetPhotoSection = ({ assetId, canEdit }: Props) => {
                   disabled={uploadMutation.isPending}
                   className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[var(--shadow-1)] hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                 >
-                  {uploadMutation.isPending ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Upload size={14} aria-hidden />} Unggah
+                  {uploadMutation.isPending ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Upload size={14} aria-hidden />} {t('assetPhotos.upload')}
                 </button>
               </div>
             ) : (
               <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed border-border-strong px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:bg-surface-hover focus-within:ring-2 focus-within:ring-ring">
                 <Camera size={14} aria-hidden />
-                {photos.length > 0 ? 'Tambah foto lain' : 'Pilih foto (JPG/PNG/WEBP, maks 5 MB)'}
+                {photos.length > 0 ? t('assetPhotos.addAnother') : t('assetPhotos.pick')}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"

@@ -13,6 +13,7 @@ import { FormNumberInput, FormSection, FormSheet, InfoNote } from '@/components/
 import { FormSelect } from './form-select';
 import { errorMessage, itemImageUrl, type GaItemRow } from './ga-inventory-model';
 import { useGaCategories, useInvalidateGaInventory } from './queries';
+import { Trans, useTranslation } from 'react-i18next';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -36,6 +37,7 @@ interface GaItemFormSheetProps {
 }
 
 export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
+  const { t } = useTranslation('eam');
   const { data: categories = [] } = useGaCategories();
   const invalidate = useInvalidateGaInventory();
   const [form, setForm] = useState<FormState>(() => ({
@@ -74,8 +76,8 @@ export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
 
   const pickImage = (file: File | null) => {
     if (!file) return;
-    if (file.size > MAX_IMAGE_BYTES) return toast.error('Ukuran gambar maksimal 5 MB.');
-    if (!IMAGE_TYPES.includes(file.type)) return toast.error('Format gambar harus JPG, PNG, atau WEBP.');
+    if (file.size > MAX_IMAGE_BYTES) return toast.error(t('gaInventory.itemForm.imageSize'));
+    if (!IMAGE_TYPES.includes(file.type)) return toast.error(t('gaInventory.itemForm.imageFormat'));
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setRemoveImage(false);
@@ -89,11 +91,11 @@ export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
 
   const validate = (): Errors => {
     const e: Errors = {};
-    if (!form.sku.trim()) e.sku = 'SKU wajib diisi.';
-    if (!form.name.trim()) e.name = 'Nama wajib diisi.';
-    if (!form.categoryId) e.categoryId = 'Kategori wajib dipilih.';
-    if (!form.uom.trim()) e.uom = 'Satuan wajib diisi.';
-    if (form.minStock !== '' && Number(form.minStock) < 0) e.minStock = 'Stok minimum tidak boleh negatif.';
+    if (!form.sku.trim()) e.sku = t('gaInventory.itemForm.skuRequired');
+    if (!form.name.trim()) e.name = t('gaInventory.itemForm.nameRequired');
+    if (!form.categoryId) e.categoryId = t('gaInventory.itemForm.categoryRequired');
+    if (!form.uom.trim()) e.uom = t('gaInventory.itemForm.uomRequired');
+    if (form.minStock !== '' && Number(form.minStock) < 0) e.minStock = t('gaInventory.itemForm.minNegative');
     return e;
   };
 
@@ -122,13 +124,13 @@ export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
           await api.delete(`/ga/inventory/items/${itemId}/image`);
         }
       } catch {
-        toast.error('Item tersimpan, tapi gambar gagal diupload.');
+        toast.error(t('gaInventory.itemForm.imageUploadFailed'));
       }
-      toast.success(item ? 'Item diperbarui.' : 'Item dibuat.');
+      toast.success(item ? t('gaInventory.itemForm.updated') : t('gaInventory.itemForm.created'));
       invalidate();
       onClose();
     } catch (err) {
-      setServerError(errorMessage(err, 'Gagal menyimpan item.'));
+      setServerError(errorMessage(err, t('gaInventory.itemForm.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -140,35 +142,35 @@ export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
     <FormSheet
       open={open}
       onOpenChange={(next) => !next && onClose()}
-      title={item ? 'Edit Item' : 'Item Baru'}
-      description={item ? `${item.sku} · ${item.name}` : 'Barang ATK, sparepart, atau perlengkapan kantor.'}
+      title={item ? t('gaInventory.itemForm.editTitle') : t('gaInventory.itemForm.newTitle')}
+      description={item ? `${item.sku} · ${item.name}` : t('gaInventory.itemForm.newDescription')}
       error={serverError}
       saving={saving}
-      submitLabel={item ? 'Simpan Perubahan' : 'Simpan Item'}
+      submitLabel={item ? t('gaInventory.itemForm.saveChanges') : t('gaInventory.itemForm.saveItem')}
       onSubmit={submit}
     >
-      <FormSection title="Identitas">
+      <FormSection title={t('gaInventory.itemForm.identity')}>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="SKU" required error={errors.sku}>
+          <Field label={t('gaInventory.itemForm.sku')} required error={errors.sku}>
             <Input value={form.sku} onChange={(e) => set('sku', e.target.value)} autoComplete="off" />
           </Field>
-          <Field label="Satuan" required error={errors.uom} hint="pcs, rim, box, liter…">
+          <Field label={t('gaInventory.itemForm.uom')} required error={errors.uom} hint={t('gaInventory.itemForm.uomHint')}>
             <Input value={form.uom} onChange={(e) => set('uom', e.target.value)} autoComplete="off" />
           </Field>
         </div>
-        <Field label="Nama item" required error={errors.name}>
+        <Field label={t('gaInventory.itemForm.name')} required error={errors.name}>
           <Input value={form.name} onChange={(e) => set('name', e.target.value)} autoComplete="off" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Kategori" required error={errors.categoryId}>
+          <Field label={t('gaInventory.itemForm.category')} required error={errors.categoryId}>
             <FormSelect
               value={form.categoryId}
               onChange={(v) => set('categoryId', v)}
               options={categories.map((c) => ({ value: c.id, label: c.name }))}
-              placeholder="Pilih kategori…"
+              placeholder={t('gaInventory.itemForm.categoryPlaceholder')}
             />
           </Field>
-          <Field label="Stok minimum" error={errors.minStock} hint="Ambang peringatan restock">
+          <Field label={t('gaInventory.itemForm.minStock')} error={errors.minStock} hint={t('gaInventory.itemForm.minStockHint')}>
             <FormNumberInput
               value={form.minStock}
               onChange={(e) => set('minStock', e.target.value)}
@@ -180,11 +182,11 @@ export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
         </div>
       </FormSection>
 
-      <FormSection title="Foto">
+      <FormSection title={t('gaInventory.itemForm.photo')}>
         <div className="flex items-center gap-4">
           <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
             {currentImage ? (
-              <img src={currentImage} alt={`Foto ${form.name || 'item'}`} className="size-full object-cover" />
+              <img src={currentImage} alt={t('gaInventory.itemForm.photoAlt', { name: form.name || t('gaInventory.itemForm.itemFallback') })} className="size-full object-cover" />
             ) : (
               <Package className="size-6 text-muted-foreground" aria-hidden />
             )}
@@ -204,23 +206,22 @@ export function GaItemFormSheet({ open, item, onClose }: GaItemFormSheetProps) {
             />
             <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
               <ImagePlus aria-hidden />
-              {currentImage ? 'Ganti foto' : 'Pilih foto'}
+              {currentImage ? t('gaInventory.itemForm.changePhoto') : t('gaInventory.itemForm.pickPhoto')}
             </Button>
             {currentImage && (
               <Button type="button" variant="ghost" size="sm" className="text-danger-text" onClick={clearImage}>
                 <Trash2 aria-hidden />
-                Hapus foto
+                {t('gaInventory.itemForm.removePhoto')}
               </Button>
             )}
-            <p className="text-xs text-muted-foreground">JPG, PNG, atau WEBP, maks 5 MB.</p>
+            <p className="text-xs text-muted-foreground">{t('gaInventory.itemForm.photoHint')}</p>
           </div>
         </div>
       </FormSection>
 
       {!item && (
         <InfoNote>
-          Stok tidak diisi di sini. Setelah item dibuat, catat stok awal lewat <strong>Catat Pergerakan</strong> → tipe
-          Masuk, atau lewat <strong>Stok Opname</strong>.
+          <Trans t={t} i18nKey="gaInventory.itemForm.stockNote" components={{ strong: <strong /> }} />
         </InfoNote>
       )}
     </FormSheet>

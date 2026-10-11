@@ -14,6 +14,7 @@ import { DateInput, Field } from '@/components/shared';
 import { ChecklistEditor, type ChecklistItem } from '@/pages/ga/maintenance/ChecklistEditor';
 import { FormModal } from './form-modal';
 import { assetOptions, useGaAssetOptions } from './queries';
+import { useTranslation } from 'react-i18next';
 import {
   PRIORITY_LABELS,
   PRIORITY_ORDER,
@@ -25,12 +26,13 @@ import {
 } from './wo-meta';
 
 
-const PRIORITY_OPTIONS = PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_LABELS[p] }));
-const TYPE_OPTIONS = (Object.keys(TYPE_LABELS) as WoType[]).map((t) => ({ value: t, label: TYPE_LABELS[t] }));
+const priorityOptions = () => PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_LABELS[p] }));
+const typeOptions = () => (Object.keys(TYPE_LABELS) as WoType[]).map((type) => ({ value: type, label: TYPE_LABELS[type] }));
 
 const numOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
 
 export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill | null; onClose: () => void }) {
+  const { t } = useTranslation('eam');
   const queryClient = useQueryClient();
   const { data: assets, isLoading } = useGaAssetOptions();
   const [submitted, setSubmitted] = useState(false);
@@ -47,8 +49,8 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
   const scheduleId = prefill?.scheduleId;
 
   const errors = {
-    assetId: !form.assetId ? 'Aset wajib dipilih.' : undefined,
-    title: !form.title.trim() ? 'Judul wajib diisi.' : undefined,
+    assetId: !form.assetId ? t('workOrder.form.assetRequired') : undefined,
+    title: !form.title.trim() ? t('workOrder.form.titleRequired') : undefined,
   };
 
   const mutation = useMutation({
@@ -64,12 +66,12 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
         dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : null,
       }),
     onSuccess: () => {
-      toast.success('Work order dibuat.');
+      toast.success(t('workOrder.form.created'));
       queryClient.invalidateQueries({ queryKey: ['ga-work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['ga-schedules'] });
       onClose();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal membuat work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.form.createFailed'))),
   });
 
   const submit = () => {
@@ -80,35 +82,35 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
 
   return (
     <FormModal
-      title={scheduleId ? 'Buat WO dari Jadwal' : 'Buat Work Order'}
-      description={scheduleId ? undefined : 'Catat pekerjaan perbaikan atau perawatan untuk satu aset.'}
+      title={scheduleId ? t('workOrder.form.createFromSchedule') : t('workOrder.form.createTitle')}
+      description={scheduleId ? undefined : t('workOrder.form.createDescription')}
       onClose={onClose}
       onSubmit={submit}
-      submitLabel="Simpan"
+      submitLabel={t('shared.save')}
       submitting={mutation.isPending}
     >
       {scheduleId && (
         <p className="flex items-start gap-2 rounded-md bg-info-subtle px-3 py-2 text-sm text-info-text">
           <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden />
-          WO ini terhubung ke jadwal preventif. Saat WO selesai, jadwal otomatis bergulir ke jatuh tempo berikutnya.
+          {t('workOrder.form.scheduleLinked')}
         </p>
       )}
-      <ComboboxField label="Aset" required error={submitted ? errors.assetId : undefined}
+      <ComboboxField label={t('workOrder.form.asset')} required error={submitted ? errors.assetId : undefined}
   options={assetOptions(assets)}
   value={form.assetId}
   onChange={(v) => set({ assetId: v })}
-  placeholder={isLoading ? 'Memuat…' : 'Pilih aset'}
+  placeholder={isLoading ? t('workOrder.form.loading') : t('workOrder.form.assetPlaceholder')}
   disabled={!!prefill?.assetId}
 />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Tipe">
+        <Field label={t('workOrder.form.type')}>
           {(control) => (
             <Select value={form.type} onValueChange={(v) => set({ type: v as WoType })}>
               <SelectTrigger {...control}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TYPE_OPTIONS.map((o) => (
+                {typeOptions().map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
@@ -117,14 +119,14 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
             </Select>
           )}
         </Field>
-        <Field label="Prioritas">
+        <Field label={t('workOrder.form.priority')}>
           {(control) => (
             <Select value={form.priority} onValueChange={(v) => set({ priority: v as WoPriority })}>
               <SelectTrigger {...control}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PRIORITY_OPTIONS.map((o) => (
+                {priorityOptions().map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
@@ -134,28 +136,28 @@ export function CreateWorkOrderModal({ prefill, onClose }: { prefill?: WoPrefill
           )}
         </Field>
       </div>
-      <Field label="Judul" required error={submitted ? errors.title : undefined}>
+      <Field label={t('workOrder.form.title')} required error={submitted ? errors.title : undefined}>
         <Input
           value={form.title}
           maxLength={200}
           onChange={(e) => set({ title: e.target.value })}
-          placeholder="Contoh: Perbaikan AC ruang server"
+          placeholder={t('workOrder.form.titlePlaceholder')}
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Komponen" hint="Opsional">
+        <Field label={t('workOrder.form.component')} hint={t('workOrder.form.optional')}>
           <Input
             value={form.component}
             maxLength={200}
             onChange={(e) => set({ component: e.target.value })}
-            placeholder="V-belt, bearing, kompresor"
+            placeholder={t('workOrder.form.componentPlaceholder')}
           />
         </Field>
-        <Field label="Jatuh tempo" hint="Opsional">
+        <Field label={t('workOrder.form.dueDate')} hint={t('workOrder.form.optional')}>
           {(control) => <DateInput id={control.id} value={form.dueAt} onChange={(v) => set({ dueAt: v })} />}
         </Field>
       </div>
-      <Field label="Deskripsi">
+      <Field label={t('workOrder.form.description')}>
         <Textarea rows={3} value={form.description} onChange={(e) => set({ description: e.target.value })} />
       </Field>
     </FormModal>
@@ -179,6 +181,7 @@ export function AssignModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation('eam');
   const { data: users, isLoading } = useQuery({
     queryKey: ['ga-technicians'],
     queryFn: async () => {
@@ -193,35 +196,36 @@ export function AssignModal({
   const mutation = useMutation({
     mutationFn: () => api.patch(`/ga/maintenance/work-orders/${id}/assign`, { assignedToId }),
     onSuccess: () => {
-      toast.success('Teknisi ditugaskan.');
+      toast.success(t('workOrder.form.assigned'));
       onDone();
       onClose();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal menugaskan teknisi.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.form.assignFailed'))),
   });
 
   return (
     <FormModal
-      title={currentAssigneeId ? 'Ubah Teknisi' : 'Tugaskan Teknisi'}
+      title={currentAssigneeId ? t('workOrder.form.changeTechnician') : t('workOrder.form.assignTechnician')}
       onClose={onClose}
       onSubmit={() => {
         setSubmitted(true);
         if (assignedToId) mutation.mutate();
       }}
-      submitLabel="Tugaskan"
+      submitLabel={t('workOrder.form.assign')}
       submitting={mutation.isPending}
     >
-      <ComboboxField label="Teknisi" required error={submitted && !assignedToId ? 'Teknisi wajib dipilih.' : undefined}
+      <ComboboxField label={t('workOrder.form.technician')} required error={submitted && !assignedToId ? t('workOrder.form.technicianRequired') : undefined}
   options={(users ?? []).map((u) => ({ value: u.id, label: `${u.fullName} (${u.username})` }))}
   value={assignedToId}
   onChange={setAssignedToId}
-  placeholder={isLoading ? 'Memuat…' : 'Pilih teknisi'}
+  placeholder={isLoading ? t('workOrder.form.loading') : t('workOrder.form.technicianPlaceholder')}
 />
     </FormModal>
   );
 }
 
 export function CompleteModal({ id, onClose, onDone }: { id: string; onClose: () => void; onDone: () => void }) {
+  const { t } = useTranslation('eam');
   const [form, setForm] = useState({ resolution: '', laborHours: '', laborCost: '', externalVendor: '', externalCost: '' });
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -242,65 +246,65 @@ export function CompleteModal({ id, onClose, onDone }: { id: string; onClose: ()
         externalCost: numOrNull(form.externalCost),
       }),
     onSuccess: () => {
-      toast.success('Work order selesai.');
+      toast.success(t('workOrder.form.completed'));
       onDone();
       onClose();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal menyelesaikan work order.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.form.completeFailed'))),
   });
 
   const totalCost = (Number(form.laborCost) || 0) + (Number(form.externalCost) || 0);
 
   return (
     <FormModal
-      title="Selesaikan Work Order"
-      description="Catat hasil pekerjaan, biaya tenaga dan vendor, serta checklist penyelesaian."
+      title={t('workOrder.form.completeTitle')}
+      description={t('workOrder.form.completeDescription')}
       size="lg"
       onClose={onClose}
       onSubmit={() => {
         setSubmitted(true);
         if (!blankLabel) mutation.mutate();
       }}
-      submitLabel="Tandai Selesai"
+      submitLabel={t('workOrder.form.markDone')}
       submitting={mutation.isPending}
     >
-      <Field label="Penyelesaian / resolusi">
+      <Field label={t('workOrder.form.resolution')}>
         <Textarea rows={3} value={form.resolution} onChange={(e) => set({ resolution: e.target.value })} />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Jam kerja">
+        <Field label={t('workOrder.form.laborHours')}>
           <NumberInput min={0} step="any" value={form.laborHours} onChange={(e) => set({ laborHours: e.target.value })} />
         </Field>
-        <Field label="Biaya tenaga (Rp)">
+        <Field label={t('workOrder.form.laborCost')}>
           <NumberInput min={0} value={form.laborCost} onChange={(e) => set({ laborCost: e.target.value })} />
         </Field>
-        <Field label="Vendor eksternal">
+        <Field label={t('workOrder.form.externalVendor')}>
           <Input value={form.externalVendor} onChange={(e) => set({ externalVendor: e.target.value })} />
         </Field>
-        <Field label="Biaya eksternal (Rp)">
+        <Field label={t('workOrder.form.externalCost')}>
           <NumberInput min={0} value={form.externalCost} onChange={(e) => set({ externalCost: e.target.value })} />
         </Field>
       </div>
       {totalCost > 0 && (
         <p className="text-sm text-muted-foreground">
-          Biaya tenaga + eksternal: <span className="num font-medium text-foreground">{formatRupiah(totalCost)}</span>{' '}
-          (biaya part dihitung dari pemakaian part).
+          {t('workOrder.form.costSum')} <span className="num font-medium text-foreground">{formatRupiah(totalCost)}</span>{' '}
+          {t('workOrder.form.costSumNote')}
         </p>
       )}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-foreground">Checklist penyelesaian</legend>
+        <legend className="text-sm font-medium text-foreground">{t('workOrder.form.checklist')}</legend>
         <p className="text-xs text-muted-foreground">
-          Item bertanda &ldquo;Wajib&rdquo; harus dicentang &ldquo;Selesai&rdquo; sebelum WO bisa diselesaikan.
+          {t('workOrder.form.checklistHint')}
         </p>
         <ChecklistEditor items={checklist} onChange={setChecklist} />
         {submitted && blankLabel && (
           <p role="alert" className="text-xs font-medium text-danger-text">
-            Setiap item checklist wajib punya label.
+            {t('workOrder.form.checklistLabelRequired')}
           </p>
         )}
         {missingRequired.length > 0 && (
           <p className="text-xs text-warning-text">
-            {missingRequired.length} item wajib belum dicentang selesai; server akan menolak penyelesaian.
+            {t('workOrder.form.missingRequired', { count: missingRequired.length })}
           </p>
         )}
       </fieldset>
@@ -321,6 +325,7 @@ interface LocationOption {
 }
 
 export function AddPartModal({ id, onClose, onDone }: { id: string; onClose: () => void; onDone: () => void }) {
+  const { t } = useTranslation('eam');
   const { data: items, isLoading: loadingItems } = useQuery({
     queryKey: ['ga-inventory-items-select'],
     queryFn: async () => {
@@ -340,8 +345,8 @@ export function AddPartModal({ id, onClose, onDone }: { id: string; onClose: () 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const errors = {
-    item: !form.inventoryItemId ? 'Item wajib dipilih.' : undefined,
-    qty: !(Number(form.quantity) > 0) ? 'Qty harus lebih dari 0.' : undefined,
+    item: !form.inventoryItemId ? t('workOrder.form.itemRequired') : undefined,
+    qty: !(Number(form.quantity) > 0) ? t('workOrder.form.qtyRequired') : undefined,
   };
 
   const mutation = useMutation({
@@ -354,49 +359,49 @@ export function AddPartModal({ id, onClose, onDone }: { id: string; onClose: () 
       }),
     onSuccess: (res) => {
       if (res.data?.warning) toast.warning(res.data.warning);
-      else toast.success('Part dicatat.');
+      else toast.success(t('workOrder.form.partAdded'));
       onDone();
       onClose();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Gagal mencatat part.')),
+    onError: (err) => toast.error(apiErrorMessage(err, t('workOrder.form.partFailed'))),
   });
 
   const lineTotal = (Number(form.quantity) || 0) * (Number(form.unitCost) || 0);
 
   return (
     <FormModal
-      title="Tambah Pemakaian Part"
+      title={t('workOrder.form.partTitle')}
       onClose={onClose}
       onSubmit={() => {
         setSubmitted(true);
         if (!errors.item && !errors.qty) mutation.mutate();
       }}
-      submitLabel="Tambah"
+      submitLabel={t('workOrder.form.add')}
       submitting={mutation.isPending}
     >
-      <ComboboxField label="Item inventaris" required error={submitted ? errors.item : undefined}
+      <ComboboxField label={t('workOrder.form.item')} required error={submitted ? errors.item : undefined}
   options={(items ?? []).map((it) => ({ value: it.id, label: `${it.sku} · ${it.name}` }))}
   value={form.inventoryItemId}
   onChange={(v) => set({ inventoryItemId: v })}
-  placeholder={loadingItems ? 'Memuat…' : 'Pilih item'}
+  placeholder={loadingItems ? t('workOrder.form.loading') : t('workOrder.form.itemPlaceholder')}
 />
-      <ComboboxField label="Lokasi asal" hint="Isi untuk mengurangi stok dari lokasi ini."
+      <ComboboxField label={t('workOrder.form.fromLocation')} hint={t('workOrder.form.fromLocationHint')}
   options={(locations ?? []).map((l) => ({ value: l.id, label: `${l.code} · ${l.name}` }))}
   value={form.fromLocationId}
   onChange={(v) => set({ fromLocationId: v })}
-  placeholder="Tanpa pengurangan stok"
+  placeholder={t('workOrder.form.noStockDeduction')}
 />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Qty" required error={submitted ? errors.qty : undefined}>
+        <Field label={t('workOrder.form.qty')} required error={submitted ? errors.qty : undefined}>
           <NumberInput min={0} step="any" value={form.quantity} onChange={(e) => set({ quantity: e.target.value })} />
         </Field>
-        <Field label="Harga satuan (Rp)">
+        <Field label={t('workOrder.form.unitCost')}>
           <NumberInput min={0} value={form.unitCost} onChange={(e) => set({ unitCost: e.target.value })} />
         </Field>
       </div>
       {lineTotal > 0 && (
         <p className="text-sm text-muted-foreground">
-          Subtotal: <span className="num font-medium text-foreground">{formatRupiah(lineTotal)}</span>
+          {t('workOrder.form.subtotal')} <span className="num font-medium text-foreground">{formatRupiah(lineTotal)}</span>
         </p>
       )}
     </FormModal>
