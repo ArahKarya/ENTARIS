@@ -1,7 +1,8 @@
 /**
- * Three-way match (PO ↔ STT ↔ Faktur) — client types + status → label/tone
+ * Three-way match (PO ↔ STT ↔ Invoice) — client types + status → label/tone
  * mapping. Mirrors server/src/services/threeWayMatch.ts (result shape).
  */
+import i18n from '@/i18n';
 import { formatNumber, formatRupiah } from '@/lib/format';
 
 export type MatchLineStatus = 'match' | 'qty' | 'price' | 'qty_price' | 'unlinked';
@@ -53,26 +54,31 @@ export interface MatchItemPayload {
   goodsReceiptItemId?: string | null;
 }
 
-export const LINE_STATUS_META: Record<MatchLineStatus, { label: string; tone: MatchTone }> = {
-  match: { label: 'Sesuai', tone: 'success' },
-  qty: { label: 'Selisih qty', tone: 'warning' },
-  price: { label: 'Selisih harga', tone: 'warning' },
-  qty_price: { label: 'Selisih qty & harga', tone: 'warning' },
-  unlinked: { label: 'Tanpa PO/STT', tone: 'neutral' },
+type StatusMetaKey = { key: 'match' | 'qty' | 'price' | 'qtyPrice' | 'unlinked' | 'variance' | 'notLinked'; tone: MatchTone };
+
+/** Label keys (purchasing:threeWayMatch.status.*), translated when read so they follow the UI language. */
+const LINE_STATUS_KEYS: Record<MatchLineStatus, StatusMetaKey> = {
+  match: { key: 'match', tone: 'success' },
+  qty: { key: 'qty', tone: 'warning' },
+  price: { key: 'price', tone: 'warning' },
+  qty_price: { key: 'qtyPrice', tone: 'warning' },
+  unlinked: { key: 'unlinked', tone: 'neutral' },
 };
 
-export const OVERALL_STATUS_META: Record<MatchOverallStatus, { label: string; tone: MatchTone }> = {
-  match: { label: 'Sesuai', tone: 'success' },
-  variance: { label: 'Ada selisih', tone: 'warning' },
-  unlinked: { label: 'Tidak tertaut PO/STT', tone: 'neutral' },
+const OVERALL_STATUS_KEYS: Record<MatchOverallStatus, StatusMetaKey> = {
+  match: { key: 'match', tone: 'success' },
+  variance: { key: 'variance', tone: 'warning' },
+  unlinked: { key: 'notLinked', tone: 'neutral' },
 };
+
+const toMeta = ({ key, tone }: StatusMetaKey) => ({ label: i18n.t(`purchasing:threeWayMatch.status.${key}`), tone });
 
 export function lineStatusMeta(status: MatchLineStatus) {
-  return LINE_STATUS_META[status] ?? LINE_STATUS_META.unlinked;
+  return toMeta(LINE_STATUS_KEYS[status] ?? LINE_STATUS_KEYS.unlinked);
 }
 
 export function overallStatusMeta(status: MatchOverallStatus) {
-  return OVERALL_STATUS_META[status] ?? OVERALL_STATUS_META.unlinked;
+  return toMeta(OVERALL_STATUS_KEYS[status] ?? OVERALL_STATUS_KEYS.unlinked);
 }
 
 /** True when at least one line exceeds tolerance (used for the confirm step). */
@@ -87,22 +93,36 @@ const pct = (p: number | null) => (p == null ? '' : ` (${signed(p, `${formatNumb
 export function describeMatchLine(line: MatchLine): string[] {
   const out: string[] = [];
   const unit = line.unit ? ` ${line.unit}` : '';
+  const qty = (n: number | null) => `${formatNumber(n, { maxDecimals: 3 })}${unit}`;
   if ((line.status === 'qty' || line.status === 'qty_price') && line.qtyDiff != null && Math.abs(line.qtyDiff) > 0) {
     out.push(
-      `Qty faktur ${formatNumber(line.invoiceQty, { maxDecimals: 3 })}${unit} vs STT ${formatNumber(line.receiptQty, { maxDecimals: 3 })}${unit}: ` +
-        `${signed(line.qtyDiff, formatNumber(line.qtyDiff, { maxDecimals: 3 }))}${unit}${pct(line.qtyDiffPct)}`,
+      i18n.t('purchasing:threeWayMatch.detail.qty', {
+        invoiceQty: qty(line.invoiceQty),
+        receiptQty: qty(line.receiptQty),
+        diff: `${signed(line.qtyDiff, formatNumber(line.qtyDiff, { maxDecimals: 3 }))}${unit}${pct(line.qtyDiffPct)}`,
+      }),
     );
   }
   if (line.overOrderedQty != null && line.overOrderedQty > 0) {
     out.push(
-      `Melebihi qty PO ${formatNumber(line.orderedQty, { maxDecimals: 3 })}${unit} sebesar ${formatNumber(line.overOrderedQty, { maxDecimals: 3 })}${unit}`,
+      i18n.t('purchasing:threeWayMatch.detail.overOrdered', {
+        orderedQty: qty(line.orderedQty),
+        overQty: qty(line.overOrderedQty),
+      }),
     );
   }
   if ((line.status === 'price' || line.status === 'qty_price') && line.priceDiff != null) {
+    const total = line.priceVarianceAmount
+      ? i18n.t('purchasing:threeWayMatch.detail.priceTotal', {
+          amount: signed(line.priceVarianceAmount, formatRupiah(line.priceVarianceAmount)),
+        })
+      : '';
     out.push(
-      `Harga faktur ${formatRupiah(line.invoiceUnitPrice)} vs PO ${formatRupiah(line.poUnitPrice)}: ` +
-        `${signed(line.priceDiff, formatRupiah(line.priceDiff))}${pct(line.priceDiffPct)}` +
-        (line.priceVarianceAmount ? ` · total ${signed(line.priceVarianceAmount, formatRupiah(line.priceVarianceAmount))}` : ''),
+      i18n.t('purchasing:threeWayMatch.detail.price', {
+        invoicePrice: formatRupiah(line.invoiceUnitPrice),
+        poPrice: formatRupiah(line.poUnitPrice),
+        diff: `${signed(line.priceDiff, formatRupiah(line.priceDiff))}${pct(line.priceDiffPct)}`,
+      }) + total,
     );
   }
   return out;

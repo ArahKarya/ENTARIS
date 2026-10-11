@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -97,6 +98,7 @@ function getCurrentUserName(): string {
 }
 
 const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = null }) => {
+  const { t } = useTranslation('purchasing');
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
 
@@ -136,7 +138,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
       };
       const lines = itemsFromPO(source);
       if (!lines.some((l) => l.purchaseOrderItemId)) {
-        toast.info(`Semua baris ${po.poNumber} sudah diterima penuh.`);
+        toast.info(t('receiptForm.toastFullyReceived', { number: po.poNumber }));
         return;
       }
       if (items.every(isBlankLine)) {
@@ -145,7 +147,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         setPendingPOLines({ poNumber: po.poNumber, lines });
       }
     } catch {
-      toast.error('Gagal memuat baris PO. Coba pilih ulang.');
+      toast.error(t('receiptForm.errorLoadPO'));
     } finally {
       setLoadingPO(false);
     }
@@ -186,10 +188,10 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
   });
 
   const poOptions: SelectOption[] = [
-    { value: '', label: 'Tanpa PO (Standalone)' },
+    { value: '', label: t('receiptForm.noPOStandalone') },
     ...((openPOs ?? []).map((po: any) => ({
       value: po.id,
-      label: `${po.poNumber}${po.partyId ? '' : ' (PO Umum)'}`,
+      label: po.partyId ? po.poNumber : t('receiptForm.generalPOOption', { number: po.poNumber }),
     })) as SelectOption[]),
   ];
 
@@ -234,18 +236,18 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
       queryClient.invalidateQueries({ queryKey: ['purchase-order-detail'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success('STT/BPB tersimpan. Stok masuk ke gudang.');
+      toast.success(t('receiptForm.toastSaved'));
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan STT.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('receiptForm.errorSave')),
   });
 
   const handleSubmit = () => {
     setError('');
-    if (!partyId) return setError('Supplier wajib dipilih.');
-    if (!date) return setError('Tanggal wajib diisi.');
+    if (!partyId) return setError(t('receiptForm.errorSupplier'));
+    if (!date) return setError(t('receiptForm.errorDate'));
     const validItems = items.filter((it) => it.inventoryItemId && it.warehouseId && it.quantity > 0);
-    if (validItems.length === 0) return setError('Minimal satu item dengan qty > 0 dan gudang terpilih.');
+    if (validItems.length === 0) return setError(t('receiptForm.errorItems'));
 
     mutation.mutate({
       date,
@@ -281,20 +283,20 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     <FormDialog
       open
       onClose={onClose}
-      title="Buat BPB / Surat Tanda Terima"
-      description="Penerimaan barang dari supplier: stok bertambah dan hutang dicatat."
+      title={t('receiptForm.title')}
+      description={t('receiptForm.description')}
       size="doc"
       className="lg:max-w-5xl"
       busy={mutation.isPending}
-      submitLabel="Simpan STT"
+      submitLabel={t('receiptForm.submit')}
       onSubmit={handleSubmit}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label="Tanggal" required>
+        <Field label={t('receiptForm.date')} required>
           <DateInput value={date} onChange={setDate} />
         </Field>
-        <Field label="Supplier" required className="sm:col-span-2">
-          <OptionPicker {...partyPicker.pickerProps} value={partyId} onChange={setPartyId} placeholder="Pilih Supplier" />
+        <Field label={t('receiptForm.supplier')} required className="sm:col-span-2">
+          <OptionPicker {...partyPicker.pickerProps} value={partyId} onChange={setPartyId} placeholder={t('receiptForm.supplierPlaceholder')} />
         </Field>
       </div>
 
@@ -310,40 +312,39 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
           }}
         />
         <span>
-          <span className="text-sm font-medium text-info-text">Barang Titipan Pelanggan (Jasa Repros)</span>
+          <span className="text-sm font-medium text-info-text">{t('receiptForm.customerOwned')}</span>
           <span className="mt-0.5 block text-xs text-info-text">
-            Barang milik pelanggan untuk diproses ulang. Hanya kuantitas yang dicatat, tanpa nilai persediaan/hutang,
-            dan tidak bisa dijadikan Invoice Pembelian. Tagih jasanya lewat Invoice Penjualan (baris jasa).
+            {t('receiptForm.customerOwnedHint')}
           </span>
         </span>
       </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label="PO (opsional)">
+        <Field label={t('receiptForm.poOptional')}>
           {isCustomerOwned ? (
-            <Input value="Tidak berlaku untuk barang titipan" disabled readOnly />
+            <Input value={t('receiptForm.poNotApplicable')} disabled readOnly />
           ) : (
             <OptionPicker
               options={poOptions}
               value={purchaseOrderId}
               onChange={(v) => void handlePickPO(v)}
-              placeholder={loadingPO ? 'Memuat baris PO…' : 'Tanpa PO'}
+              placeholder={loadingPO ? t('receiptForm.loadingPOLines') : t('receiptForm.noPO')}
             />
           )}
         </Field>
-        <Field label="No. Mobil">
-          <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} placeholder="Mis. B 1234 ABC" className="font-mono uppercase" />
+        <Field label={t('receiptForm.vehicleNo')}>
+          <Input value={nomorMobil} onChange={(e) => setNomorMobil(e.target.value)} placeholder={t('receiptForm.vehicleNoPlaceholder')} className="font-mono uppercase" />
         </Field>
-        <Field label="Supir">
+        <Field label={t('receiptForm.driver')}>
           <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} />
         </Field>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Penerima (Internal)" hint="Otomatis dari akun login">
+        <Field label={t('receiptForm.recipient')} hint={t('receiptForm.recipientHint')}>
           <Input value={recipientName} readOnly className="cursor-not-allowed bg-muted text-muted-foreground" />
         </Field>
-        <Field label="Catatan">
+        <Field label={t('receiptForm.notes')}>
           <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
       </div>
@@ -351,15 +352,15 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
       {/* Harga & subtotal tidak ditampilkan di STT; harga diisi saat invoice pembelian dibuat. */}
       <section aria-labelledby="gr-items-title" className="overflow-hidden rounded-xl border border-border">
         <h3 id="gr-items-title" className="bg-muted px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Items diterima ({items.length})
+          {t('receiptForm.itemsTitle', { count: items.length })}
         </h3>
         <div className="space-y-2 p-2">
           <div className="hidden grid-cols-12 gap-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid" aria-hidden>
-            <div className="col-span-3">Item</div>
-            <div className="col-span-2">Gudang</div>
-            <div className="col-span-2 text-right">Qty</div>
-            <div className="col-span-1">Satuan</div>
-            <div className="col-span-3">Keterangan</div>
+            <div className="col-span-3">{t('receiptForm.columns.item')}</div>
+            <div className="col-span-2">{t('receiptForm.columns.warehouse')}</div>
+            <div className="col-span-2 text-right">{t('receiptForm.columns.qty')}</div>
+            <div className="col-span-1">{t('receiptForm.columns.unit')}</div>
+            <div className="col-span-3">{t('receiptForm.columns.description')}</div>
             <div className="col-span-1" />
           </div>
           {items.map((it, idx) => {
@@ -368,31 +369,31 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
               <div
                 key={it.id}
                 role="group"
-                aria-label={`Item diterima ${n}`}
+                aria-label={t('receiptForm.itemRow', { n })}
                 className="grid grid-cols-1 items-start gap-2 rounded-lg border border-border p-2 md:grid-cols-12 md:border-0 md:border-b md:rounded-none md:last:border-0"
               >
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <label htmlFor={`gr-item-${it.id}`} className={cellLabel}>Item</label>
+                  <label htmlFor={`gr-item-${it.id}`} className={cellLabel}>{t('receiptForm.columns.item')}</label>
                   <OptionPicker
                     id={`gr-item-${it.id}`}
                     options={itemOptions}
                     value={it.inventoryItemId}
                     onChange={(v) => onItemPick(idx, v)}
-                    placeholder="Pilih item..."
+                    placeholder={t('receiptForm.itemPlaceholder')}
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label htmlFor={`gr-wh-${it.id}`} className={cellLabel}>Gudang</label>
+                  <label htmlFor={`gr-wh-${it.id}`} className={cellLabel}>{t('receiptForm.columns.warehouse')}</label>
                   <OptionPicker
                     id={`gr-wh-${it.id}`}
                     options={warehouseOptions}
                     value={it.warehouseId}
                     onChange={(v) => updateItem(idx, { warehouseId: v })}
-                    placeholder="Gudang..."
+                    placeholder={t('receiptForm.warehousePlaceholder')}
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label htmlFor={`gr-qty-${it.id}`} className={cellLabel}>Qty</label>
+                  <label htmlFor={`gr-qty-${it.id}`} className={cellLabel}>{t('receiptForm.columns.qty')}</label>
                   <NumberInput
                     id={`gr-qty-${it.id}`}
                     step="0.001"
@@ -403,7 +404,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-1">
-                  <label htmlFor={`gr-unit-${it.id}`} className={cellLabel}>Satuan</label>
+                  <label htmlFor={`gr-unit-${it.id}`} className={cellLabel}>{t('receiptForm.columns.unit')}</label>
                   <OptionPicker
                     id={`gr-unit-${it.id}`}
                     options={UNITS.map((u) => ({ value: u, label: u }))}
@@ -413,12 +414,12 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <label htmlFor={`gr-desc-${it.id}`} className={cellLabel}>Keterangan</label>
+                  <label htmlFor={`gr-desc-${it.id}`} className={cellLabel}>{t('receiptForm.columns.description')}</label>
                   <Input
                     id={`gr-desc-${it.id}`}
                     value={it.description}
                     onChange={(e) => updateItem(idx, { description: e.target.value })}
-                    placeholder="mis. mobil B 123 ABC, kualitas A, dll"
+                    placeholder={t('receiptForm.descriptionPlaceholder')}
                   />
                 </div>
                 <div className="flex md:col-span-1 md:justify-center">
@@ -429,7 +430,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
                     className="w-full text-muted-foreground hover:text-danger-text md:size-9 md:w-9"
                     onClick={() => removeItem(idx)}
                     disabled={items.length === 1}
-                    aria-label={`Hapus item ${n}`}
+                    aria-label={t('receiptForm.removeItem', { n })}
                   >
                     <Trash2 aria-hidden />
                   </Button>
@@ -440,28 +441,29 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         </div>
         <div className="border-t border-border px-3 py-2">
           <Button type="button" variant="ghost" size="sm" className="h-11 sm:h-8" onClick={addItem}>
-            <Plus aria-hidden /> Tambah baris
+            <Plus aria-hidden /> {t('receiptForm.addRow')}
           </Button>
         </div>
       </section>
 
       <ErrorAlert message={error} />
 
-      <Callout tone="warning" icon={<span className="sr-only">Catatan:</span>}>
-        <strong>Catatan:</strong> STT hanya mencatat qty barang yang diterima. Harga aktual akan diinput saat invoice
-        pembelian dibuat dari STT ini. Sementara harga belum ada, sistem pakai averageCost item saat ini sebagai
-        provisional cost.
+      <Callout tone="warning" icon={<span className="sr-only">{t('receiptForm.noteLabel')}</span>}>
+        <strong>{t('receiptForm.noteLabel')}</strong> {t('receiptForm.costNote')}
       </Callout>
       <ConfirmDialog
         open={!!pendingPOLines}
         onOpenChange={(open) => { if (!open) setPendingPOLines(null); }}
-        title="Ganti baris dengan sisa PO?"
+        title={t('receiptForm.replaceLines.title')}
         description={
           pendingPOLines
-            ? `Baris yang sudah Anda isi akan diganti dengan ${pendingPOLines.lines.length} baris sisa ${pendingPOLines.poNumber} (item, qty sisa, satuan, gudang tujuan). Pilih Batal untuk tetap memakai baris Anda; PO tetap terpilih tetapi baris Anda tidak terhubung ke baris PO.`
+            ? t('receiptForm.replaceLines.description', {
+                count: pendingPOLines.lines.length,
+                number: pendingPOLines.poNumber,
+              })
             : undefined
         }
-        confirmLabel="Ganti baris"
+        confirmLabel={t('receiptForm.replaceLines.confirm')}
         onConfirm={() => {
           if (pendingPOLines) setItems(pendingPOLines.lines);
           setPendingPOLines(null);

@@ -4,6 +4,7 @@
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Plus } from 'lucide-react';
 import api from '@/lib/api';
@@ -43,7 +44,7 @@ interface GoodsReceiptRow {
 const ENDPOINT = '/goods-receipts';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
 // Filter values are what the API expects; labels match the row badges.
-const STATUS_FILTER = statusOptions(['Uninvoiced', 'Invoiced', 'CustomerOwned', 'Cancelled'], 'goods_receipt');
+const STATUS_FILTER_VALUES = ['Uninvoiced', 'Invoiced', 'CustomerOwned', 'Cancelled'];
 
 /** Badge status: Submitted splits into Invoiced / CustomerOwned / Uninvoiced. */
 function goodsReceiptDisplayStatus(row: Pick<GoodsReceiptRow, 'status' | 'invoice' | 'isCustomerOwned'>): string {
@@ -53,6 +54,9 @@ function goodsReceiptDisplayStatus(row: Pick<GoodsReceiptRow, 'status' | 'invoic
 }
 
 export const GoodsReceipts = () => {
+  const { t } = useTranslation('purchasing');
+  // Built per render (not at module load) so the labels follow the UI language.
+  const statusFilter = statusOptions(STATUS_FILTER_VALUES, 'goods_receipt');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,7 +73,7 @@ export const GoodsReceipts = () => {
     () => [
       {
         id: 'sttNumber',
-        header: 'Nomor',
+        header: t('receiptList.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -85,7 +89,7 @@ export const GoodsReceipts = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('receiptList.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -93,14 +97,14 @@ export const GoodsReceipts = () => {
       },
       {
         id: 'supplier',
-        header: 'Pemasok',
+        header: t('receiptList.columns.supplier'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.supplier?.name ?? '—'}</p>,
       },
       {
         id: 'purchaseOrder',
-        header: () => <abbr title="Pesanan pembelian">PO</abbr>,
+        header: () => <abbr title={t('receiptList.columns.poTitle')}>{t('receiptList.columns.po')}</abbr>,
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) =>
           row.original.purchaseOrder ? (
@@ -111,19 +115,19 @@ export const GoodsReceipts = () => {
       },
       {
         id: 'nomorMobil',
-        header: 'No. Mobil',
+        header: t('receiptList.columns.vehicleNo'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
         cell: ({ row }) => row.original.nomorMobil || '—',
       },
       {
         id: 'items',
-        header: 'Item',
+        header: t('receiptList.columns.items'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('receiptList.columns.status'),
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
             <StatusBadge status={goodsReceiptDisplayStatus(row.original)} docType="goods_receipt" />
@@ -138,7 +142,7 @@ export const GoodsReceipts = () => {
       },
       {
         id: 'invoice',
-        header: 'Faktur',
+        header: t('receiptList.columns.invoice'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) =>
           row.original.invoice ? (
@@ -149,29 +153,29 @@ export const GoodsReceipts = () => {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('receiptList.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk ${row.original.sttNumber}`}
-            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
+            label={t('receiptList.rowActions', { number: row.original.sttNumber })}
+            actions={[{ label: t('receiptList.viewDetail'), icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
           />
         ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Penerimaan Barang"
-        description="Surat tanda terima (STT/BPB) barang fisik dari pemasok. Stok masuk di sini; faktur pembelian menyusul."
+        title={t('receiptList.title')}
+        description={t('receiptList.description')}
         actions={
           canCreate ? (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus aria-hidden />
-              Buat STT
+              {t('receiptList.create')}
             </Button>
           ) : undefined
         }
@@ -180,9 +184,9 @@ export const GoodsReceipts = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari penerimaan barang"
-          searchPlaceholder="Cari STT, PO, pemasok, no. mobil"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('receiptList.searchLabel')}
+          searchPlaceholder={t('receiptList.searchPlaceholder')}
+          status={{ options: statusFilter }}
           dateRange
         >
           <PartyFilter partyType="Supplier" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
@@ -190,8 +194,8 @@ export const GoodsReceipts = () => {
 
         <DataTable
           {...listTableProps(list, receiptsQuery.data?.total)}
-          label="Daftar penerimaan barang"
-          itemLabel="STT"
+          label={t('receiptList.tableLabel')}
+          itemLabel={t('receiptList.itemLabel')}
           columns={columns}
           data={receiptsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -203,12 +207,12 @@ export const GoodsReceipts = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada penerimaan barang',
-            description: 'STT memasukkan stok saat dibuat; faktur pembelian menyusul.',
+            title: t('receiptList.empty.title'),
+            description: t('receiptList.empty.description'),
             action: canCreate ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat STT pertama
+                {t('receiptList.empty.action')}
               </Button>
             ) : undefined,
           }}

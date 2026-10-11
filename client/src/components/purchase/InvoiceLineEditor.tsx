@@ -3,6 +3,7 @@
  * (bahan baku with timbangan, or jasa/biaya). Presentational only — all state
  * and calculations stay in PurchaseInvoiceModal.
  */
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 import { NumberInput } from '@/components/ui/number-input';
 import { Input } from '@/components/ui/input';
@@ -63,19 +64,20 @@ export function InvoiceLineEditor({
   onAddMaterial,
   onAddService,
 }: InvoiceLineEditorProps) {
+  const { t } = useTranslation('purchasing');
   const clampPct = (v: string) => Math.max(0, Math.min(100, Number(v)));
   return (
     <section aria-labelledby="pi-items-title" className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="pi-items-title" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Daftar Barang
+          {t('lineEditor.title')}
         </h3>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" className="h-11 sm:h-8" onClick={onAddMaterial}>
-            <Plus aria-hidden /> Tambah Bahan
+            <Plus aria-hidden /> {t('lineEditor.addMaterial')}
           </Button>
           <Button type="button" variant="outline" size="sm" className="h-11 sm:h-8" onClick={onAddService}>
-            <Plus aria-hidden /> Tambah Jasa/Biaya
+            <Plus aria-hidden /> {t('lineEditor.addService')}
           </Button>
         </div>
       </div>
@@ -89,7 +91,7 @@ export function InvoiceLineEditor({
           return (
             <li
               key={k}
-              aria-label={`${isService ? 'Jasa / Biaya' : 'Bahan Baku'} baris ${n}`}
+              aria-label={t(isService ? 'lineEditor.serviceRow' : 'lineEditor.materialRow', { n })}
               className={cn(
                 'space-y-3 rounded-xl border p-3',
                 isService ? 'border-success/40 bg-success-subtle/40' : 'border-border bg-card',
@@ -102,10 +104,10 @@ export function InvoiceLineEditor({
                     isService ? 'bg-success-subtle text-success-text' : 'bg-info-subtle text-info-text',
                   )}
                 >
-                  {isService ? 'Jasa / Biaya' : 'Bahan Baku'} #{n}
+                  {isService ? t('lineEditor.service') : t('lineEditor.material')} #{n}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Harga Akhir</span>
+                  <span className="text-xs text-muted-foreground">{t('lineEditor.finalPrice')}</span>
                   <span className="num text-sm font-bold text-foreground">{formatRupiah(calc.hargaAkhir)}</span>
                   {items.length > 1 && (
                     <Button
@@ -114,7 +116,7 @@ export function InvoiceLineEditor({
                       size="icon-touch"
                       className="text-muted-foreground hover:text-danger-text md:size-9"
                       onClick={() => onRemove(idx)}
-                      aria-label={`Hapus baris ${n}`}
+                      aria-label={t('lineEditor.removeRow', { n })}
                     >
                       <Trash2 aria-hidden />
                     </Button>
@@ -124,22 +126,22 @@ export function InvoiceLineEditor({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {isService ? (
-                  <Cell label="Nama Jasa/Biaya" htmlFor={`pi-name-${k}`}>
+                  <Cell label={t('lineEditor.serviceName')} htmlFor={`pi-name-${k}`}>
                     <Input
                       id={`pi-name-${k}`}
                       value={item.itemName}
                       onChange={(e) => onUpdate(idx, 'itemName', e.target.value)}
-                      placeholder="Biaya angkutan, jasa giling..."
+                      placeholder={t('lineEditor.serviceNamePlaceholder')}
                     />
                   </Cell>
                 ) : (
-                  <Cell label="Jenis Barang" htmlFor={`pi-inv-${k}`}>
+                  <Cell label={t('lineEditor.itemType')} htmlFor={`pi-inv-${k}`}>
                     <OptionPicker
                       id={`pi-inv-${k}`}
                       value={item.inventoryItemId}
                       onChange={(v) => onSelectInventory(idx, v)}
-                      placeholder="Pilih dari Stok"
-                      emptyLabel="Pilih dari Stok"
+                      placeholder={t('lineEditor.pickFromStock')}
+                      emptyLabel={t('lineEditor.pickFromStock')}
                       options={(inventoryItems ?? []).map((inv) => ({
                         value: inv.id,
                         label: inv.code ? `${inv.code} · ${inv.name}` : inv.name,
@@ -147,25 +149,25 @@ export function InvoiceLineEditor({
                     />
                     {!item.inventoryItemId && (
                       <Input
-                        aria-label={`Nama manual baris ${n}`}
+                        aria-label={t('lineEditor.manualNameRow', { n })}
                         value={item.itemName}
                         onChange={(e) => onUpdate(idx, 'itemName', e.target.value)}
-                        placeholder="atau nama manual..."
+                        placeholder={t('lineEditor.manualNamePlaceholder')}
                       />
                     )}
                   </Cell>
                 )}
                 {!isService && (
-                  <Cell label="Gudang Tujuan" htmlFor={`pi-wh-${k}`}>
+                  <Cell label={t('lineEditor.targetWarehouse')} htmlFor={`pi-wh-${k}`}>
                     <WarehouseField
                       id={`pi-wh-${k}`}
                       value={item.warehouseId}
                       onChange={(v) => onUpdate(idx, 'warehouseId', v)}
-                      placeholder="Pilih gudang..."
+                      placeholder={t('lineEditor.pickWarehouse')}
                     />
                   </Cell>
                 )}
-                <Cell label="No. Mobil" htmlFor={`pi-car-${k}`}>
+                <Cell label={t('lineEditor.vehicleNo')} htmlFor={`pi-car-${k}`}>
                   <Input
                     id={`pi-car-${k}`}
                     value={item.nomorMobil}
@@ -174,20 +176,20 @@ export function InvoiceLineEditor({
                     className="font-mono uppercase placeholder:normal-case"
                   />
                 </Cell>
-                <Cell label={isService ? 'Catatan' : 'Kualitas'} htmlFor={`pi-note-${k}`}>
+                <Cell label={isService ? t('lineEditor.notes') : t('lineEditor.quality')} htmlFor={`pi-note-${k}`}>
                   {isService ? (
                     <Input
                       id={`pi-note-${k}`}
                       value={item.description}
                       onChange={(e) => onUpdate(idx, 'description', e.target.value)}
-                      placeholder="catatan..."
+                      placeholder={t('lineEditor.notesPlaceholder')}
                     />
                   ) : (
                     <Input
                       id={`pi-note-${k}`}
                       value={item.kualitas}
                       onChange={(e) => onUpdate(idx, 'kualitas', e.target.value)}
-                      placeholder="KA 18%, bersih..."
+                      placeholder={t('lineEditor.qualityPlaceholder')}
                     />
                   )}
                 </Cell>
@@ -196,7 +198,7 @@ export function InvoiceLineEditor({
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
                 {!isService && (
                   <>
-                    <Cell label="Timb. Truk (kg)" htmlFor={`pi-truk-${k}`}>
+                    <Cell label={t('lineEditor.truckWeight')} htmlFor={`pi-truk-${k}`}>
                       <NumberInput
                         id={`pi-truk-${k}`}
                         inputMode="decimal"
@@ -206,7 +208,7 @@ export function InvoiceLineEditor({
                         className={numCls}
                       />
                     </Cell>
-                    <Cell label="Refaksi (kg)" htmlFor={`pi-ref-${k}`}>
+                    <Cell label={t('lineEditor.refraction')} htmlFor={`pi-ref-${k}`}>
                       <NumberInput
                         id={`pi-ref-${k}`}
                         inputMode="decimal"
@@ -218,7 +220,7 @@ export function InvoiceLineEditor({
                     </Cell>
                   </>
                 )}
-                <Cell label={isService ? 'Jumlah *' : 'Diterima (kg) *'} htmlFor={`pi-qty-${k}`}>
+                <Cell label={isService ? t('lineEditor.quantityRequired') : t('lineEditor.receivedKgRequired')} htmlFor={`pi-qty-${k}`}>
                   <NumberInput
                     id={`pi-qty-${k}`}
                     inputMode="decimal"
@@ -228,10 +230,10 @@ export function InvoiceLineEditor({
                     className={cn(numCls, 'font-semibold')}
                   />
                 </Cell>
-                <Cell label={isService ? 'Harga per unit *' : 'Harga per unit (kg) *'} htmlFor={`pi-rate-${k}`}>
+                <Cell label={isService ? t('lineEditor.unitPriceRequired') : t('lineEditor.unitPriceKgRequired')} htmlFor={`pi-rate-${k}`}>
                   <NumberInput
                     id={`pi-rate-${k}`}
-                    aria-label={`Harga per unit baris ${n}`}
+                    aria-label={t('lineEditor.unitPriceRow', { n })}
                     inputMode="decimal"
                     value={item.rate || ''}
                     onChange={(e) => onUpdate(idx, 'rate', Number(e.target.value))}
@@ -239,7 +241,7 @@ export function InvoiceLineEditor({
                     className={numCls}
                   />
                 </Cell>
-                <Cell label="PPN %" htmlFor={`pi-ppn-${k}`}>
+                <Cell label={t('lineEditor.vatPct')} htmlFor={`pi-ppn-${k}`}>
                   <NumberInput
                     id={`pi-ppn-${k}`}
                     inputMode="decimal"
@@ -249,7 +251,7 @@ export function InvoiceLineEditor({
                     className={numCls}
                   />
                 </Cell>
-                <Cell label="PPh %" htmlFor={`pi-pph-${k}`}>
+                <Cell label={t('lineEditor.pphPct')} htmlFor={`pi-pph-${k}`}>
                   <NumberInput
                     id={`pi-pph-${k}`}
                     inputMode="decimal"
@@ -259,7 +261,7 @@ export function InvoiceLineEditor({
                     className={numCls}
                   />
                 </Cell>
-                <Cell label="Potongan (Rp)" htmlFor={`pi-pot-${k}`}>
+                <Cell label={t('lineEditor.deduction')} htmlFor={`pi-pot-${k}`}>
                   <NumberInput
                     id={`pi-pot-${k}`}
                     inputMode="decimal"

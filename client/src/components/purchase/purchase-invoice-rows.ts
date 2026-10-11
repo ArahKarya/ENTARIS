@@ -1,8 +1,9 @@
 /**
- * Pure helpers for the Faktur Pembelian list page (/purchase): row types,
+ * Pure helpers for the Invoice Pembelian list page (/purchase): row types,
  * the overdue rule, Excel export rows and the PurchaseInvoiceModal prefill
  * used by "Edit lengkap" (cancel + re-create) and approval resubmission.
  */
+import i18n from '@/i18n';
 import { formatDate, toNumber } from '@/lib/format';
 import { getStatusLabel } from '@/lib/status';
 
@@ -68,38 +69,48 @@ export function canEditFull(inv: Pick<PurchaseInvoiceRow, 'status' | 'outstandin
   return inv.status !== 'Cancelled' && num(inv.outstanding) === num(inv.grandTotal);
 }
 
+type ExportHeader =
+  | 'date' | 'documentNumber' | 'supplier' | 'phone' | 'dueDate' | 'productName' | 'description' | 'qty' | 'unit'
+  | 'unitPrice' | 'discountPct' | 'vatPct' | 'pphPct' | 'itemDeduction' | 'itemSubtotal' | 'quality' | 'refraction'
+  | 'truckWeight' | 'receivedWeight' | 'vehicleNo' | 'invoiceTotal' | 'paid' | 'outstanding' | 'status' | 'notes';
+
+/** Export column title in the current UI language. */
+const h = (key: ExportHeader): string => i18n.t(`purchasing:invoiceExport.columns.${key}`);
+
 export function toPurchaseInvoiceExportRows(invoices: PurchaseInvoiceRow[], now = new Date()): Record<string, unknown>[] {
   return invoices.flatMap((inv) => {
     const totalPaid = num(inv.grandTotal) - num(inv.outstanding);
     const status = getStatusLabel(inv.status, 'purchase_invoice');
-    const statusLabel = isPurchaseInvoiceOverdue(inv, now) ? `${status} (Jatuh Tempo)` : status;
+    const statusLabel = isPurchaseInvoiceOverdue(inv, now)
+      ? i18n.t('purchasing:invoiceExport.overdueStatus', { status })
+      : status;
     const items: Array<PurchaseInvoiceItemRow | null> = inv.items && inv.items.length > 0 ? inv.items : [null];
     return items.map((it) => ({
-      Tanggal: formatDate(inv.date),
-      'Nomor Dokumen': inv.invoiceNumber,
-      Pemasok: inv.supplier?.name ?? '',
-      Telepon: inv.supplier?.phone ?? '',
-      'Jatuh Tempo': inv.dueDate ? formatDate(inv.dueDate) : '',
-      'Nama Produk': it?.itemName ?? '',
-      Deskripsi: it?.description ?? '',
-      Qty: it ? num(it.quantity) : '',
-      Unit: it?.unit ?? '',
-      'Harga Satuan': it ? num(it.rate) : '',
-      'Diskon (%)': it ? num(it.discount) : '',
-      'PPN (%)': it ? num(it.taxPct) : '',
-      'PPh (%)': it ? num(it.pphPct) : '',
-      'Potongan Item': it ? num(it.potonganItem) : '',
-      'Subtotal Item': it ? num(it.amount) : '',
-      Kualitas: it?.kualitas ?? '',
-      'Refaksi (Kg)': it?.refaksi != null ? num(it.refaksi) : '',
-      'Timbangan Truk (Kg)': it?.timbanganTruk != null ? num(it.timbanganTruk) : '',
-      'Timbangan Diterima (Kg)': it?.timbanganDiterima != null ? num(it.timbanganDiterima) : '',
-      'Nomor Mobil': it?.nomorMobil ?? '',
-      'Total Invoice': num(inv.grandTotal),
-      'Sudah Dibayar': totalPaid,
-      'Sisa Tagihan': num(inv.outstanding),
-      Status: statusLabel,
-      Catatan: inv.notes ?? '',
+      [h('date')]: formatDate(inv.date),
+      [h('documentNumber')]: inv.invoiceNumber,
+      [h('supplier')]: inv.supplier?.name ?? '',
+      [h('phone')]: inv.supplier?.phone ?? '',
+      [h('dueDate')]: inv.dueDate ? formatDate(inv.dueDate) : '',
+      [h('productName')]: it?.itemName ?? '',
+      [h('description')]: it?.description ?? '',
+      [h('qty')]: it ? num(it.quantity) : '',
+      [h('unit')]: it?.unit ?? '',
+      [h('unitPrice')]: it ? num(it.rate) : '',
+      [h('discountPct')]: it ? num(it.discount) : '',
+      [h('vatPct')]: it ? num(it.taxPct) : '',
+      [h('pphPct')]: it ? num(it.pphPct) : '',
+      [h('itemDeduction')]: it ? num(it.potonganItem) : '',
+      [h('itemSubtotal')]: it ? num(it.amount) : '',
+      [h('quality')]: it?.kualitas ?? '',
+      [h('refraction')]: it?.refaksi != null ? num(it.refaksi) : '',
+      [h('truckWeight')]: it?.timbanganTruk != null ? num(it.timbanganTruk) : '',
+      [h('receivedWeight')]: it?.timbanganDiterima != null ? num(it.timbanganDiterima) : '',
+      [h('vehicleNo')]: it?.nomorMobil ?? '',
+      [h('invoiceTotal')]: num(inv.grandTotal),
+      [h('paid')]: totalPaid,
+      [h('outstanding')]: num(inv.outstanding),
+      [h('status')]: statusLabel,
+      [h('notes')]: inv.notes ?? '',
     }));
   });
 }

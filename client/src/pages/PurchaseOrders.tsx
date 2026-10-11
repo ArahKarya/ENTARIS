@@ -8,6 +8,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, Copy, Eye, PackageCheck, Pencil, Plus, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatRupiah, toNumber } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
@@ -56,42 +57,40 @@ interface PurchaseOrderRow {
 
 const ENDPOINT = '/purchase-orders';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate', 'receipt', 'due'] as const;
-const STATUS_FILTER = statusOptions(['Draft', 'PendingApproval', 'Submitted', 'Cancelled'], 'purchase_order');
+const STATUS_FILTER_VALUES = ['Draft', 'PendingApproval', 'Submitted', 'Cancelled'];
 /** Receipt progress only means something once the PO is ordered. */
 const showReceipt = (po: PurchaseOrderRow) =>
   po.status === 'Submitted' && !!po.receiptStatus && po.receiptStatus !== 'Cancelled';
-const RECEIPT_FILTER = [
-  { value: 'unreceived', label: 'Belum Diterima' },
-  { value: 'partial', label: 'Diterima Sebagian' },
-  { value: 'full', label: 'Diterima Penuh' },
-  { value: 'closed', label: 'Ditutup' },
-];
+/** Receipt filter values sent to the API; labels: purchasing:poList.receiptFilter.<value>. */
+const RECEIPT_FILTER = ['unreceived', 'partial', 'full', 'closed'] as const;
 const ALL = '__all__';
 
 /** "Terlambat" due marker — icon + text, never colour alone. */
 function OverdueMarker({ className }: { className?: string }) {
+  const { t } = useTranslation('purchasing');
   return (
     <span className={`inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-danger-text ${className ?? ''}`}>
       <AlertTriangle size={12} aria-hidden />
-      Terlambat
+      {t('poList.overdue')}
     </span>
   );
 }
 
 function DueFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation('purchasing');
   const id = useId();
   return (
     <div className="w-[calc(50%-0.25rem)] sm:w-40">
       <label htmlFor={id} className="sr-only">
-        Target terima
+        {t('poList.dueFilter.label')}
       </label>
       <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
         <SelectTrigger id={id}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>Semua target</SelectItem>
-          <SelectItem value="overdue">Terlambat</SelectItem>
+          <SelectItem value={ALL}>{t('poList.dueFilter.all')}</SelectItem>
+          <SelectItem value="overdue">{t('poList.overdue')}</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -99,21 +98,22 @@ function DueFilter({ value, onChange }: { value: string; onChange: (value: strin
 }
 
 function ReceiptFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation('purchasing');
   const id = useId();
   return (
     <div className="w-[calc(50%-0.25rem)] sm:w-44">
       <label htmlFor={id} className="sr-only">
-        Status penerimaan
+        {t('poList.receiptFilter.label')}
       </label>
       <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
         <SelectTrigger id={id}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>Semua penerimaan</SelectItem>
-          {RECEIPT_FILTER.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
+          <SelectItem value={ALL}>{t('poList.receiptFilter.all')}</SelectItem>
+          {RECEIPT_FILTER.map((value) => (
+            <SelectItem key={value} value={value}>
+              {t(`poList.receiptFilter.${value}`)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -136,15 +136,19 @@ const withUnit = (label: string) => (
 
 /** Supplier name, or the "PO Umum" marker when no supplier is bound. */
 function SupplierName({ po, className }: { po: PurchaseOrderRow; className?: string }) {
+  const { t } = useTranslation('purchasing');
   if (po.supplier) return <span className={className}>{po.supplier.name}</span>;
   return (
-    <span className={className} title="PO Umum: boleh dipenuhi pemasok mana saja">
-      <span className="font-normal italic text-muted-foreground">PO Umum</span>
+    <span className={className} title={t('poList.generalPOHint')}>
+      <span className="font-normal italic text-muted-foreground">{t('poList.generalPO')}</span>
     </span>
   );
 }
 
 export const PurchaseOrders = () => {
+  const { t } = useTranslation('purchasing');
+  // Built per render (not at module load) so the labels follow the UI language.
+  const statusFilter = statusOptions(STATUS_FILTER_VALUES, 'purchase_order');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [modal, setModal] = useState<ModalState>(null);
@@ -178,7 +182,7 @@ export const PurchaseOrders = () => {
       });
       run(po);
     } catch {
-      toast.error('Gagal memuat detail PO.');
+      toast.error(t('poList.errorLoadDetail'));
     }
   };
 
@@ -192,7 +196,7 @@ export const PurchaseOrders = () => {
     () => [
       {
         id: 'poNumber',
-        header: 'Nomor',
+        header: t('poList.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -206,7 +210,7 @@ export const PurchaseOrders = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('poList.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -214,7 +218,7 @@ export const PurchaseOrders = () => {
       },
       {
         id: 'supplier',
-        header: 'Pemasok',
+        header: t('poList.columns.supplier'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
@@ -225,20 +229,20 @@ export const PurchaseOrders = () => {
       },
       {
         id: 'expectedDeliveryDate',
-        header: 'Target Terima',
+        header: t('poList.columns.expectedDelivery'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => (row.original.expectedDeliveryDate ? formatDate(row.original.expectedDeliveryDate) : '—'),
       },
       {
         id: 'items',
-        header: 'Item',
+        header: t('poList.columns.items'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
       },
       {
         id: 'totalEstimated',
-        header: () => withUnit('Total'),
+        header: () => withUnit(t('poList.columns.total')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -264,13 +268,13 @@ export const PurchaseOrders = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('poList.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.displayStatus ?? row.original.status} docType="purchase_order" />,
       },
       {
         id: 'receiptStatus',
-        header: 'Penerimaan',
+        header: t('poList.columns.receipt'),
         meta: { hideBelow: 'md' },
         cell: ({ row }) =>
           showReceipt(row.original) ? (
@@ -284,13 +288,13 @@ export const PurchaseOrders = () => {
       },
       {
         id: 'goodsReceipts',
-        header: () => <abbr title="Jumlah surat tanda terima (penerimaan barang)">STT</abbr>,
+        header: () => <abbr title={t('poList.columns.receiptsTitle')}>{t('poList.columns.receipts')}</abbr>,
         meta: { align: 'right', hideBelow: 'lg', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.goodsReceipts ?? 0),
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('poList.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const po = row.original;
@@ -302,13 +306,13 @@ export const PurchaseOrders = () => {
           });
           return (
             <RowActions
-              label={`Aksi untuk ${po.poNumber}`}
+              label={t('poList.rowActions', { number: po.poNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(po.id) },
-                { label: 'Buat STT dari PO', icon: PackageCheck, hidden: !acts.receive, onSelect: () => withDetail(po.id, openReceipt) },
-                { label: 'Edit', icon: Pencil, hidden: !acts.edit, onSelect: () => withDetail(po.id, openEdit) },
-                { label: 'Duplikat', icon: Copy, hidden: !acts.duplicate, onSelect: () => withDetail(po.id, openDuplicate) },
-                { label: 'Cetak / PDF', icon: Printer, onSelect: () => withDetail(po.id, downloadPdf) },
+                { label: t('poList.actions.view'), icon: Eye, onSelect: () => setSelectedId(po.id) },
+                { label: t('poList.actions.createReceipt'), icon: PackageCheck, hidden: !acts.receive, onSelect: () => withDetail(po.id, openReceipt) },
+                { label: t('poList.actions.edit'), icon: Pencil, hidden: !acts.edit, onSelect: () => withDetail(po.id, openEdit) },
+                { label: t('poList.actions.duplicate'), icon: Copy, hidden: !acts.duplicate, onSelect: () => withDetail(po.id, openDuplicate) },
+                { label: t('poList.actions.print'), icon: Printer, onSelect: () => withDetail(po.id, downloadPdf) },
               ]}
             />
           );
@@ -316,19 +320,19 @@ export const PurchaseOrders = () => {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers only close over stable setters/query client
-    [canCreate],
+    [canCreate, t],
   );
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Pesanan Pembelian"
-        description="Pesanan ke pemasok: PO Umum (tanpa pemasok terikat) atau PO Khusus. Belum memengaruhi stok maupun jurnal."
+        title={t('poList.title')}
+        description={t('poList.description')}
         actions={
           canCreate ? (
             <Button onClick={openCreate}>
               <Plus aria-hidden />
-              Buat PO
+              {t('poList.create')}
             </Button>
           ) : undefined
         }
@@ -337,9 +341,9 @@ export const PurchaseOrders = () => {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari pesanan pembelian"
-          searchPlaceholder="Cari nomor PO atau pemasok"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('poList.searchLabel')}
+          searchPlaceholder={t('poList.searchPlaceholder')}
+          status={{ options: statusFilter }}
           dateRange
         >
           <ReceiptFilter value={list.filters.receipt} onChange={(v) => list.setFilter('receipt', v)} />
@@ -349,8 +353,8 @@ export const PurchaseOrders = () => {
 
         <DataTable
           {...listTableProps(list, ordersQuery.data?.total)}
-          label="Daftar pesanan pembelian"
-          itemLabel="PO"
+          label={t('poList.tableLabel')}
+          itemLabel={t('poList.itemLabel')}
           columns={columns}
           data={ordersQuery.data?.data}
           getRowId={(row) => row.id}
@@ -362,12 +366,12 @@ export const PurchaseOrders = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada pesanan pembelian',
-            description: 'PO yang Anda buat akan muncul di sini.',
+            title: t('poList.empty.title'),
+            description: t('poList.empty.description'),
             action: canCreate ? (
               <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
-                Buat PO pertama
+                {t('poList.empty.action')}
               </Button>
             ) : undefined,
           }}

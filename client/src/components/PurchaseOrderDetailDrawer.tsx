@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   User, Calendar, Package, XCircle, PackageCheck,
   Printer, Pencil, Copy, Ban, Send, Trash2, Warehouse, ShieldCheck,
 } from 'lucide-react';
 import api from '../lib/api';
 import { cn } from '@/lib/utils';
-import { formatDate, formatRupiah } from '@/lib/format';
+import { formatDate, formatRupiah, LOCALE } from '@/lib/format';
 import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { DetailSheet } from './purchase-cash/DetailSheet';
@@ -18,7 +19,7 @@ import { purchaseOrderActions, receiptProgress } from '../lib/purchaseOrderActio
 import type { PurchaseOrderSource } from './PurchaseOrderModal';
 import type { GoodsReceiptSourcePO } from './GoodsReceiptModal';
 import type { PurchaseOrderPDFData } from '../lib/pdf/PurchaseOrderPDF';
-import { paymentTermLabel, poDueDate } from '../lib/purchaseOrderCalc';
+import { poDueDate } from '../lib/purchaseOrderCalc';
 
 /** GET /purchase-orders/:id — fits every follow-up action (edit, duplicate, STT, PDF). */
 export type PurchaseOrderDetail = PurchaseOrderSource & GoodsReceiptSourcePO & PurchaseOrderPDFData;
@@ -32,20 +33,21 @@ interface Props {
   onDuplicate?: (po: PurchaseOrderDetail) => void;
 }
 
-const qtyFmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 3 });
+const qtyFmt = (n: number) => n.toLocaleString(LOCALE, { maximumFractionDigits: 3 });
 
 /** Ordered / received / remaining for one PO line, with a labelled bar. */
 function LineProgress({ ordered, received, unit }: { ordered: number; received: number; unit: string }) {
+  const { t } = useTranslation('purchasing');
   const p = receiptProgress(ordered, received);
   return (
     <div className="mt-1.5">
       <div
         role="progressbar"
-        aria-label="Progres penerimaan"
+        aria-label={t('poDetail.progress.label')}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={p.percent}
-        aria-valuetext={`Diterima ${qtyFmt(received)} dari ${qtyFmt(ordered)} ${unit}`}
+        aria-valuetext={t('poDetail.progress.valueText', { received: qtyFmt(received), ordered: qtyFmt(ordered), unit })}
         className="h-1.5 w-full max-w-56 overflow-hidden rounded-sm bg-muted"
       >
         <div
@@ -54,9 +56,23 @@ function LineProgress({ ordered, received, unit }: { ordered: number; received: 
         />
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Diterima <span className="num">{qtyFmt(received)}</span> / <span className="num">{qtyFmt(ordered)}</span> {unit}
+        <Trans
+          t={t}
+          i18nKey="poDetail.progress.received"
+          values={{ received: qtyFmt(received), ordered: qtyFmt(ordered), unit }}
+          components={{ num: <span className="num" /> }}
+        />
         {' · '}
-        {p.done ? <span className="text-success-text">lengkap</span> : <>sisa <span className="num">{qtyFmt(p.remaining)}</span></>}
+        {p.done ? (
+          <span className="text-success-text">{t('poDetail.progress.complete')}</span>
+        ) : (
+          <Trans
+            t={t}
+            i18nKey="poDetail.progress.remaining"
+            values={{ remaining: qtyFmt(p.remaining) }}
+            components={{ num: <span className="num" /> }}
+          />
+        )}
         {' '}({p.percent}%)
       </p>
     </div>
@@ -76,6 +92,7 @@ interface ApprovalHistoryRow {
 
 /** Subtotal / diskon / PPN / biaya lain / grand total (from GET totals). */
 function TotalsBreakdown({ totals, otherCostsLabel }: { totals: Record<string, number>; otherCostsLabel?: string | null }) {
+  const { t } = useTranslation('purchasing');
   const row = (label: string, value: number, cls = '') => (
     <div className={cn('flex justify-between gap-4', cls)}>
       <dt className="text-muted-foreground">{label}</dt>
@@ -83,17 +100,18 @@ function TotalsBreakdown({ totals, otherCostsLabel }: { totals: Record<string, n
     </div>
   );
   return (
-    <dl className="ml-auto mt-3 w-full sm:w-80 text-sm space-y-1" aria-label="Rincian total PO">
-      {row('Subtotal', totals.subtotal)}
-      {totals.discountTotal > 0 && row('Diskon', -totals.discountTotal)}
-      {totals.taxTotal > 0 && row('PPN', totals.taxTotal)}
-      {totals.otherCosts > 0 && row(otherCostsLabel || 'Biaya lain', totals.otherCosts)}
-      {row('Grand Total', totals.grandTotal, 'border-t border-border pt-1.5 font-semibold text-foreground')}
+    <dl className="ml-auto mt-3 w-full sm:w-80 text-sm space-y-1" aria-label={t('poDetail.totals.label')}>
+      {row(t('poDetail.totals.subtotal'), totals.subtotal)}
+      {totals.discountTotal > 0 && row(t('poDetail.totals.discount'), -totals.discountTotal)}
+      {totals.taxTotal > 0 && row(t('poDetail.totals.vat'), totals.taxTotal)}
+      {totals.otherCosts > 0 && row(otherCostsLabel || t('poDetail.totals.otherCosts'), totals.otherCosts)}
+      {row(t('poDetail.totals.grandTotal'), totals.grandTotal, 'border-t border-border pt-1.5 font-semibold text-foreground')}
     </dl>
   );
 }
 
 const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateReceipt, onEdit, onDuplicate }) => {
+  const { t } = useTranslation('purchasing');
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -115,9 +133,9 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order-detail', poId] });
-      toast.success('PO dibatalkan. STT yang sudah terbentuk tetap valid.');
+      toast.success(t('poDetail.toastCancelled'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan PO.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('poDetail.errorCancel')),
   });
 
   const closeMutation = useMutation({
@@ -125,11 +143,11 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order-detail', poId] });
-      toast.success('PO ditutup. Sisa qty tidak lagi diharapkan.');
+      toast.success(t('poDetail.toastClosed'));
       setConfirmClose(false);
     },
     onError: (err: { response?: { data?: { error?: string } } }) =>
-      toast.error(err.response?.data?.error || 'Gagal menutup PO.'),
+      toast.error(err.response?.data?.error || t('poDetail.errorClose')),
   });
 
   const refresh = () => {
@@ -142,21 +160,21 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
     mutationFn: async () => (await api.post(`/purchase-orders/${poId}/submit`)).data,
     onSuccess: (po: { approvalRequestId?: string | null }) => {
       refresh();
-      toast.success(po?.approvalRequestId ? 'PO diajukan dan menunggu persetujuan.' : 'PO dipesan.');
+      toast.success(po?.approvalRequestId ? t('poDetail.toastSubmittedApproval') : t('poDetail.toastOrdered'));
     },
     onError: (err: { response?: { data?: { error?: string } } }) =>
-      toast.error(err.response?.data?.error || 'Gagal mengajukan PO.'),
+      toast.error(err.response?.data?.error || t('poDetail.errorSubmit')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/purchase-orders/${poId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-      toast.success('Draf PO dihapus.');
+      toast.success(t('poDetail.toastDeleted'));
       onClose();
     },
     onError: (err: { response?: { data?: { error?: string } } }) =>
-      toast.error(err.response?.data?.error || 'Gagal menghapus draf PO.'),
+      toast.error(err.response?.data?.error || t('poDetail.errorDelete')),
   });
 
   const status: string = doc?.status ?? 'Submitted';
@@ -186,8 +204,8 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
         open={!!poId}
         onClose={onClose}
         size="lg"
-        title={isLoading ? 'Memuat…' : doc?.poNumber ?? 'Purchase Order'}
-        description="Purchase Order"
+        title={isLoading ? t('shared.loading') : doc?.poNumber ?? t('poDetail.description')}
+        description={t('poDetail.description')}
         badge={
           doc && (
             <>
@@ -195,7 +213,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
               {status === 'Submitted' && doc.receiptStatus && doc.receiptStatus !== 'Cancelled' && (
                 <StatusBadge status={doc.receiptStatus} docType="purchase_order" />
               )}
-              {!doc.partyId && <StatusBadge status="general" tone="primary" label="PO Umum" dot={false} />}
+              {!doc.partyId && <StatusBadge status="general" tone="primary" label={t('poDetail.generalPO')} dot={false} />}
             </>
           )
         }
@@ -203,21 +221,21 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
           doc && acts && (
             <>
               <Button variant="outline" className={actionBtn} onClick={() => downloadPdf(doc)} loading={pdfBusy}>
-                {!pdfBusy && <Printer aria-hidden />} Cetak / PDF
+                {!pdfBusy && <Printer aria-hidden />} {t('poDetail.actions.print')}
               </Button>
               {acts.duplicate && onDuplicate && (
                 <Button variant="outline" className={actionBtn} onClick={() => onDuplicate(doc)}>
-                  <Copy aria-hidden /> Duplikat
+                  <Copy aria-hidden /> {t('poDetail.actions.duplicate')}
                 </Button>
               )}
               {acts.edit && onEdit && (
                 <Button variant="outline" className={actionBtn} onClick={() => onEdit(doc)}>
-                  <Pencil aria-hidden /> Edit
+                  <Pencil aria-hidden /> {t('poDetail.actions.edit')}
                 </Button>
               )}
               {acts.close && (
                 <Button variant="outline" className={actionBtn} onClick={() => setConfirmClose(true)}>
-                  <Ban aria-hidden /> Tutup PO
+                  <Ban aria-hidden /> {t('poDetail.actions.close')}
                 </Button>
               )}
               {acts.deleteDraft && (
@@ -227,7 +245,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                   onClick={() => setConfirmDelete(true)}
                   disabled={deleteMutation.isPending}
                 >
-                  <Trash2 aria-hidden /> Hapus Draf
+                  <Trash2 aria-hidden /> {t('poDetail.actions.deleteDraft')}
                 </Button>
               )}
               {acts.cancel && (
@@ -236,17 +254,17 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                   className={cn(actionBtn, 'border-danger/40 text-danger-text')}
                   onClick={() => setConfirmCancel(true)}
                 >
-                  <XCircle aria-hidden /> Batalkan PO
+                  <XCircle aria-hidden /> {t('poDetail.actions.cancel')}
                 </Button>
               )}
               {acts.submit && (
                 <Button className={actionBtn} onClick={() => submitMutation.mutate()} loading={submitMutation.isPending}>
-                  {!submitMutation.isPending && <Send aria-hidden />} Ajukan
+                  {!submitMutation.isPending && <Send aria-hidden />} {t('poDetail.actions.submit')}
                 </Button>
               )}
               {acts.receive && onCreateReceipt && (
                 <Button className={actionBtn} onClick={() => onCreateReceipt(doc)}>
-                  <PackageCheck aria-hidden /> Buat STT dari PO
+                  <PackageCheck aria-hidden /> {t('poDetail.actions.createReceipt')}
                 </Button>
               )}
             </>
@@ -254,15 +272,15 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
         }
       >
         {isLoading ? (
-          <LoadingState label="Memuat pesanan pembelian…" />
+          <LoadingState label={t('poDetail.loading')} />
         ) : !doc ? (
-          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">PO tidak ditemukan.</div>
+          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">{t('poDetail.notFound')}</div>
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-1 gap-6 border-b border-border pb-5 sm:grid-cols-2">
               <section>
                 <h3 className={sectionTitle}>
-                  <User className="size-3" aria-hidden /> Supplier
+                  <User className="size-3" aria-hidden /> {t('poDetail.supplier')}
                 </h3>
                 {doc.supplier ? (
                   <>
@@ -270,44 +288,48 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                     {doc.supplier.phone && <p className="mt-0.5 text-xs text-muted-foreground">{doc.supplier.phone}</p>}
                   </>
                 ) : (
-                  <p className="text-sm italic text-primary">PO Umum: boleh dipenuhi supplier apa saja</p>
+                  <p className="text-sm italic text-primary">{t('poDetail.generalPOHint')}</p>
                 )}
               </section>
               <section>
                 <h3 className={sectionTitle}>
-                  <Calendar className="size-3" aria-hidden /> Tanggal
+                  <Calendar className="size-3" aria-hidden /> {t('poDetail.dates')}
                 </h3>
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <dt className={dt}>Tgl PO</dt>
+                    <dt className={dt}>{t('poDetail.poDate')}</dt>
                     <dd className={dd}>{formatDate(doc.date)}</dd>
                   </div>
                   <div>
-                    <dt className={dt}>Tgl Kirim Diharapkan</dt>
+                    <dt className={dt}>{t('poDetail.expectedDelivery')}</dt>
                     <dd className={dd}>{doc.expectedDeliveryDate ? formatDate(doc.expectedDeliveryDate) : '—'}</dd>
                   </div>
                   <div>
-                    <dt className={dt}>Termin</dt>
-                    <dd className={dd}>{paymentTermLabel(doc.paymentTermDays)}</dd>
+                    <dt className={dt}>{t('poDetail.term')}</dt>
+                    <dd className={dd}>{doc.paymentTermDays == null
+                        ? '—'
+                        : doc.paymentTermDays === 0
+                          ? t('poTerm.cash')
+                          : t('poTerm.days', { count: doc.paymentTermDays })}</dd>
                   </div>
                   <div>
-                    <dt className={dt}>Jatuh Tempo</dt>
+                    <dt className={dt}>{t('poDetail.dueDate')}</dt>
                     <dd className={dd}>{dueDate ? formatDate(dueDate) : '—'}</dd>
                   </div>
                   <div className="sm:col-span-2">
-                    <dt className={dt}>Dibuat oleh</dt>
+                    <dt className={dt}>{t('poDetail.createdBy')}</dt>
                     <dd className={dd}>{doc.user?.fullName ?? '—'}</dd>
                   </div>
                 </dl>
               </section>
               <section>
                 <h3 className={sectionTitle}>
-                  <Warehouse className="size-3" aria-hidden /> Gudang Tujuan
+                  <Warehouse className="size-3" aria-hidden /> {t('poDetail.warehouse')}
                 </h3>
                 <p className="text-sm text-foreground">{doc.warehouse ? `${doc.warehouse.code} · ${doc.warehouse.name}` : '—'}</p>
               </section>
               <section>
-                <h3 className={sectionTitle}>No. Penawaran Pemasok</h3>
+                <h3 className={sectionTitle}>{t('poDetail.supplierQuoteRef')}</h3>
                 <p className="font-mono text-sm text-foreground">{doc.supplierQuoteRef || '—'}</p>
               </section>
             </div>
@@ -315,16 +337,25 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
             {(displayStatus === 'PendingApproval' || doc.approvalStatus === 'Rejected' || approvals.length > 0) && (
               <section className="border-b border-border pb-4">
                 <h3 className={sectionTitle}>
-                  <ShieldCheck className="size-3" aria-hidden /> Persetujuan
+                  <ShieldCheck className="size-3" aria-hidden /> {t('poDetail.approval')}
                 </h3>
                 {displayStatus === 'PendingApproval' && (
                   <Callout tone="warning" className="mb-2 py-2 text-xs">
-                    Menunggu persetujuan. PO belum dikirim ke supplier dan belum bisa dipakai untuk STT.
+                    {t('poDetail.pendingApprovalNotice')}
                   </Callout>
                 )}
                 {doc.approvalStatus === 'Rejected' && (
                   <Callout tone="danger" className="mb-2 py-2 text-xs">
-                    Pengajuan ditolak{doc.approvalNote ? <>: <b>{doc.approvalNote}</b></> : '.'} Perbaiki draf lalu ajukan ulang.
+                    {doc.approvalNote ? (
+                      <Trans
+                        t={t}
+                        i18nKey="poDetail.rejectedWithNote"
+                        values={{ note: doc.approvalNote }}
+                        components={{ b: <b /> }}
+                      />
+                    ) : (
+                      t('poDetail.rejected')
+                    )}
                   </Callout>
                 )}
                 <ul className="space-y-1.5">
@@ -333,8 +364,8 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
                     return (
                       <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-foreground">
                         <StatusBadge status={a.status} docType="approval" />
-                        <span>diajukan {a.requester?.fullName ?? '—'} · {formatDate(a.createdAt)}</span>
-                        {decider && a.decidedAt && <span>· diputus {decider} · {formatDate(a.decidedAt)}</span>}
+                        <span>{t('poDetail.requestedBy', { name: a.requester?.fullName ?? '—', date: formatDate(a.createdAt) })}</span>
+                        {decider && a.decidedAt && <span>{t('poDetail.decidedBy', { name: decider, date: formatDate(a.decidedAt) })}</span>}
                         {a.notes && <span className="w-full text-muted-foreground">“{a.notes}”</span>}
                       </li>
                     );
@@ -345,26 +376,26 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
 
             <section className="border-b border-border pb-4">
               <h3 className={sectionTitle}>
-                <Package className="size-3" aria-hidden /> Items dipesan ({items.length})
+                <Package className="size-3" aria-hidden /> {t('poDetail.itemsTitle', { count: items.length })}
               </h3>
               <div
                 role="region"
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                 tabIndex={0}
-                aria-label="Tabel item PO"
+                aria-label={t('poDetail.itemsTable')}
                 className="overflow-x-auto rounded-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <table className="w-full min-w-[34rem] text-sm">
                   <thead className="border-b border-border bg-muted">
                     <tr>
                       <th scope="col" className={cn(th, 'w-8 text-left')}>#</th>
-                      <th scope="col" className={cn(th, 'text-left')}>Item</th>
-                      <th scope="col" className={cn(th, 'text-right')}>Qty</th>
-                      <th scope="col" className={cn(th, 'text-right')}>Sisa</th>
-                      <th scope="col" className={cn(th, 'text-right')}>Harga</th>
-                      <th scope="col" className={cn(th, 'text-right')}>Disk %</th>
-                      <th scope="col" className={cn(th, 'text-right')}>PPN %</th>
-                      <th scope="col" className={cn(th, 'text-right')}>Jumlah</th>
+                      <th scope="col" className={cn(th, 'text-left')}>{t('poDetail.columns.item')}</th>
+                      <th scope="col" className={cn(th, 'text-right')}>{t('poDetail.columns.qty')}</th>
+                      <th scope="col" className={cn(th, 'text-right')}>{t('poDetail.columns.remaining')}</th>
+                      <th scope="col" className={cn(th, 'text-right')}>{t('poDetail.columns.price')}</th>
+                      <th scope="col" className={cn(th, 'text-right')}>{t('poDetail.columns.discountPct')}</th>
+                      <th scope="col" className={cn(th, 'text-right')}>{t('poDetail.columns.vatPct')}</th>
+                      <th scope="col" className={cn(th, 'text-right')}>{t('poDetail.columns.amount')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -406,7 +437,7 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
             {linkedSTTs.length > 0 && (
               <section className="rounded-lg bg-info-subtle p-3">
                 <h3 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-info-text">
-                  <PackageCheck className="size-3" aria-hidden /> STT/BPB terkait ({linkedSTTs.length})
+                  <PackageCheck className="size-3" aria-hidden /> {t('poDetail.linkedReceipts', { count: linkedSTTs.length })}
                 </h3>
                 <ul className="space-y-1">
                   {linkedSTTs.map((s: any) => (
@@ -421,21 +452,21 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
             )}
 
             <section>
-              <h3 className={sectionTitle}>Catatan & Terms</h3>
-              {doc.notes && <p className="mb-2 whitespace-pre-wrap text-sm text-foreground"><strong>Catatan:</strong> {doc.notes}</p>}
-              {doc.terms && <p className="whitespace-pre-wrap text-sm text-foreground"><strong>Terms:</strong> {doc.terms}</p>}
-              {!doc.notes && !doc.terms && <p className="text-sm italic text-muted-foreground">Tidak ada catatan</p>}
+              <h3 className={sectionTitle}>{t('poDetail.notesTerms')}</h3>
+              {doc.notes && <p className="mb-2 whitespace-pre-wrap text-sm text-foreground"><strong>{t('poDetail.notesLabel')}</strong> {doc.notes}</p>}
+              {doc.terms && <p className="whitespace-pre-wrap text-sm text-foreground"><strong>{t('poDetail.termsLabel')}</strong> {doc.terms}</p>}
+              {!doc.notes && !doc.terms && <p className="text-sm italic text-muted-foreground">{t('poDetail.noNotes')}</p>}
             </section>
 
             {doc.closedAt && status !== 'Cancelled' && (
               <Callout tone="neutral" icon={<Ban className="mt-0.5 size-4 shrink-0" aria-hidden />}>
-                PO ditutup pada {formatDate(doc.closedAt)}. Sisa qty tidak lagi diharapkan.
-                {doc.closeReason && <> Alasan: {doc.closeReason}</>}
+                {t('poDetail.closedNotice', { date: formatDate(doc.closedAt) })}
+                {doc.closeReason && <> {t('poDetail.closeReason', { reason: doc.closeReason })}</>}
               </Callout>
             )}
 
             {status === 'Cancelled' && (
-              <Callout tone="danger">PO ini sudah dibatalkan. STT yang sudah terbentuk tetap valid (barang sudah diterima).</Callout>
+              <Callout tone="danger">{t('poDetail.cancelledNotice')}</Callout>
             )}
           </div>
         )}
@@ -445,9 +476,9 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
         tone="danger"
-        title="Batalkan PO"
-        description={`Batalkan PO ${doc?.poNumber ?? ''}? STT yang sudah terbentuk dari PO ini tetap valid. PO tidak dapat di-aktifkan lagi.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('poDetail.confirmCancel.title')}
+        description={t('poDetail.confirmCancel.description', { number: doc?.poNumber ?? '' })}
+        confirmLabel={t('poDetail.confirmCancel.confirm')}
         loading={cancelMutation.isPending}
         onConfirm={() => cancelMutation.mutateAsync()}
       />
@@ -456,9 +487,9 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         tone="danger"
-        title="Hapus Draf PO"
-        description={`Hapus draf ${doc?.poNumber ?? ''}? Draf dihapus permanen; nomor PO ini tidak dipakai ulang.`}
-        confirmLabel="Ya, Hapus"
+        title={t('poDetail.confirmDelete.title')}
+        description={t('poDetail.confirmDelete.description', { number: doc?.poNumber ?? '' })}
+        confirmLabel={t('poDetail.confirmDelete.confirm')}
         loading={deleteMutation.isPending}
         onConfirm={() => deleteMutation.mutateAsync()}
       />
@@ -466,10 +497,14 @@ const PurchaseOrderDetailDrawer: React.FC<Props> = ({ poId, onClose, onCreateRec
       <ConfirmDialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
-        title={`Tutup ${doc?.poNumber ?? 'PO'}`}
-        description="Sisa qty yang belum diterima tidak lagi diharapkan dan PO tidak muncul lagi di pilihan PO saat membuat STT. STT yang sudah ada tetap valid. Penutupan tidak bisa dibuka kembali."
-        confirmLabel="Tutup PO"
-        requireReason={{ label: 'Alasan penutupan', placeholder: 'mis. Pemasok tidak sanggup memenuhi sisa pesanan', minLength: 5 }}
+        title={t('poDetail.confirmClose.title', { number: doc?.poNumber ?? 'PO' })}
+        description={t('poDetail.confirmClose.description')}
+        confirmLabel={t('poDetail.confirmClose.confirm')}
+        requireReason={{
+          label: t('poDetail.confirmClose.reasonLabel'),
+          placeholder: t('poDetail.confirmClose.reasonPlaceholder'),
+          minLength: 5,
+        }}
         loading={closeMutation.isPending}
         onConfirm={(reason) => closeMutation.mutateAsync(reason ?? '')}
       />

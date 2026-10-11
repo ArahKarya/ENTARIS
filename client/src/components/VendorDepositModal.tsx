@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { CheckCircle2, Paperclip } from 'lucide-react';
@@ -21,6 +22,7 @@ interface VendorDepositModalProps {
 }
 
 const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation('purchasing');
   const today = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(today);
@@ -82,7 +84,7 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
       queryClient.invalidateQueries({ queryKey: ['coa'] });
       setSavedId(res.data?.id || res.data?.payment?.id);
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan uang muka.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('depositForm.errorSave')),
   });
 
   const numAmount = Number(amount) || 0;
@@ -105,42 +107,47 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
     <FormDialog
       open={isOpen}
       onClose={onClose}
-      title="Uang Muka Vendor"
-      description="Deposit ke supplier sebelum pembelian"
+      title={t('depositForm.title')}
+      description={t('depositForm.description')}
       size="lg"
       className="sm:max-w-xl"
       busy={mutation.isPending}
-      submitLabel="Simpan Deposit"
+      submitLabel={t('depositForm.submit')}
       onSubmit={handleSubmit}
       submitDisabled={!canSubmit}
       footer={
         savedId ? (
           <Button className="h-11 sm:h-9" onClick={onClose}>
-            Selesai
+            {t('depositForm.done')}
           </Button>
         ) : undefined
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Tanggal">
+        <Field label={t('depositForm.date')}>
           <DateInput value={date} onChange={setDate} />
         </Field>
-        <Field label="Supplier">
+        <Field label={t('depositForm.supplier')}>
           <OptionPicker
             value={partyId}
             onChange={setPartyId}
-            placeholder="Pilih Supplier"
+            placeholder={t('depositForm.supplierPlaceholder')}
             {...partyPicker.pickerProps}
           />
         </Field>
       </div>
 
       {partyId && depositBalance && depositBalance.totalBalance > 0 && (
-        <Callout tone="warning" icon={<span className="sr-only">Info:</span>}>
+        <Callout tone="warning" icon={<span className="sr-only">{t('depositForm.infoSr')}</span>}>
           <p>
-            Saldo uang muka saat ini: <span className="num font-bold">{formatRupiah(depositBalance.totalBalance)}</span>
+            <Trans
+              t={t}
+              i18nKey="depositForm.currentBalance"
+              values={{ amount: formatRupiah(depositBalance.totalBalance) }}
+              components={{ amount: <span className="num font-bold" /> }}
+            />
           </p>
-          <p className="mt-0.5 text-xs">{depositBalance.data.length} deposit aktif</p>
+          <p className="mt-0.5 text-xs">{t('depositForm.activeDeposits', { count: depositBalance.data.length })}</p>
         </Callout>
       )}
 
@@ -152,9 +159,9 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
           onCheckedChange={(v) => setIsOpeningBalance(v === true)}
         />
         <span>
-          <span className="text-sm font-medium text-foreground">Saldo Awal / Koreksi</span>
+          <span className="text-sm font-medium text-foreground">{t('depositForm.openingBalance')}</span>
           <span className="block text-xs text-muted-foreground">
-            Catat deposit tanpa mempengaruhi kas (offset ke Ekuitas Saldo Awal)
+            {t('depositForm.openingBalanceHint')}
           </span>
         </span>
       </label>
@@ -162,16 +169,17 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
       {isOpeningBalance && (
         <Callout tone="info">
           <p>
-            Jurnal: <span className="font-mono font-medium">DR Uang Muka Pembelian / CR Ekuitas Saldo Awal</span>
+            {t('depositForm.journalLabel')}{' '}
+            <span className="font-mono font-medium">{t('depositForm.journalEntry')}</span>
           </p>
           <p className="mt-0.5 text-xs">
-            Kas/Bank tidak terpengaruh. Gunakan untuk deposit yang uangnya sudah keluar sebelum sistem digunakan.
+            {t('depositForm.openingBalanceNote')}
           </p>
         </Callout>
       )}
 
       <div className={isOpeningBalance ? '' : 'grid grid-cols-1 gap-4 sm:grid-cols-2'}>
-        <Field label="Jumlah (Rp)">
+        <Field label={t('depositForm.amount')}>
           <RupiahField
             value={typeof amount === 'number' ? amount : 0}
             onChange={(v) => setAmount(v === 0 ? '' : v)}
@@ -179,11 +187,11 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
           />
         </Field>
         {!isOpeningBalance && (
-          <Field label="Akun Kas/Bank">
+          <Field label={t('depositForm.cashAccount')}>
             <OptionPicker
               value={accountId}
               onChange={setAccountId}
-              placeholder="Pilih Akun"
+              placeholder={t('depositForm.cashAccountPlaceholder')}
               options={(cashAccounts ?? []).map((a: any) => ({ value: String(a.id), label: `${a.accountNumber} · ${a.name}` }))}
             />
           </Field>
@@ -191,21 +199,26 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="No. Referensi">
+        <Field label={t('depositForm.referenceNo')}>
           <Input
             value={referenceNo}
             onChange={(e) => setReferenceNo(e.target.value)}
-            placeholder="No. cek, transfer, dll."
+            placeholder={t('depositForm.referenceNoPlaceholder')}
           />
         </Field>
-        <Field label="Catatan">
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Keterangan opsional..." />
+        <Field label={t('depositForm.notes')}>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('depositForm.notesPlaceholder')} />
         </Field>
       </div>
 
       {numAmount > 0 && (
-        <Callout tone="warning" icon={<span className="sr-only">Ringkasan:</span>}>
-          Deposit <span className="num text-base font-bold">{formatRupiah(numAmount)}</span> ke supplier
+        <Callout tone="warning" icon={<span className="sr-only">{t('depositForm.summarySr')}</span>}>
+          <Trans
+            t={t}
+            i18nKey="depositForm.summary"
+            values={{ amount: formatRupiah(numAmount) }}
+            components={{ amount: <span className="num text-base font-bold" /> }}
+          />
         </Callout>
       )}
 
@@ -215,9 +228,9 @@ const VendorDepositModal: React.FC<VendorDepositModalProps> = ({ isOpen, onClose
         <div className="space-y-3 border-t border-border pt-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-success-text" aria-hidden />
-            <span className="text-xs font-semibold text-success-text">Tersimpan</span>
+            <span className="text-xs font-semibold text-success-text">{t('depositForm.saved')}</span>
             <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <Paperclip className="size-3" aria-hidden /> Lampiran Bukti Transfer
+              <Paperclip className="size-3" aria-hidden /> {t('depositForm.attachment')}
             </span>
           </div>
           <AttachmentPreview referenceType="payment" referenceId={savedId} />

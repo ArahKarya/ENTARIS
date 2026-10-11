@@ -3,6 +3,7 @@
  * `searchable` ones. Works inside Dialog/Sheet, unlike SearchableSelect.
  */
 import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Command } from 'cmdk';
 import { Check, ChevronDown, Search } from 'lucide-react';
@@ -54,7 +55,7 @@ export function OptionPicker({
   value,
   onChange,
   options,
-  placeholder = 'Pilih…',
+  placeholder: placeholderProp,
   emptyLabel,
   disabled,
   searchable = 'auto',
@@ -63,6 +64,8 @@ export function OptionPicker({
   loading,
   ...aria
 }: OptionPickerProps) {
+  const { t } = useTranslation('purchasing');
+  const placeholder = placeholderProp ?? t('shared.selectPlaceholder');
   const serverSearch = !!onSearchChange;
   const showSearch =
     serverSearch || (searchable === 'auto' ? options.length > 7 || options.some((o) => o.group) : searchable);
@@ -149,15 +152,15 @@ export function OptionPicker({
             <div className="flex items-center gap-2 border-b border-border px-3 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
               <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <Command.Input
-                aria-label="Cari pilihan"
-                placeholder="Cari…"
+                aria-label={t('shared.searchOptions')}
+                placeholder={t('shared.searchPlaceholder')}
                 {...(serverSearch ? { value: query, onValueChange: changeQuery } : {})}
                 className="h-10 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
               />
             </div>
             <Command.List className="max-h-64 overflow-y-auto p-1">
               <Command.Empty className="px-2 py-6 text-center text-sm text-muted-foreground">
-                {loading ? 'Memuat…' : 'Tidak ditemukan.'}
+                {loading ? t('shared.loading') : t('shared.notFound')}
               </Command.Empty>
               {emptyLabel && (
                 <Command.Item value={`__empty ${emptyLabel}`} onSelect={() => choose('')} className={itemClass}>

@@ -60,7 +60,7 @@ describe('toPurchaseInvoiceExportRows', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       'Nomor Dokumen': 'PI-202610-0001',
-      Pemasok: 'CV Tani Makmur',
+      Supplier: 'CV Tani Makmur',
       'Nama Produk': 'Gabah',
       Qty: 1000,
       'Refaksi (Kg)': 2,

@@ -5,6 +5,7 @@
  * outside clicks never dismiss (long forms lose data on a stray click).
  */
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,13 +49,14 @@ export function FormDialog({
   busy = false,
   children,
   footer,
-  submitLabel = 'Simpan',
-  busyLabel = 'Menyimpan…',
+  submitLabel,
+  busyLabel,
   onSubmit,
   submitDisabled,
   submitVariant = 'primary',
-  cancelLabel = 'Batal',
+  cancelLabel,
 }: FormDialogProps) {
+  const { t } = useTranslation('purchasing');
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
       <DialogContent
@@ -74,7 +76,9 @@ export function FormDialog({
           {description ? (
             <DialogDescription>{description}</DialogDescription>
           ) : (
-            <DialogDescription className="sr-only">Formulir {typeof title === 'string' ? title : ''}</DialogDescription>
+            <DialogDescription className="sr-only">
+              {t('shared.formOf', { title: typeof title === 'string' ? title : '' })}
+            </DialogDescription>
           )}
         </DialogHeader>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
@@ -82,7 +86,7 @@ export function FormDialog({
           {footer ?? (
             <>
               <Button variant="outline" className="h-11 sm:h-9" onClick={onClose} disabled={busy}>
-                {cancelLabel}
+                {cancelLabel ?? t('shared.cancel')}
               </Button>
               <Button
                 variant={submitVariant}
@@ -91,7 +95,7 @@ export function FormDialog({
                 loading={busy}
                 disabled={submitDisabled}
               >
-                {busy ? busyLabel : submitLabel}
+                {busy ? (busyLabel ?? t('shared.saving')) : (submitLabel ?? t('shared.save'))}
               </Button>
             </>
           )}

@@ -2,8 +2,9 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import { Plus, X, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
-import { formatRupiah, formatNumber } from '@/lib/format';
+import { formatRupiah, formatNumber, LOCALE } from '@/lib/format';
 import { NumberInput } from '@/components/ui/number-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,6 +41,7 @@ interface PurchaseInvoiceModalProps {
 }
 
 const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onClose, prefill, resubmitRequestId }) => {
+  const { t } = useTranslation('purchasing');
   const [invoiceDate, setInvoiceDate] = useState(() => prefill?.date ?? new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(() => prefill?.dueDate ?? new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
   const [partyId, setPartyId] = useState(prefill?.partyId ?? '');
@@ -161,7 +163,9 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
           });
         } catch (err: any) {
           console.warn('Upload lampiran gagal:', err);
-          toast.error('Lampiran gagal diunggah: ' + (err?.response?.data?.error ?? err?.message ?? 'error'));
+          toast.error(
+            t('invoiceForm.toastUploadFailed', { error: err?.response?.data?.error ?? err?.message ?? 'error' }),
+          );
         }
       };
       if (resubmitRequestId) {
@@ -180,9 +184,9 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
     },
     onSuccess: (result: any) => {
       if (result?.resubmitted) {
-        toast.success('Pengajuan diperbarui & dikirim ulang untuk persetujuan.');
+        toast.success(t('invoiceForm.toastResubmitted'));
       } else if (result?.pendingApproval) {
-        toast.success('Invoice dikirim untuk persetujuan manajer. Akan diproses setelah disetujui.');
+        toast.success(t('invoiceForm.toastPendingApproval'));
       }
       queryClient.invalidateQueries({ queryKey: ['purchase-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
@@ -202,7 +206,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       setError('');
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan invoice.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('invoiceForm.errorSave')),
   });
 
   const addItem = () => setItems([...items, defaultItem('material')]);
@@ -237,11 +241,11 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
     const valid: File[] = [];
     for (const f of files) {
       if (!ALLOWED_MIME.includes(f.type)) {
-        setError(`${f.name}: tipe file tidak didukung (JPG/PNG/WebP/PDF).`);
+        setError(t('invoiceForm.errorFileType', { name: f.name }));
         continue;
       }
       if (f.size > MAX_FILE_SIZE) {
-        setError(`${f.name}: ukuran melebihi 5 MB.`);
+        setError(t('invoiceForm.errorFileSize', { name: f.name }));
         continue;
       }
       valid.push(f);
@@ -335,24 +339,24 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
         onClose={onClose}
         size="doc"
         className="lg:max-w-6xl"
-        title="Invoice Pembelian Baru"
-        description="Draft • belum disimpan"
+        title={t('invoiceForm.title')}
+        description={t('invoiceForm.description')}
         busy={mutation.isPending}
         footer={
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground" aria-live="polite">
               {canSubmit
-                ? `Total: ${formatRupiah(grandTotal)}`
+                ? t('invoiceForm.footerTotal', { amount: formatRupiah(grandTotal) })
                 : hasOrphanInventory
-                  ? 'Bahan baku harus via STT. Lihat peringatan di atas.'
-                  : 'Lengkapi supplier & minimal 1 item'}
+                  ? t('invoiceForm.footerOrphan')
+                  : t('invoiceForm.footerIncomplete')}
             </p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button variant="outline" className="h-11 sm:h-9" onClick={onClose} disabled={mutation.isPending}>
-                Batal
+                {t('shared.cancel')}
               </Button>
               <Button className="h-11 sm:h-9" onClick={handleSave} disabled={!canSubmit} loading={mutation.isPending}>
-                {mutation.isPending ? 'Menyimpan…' : 'Simpan Invoice'}
+                {mutation.isPending ? t('shared.saving') : t('invoiceForm.submit')}
               </Button>
             </div>
           </div>
@@ -360,11 +364,11 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       >
         <div className="grid grid-cols-1 gap-4 border-b border-border pb-4 sm:grid-cols-2 sm:gap-8">
           <div className="space-y-2">
-            <Field label="Supplier / Pemasok" required>
+            <Field label={t('invoiceForm.supplier')} required>
               <OptionPicker
                 value={partyId}
                 onChange={setPartyId}
-                placeholder="Pilih Supplier"
+                placeholder={t('invoiceForm.supplierPlaceholder')}
                 {...partyPicker.pickerProps}
               />
             </Field>
@@ -379,7 +383,6 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
             {/* "Dari STT/BPB": load items from submitted, not-yet-invoiced STTs; user fills prices. */}
             {partyId && (
               <div className="rounded-lg border border-info/30 bg-info-subtle p-3">
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
                 <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm font-medium text-info-text sm:min-h-0">
                   <Checkbox
                     className="mt-0.5"
@@ -393,12 +396,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                       }
                     }}
                   />
-                  Buat dari STT / BPB (Bukti Penerimaan Barang), bisa pilih lebih dari 1
+                  {t('invoiceForm.fromReceipts')}
                 </label>
                 {fromSTTMode && (
                   <div className="mt-2 space-y-1">
                     <ul
-                      aria-label="STT tertunda"
+                      aria-label={t('invoiceForm.pendingReceipts')}
                       className="max-h-40 space-y-1 overflow-y-auto pr-1"
                     >
                       {(pendingSTTs ?? []).map((s: any) => (
@@ -406,7 +409,11 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                           <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded bg-card px-2 py-1.5 text-xs text-foreground hover:bg-accent sm:min-h-0">
                             <Checkbox checked={selectedSTTIds.has(s.id)} onCheckedChange={() => toggleSTT(s.id)} />
                             <span className="flex-1">
-                              {s.sttNumber} • {new Date(s.date).toLocaleDateString('id-ID')} • {s.items?.length ?? 0} item
+                              {t('invoiceForm.receiptOption', {
+                                number: s.sttNumber,
+                                date: new Date(s.date).toLocaleDateString(LOCALE),
+                                count: s.items?.length ?? 0,
+                              })}
                             </span>
                           </label>
                         </li>
@@ -414,12 +421,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                     </ul>
                     {(pendingSTTs ?? []).length === 0 && (
                       <p className="text-xs text-info-text">
-                        Tidak ada STT pending untuk supplier ini. Buat STT/BPB dulu di menu Pembelian → BPB.
+                        {t('invoiceForm.noPendingReceipts')}
                       </p>
                     )}
                     {selectedSTTIds.size > 0 && (
                       <p className="text-xs text-info-text" role="status">
-                        {selectedSTTIds.size} STT dipilih, items sudah di-load. Tinggal isi harga per baris. Stok tidak akan dibuat ulang oleh PI ini.
+                        {t('invoiceForm.receiptsSelected', { count: selectedSTTIds.size })}
                       </p>
                     )}
                   </div>
@@ -428,10 +435,10 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
             )}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Tanggal Invoice">
+            <Field label={t('invoiceForm.invoiceDate')}>
               <DateInput value={invoiceDate} onChange={setInvoiceDate} />
             </Field>
-            <Field label="Jatuh Tempo">
+            <Field label={t('invoiceForm.dueDate')}>
               <DateInput value={dueDate} onChange={setDueDate} />
             </Field>
           </div>
@@ -451,10 +458,10 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
         <section aria-labelledby="pi-docs-title" className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h3 id="pi-docs-title" className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <Paperclip className="size-3" aria-hidden /> Dokumen Pendukung
+              <Paperclip className="size-3" aria-hidden /> {t('invoiceForm.attachments')}
             </h3>
             <Button type="button" variant="outline" size="sm" className="h-11 sm:h-8" onClick={() => fileInputRef.current?.click()}>
-              <Plus aria-hidden /> Tambah File
+              <Plus aria-hidden /> {t('invoiceForm.addFile')}
             </Button>
             <input
               ref={fileInputRef}
@@ -464,12 +471,12 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
               onChange={handleFileSelect}
               className="hidden"
               tabIndex={-1}
-              aria-label="Berkas dokumen pendukung"
+              aria-label={t('invoiceForm.attachmentsInput')}
             />
           </div>
           {stagedFiles.length === 0 ? (
             <p className="text-xs italic text-muted-foreground">
-              Belum ada file. Max {MAX_ATTACHMENTS} file, 5 MB/file (JPG/PNG/PDF).
+              {t('invoiceForm.noFiles', { max: MAX_ATTACHMENTS })}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -488,7 +495,7 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                     size="icon-sm"
                     className="text-muted-foreground hover:text-danger-text"
                     onClick={() => removeStagedFile(i)}
-                    aria-label={`Hapus file ${f.name}`}
+                    aria-label={t('invoiceForm.removeFile', { name: f.name })}
                   >
                     <X aria-hidden />
                   </Button>
@@ -499,13 +506,13 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
         </section>
 
         <div className="grid grid-cols-1 items-start gap-4 sm:gap-8 md:grid-cols-2">
-          <Field label="Catatan">
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="No. PO, referensi..." rows={4} className="resize-none" />
+          <Field label={t('invoiceForm.notes')}>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('invoiceForm.notesPlaceholder')} rows={4} className="resize-none" />
           </Field>
-          <dl className="space-y-2 rounded-xl border border-border bg-muted p-4 text-sm" aria-label="Ringkasan invoice">
+          <dl className="space-y-2 rounded-xl border border-border bg-muted p-4 text-sm" aria-label={t('invoiceForm.summary')}>
             {Object.keys(totalQtyByUnit).length > 0 && (
               <div className="flex justify-between gap-2 text-xs font-medium text-muted-foreground">
-                <dt>Total Qty</dt>
+                <dt>{t('invoiceForm.totalQty')}</dt>
                 <dd className="num text-right">
                   {Object.entries(totalQtyByUnit)
                     .map(([u, q]) => `${formatNumber(q, { maxDecimals: 3 })} ${u}`)
@@ -514,24 +521,24 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
               </div>
             )}
             <div className="flex justify-between text-xs text-muted-foreground">
-              <dt>Total PPN (info)</dt>
+              <dt>{t('invoiceForm.totalVat')}</dt>
               <dd className="num">{formatRupiah(totalPpn)}</dd>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <dt>Total PPh (info)</dt>
+              <dt>{t('invoiceForm.totalPph')}</dt>
               <dd className="num">−{formatRupiah(totalPph)}</dd>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <dt>Total Potongan</dt>
+              <dt>{t('invoiceForm.totalDeduction')}</dt>
               <dd className="num text-danger-text">−{formatRupiah(totalPotongan)}</dd>
             </div>
             <div className="flex justify-between border-t border-border pt-2">
-              <dt className="text-muted-foreground">Subtotal Item</dt>
+              <dt className="text-muted-foreground">{t('invoiceForm.itemSubtotal')}</dt>
               <dd className="num text-foreground">{formatRupiah(subtotalItems)}</dd>
             </div>
             <div className="flex items-center gap-2">
               <dt className="flex-1 text-muted-foreground">
-                <label htmlFor="pi-biaya-lain">Biaya Lain</label>
+                <label htmlFor="pi-biaya-lain">{t('invoiceForm.otherCosts')}</label>
               </dt>
               <dd className="flex shrink-0 items-center gap-1">
                 <span className="text-xs text-muted-foreground" aria-hidden>{biayaLain < 0 ? '−' : '+'}</span>
@@ -541,13 +548,13 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
                   value={biayaLain || ''}
                   onChange={(e) => setBiayaLain(Number(e.target.value) || 0)}
                   placeholder="0"
-                  title="Boleh negatif untuk potong tagihan"
+                  title={t('invoiceForm.otherCostsHint')}
                   className="num h-10 w-32 text-right md:h-9"
                 />
               </dd>
             </div>
             <div className="flex items-baseline justify-between border-t border-border pt-2.5">
-              <dt className="text-sm font-semibold text-foreground">Total</dt>
+              <dt className="text-sm font-semibold text-foreground">{t('invoiceForm.total')}</dt>
               <dd className="num text-xl font-bold text-primary sm:text-2xl">{formatRupiah(grandTotal)}</dd>
             </div>
           </dl>
@@ -556,22 +563,24 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
         {/* Inventory items must come in via STT/BPB */}
         {hasOrphanInventory && (
           <Callout tone="danger">
-            <p className="font-medium">Bahan baku harus via STT / BPB</p>
+            <p className="font-medium">{t('invoiceForm.orphan.title')}</p>
             <p className="mt-0.5 text-xs">
-              Sejak 20 Mei 2026, stok masuk wajib lewat STT (Surat Tanda Terima / Bukti Penerimaan Barang).
-              Invoice = tagihan saja. Berikut item yg masih direct-purchase di invoice ini:
+              {t('invoiceForm.orphan.description')}
             </p>
             <ul className="ml-1 mt-1.5 list-inside list-disc space-y-0.5 text-xs">
               {orphanInventoryLines.map((l) => (
                 <li key={l.id}>
                   <span className="font-medium">{l.itemName}</span>
-                  <span>: belum link ke STT</span>
+                  <span>{t('invoiceForm.orphan.notLinked')}</span>
                 </li>
               ))}
             </ul>
             <p className="mt-2 text-xs">
-              <strong>Solusi:</strong> buat <span className="font-semibold">STT/BPB</span> dulu di menu Pembelian → STT,
-              lalu kembali ke sini dan pilih dari daftar <span className="font-semibold">STT Tertunda</span> di atas.
+              <Trans
+                t={t}
+                i18nKey="invoiceForm.orphan.solution"
+                components={{ strong: <strong />, b: <span className="font-semibold" /> }}
+              />
             </p>
           </Callout>
         )}
@@ -586,10 +595,13 @@ const PurchaseInvoiceModal: React.FC<PurchaseInvoiceModalProps> = ({ isOpen, onC
       <ConfirmDialog
         open={confirmVariance}
         onOpenChange={setConfirmVariance}
-        title="Tetap simpan dengan selisih?"
-        description={`${matchQuery.data?.summary.qtyVariance ?? 0} baris selisih qty dan ${matchQuery.data?.summary.priceVariance ?? 0} baris selisih harga melebihi toleransi terhadap PO/STT. Faktur tetap bisa disimpan; selisih harga dicatat seperti biasa.`}
-        confirmLabel="Tetap simpan"
-        cancelLabel="Periksa lagi"
+        title={t('invoiceForm.variance.title')}
+        description={t('invoiceForm.variance.description', {
+          qty: matchQuery.data?.summary.qtyVariance ?? 0,
+          price: matchQuery.data?.summary.priceVariance ?? 0,
+        })}
+        confirmLabel={t('invoiceForm.variance.confirm')}
+        cancelLabel={t('invoiceForm.variance.cancel')}
         onConfirm={() => submitPayload()}
       />
     </>
