@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SettingsCard } from '../../components/settings/SettingsCard';
-import { APP_VERSION, APP_BUILD_DATE, APP_NAME, CHANGELOG } from '../../lib/version';
+import { APP_VERSION, APP_BUILD_DATE, APP_NAME, localizedChangelog } from '../../lib/version';
 
 interface UpdateInfo {
   status: 'latest' | 'available' | 'error';
@@ -54,7 +54,8 @@ interface RuntimeInfo {
 }
 
 export const AboutTab: React.FC = () => {
-  const { t } = useTranslation('settings');
+  const { t, i18n } = useTranslation('settings');
+  const changelog = localizedChangelog(i18n.language);
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
@@ -166,10 +167,10 @@ docker compose up -d --build`}</pre>
 
       <SettingsCard
         title={t('about.changelog')}
-        actions={<Badge variant="info">{t('about.releases', { count: CHANGELOG.length })}</Badge>}
+        actions={<Badge variant="info">{t('about.releases', { count: changelog.length })}</Badge>}
       >
         <ol className="relative space-y-3 border-l border-border pl-5">
-          {CHANGELOG.map((entry, idx) => (
+          {changelog.map((entry, idx) => (
             <li key={entry.version} className="relative">
               <span
                 aria-hidden

@@ -53,6 +53,10 @@ Satu namespace per modul. `common`, `shell`, dan `auth` dimuat sejak awal; names
 - Setiap kunci baru harus ada di `id` dan `en`; `locales.test.ts` gagal kalau tidak.
 - Tes menjalankan UI dalam Bahasa Indonesia dengan semua namespace termuat (`src/test/setup.ts`), jadi tes yang mencari teks Indonesia tetap berlaku.
 
+## Changelog
+
+Catatan rilis dua bahasa: `client/src/lib/version.ts` (Indonesia) dan `client/src/lib/changelog.en.ts` (English, kunci = versi). Setiap rilis baru wajib menambah entri di keduanya dengan jumlah butir yang sama; `changelog.test.ts` gagal kalau tidak. Halaman Pengaturan > Tentang menampilkan versi sesuai bahasa pengguna.
+
 ## Glosarium
 
 Istilah baku Indonesia mengikuti keputusan pemilik produk (10 Oktober 2026): istilah serapan yang lazim di kantor. Pakai persis seperti tabel ini di semua teks.

@@ -1,7 +1,8 @@
 /**
  * Single source of truth untuk versi aplikasi.
- * Update file ini setiap kali release baru.
+ * Update file ini setiap kali release baru, termasuk terjemahan Inggris di changelog.en.ts.
  */
+import { CHANGELOG_EN } from './changelog.en';
 
 export const APP_VERSION = '3.18.1';
 export const APP_BUILD_DATE = '2026-07-31';
@@ -12,6 +13,15 @@ export interface ChangelogEntry {
   date: string;
   title: string;
   changes: string[];
+}
+
+/** CHANGELOG in the UI language; English falls back to Indonesian for any entry not yet translated. */
+export function localizedChangelog(language: string): ChangelogEntry[] {
+  if (!language.startsWith('en')) return CHANGELOG;
+  return CHANGELOG.map((entry) => {
+    const en = CHANGELOG_EN[entry.version];
+    return en && en.changes.length === entry.changes.length ? { ...entry, title: en.title, changes: en.changes } : entry;
+  });
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
