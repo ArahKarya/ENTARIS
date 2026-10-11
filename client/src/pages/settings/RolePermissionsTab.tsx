@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, ShieldCheck, Lock, KeyRound } from 'lucide-react';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
@@ -37,6 +38,7 @@ interface Role {
 const MIN_NAME = 2;
 
 export const RolePermissionsTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draftPerms, setDraftPerms] = useState<PermDraft>({});
@@ -79,8 +81,8 @@ export const RolePermissionsTab: React.FC = () => {
     isPermDraftDirty(selected.permissions, draftPerms) ||
     isCapsDirty(selected.caps, draftCaps)
   );
-  const nameError = selected && draftName.trim().length < MIN_NAME ? `Nama peran minimal ${MIN_NAME} karakter.` : undefined;
-  const newNameError = newNameTouched && newName.trim().length < MIN_NAME ? `Nama peran minimal ${MIN_NAME} karakter.` : undefined;
+  const nameError = selected && draftName.trim().length < MIN_NAME ? t('roles.errors.nameMin', { count: MIN_NAME }) : undefined;
+  const newNameError = newNameTouched && newName.trim().length < MIN_NAME ? t('roles.errors.nameMin', { count: MIN_NAME }) : undefined;
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -92,14 +94,14 @@ export const RolePermissionsTab: React.FC = () => {
         caps: [...draftCaps],
       });
     },
-    onSuccess: () => { toast.success('Role disimpan.'); qc.invalidateQueries({ queryKey: ['roles'] }); },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal menyimpan role.'),
+    onSuccess: () => { toast.success(t('roles.toast.saved')); qc.invalidateQueries({ queryKey: ['roles'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || t('roles.toast.saveError')),
   });
 
   const createMut = useMutation({
     mutationFn: async () => api.post('/roles', { name: newName }),
     onSuccess: (res: any) => {
-      toast.success('Role dibuat.');
+      toast.success(t('roles.toast.created'));
       setCreating(false); setNewName(''); setNewNameTouched(false);
       qc.invalidateQueries({ queryKey: ['roles'] }).then(() => {
         const id: string | undefined = res?.data?.id;
@@ -109,13 +111,13 @@ export const RolePermissionsTab: React.FC = () => {
         else setSelectedId(id);
       });
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal membuat role.'),
+    onError: (e: any) => toast.error(e?.response?.data?.error || t('roles.toast.createError')),
   });
 
   const deleteMut = useMutation({
     mutationFn: async (id: string) => api.delete(`/roles/${id}`),
-    onSuccess: () => { toast.success('Role dihapus.'); setSelectedId(null); qc.invalidateQueries({ queryKey: ['roles'] }); },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Gagal menghapus role.'),
+    onSuccess: () => { toast.success(t('roles.toast.deleted')); setSelectedId(null); qc.invalidateQueries({ queryKey: ['roles'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || t('roles.toast.deleteError')),
   });
 
   const toggleCap = (key: string, on: boolean) =>
@@ -131,16 +133,16 @@ export const RolePermissionsTab: React.FC = () => {
     createMut.mutate();
   };
 
-  if (isLoading) return <LoadingState label="Memuat hak akses…" />;
+  if (isLoading) return <LoadingState label={t('roles.loading')} />;
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
       <SettingsCard
-        title="Peran"
+        title={t('roles.listTitle')}
         className="self-start"
         actions={!creating && (
           <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus aria-hidden /> Peran Baru
+            <Plus aria-hidden /> {t('roles.new')}
           </Button>
         )}
         contentClassName="space-y-3"
@@ -151,17 +153,17 @@ export const RolePermissionsTab: React.FC = () => {
             className="space-y-2 rounded-lg border border-border p-3"
             onSubmit={(e) => { e.preventDefault(); submitCreate(); }}
           >
-            <Field label="Nama peran baru" required error={newNameError}>
+            <Field label={t('roles.newName')} required error={newNameError}>
               {/* eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens */}
-              <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="mis. Kasir" />
+              <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('roles.newNamePlaceholder')} />
             </Field>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setCreating(false); setNewName(''); setNewNameTouched(false); }}>Batal</Button>
-              <Button type="submit" size="sm" loading={createMut.isPending}>Buat</Button>
+              <Button variant="outline" size="sm" onClick={() => { setCreating(false); setNewName(''); setNewNameTouched(false); }}>{t('roles.cancel')}</Button>
+              <Button type="submit" size="sm" loading={createMut.isPending}>{t('roles.create')}</Button>
             </div>
           </form>
         )}
-        <ul className="space-y-1" aria-label="Daftar peran">
+        <ul className="space-y-1" aria-label={t('roles.listLabel')}>
           {roles.map((r) => {
             const isActive = selectedId === r.id;
             return (
@@ -179,11 +181,11 @@ export const RolePermissionsTab: React.FC = () => {
                 >
                   <span className="min-w-0">
                     <span className="flex min-w-0 items-center gap-1.5">
-                      {r.isSuperAdmin && <ShieldCheck className="size-3.5 shrink-0 text-primary" aria-label="Super-admin" />}
+                      {r.isSuperAdmin && <ShieldCheck className="size-3.5 shrink-0 text-primary" aria-label={t('roles.superAdmin')} />}
                       <span className="truncate font-medium">{r.name}</span>
                     </span>
                     <span className="block text-xs text-muted-foreground">
-                      {r.isSystem ? 'Sistem' : 'Kustom'} · {r.userCount} pengguna
+                      {r.isSystem ? t('roles.system') : t('roles.custom')} · {t('roles.userCount', { count: r.userCount })}
                     </span>
                   </span>
                 </button>
@@ -195,22 +197,22 @@ export const RolePermissionsTab: React.FC = () => {
 
       <div className="min-w-0 space-y-5">
         {!selected ? (
-          <SettingsCard title="Hak akses">
-            <EmptyState compact icon={KeyRound} title="Pilih peran" description="Pilih peran di daftar untuk mengatur izin, atau buat peran baru." />
+          <SettingsCard title={t('roles.permissions')}>
+            <EmptyState compact icon={KeyRound} title={t('roles.pick.title')} description={t('roles.pick.description')} />
           </SettingsCard>
         ) : selected.isSuperAdmin ? (
           <SettingsCard title={selected.name}>
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Lock className="size-4 shrink-0" aria-hidden />
-              Peran ini adalah super-admin, selalu memiliki akses penuh dan tidak dapat dibatasi.
+              {t('roles.superAdminNote')}
             </p>
           </SettingsCard>
         ) : (
           <>
             <SettingsCard
-              title="Detail Peran"
+              title={t('roles.detail')}
               actions={selected.isSystem
-                ? <Badge variant="warning">Peran bawaan</Badge>
+                ? <Badge variant="warning">{t('roles.builtIn')}</Badge>
                 : (
                   <Button
                     variant="outline"
@@ -218,38 +220,38 @@ export const RolePermissionsTab: React.FC = () => {
                     className="text-danger-text"
                     onClick={() => setConfirmDelete(true)}
                     disabled={selected.userCount > 0 || deleteMut.isPending}
-                    title={selected.userCount > 0 ? 'Peran masih dipakai pengguna' : undefined}
+                    title={selected.userCount > 0 ? t('roles.inUse') : undefined}
                   >
-                    <Trash2 aria-hidden /> Hapus Peran
+                    <Trash2 aria-hidden /> {t('roles.delete')}
                   </Button>
                 )}
             >
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Nama peran" required error={nameError}>
+                <Field label={t('roles.name')} required error={nameError}>
                   <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} />
                 </Field>
-                <Field label="Deskripsi">
+                <Field label={t('roles.description')}>
                   <Input value={draftDesc} onChange={(e) => setDraftDesc(e.target.value)} />
                 </Field>
               </div>
               {selected.isSystem && (
-                <p className="mt-3 text-xs text-muted-foreground">Peran bawaan: izinnya boleh diubah, tetapi peran tidak dapat dihapus.</p>
+                <p className="mt-3 text-xs text-muted-foreground">{t('roles.builtInNote')}</p>
               )}
               {!selected.isSystem && selected.userCount > 0 && (
-                <p className="mt-3 text-xs text-muted-foreground">Peran masih dipakai {selected.userCount} pengguna sehingga tidak dapat dihapus.</p>
+                <p className="mt-3 text-xs text-muted-foreground">{t('roles.inUseNote', { count: selected.userCount })}</p>
               )}
             </SettingsCard>
 
             <SettingsCard
-              title="Hak Akses Modul"
-              description="Ubah otomatis menyertakan Lihat; mencabut Lihat juga mencabut Ubah. Gunakan kotak di header untuk memilih sekaligus."
+              title={t('roles.modules.title')}
+              description={t('roles.modules.description')}
             >
               <PermissionMatrix groups={groups} draft={draftPerms} onChange={setDraftPerms} caption={selected.name} />
             </SettingsCard>
 
-            <SettingsCard title="Hak Khusus" description="Kemampuan sensitif di luar hak modul.">
+            <SettingsCard title={t('roles.caps.title')} description={t('roles.caps.description')}>
               {(catalog?.capabilities ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Tidak ada hak khusus.</p>
+                <p className="text-sm text-muted-foreground">{t('roles.caps.empty')}</p>
               ) : (
                 <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {(catalog?.capabilities ?? []).map((c) => (
@@ -273,17 +275,17 @@ export const RolePermissionsTab: React.FC = () => {
               saving={saveMut.isPending}
               onSave={() => setConfirmSave(true)}
               onReset={() => loadDraft(selected)}
-              saveLabel="Simpan Perubahan"
+              saveLabel={t('roles.saveChanges')}
             />
 
             <ConfirmDialog
               open={confirmSave}
               onOpenChange={setConfirmSave}
-              title={`Simpan hak akses ${draftName}?`}
+              title={t('roles.saveConfirm.title', { name: draftName })}
               description={selected.userCount > 0
-                ? `Perubahan langsung berlaku untuk ${selected.userCount} pengguna dengan peran ini.`
-                : 'Perubahan berlaku untuk pengguna yang nanti diberi peran ini.'}
-              confirmLabel="Simpan"
+                ? t('roles.saveConfirm.descriptionUsers', { count: selected.userCount })
+                : t('roles.saveConfirm.descriptionNone')}
+              confirmLabel={t('roles.saveConfirm.confirm')}
               loading={saveMut.isPending}
               onConfirm={() => saveMut.mutateAsync()}
             />
@@ -292,9 +294,9 @@ export const RolePermissionsTab: React.FC = () => {
               open={confirmDelete}
               onOpenChange={setConfirmDelete}
               tone="danger"
-              title={`Hapus peran "${selected.name}"?`}
-              description="Peran yang dihapus tidak dapat dipulihkan."
-              confirmLabel="Hapus Peran"
+              title={t('roles.deleteConfirm.title', { name: selected.name })}
+              description={t('roles.deleteConfirm.description')}
+              confirmLabel={t('roles.delete')}
               loading={deleteMut.isPending}
               onConfirm={() => deleteMut.mutateAsync(selected.id)}
             />

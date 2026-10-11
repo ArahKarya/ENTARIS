@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HandCoins, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ import { ConfirmDialog, EmptyState, Field, LoadingState, StatusBadge } from '@/c
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { AccountPicker, type AccountOption } from '@/components/fixed-assets/AccountPicker';
 import { apiError } from '@/components/fixed-assets/errors';
-import { KIND_LABEL, type PaymentRequestType, type PrKind } from '@/components/payment-requests/payment-request';
+import type { PaymentRequestType, PrKind } from '@/components/payment-requests/payment-request';
 
 interface TypeForm {
   code: string;
@@ -47,8 +48,11 @@ const EMPTY: TypeForm = {
 };
 
 const QK = ['payment-request-types'];
+const KINDS: PrKind[] = ['REIMBURSEMENT', 'VENDOR_PAYMENT', 'CASH_ADVANCE', 'TRAVEL', 'OTHER'];
 
 export function PaymentRequestTypesTab() {
+  const { t } = useTranslation('settings');
+  const kindLabel = (k: PrKind) => t(`paymentRequestTypes.kinds.${k}`);
   const qc = useQueryClient();
   const canEdit = can('settings', 'edit');
   const [editing, setEditing] = useState<PaymentRequestType | null>(null);
@@ -86,54 +90,54 @@ export function PaymentRequestTypesTab() {
       return editing ? api.put(`/payment-request-types/${editing.id}`, body) : api.post('/payment-request-types', body);
     },
     onSuccess: () => {
-      toast.success('Jenis pengajuan disimpan.');
+      toast.success(t('paymentRequestTypes.toast.saved'));
       setOpen(false);
       invalidate();
     },
-    onError: (e) => setError(apiError(e, 'Gagal menyimpan jenis pengajuan.')),
+    onError: (e) => setError(apiError(e, t('paymentRequestTypes.toast.saveError'))),
   });
 
   const toggle = useMutation({
-    mutationFn: (t: PaymentRequestType) =>
-      api.put(`/payment-request-types/${t.id}`, {
-        code: t.code,
-        name: t.name,
-        kind: t.kind,
-        description: t.description,
-        defaultExpenseAccountId: t.defaultExpenseAccountId,
-        requiresAttachment: t.requiresAttachment,
-        requiresSettlement: t.requiresSettlement,
-        isActive: !t.isActive,
-        sortOrder: t.sortOrder,
+    mutationFn: (row: PaymentRequestType) =>
+      api.put(`/payment-request-types/${row.id}`, {
+        code: row.code,
+        name: row.name,
+        kind: row.kind,
+        description: row.description,
+        defaultExpenseAccountId: row.defaultExpenseAccountId,
+        requiresAttachment: row.requiresAttachment,
+        requiresSettlement: row.requiresSettlement,
+        isActive: !row.isActive,
+        sortOrder: row.sortOrder,
       }),
     onSuccess: invalidate,
-    onError: (e) => toast.error(apiError(e, 'Gagal mengubah status.')),
+    onError: (e) => toast.error(apiError(e, t('paymentRequestTypes.toast.toggleError'))),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/payment-request-types/${id}`),
     onSuccess: () => {
-      toast.success('Jenis pengajuan dihapus.');
+      toast.success(t('paymentRequestTypes.toast.deleted'));
       invalidate();
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal menghapus jenis pengajuan.')),
+    onError: (e) => toast.error(apiError(e, t('paymentRequestTypes.toast.deleteError'))),
   });
 
-  const openForm = (t: PaymentRequestType | null) => {
-    setEditing(t);
+  const openForm = (row: PaymentRequestType | null) => {
+    setEditing(row);
     setError('');
     setForm(
-      t
+      row
         ? {
-            code: t.code,
-            name: t.name,
-            kind: t.kind,
-            description: t.description ?? '',
-            defaultExpenseAccountId: t.defaultExpenseAccountId ?? '',
-            requiresAttachment: t.requiresAttachment,
-            requiresSettlement: t.requiresSettlement,
-            isActive: t.isActive,
-            sortOrder: t.sortOrder,
+            code: row.code,
+            name: row.name,
+            kind: row.kind,
+            description: row.description ?? '',
+            defaultExpenseAccountId: row.defaultExpenseAccountId ?? '',
+            requiresAttachment: row.requiresAttachment,
+            requiresSettlement: row.requiresSettlement,
+            isActive: row.isActive,
+            sortOrder: row.sortOrder,
           }
         : EMPTY,
     );
@@ -142,8 +146,8 @@ export function PaymentRequestTypesTab() {
 
   const submit = () => {
     setError('');
-    if (!/^[A-Za-z0-9_-]{2,20}$/.test(form.code.trim())) return setError('Kode 2–20 karakter: huruf, angka, _ atau -.');
-    if (form.name.trim().length < 2) return setError('Nama minimal 2 karakter.');
+    if (!/^[A-Za-z0-9_-]{2,20}$/.test(form.code.trim())) return setError(t('paymentRequestTypes.errors.code'));
+    if (form.name.trim().length < 2) return setError(t('paymentRequestTypes.errors.name'));
     save.mutate();
   };
 
@@ -153,37 +157,37 @@ export function PaymentRequestTypesTab() {
   return (
     <div className="space-y-5">
       <SettingsCard
-        title="Jenis Pengajuan Pembayaran"
-        description="Jenis yang bisa dipilih karyawan saat membuat Pengajuan Pembayaran. Jenis yang sudah dipakai cukup dinonaktifkan."
+        title={t('paymentRequestTypes.title')}
+        description={t('paymentRequestTypes.description')}
         actions={
           canEdit && (
             <Button onClick={() => openForm(null)}>
-              <Plus aria-hidden /> Tambah Jenis
+              <Plus aria-hidden /> {t('paymentRequestTypes.add')}
             </Button>
           )
         }
         contentClassName="px-0 pb-0"
       >
         {typesQuery.isLoading ? (
-          <LoadingState className="pb-5" label="Memuat jenis pengajuan…" />
+          <LoadingState className="pb-5" label={t('paymentRequestTypes.loading')} />
         ) : types.length === 0 ? (
-          <EmptyState compact icon={HandCoins} title="Belum ada jenis pengajuan" className="pb-5" />
+          <EmptyState compact icon={HandCoins} title={t('paymentRequestTypes.empty')} className="pb-5" />
         ) : (
           <ul className="divide-y divide-border border-t border-border">
-            {types.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-start gap-3 px-5 py-3">
+            {types.map((row) => (
+              <li key={row.id} className="flex flex-wrap items-start gap-3 px-5 py-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="font-medium text-foreground">
-                    {t.name} <span className="font-mono text-xs text-muted-foreground">{t.code}</span>
+                    {row.name} <span className="font-mono text-xs text-muted-foreground">{row.code}</span>
                   </p>
-                  {t.description && <p className="text-sm text-muted-foreground">{t.description}</p>}
+                  {row.description && <p className="text-sm text-muted-foreground">{row.description}</p>}
                   <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="neutral">{KIND_LABEL[t.kind]}</Badge>
-                    {t.requiresAttachment && <Badge variant="info">Wajib lampiran</Badge>}
-                    {t.requiresSettlement && <Badge variant="warning">Wajib pertanggungjawaban</Badge>}
-                    {t.defaultExpenseAccount && (
+                    <Badge variant="neutral">{kindLabel(row.kind)}</Badge>
+                    {row.requiresAttachment && <Badge variant="info">{t('paymentRequestTypes.requiresAttachment')}</Badge>}
+                    {row.requiresSettlement && <Badge variant="warning">{t('paymentRequestTypes.requiresSettlement')}</Badge>}
+                    {row.defaultExpenseAccount && (
                       <Badge variant="neutral">
-                        Akun {t.defaultExpenseAccount.accountNumber}
+                        {t('paymentRequestTypes.account', { number: row.defaultExpenseAccount.accountNumber })}
                       </Badge>
                     )}
                   </div>
@@ -191,20 +195,20 @@ export function PaymentRequestTypesTab() {
                 <div className="flex items-center gap-2">
                   {canEdit ? (
                     <Switch
-                      checked={t.isActive}
+                      checked={row.isActive}
                       disabled={toggle.isPending}
-                      onCheckedChange={() => toggle.mutate(t)}
-                      aria-label={`${t.isActive ? 'Nonaktifkan' : 'Aktifkan'} ${t.name}`}
+                      onCheckedChange={() => toggle.mutate(row)}
+                      aria-label={row.isActive ? t('paymentRequestTypes.deactivate', { name: row.name }) : t('paymentRequestTypes.activate', { name: row.name })}
                     />
                   ) : null}
-                  <StatusBadge status={t.isActive ? 'active' : 'inactive'} dot={false} />
+                  <StatusBadge status={row.isActive ? 'active' : 'inactive'} dot={false} />
                   {canEdit && (
                     <>
-                      <Button variant="ghost" size="icon-sm" onClick={() => openForm(t)} aria-label={`Ubah ${t.name}`}>
+                      <Button variant="ghost" size="icon-sm" onClick={() => openForm(row)} aria-label={t('paymentRequestTypes.edit', { name: row.name })}>
                         <Pencil aria-hidden />
                       </Button>
-                      {(t._count?.requests ?? 0) === 0 && (
-                        <Button variant="ghost" size="icon-sm" onClick={() => setToDelete(t)} aria-label={`Hapus ${t.name}`}>
+                      {(row._count?.requests ?? 0) === 0 && (
+                        <Button variant="ghost" size="icon-sm" onClick={() => setToDelete(row)} aria-label={t('paymentRequestTypes.delete', { name: row.name })}>
                           <Trash2 className="text-danger-text" aria-hidden />
                         </Button>
                       )}
@@ -220,38 +224,38 @@ export function PaymentRequestTypesTab() {
       <Dialog open={open} onOpenChange={(o) => !save.isPending && setOpen(o)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? `Ubah ${editing.name}` : 'Tambah Jenis Pengajuan'}</DialogTitle>
-            <DialogDescription>Jenis menentukan perlakuan akuntansi saat dibayar dan syarat lampiran.</DialogDescription>
+            <DialogTitle>{editing ? t('paymentRequestTypes.edit', { name: editing.name }) : t('paymentRequestTypes.form.addTitle')}</DialogTitle>
+            <DialogDescription>{t('paymentRequestTypes.form.description')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Kode" required>
+            <Field label={t('paymentRequestTypes.form.code')} required>
               <Input maxLength={20} className="font-mono uppercase" value={form.code} onChange={(e) => set('code', e.target.value.toUpperCase())} />
             </Field>
-            <Field label="Nama" required>
+            <Field label={t('paymentRequestTypes.form.name')} required>
               <Input maxLength={100} value={form.name} onChange={(e) => set('name', e.target.value)} />
             </Field>
-            <Field label="Perlakuan" required hint="Uang muka & perjalanan dinas dicatat ke Uang Muka Karyawan." className="sm:col-span-2">
+            <Field label={t('paymentRequestTypes.form.kind')} required hint={t('paymentRequestTypes.form.kindHint')} className="sm:col-span-2">
               {(control) => (
                 <Select value={form.kind} onValueChange={(v) => set('kind', v as PrKind)}>
                   <SelectTrigger {...control}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(KIND_LABEL) as PrKind[]).map((k) => (
+                    {KINDS.map((k) => (
                       <SelectItem key={k} value={k}>
-                        {KIND_LABEL[k]}
+                        {kindLabel(k)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             </Field>
-            <Field label="Keterangan" className="sm:col-span-2">
+            <Field label={t('paymentRequestTypes.form.notes')} className="sm:col-span-2">
               <Textarea rows={2} maxLength={500} value={form.description} onChange={(e) => set('description', e.target.value)} />
             </Field>
             <AccountPicker
-              label="Akun biaya default"
-              hint="Opsional. Terisi otomatis di rincian, bisa diubah Keuangan."
+              label={t('paymentRequestTypes.form.defaultAccount')}
+              hint={t('paymentRequestTypes.form.defaultAccountHint')}
               value={form.defaultExpenseAccountId}
               onChange={(v) => set('defaultExpenseAccountId', v)}
               accounts={expenseAccounts}
@@ -260,18 +264,18 @@ export function PaymentRequestTypesTab() {
             />
             <div className="flex items-center gap-2 text-sm text-foreground">
               <Switch id="prt-requiresAttachment" checked={form.requiresAttachment} onCheckedChange={(v) => set('requiresAttachment', v)} />
-              <label htmlFor="prt-requiresAttachment">Wajib lampiran</label>
+              <label htmlFor="prt-requiresAttachment">{t('paymentRequestTypes.requiresAttachment')}</label>
             </div>
             <div className="flex items-center gap-2 text-sm text-foreground">
               <Switch id="prt-requiresSettlement" checked={form.requiresSettlement} onCheckedChange={(v) => set('requiresSettlement', v)} />
-              <label htmlFor="prt-requiresSettlement">Wajib pertanggungjawaban</label>
+              <label htmlFor="prt-requiresSettlement">{t('paymentRequestTypes.requiresSettlement')}</label>
             </div>
-            <Field label="Urutan">
+            <Field label={t('paymentRequestTypes.form.sortOrder')}>
               <Input type="number" min={0} max={9999} value={form.sortOrder} onChange={(e) => set('sortOrder', Number(e.target.value) || 0)} />
             </Field>
             <div className="flex items-center gap-2 self-end pb-2 text-sm text-foreground">
               <Switch id="prt-isActive" checked={form.isActive} onCheckedChange={(v) => set('isActive', v)} />
-              <label htmlFor="prt-isActive">Aktif</label>
+              <label htmlFor="prt-isActive">{t('paymentRequestTypes.form.active')}</label>
             </div>
           </div>
           {error && (
@@ -281,10 +285,10 @@ export function PaymentRequestTypesTab() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={save.isPending}>
-              Batal
+              {t('paymentRequestTypes.form.cancel')}
             </Button>
             <Button onClick={submit} loading={save.isPending}>
-              Simpan
+              {t('paymentRequestTypes.form.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -293,10 +297,10 @@ export function PaymentRequestTypesTab() {
       <ConfirmDialog
         open={toDelete !== null}
         onOpenChange={(o) => !o && setToDelete(null)}
-        title={`Hapus ${toDelete?.name ?? ''}?`}
-        description="Jenis yang belum pernah dipakai akan dihapus permanen."
+        title={t('paymentRequestTypes.deleteConfirm.title', { name: toDelete?.name ?? '' })}
+        description={t('paymentRequestTypes.deleteConfirm.description')}
         tone="danger"
-        confirmLabel="Hapus"
+        confirmLabel={t('paymentRequestTypes.deleteConfirm.confirm')}
         loading={remove.isPending}
         onConfirm={async () => {
           if (toDelete) await remove.mutateAsync(toDelete.id);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Info } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { can } from '@/lib/permissions';
@@ -41,6 +42,7 @@ function apiError(err: unknown, fallback: string): string {
 
 /** Status layanan + kill switch (AiSetting.agenticEnabled). */
 export function McpStatusCard() {
+  const { t } = useTranslation('aira');
   const qc = useQueryClient();
   const canEdit = can('settings', 'edit');
   const [confirmOff, setConfirmOff] = useState(false);
@@ -55,31 +57,31 @@ export function McpStatusCard() {
     mutationFn: async (enabled: boolean) => api.put('/ai/mcp/status', { agenticEnabled: enabled }),
     onSuccess: (_r, enabled) => {
       qc.invalidateQueries({ queryKey: MCP_STATUS_KEY });
-      toast.success(enabled ? 'AIRA (MCP) diaktifkan.' : 'AIRA (MCP) dinonaktifkan. Semua panggilan ditolak.');
+      toast.success(t(enabled ? 'mcp.status.enabled' : 'mcp.status.disabled'));
     },
-    onError: (e) => toast.error(apiError(e, 'Gagal mengubah status.')),
+    onError: (e) => toast.error(apiError(e, t('mcp.status.toggleFailed'))),
   });
 
   return (
     <SettingsCard
-      title="Status AIRA (MCP)"
-      description="Entaris menyajikan seluruh tool ke mesin AI (engine AIRA) lewat satu endpoint MCP. Hak akses mengikuti pengguna yang sedang dilayani."
+      title={t('mcp.status.title')}
+      description={t('mcp.status.description')}
       actions={status && (
         <Badge variant={status.enabled ? 'success' : 'danger'} className="gap-1.5">
           <span aria-hidden className={status.enabled ? 'size-1.5 rounded-full bg-success' : 'size-1.5 rounded-full bg-danger'} />
-          {status.enabled ? 'Aktif' : 'Nonaktif'}
+          {t(status.enabled ? 'mcp.status.active' : 'mcp.status.inactive')}
         </Badge>
       )}
     >
       {!status ? (
-        <LoadingState label="Memuat status AIRA…" />
+        <LoadingState label={t('mcp.status.loading')} />
       ) : (
         <div className="space-y-5">
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
             <div className="min-w-0">
-              <p id="mcp-enabled-label" className="text-sm font-medium text-foreground">Layanan AIRA aktif (kill switch)</p>
+              <p id="mcp-enabled-label" className="text-sm font-medium text-foreground">{t('mcp.status.killSwitch')}</p>
               <p id="mcp-enabled-desc" className="mt-0.5 text-xs text-muted-foreground">
-                Saat dimatikan, setiap panggilan ke /mcp ditolak seketika dengan galat 503. Tidak ada tool yang berjalan.
+                {t('mcp.status.killSwitchDescription')}
               </p>
             </div>
             <Switch
@@ -94,19 +96,16 @@ export function McpStatusCard() {
           <EngineStatusLine />
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat label="Token aktif" value={formatNumber(status.tokens.active)} hint={`dari ${formatNumber(status.tokens.total)} token`} />
-            <Stat label="Panggilan 24 jam" value={formatNumber(status.calls24h.total)} hint={`${formatNumber(status.calls24h.queued ?? 0)} menunggu persetujuan`} />
-            <Stat label="Ditolak / galat" value={`${formatNumber(status.calls24h.denied ?? 0)} / ${formatNumber(status.calls24h.error ?? 0)}`} hint="24 jam terakhir" />
-            <Stat label="Tool aktif" value={`${formatNumber(status.tools.enabled)}/${formatNumber(status.tools.total)}`} hint="katalog registry" />
+            <Stat label={t('mcp.status.activeTokens')} value={formatNumber(status.tokens.active)} hint={t('mcp.status.tokensOf', { count: status.tokens.total, total: formatNumber(status.tokens.total) })} />
+            <Stat label={t('mcp.status.calls24h')} value={formatNumber(status.calls24h.total)} hint={t('mcp.status.awaitingApproval', { queued: formatNumber(status.calls24h.queued ?? 0) })} />
+            <Stat label={t('mcp.status.deniedErrors')} value={`${formatNumber(status.calls24h.denied ?? 0)} / ${formatNumber(status.calls24h.error ?? 0)}`} hint={t('mcp.status.last24h')} />
+            <Stat label={t('mcp.status.activeTools')} value={`${formatNumber(status.tools.enabled)}/${formatNumber(status.tools.total)}`} hint={t('mcp.status.registryCatalog')} />
           </div>
 
           {status.secretKeySource === 'JWT_SECRET' && (
             <p className="flex items-start gap-2 rounded-md bg-info-subtle px-3 py-2 text-xs text-info-text">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <span>
-                Signing secret token dienkripsi dengan kunci turunan JWT_SECRET. Disarankan mengisi MCP_SECRET_KEY terpisah
-                agar rotasi JWT_SECRET tidak membuat secret token tak terbaca.
-              </span>
+              <span>{t('mcp.status.jwtSecretNotice')}</span>
             </p>
           )}
         </div>
@@ -116,9 +115,9 @@ export function McpStatusCard() {
         open={confirmOff}
         onOpenChange={setConfirmOff}
         tone="danger"
-        title="Matikan AIRA (MCP)?"
-        description="Semua panggilan dari engine AIRA ditolak (503) sampai Anda mengaktifkannya lagi. Pengajuan yang sudah menunggu persetujuan tidak terpengaruh."
-        confirmLabel="Matikan"
+        title={t('mcp.status.confirmOffTitle')}
+        description={t('mcp.status.confirmOffDescription')}
+        confirmLabel={t('mcp.status.confirmOff')}
         onConfirm={() => toggle.mutateAsync(false)}
       />
     </SettingsCard>
@@ -137,6 +136,7 @@ function initialBase(): string {
 
 /** Info endpoint + header Authorization + cek kesehatan yang berlaku untuk klien MCP mana pun. */
 export function McpEndpointCard() {
+  const { t } = useTranslation('aira');
   const [base, setBase] = useState(initialBase);
   const clean = normalizeBaseUrl(base) || window.location.origin;
 
@@ -151,20 +151,20 @@ export function McpEndpointCard() {
 
   return (
     <SettingsCard
-      title="Endpoint MCP"
-      description="Satu endpoint untuk semua tool (Streamable HTTP, stateless). Jangkau lewat jaringan privat; jangan dibuka ke internet publik."
+      title={t('mcp.endpoint.title')}
+      description={t('mcp.endpoint.description')}
     >
       <div className="space-y-4">
         <Field
-          label="Alamat dasar Entaris"
-          hint="Alamat yang dipakai klien MCP untuk menjangkau Entaris (mis. alamat jaringan privat). Hanya mengubah contoh di bawah."
+          label={t('mcp.endpoint.baseUrl')}
+          hint={t('mcp.endpoint.baseUrlHint')}
         >
           <Input value={base} onChange={(e) => change(e.target.value)} inputMode="url" autoComplete="off" spellCheck={false} className="font-mono" />
         </Field>
-        <CodeLine label="URL endpoint" value={mcpUrl(clean)} what="URL endpoint" />
-        <CodeLine label="Header Authorization (ganti <TOKEN_MCP>)" value={authorizationHeader()} what="header Authorization" />
-        <CodeLine label="Cek jangkauan (tanpa token)" value={healthCurl(clean)} what="perintah curl" />
-        <CodeLine label="Uji JSON-RPC initialize (ganti <TOKEN_MCP>)" value={initializeCurl(clean)} what="perintah curl initialize" />
+        <CodeLine label={t('mcp.endpoint.url')} value={mcpUrl(clean)} what={t('mcp.endpoint.url')} />
+        <CodeLine label={t('mcp.endpoint.authHeader')} value={authorizationHeader()} what={t('mcp.endpoint.authHeaderWhat')} />
+        <CodeLine label={t('mcp.endpoint.healthCheck')} value={healthCurl(clean)} what={t('mcp.endpoint.curlWhat')} />
+        <CodeLine label={t('mcp.endpoint.initialize')} value={initializeCurl(clean)} what={t('mcp.endpoint.initializeWhat')} />
       </div>
     </SettingsCard>
   );

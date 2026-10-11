@@ -1,5 +1,6 @@
 // Pembaca SSE untuk POST /api/ai/chat/stream (fetch + ReadableStream; EventSource tak bisa POST).
 
+import i18n from '@/i18n';
 import type { StreamEvent } from './types';
 
 export class StreamHttpError extends Error {
@@ -75,7 +76,7 @@ export async function* streamTurn(req: StreamRequest, signal: AbortSignal): Asyn
   });
   if (!res.ok || !res.body) {
     const body = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
-    throw new StreamHttpError(res.status, body?.error ?? 'http_error', body?.message ?? `Permintaan gagal (HTTP ${res.status}).`);
+    throw new StreamHttpError(res.status, body?.error ?? 'http_error', body?.message ?? i18n.t('aira:conversation.requestFailed', { status: res.status }));
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

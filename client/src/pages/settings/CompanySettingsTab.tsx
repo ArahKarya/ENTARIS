@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Upload, X, ImageIcon, Plus, Trash2, Sun, Moon } from 'lucide-react';
 import api from '../../lib/api';
 import { can } from '../../lib/permissions';
@@ -56,19 +57,20 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_ACCEPT = 'image/png,image/jpeg,image/jpg,image/svg+xml,image/webp';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const TEXT_FIELDS: Array<{ key: TextKey; label: string; placeholder: string; type: string; required?: boolean; hint?: string }> = [
-  { key: 'companyName', label: 'Nama perusahaan', placeholder: 'Nama Perusahaan Anda', type: 'text', required: true },
-  { key: 'address', label: 'Alamat', placeholder: 'Alamat perusahaan', type: 'text' },
-  { key: 'phone', label: 'Nomor telepon', placeholder: '+62 xxx', type: 'tel' },
-  { key: 'email', label: 'Email', placeholder: 'finance@company.com', type: 'email' },
-  { key: 'taxId', label: 'NPWP', placeholder: '00.000.000.0-000.000', type: 'text' },
-  { key: 'defaultCurrency', label: 'Mata uang', placeholder: 'IDR', type: 'text', hint: 'Kode ISO, mis. IDR.' },
+/** Labels live in `settings:company.fields.<key>`; placeholders without a key are literal formats. */
+const TEXT_FIELDS: Array<{ key: TextKey; placeholder?: string; type: string; required?: boolean; hint?: boolean }> = [
+  { key: 'companyName', type: 'text', required: true },
+  { key: 'address', type: 'text' },
+  { key: 'phone', placeholder: '+62 xxx', type: 'tel' },
+  { key: 'email', placeholder: 'finance@company.com', type: 'email' },
+  { key: 'taxId', placeholder: '00.000.000.0-000.000', type: 'text' },
+  { key: 'defaultCurrency', placeholder: 'IDR', type: 'text', hint: true },
 ];
 
-function validate(f: CompanyForm): CompanyErrors {
+function validate(f: CompanyForm, t: TFunction<'settings'>): CompanyErrors {
   const errors: CompanyErrors = {};
-  if (!f.companyName.trim()) errors.companyName = 'Nama perusahaan wajib diisi.';
-  if (f.email.trim() && !EMAIL_RE.test(f.email.trim())) errors.email = 'Format email tidak valid.';
+  if (!f.companyName.trim()) errors.companyName = t('company.errors.nameRequired');
+  if (f.email.trim() && !EMAIL_RE.test(f.email.trim())) errors.email = t('company.errors.emailInvalid');
   return errors;
 }
 
@@ -148,14 +150,14 @@ export const CompanySettingsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['company-settings-pdf'] });
       setIsDirty(false);
       setSubmitted(false);
-      toast.success('Pengaturan disimpan.');
+      toast.success(t('company.toast.saved'));
     },
-    onError: () => toast.error('Gagal menyimpan pengaturan.'),
+    onError: () => toast.error(t('company.toast.saveError')),
   });
 
   const handleSave = () => {
     setSubmitted(true);
-    if (Object.keys(validate(formData)).length > 0) {
+    if (Object.keys(validate(formData, t)).length > 0) {
       // Move focus to the first invalid field once errors have rendered.
       requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-settings-form] [aria-invalid="true"]')?.focus());
       return;
@@ -177,7 +179,7 @@ export const CompanySettingsTab: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_LOGO_BYTES) {
-      toast.error('Ukuran file maksimal 2MB.');
+      toast.error(t('company.logo.tooLarge'));
       return;
     }
     const reader = new FileReader();
@@ -191,22 +193,22 @@ export const CompanySettingsTab: React.FC = () => {
     if (ref.current) ref.current.value = '';
   };
 
-  const errors = submitted ? validate(formData) : {};
+  const errors = submitted ? validate(formData, t) : {};
 
   return (
     <div className="space-y-5">
       <fieldset disabled={!canEdit} className="min-w-0 space-y-5" data-settings-form>
-        <legend className="sr-only">Profil perusahaan</legend>
+        <legend className="sr-only">{t('company.legend')}</legend>
 
         <SettingsCard
-          title="Logo Perusahaan"
-          description="Unggah dua varian agar tetap terlihat di semua tema. Jika varian gelap kosong, varian terang dipakai di semua mode."
+          title={t('company.logo.title')}
+          description={t('company.logo.description')}
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <LogoSlot
               id="logo-upload-light"
-              title="Mode terang"
-              hint="Logo gelap di atas latar terang"
+              title={t('company.logo.light.title')}
+              hint={t('company.logo.light.hint')}
               icon={<Sun className="size-3.5" aria-hidden />}
               value={formData.logoUrl}
               dark={false}
@@ -217,8 +219,8 @@ export const CompanySettingsTab: React.FC = () => {
             />
             <LogoSlot
               id="logo-upload-dark"
-              title="Mode gelap"
-              hint="Logo terang di atas latar gelap"
+              title={t('company.logo.dark.title')}
+              hint={t('company.logo.dark.hint')}
               icon={<Moon className="size-3.5" aria-hidden />}
               value={formData.logoUrlDark}
               dark
@@ -228,18 +230,18 @@ export const CompanySettingsTab: React.FC = () => {
               canEdit={canEdit}
             />
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">PNG, JPG, SVG, WEBP · Maks. 2MB per file · Disarankan latar transparan.</p>
+          <p className="mt-3 text-xs text-muted-foreground">{t('company.logo.formats')}</p>
         </SettingsCard>
 
-        <SettingsCard title="Identitas Perusahaan" description="Muncul di laporan keuangan, dokumen PDF, dan tampilan aplikasi.">
+        <SettingsCard title={t('company.identity.title')} description={t('company.identity.description')}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {TEXT_FIELDS.map((f) => (
-              <Field key={f.key} label={f.label} required={f.required} error={errors[f.key]} hint={f.hint}>
+              <Field key={f.key} label={t(`company.fields.${f.key}.label`)} required={f.required} error={errors[f.key]} hint={f.hint ? t('company.fields.defaultCurrency.hint') : undefined}>
                 <Input
                   type={f.type}
                   value={formData[f.key]}
                   onChange={(e) => handleChange(f.key, e.target.value)}
-                  placeholder={f.placeholder}
+                  placeholder={f.placeholder ?? (f.key === 'companyName' ? t('company.fields.companyName.placeholder') : f.key === 'address' ? t('company.fields.address.placeholder') : undefined)}
                   autoComplete="off"
                 />
               </Field>
@@ -259,21 +261,21 @@ export const CompanySettingsTab: React.FC = () => {
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Format Faktur Penjualan" description="Tampilan PDF faktur penjualan.">
+        <SettingsCard title={t('company.salesInvoice.title')} description={t('company.salesInvoice.description')}>
           <div className="space-y-4">
-            <Field label="Info rekening bank" hint="Ditampilkan di faktur penjualan untuk membantu pelanggan melakukan pembayaran.">
+            <Field label={t('company.salesInvoice.bankAccounts')} hint={t('company.salesInvoice.bankAccountsHint')}>
               <Textarea
                 value={invoiceSettings.sales?.bankAccounts || ''}
                 onChange={(e) => updateInvoiceSetting('sales', 'bankAccounts', e.target.value)}
-                placeholder={'BRI: 0123-4567-8901 a.n. Nama Perusahaan Anda\nMandiri: 1234-5678-9012 a.n. Nama Perusahaan Anda'}
+                placeholder={t('company.salesInvoice.bankAccountsPlaceholder')}
                 rows={3}
               />
             </Field>
-            <Field label="Catatan kaki">
+            <Field label={t('company.footerNote')}>
               <Input
                 value={invoiceSettings.sales?.footerNote || ''}
                 onChange={(e) => updateInvoiceSetting('sales', 'footerNote', e.target.value)}
-                placeholder="Terima kasih atas kepercayaan Anda."
+                placeholder={t('company.salesInvoice.footerPlaceholder')}
               />
             </Field>
             <SignatureSettings
@@ -287,13 +289,13 @@ export const CompanySettingsTab: React.FC = () => {
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Format Faktur Pembelian" description="Tampilan PDF faktur pembelian.">
+        <SettingsCard title={t('company.purchaseInvoice.title')} description={t('company.purchaseInvoice.description')}>
           <div className="space-y-4">
-            <Field label="Catatan kaki">
+            <Field label={t('company.footerNote')}>
               <Input
                 value={invoiceSettings.purchase?.footerNote || ''}
                 onChange={(e) => updateInvoiceSetting('purchase', 'footerNote', e.target.value)}
-                placeholder="Barang yang sudah dibeli tidak dapat dikembalikan."
+                placeholder={t('company.purchaseInvoice.footerPlaceholder')}
               />
             </Field>
             <SignatureSettings
@@ -309,9 +311,9 @@ export const CompanySettingsTab: React.FC = () => {
       </fieldset>
 
       {canEdit ? (
-        <SaveBar dirty={isDirty} saving={saveMutation.isPending} onSave={handleSave} onReset={handleReset} saveLabel="Simpan Pengaturan" />
+        <SaveBar dirty={isDirty} saving={saveMutation.isPending} onSave={handleSave} onReset={handleReset} saveLabel={t('company.save')} />
       ) : (
-        <p className="text-sm text-muted-foreground">Anda hanya memiliki akses lihat untuk pengaturan ini.</p>
+        <p className="text-sm text-muted-foreground">{t('company.viewOnly')}</p>
       )}
     </div>
   );
@@ -331,6 +333,7 @@ interface LogoSlotProps {
 }
 
 function LogoSlot({ id, title, hint, icon, value, dark, inputRef, onUpload, onRemove, canEdit }: LogoSlotProps) {
+  const { t } = useTranslation('settings');
   return (
     <div className="rounded-lg border border-border p-3">
       <p className="mb-2 flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
@@ -346,22 +349,22 @@ function LogoSlot({ id, title, hint, icon, value, dark, inputRef, onUpload, onRe
           style={dark ? { background: '#171717', color: '#d4d4d4' } : { background: '#ffffff', color: '#525252' }}
         >
           {value ? (
-            <img src={value} alt={`Pratinjau logo ${title.toLowerCase()}`} className="size-full object-contain p-1.5" />
+            <img src={value} alt={t('company.logo.previewAlt', { variant: title.toLowerCase() })} className="size-full object-contain p-1.5" />
           ) : (
             <span className="flex flex-col items-center gap-1 text-[11px]">
-              <ImageIcon className="size-4" aria-hidden /> Belum ada
+              <ImageIcon className="size-4" aria-hidden /> {t('company.logo.none')}
             </span>
           )}
         </div>
         {canEdit && (
           <div className="flex flex-col gap-1.5">
-            <input ref={inputRef} type="file" accept={LOGO_ACCEPT} onChange={onUpload} className="sr-only" id={id} tabIndex={-1} aria-label={`Unggah logo ${title.toLowerCase()}`} />
+            <input ref={inputRef} type="file" accept={LOGO_ACCEPT} onChange={onUpload} className="sr-only" id={id} tabIndex={-1} aria-label={t('company.logo.uploadLabel', { variant: title.toLowerCase() })} />
             <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-              <Upload aria-hidden /> {value ? 'Ganti' : 'Unggah'}
+              <Upload aria-hidden /> {value ? t('company.logo.replace') : t('company.logo.upload')}
             </Button>
             {value && (
               <Button variant="ghost" size="sm" onClick={onRemove} className="text-danger-text">
-                <X aria-hidden /> Hapus
+                <X aria-hidden /> {t('company.logo.remove')}
               </Button>
             )}
           </div>
@@ -381,28 +384,29 @@ interface SignatureSettingsProps {
 }
 
 function SignatureSettings({ idPrefix, show, labels, canEdit, onShowChange, onLabelsChange }: SignatureSettingsProps) {
+  const { t } = useTranslation('settings');
   const checkboxId = `${idPrefix}-sig`;
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Checkbox id={checkboxId} checked={show} disabled={!canEdit} onCheckedChange={(v) => onShowChange(v === true)} />
-        <Label htmlFor={checkboxId} className="font-normal">Tampilkan area tanda tangan</Label>
+        <Label htmlFor={checkboxId} className="font-normal">{t('company.signature.show')}</Label>
       </div>
       {show && (
         <fieldset className="space-y-2">
-          <legend className="mb-2 text-sm font-medium text-foreground">Label tanda tangan</legend>
+          <legend className="mb-2 text-sm font-medium text-foreground">{t('company.signature.legend')}</legend>
           {labels.map((label, i) => (
             <div key={i} className="flex items-center gap-2">
               <Input
                 value={label}
-                aria-label={`Label tanda tangan ${i + 1}`}
+                aria-label={t('company.signature.label', { index: i + 1 })}
                 onChange={(e) => onLabelsChange(labels.map((l, j) => (j === i ? e.target.value : l)))}
               />
               {canEdit && labels.length > 1 && (
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Hapus label tanda tangan ${i + 1}`}
+                  aria-label={t('company.signature.remove', { index: i + 1 })}
                   onClick={() => onLabelsChange(labels.filter((_, j) => j !== i))}
                 >
                   <Trash2 className="text-danger-text" aria-hidden />
@@ -412,7 +416,7 @@ function SignatureSettings({ idPrefix, show, labels, canEdit, onShowChange, onLa
           ))}
           {canEdit && labels.length < 5 && (
             <Button variant="link" size="sm" onClick={() => onLabelsChange([...labels, ''])}>
-              <Plus aria-hidden /> Tambah kolom tanda tangan
+              <Plus aria-hidden /> {t('company.signature.add')}
             </Button>
           )}
         </fieldset>

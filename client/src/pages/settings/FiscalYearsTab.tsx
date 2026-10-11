@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Calendar, Lock, Unlock, Plus, CheckCircle2, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { formatDate, formatDateTime } from '@/lib/format';
 import api from '../../lib/api';
 import { can, cap } from '../../lib/permissions';
 import { cn } from '../../lib/utils';
@@ -29,18 +30,19 @@ type NewYearErrors = Partial<Record<keyof NewYearForm, string>>;
 
 const EMPTY_FORM: NewYearForm = { name: '', startDate: '', endDate: '' };
 
-function validate(f: NewYearForm): NewYearErrors {
+function validate(f: NewYearForm, t: TFunction<'settings'>): NewYearErrors {
   const errors: NewYearErrors = {};
-  if (!f.name.trim()) errors.name = 'Nama tahun buku wajib diisi.';
-  if (!f.startDate) errors.startDate = 'Tanggal mulai wajib diisi.';
-  if (!f.endDate) errors.endDate = 'Tanggal selesai wajib diisi.';
-  else if (f.startDate && f.endDate <= f.startDate) errors.endDate = 'Tanggal selesai harus setelah tanggal mulai.';
+  if (!f.name.trim()) errors.name = t('fiscal.errors.nameRequired');
+  if (!f.startDate) errors.startDate = t('fiscal.errors.startRequired');
+  if (!f.endDate) errors.endDate = t('fiscal.errors.endRequired');
+  else if (f.startDate && f.endDate <= f.startDate) errors.endDate = t('fiscal.errors.endAfterStart');
   return errors;
 }
 
-const fmtDate = (d: string) => format(new Date(d), 'dd MMM yyyy', { locale: id });
+const fmtDate = (d: string) => formatDate(d, 'medium');
 
 export const FiscalYearsTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const queryClient = useQueryClient();
   const canEdit = can('settings', 'edit');
   const canCloseReopen = canEdit && cap('doc.cancel');
@@ -62,36 +64,36 @@ export const FiscalYearsTab: React.FC = () => {
       setIsModalOpen(false);
       setForm(EMPTY_FORM);
       setSubmitted(false);
-      toast.success('Tahun buku dibuat.');
+      toast.success(t('fiscal.toast.created'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat tahun buku.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('fiscal.toast.createError')),
   });
 
   const closeMutation = useMutation({
     mutationFn: async (yearId: string) => api.post(`/fiscal-years/${yearId}/close`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
-      toast.success('Tahun buku ditutup.');
+      toast.success(t('fiscal.toast.closed'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menutup tahun buku.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('fiscal.toast.closeError')),
   });
 
   const reopenMutation = useMutation({
     mutationFn: async (yearId: string) => api.post(`/fiscal-years/${yearId}/reopen`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-years'] });
-      toast.success('Tahun buku dibuka kembali.');
+      toast.success(t('fiscal.toast.reopened'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuka tahun buku.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('fiscal.toast.reopenError')),
   });
 
-  const errors = submitted ? validate(form) : {};
+  const errors = submitted ? validate(form, t) : {};
   const setField = (key: keyof NewYearForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const handleCreate = () => {
     setSubmitted(true);
-    if (Object.keys(validate(form)).length > 0) return;
+    if (Object.keys(validate(form, t)).length > 0) return;
     createMutation.mutate(form);
   };
 
@@ -100,18 +102,18 @@ export const FiscalYearsTab: React.FC = () => {
   return (
     <div className="space-y-5">
       <SettingsCard
-        title="Periode Akuntansi"
-        description="Tutup buku membuat jurnal penutup; buka kembali menghapusnya. Kedua aksi memerlukan hak pembatalan dokumen."
+        title={t('fiscal.title')}
+        description={t('fiscal.description')}
         actions={canEdit && (
           <Button onClick={openModal}>
-            <Plus aria-hidden /> Tahun Buku Baru
+            <Plus aria-hidden /> {t('fiscal.new')}
           </Button>
         )}
       >
         {isLoading ? (
-          <LoadingState label="Memuat tahun buku…" />
+          <LoadingState label={t('fiscal.loading')} />
         ) : !years || years.length === 0 ? (
-          <EmptyState compact icon={Calendar} title="Belum ada tahun buku" description="Buat tahun buku pertama untuk mulai mencatat periode akuntansi." />
+          <EmptyState compact icon={Calendar} title={t('fiscal.empty.title')} description={t('fiscal.empty.description')} />
         ) : (
           <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {years.map((year) => (
@@ -124,7 +126,7 @@ export const FiscalYearsTab: React.FC = () => {
                     <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
                       {year.isClosed ? <Lock className="size-4" aria-hidden /> : <Unlock className="size-4 text-primary" aria-hidden />}
                     </span>
-                    <h4 className="font-heading text-base font-semibold text-foreground">Tahun {year.name}</h4>
+                    <h4 className="font-heading text-base font-semibold text-foreground">{t('fiscal.yearName', { name: year.name })}</h4>
                   </div>
                   <StatusBadge status={year.isClosed ? 'closed' : 'open'} />
                 </div>
@@ -137,18 +139,18 @@ export const FiscalYearsTab: React.FC = () => {
                 {year.isClosed && year.closedAt && (
                   <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <CheckCircle2 className="size-3.5 text-success" aria-hidden />
-                    Ditutup {format(new Date(year.closedAt), 'Pp', { locale: id })}
+                    {t('fiscal.closedAt', { date: formatDateTime(year.closedAt) })}
                   </p>
                 )}
                 {canCloseReopen && (
                   <div className="mt-4">
                     {!year.isClosed ? (
                       <Button variant="outline" size="sm" className="w-full" onClick={() => setConfirmClose(year)} disabled={closeMutation.isPending}>
-                        <Lock aria-hidden /> Tutup Buku
+                        <Lock aria-hidden /> {t('fiscal.close')}
                       </Button>
                     ) : (
                       <Button variant="outline" size="sm" className="w-full" onClick={() => setConfirmReopen(year)} disabled={reopenMutation.isPending}>
-                        <Unlock aria-hidden /> Buka Kembali
+                        <Unlock aria-hidden /> {t('fiscal.reopen')}
                       </Button>
                     )}
                   </div>
@@ -163,9 +165,9 @@ export const FiscalYearsTab: React.FC = () => {
         open={confirmClose !== null}
         onOpenChange={(o) => !o && setConfirmClose(null)}
         tone="danger"
-        title={`Tutup tahun buku ${confirmClose?.name ?? ''}?`}
-        description="Jurnal penutup akan dibuat dan saldo pendapatan/beban akan direset ke laba ditahan."
-        confirmLabel="Tutup Buku"
+        title={t('fiscal.closeConfirm.title', { name: confirmClose?.name ?? '' })}
+        description={t('fiscal.closeConfirm.description')}
+        confirmLabel={t('fiscal.close')}
         loading={closeMutation.isPending}
         onConfirm={() => (confirmClose ? closeMutation.mutateAsync(confirmClose.id) : undefined)}
       />
@@ -174,9 +176,9 @@ export const FiscalYearsTab: React.FC = () => {
         open={confirmReopen !== null}
         onOpenChange={(o) => !o && setConfirmReopen(null)}
         tone="danger"
-        title={`Buka kembali tahun buku ${confirmReopen?.name ?? ''}?`}
-        description="Jurnal penutup akan dihapus dan saldo pendapatan/beban akan dipulihkan."
-        confirmLabel="Buka Kembali"
+        title={t('fiscal.reopenConfirm.title', { name: confirmReopen?.name ?? '' })}
+        description={t('fiscal.reopenConfirm.description')}
+        confirmLabel={t('fiscal.reopen')}
         loading={reopenMutation.isPending}
         onConfirm={() => (confirmReopen ? reopenMutation.mutateAsync(confirmReopen.id) : undefined)}
       />
@@ -184,8 +186,8 @@ export const FiscalYearsTab: React.FC = () => {
       <Dialog open={isModalOpen} onOpenChange={(o) => !createMutation.isPending && setIsModalOpen(o)}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>Tambah Tahun Buku</DialogTitle>
-            <DialogDescription>Periode baru dibuat dalam status terbuka.</DialogDescription>
+            <DialogTitle>{t('fiscal.form.title')}</DialogTitle>
+            <DialogDescription>{t('fiscal.form.description')}</DialogDescription>
           </DialogHeader>
           <form
             id="fiscal-year-form"
@@ -193,22 +195,22 @@ export const FiscalYearsTab: React.FC = () => {
             className="space-y-4"
             onSubmit={(e) => { e.preventDefault(); handleCreate(); }}
           >
-            <Field label="Nama tahun" required error={errors.name} hint="Contoh: 2027">
+            <Field label={t('fiscal.form.name')} required error={errors.name} hint={t('fiscal.form.nameHint')}>
               {/* eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens */}
               <Input value={form.name} onChange={setField('name')} placeholder="2027" autoFocus />
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Tanggal mulai" required error={errors.startDate}>
+              <Field label={t('fiscal.form.startDate')} required error={errors.startDate}>
                 <Input type="date" value={form.startDate} onChange={setField('startDate')} />
               </Field>
-              <Field label="Tanggal selesai" required error={errors.endDate}>
+              <Field label={t('fiscal.form.endDate')} required error={errors.endDate}>
                 <Input type="date" value={form.endDate} onChange={setField('endDate')} />
               </Field>
             </div>
           </form>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={createMutation.isPending}>Batal</Button>
-            <Button type="submit" form="fiscal-year-form" loading={createMutation.isPending}>Simpan</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={createMutation.isPending}>{t('fiscal.form.cancel')}</Button>
+            <Button type="submit" form="fiscal-year-form" loading={createMutation.isPending}>{t('fiscal.form.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

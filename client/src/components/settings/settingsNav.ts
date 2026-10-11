@@ -8,45 +8,51 @@ export type SettingsTabId =
   | 'company' | 'fiscal' | 'tax' | 'accounts' | 'payment-request-types' | 'roles'
   | 'notifications' | 'backup' | 'agentic' | 'appearance' | 'about';
 
+export type SettingsNavKey =
+  | 'company' | 'fiscal' | 'tax' | 'accounts' | 'paymentRequestTypes' | 'roles'
+  | 'notifications' | 'backup' | 'agentic' | 'appearance' | 'about';
+
+export type SettingsNavGroupId = 'company' | 'access' | 'system';
+
+/** Labels are not stored here; translate `settings:nav.items.<key>.label|description` at render time. */
 export interface SettingsNavItem {
   id: SettingsTabId;
-  label: string;
-  description: string;
+  key: SettingsNavKey;
   icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
   /** Only shown to users with the rbac.manage capability. */
   rbacOnly?: boolean;
 }
 
 export interface SettingsNavGroup {
-  label: string;
+  id: SettingsNavGroupId;
   items: SettingsNavItem[];
 }
 
 export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
-    label: 'Perusahaan',
+    id: 'company',
     items: [
-      { id: 'company', label: 'Profil Perusahaan', icon: Building2, description: 'Identitas perusahaan, logo, dan format faktur PDF.' },
-      { id: 'fiscal', label: 'Tahun Buku', icon: Calendar, description: 'Kelola periode akuntansi serta tutup dan buka kembali tahun buku.' },
-      { id: 'tax', label: 'Pajak', icon: Receipt, description: 'Tarif PPN, PPh, dan pajak lain yang dipakai di transaksi.' },
-      { id: 'accounts', label: 'Akun Sistem', icon: Shield, description: 'Pemetaan akun COA yang dipakai otomatis oleh sistem.' },
-      { id: 'payment-request-types', label: 'Jenis Pengajuan', icon: HandCoins, description: 'Jenis Pengajuan Pembayaran: reimbursement, uang muka, perjalanan dinas, dan lainnya.' },
+      { id: 'company', key: 'company', icon: Building2 },
+      { id: 'fiscal', key: 'fiscal', icon: Calendar },
+      { id: 'tax', key: 'tax', icon: Receipt },
+      { id: 'accounts', key: 'accounts', icon: Shield },
+      { id: 'payment-request-types', key: 'paymentRequestTypes', icon: HandCoins },
     ],
   },
   {
-    label: 'Pengguna & Akses',
+    id: 'access',
     items: [
-      { id: 'roles', label: 'Peran & Hak Akses', icon: KeyRound, rbacOnly: true, description: 'Atur hak lihat/ubah per modul dan hak khusus untuk setiap peran.' },
+      { id: 'roles', key: 'roles', icon: KeyRound, rbacOnly: true },
     ],
   },
   {
-    label: 'Sistem',
+    id: 'system',
     items: [
-      { id: 'notifications', label: 'Notifikasi', icon: Send, description: 'Kirim notifikasi sistem ke Telegram.' },
-      { id: 'backup', label: 'Cadangan & Pemulihan', icon: HardDrive, description: 'Buat, unduh, unggah, dan pulihkan cadangan database.' },
-      { id: 'agentic', label: 'AIRA (MCP)', icon: AiraIcon, rbacOnly: true, description: 'Status AIRA, token MCP untuk engine AIRA, dan riwayat panggilan tool.' },
-      { id: 'appearance', label: 'Tampilan', icon: Palette, description: 'Tema terang atau gelap, dan tingkat gerak animasi.' },
-      { id: 'about', label: 'Tentang', icon: Info, description: 'Versi aplikasi, pembaruan, dan riwayat perubahan.' },
+      { id: 'notifications', key: 'notifications', icon: Send },
+      { id: 'backup', key: 'backup', icon: HardDrive },
+      { id: 'agentic', key: 'agentic', icon: AiraIcon, rbacOnly: true },
+      { id: 'appearance', key: 'appearance', icon: Palette },
+      { id: 'about', key: 'about', icon: Info },
     ],
   },
 ];

@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import api from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
-import { DECISION_LABEL, DECISION_TONE, type CallDecision } from '@/lib/mcpEndpoint';
+import { CALL_DECISIONS, DECISION_TONE, decisionLabel, type CallDecision } from '@/lib/mcpEndpoint';
 import { useListState } from '@/hooks/useListState';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { ComboboxFilter, DataTable, FilterBar, StatusBadge, listTableProps, type Paginated } from '@/components/shared';
@@ -33,12 +34,11 @@ interface CallRow {
 
 const FILTERS = ['decision', 'tokenId', 'actor', 'startDate', 'endDate'] as const;
 const RISK_VARIANT: Record<CallRow['risk'], BadgeProps['variant']> = { read: 'success', write: 'warning', critical: 'danger' };
-const DECISION_OPTIONS = (Object.keys(DECISION_LABEL) as CallDecision[])
-  .filter((d) => d !== 'inflight')
-  .map((d) => ({ value: d, label: DECISION_LABEL[d] }));
+const FILTER_DECISIONS = CALL_DECISIONS.filter((d) => d !== 'inflight');
 
 /** Riwayat panggilan MCP (server-paged, filter di URL). */
 export function McpCallsCard() {
+  const { t } = useTranslation('aira');
   const list = useListState({ filters: FILTERS });
   const [density, setDensity] = useTableDensity();
 
@@ -62,30 +62,30 @@ export function McpCallsCard() {
     () => [
       {
         id: 'createdAt',
-        header: 'Waktu',
+        header: t('mcp.calls.columns.time'),
         meta: { cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => <time dateTime={row.original.createdAt}>{formatDateTime(row.original.createdAt)}</time>,
       },
       {
         id: 'token',
-        header: 'Token',
+        header: t('mcp.calls.columns.token'),
         meta: { hideBelow: 'xl', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => row.original.tokenName,
       },
       {
         id: 'actor',
-        header: 'Aktor',
+        header: t('mcp.calls.columns.actor'),
         meta: { cellClassName: 'max-w-44' },
         cell: ({ row }) => (
           <div className="min-w-0">
             <p className="truncate">{row.original.actorName ?? <span className="text-muted-foreground">—</span>}</p>
-            {row.original.channel && <p className="truncate text-xs text-muted-foreground">via {row.original.channel}</p>}
+            {row.original.channel && <p className="truncate text-xs text-muted-foreground">{t('mcp.calls.via', { channel: row.original.channel })}</p>}
           </div>
         ),
       },
       {
         id: 'tool',
-        header: 'Tool',
+        header: t('mcp.calls.columns.tool'),
         meta: { cellClassName: 'max-w-56 text-xs' },
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -96,65 +96,66 @@ export function McpCallsCard() {
       },
       {
         id: 'risk',
-        header: 'Risiko',
+        header: t('mcp.calls.columns.risk'),
         meta: { hideBelow: 'md' },
         cell: ({ row }) => <Badge variant={RISK_VARIANT[row.original.risk]}>{row.original.risk}</Badge>,
       },
       {
         id: 'decision',
-        header: 'Keputusan',
+        header: t('mcp.calls.columns.decision'),
         cell: ({ row }) => (
-          <StatusBadge label={DECISION_LABEL[row.original.decision] ?? row.original.decision} tone={DECISION_TONE[row.original.decision] ?? 'neutral'} />
+          <StatusBadge label={decisionLabel(row.original.decision)} tone={DECISION_TONE[row.original.decision] ?? 'neutral'} />
         ),
       },
       {
         id: 'duration',
-        header: 'Durasi',
+        header: t('mcp.calls.columns.duration'),
         meta: { hideBelow: 'xl', align: 'right', cellClassName: 'whitespace-nowrap tabular-nums' },
         cell: ({ row }) => `${row.original.durationMs} ms`,
       },
       {
         id: 'approval',
-        header: 'Persetujuan',
+        header: t('mcp.calls.columns.approval'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) =>
           row.original.approvalId ? (
             <Link className="text-primary underline-offset-4 hover:underline" to={`/approvals?request=${row.original.approvalId}`}>
-              Buka
+              {t('mcp.calls.open')}
             </Link>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),
       },
     ],
-    [],
+    [t],
   );
 
+  const decisionOptions = FILTER_DECISIONS.map((d: CallDecision) => ({ value: d, label: decisionLabel(d) }));
   const tokenOptions = (tokens.data ?? []).map((t) => ({ value: t.id, label: t.name }));
 
   return (
-    <SettingsCard title="Riwayat panggilan" description="Setiap panggilan tool dari engine AIRA: siapa, lewat channel apa, keputusan, dan tautan ke persetujuan. Argumen tidak disimpan." contentClassName="space-y-3">
+    <SettingsCard title={t('mcp.calls.title')} description={t('mcp.calls.description')} contentClassName="space-y-3">
       <FilterBar
         list={list}
-        searchLabel="Cari tool"
-        searchPlaceholder="Cari nama tool"
-        status={{ key: 'decision', label: 'Keputusan', allLabel: 'Semua keputusan', options: DECISION_OPTIONS }}
+        searchLabel={t('mcp.calls.searchLabel')}
+        searchPlaceholder={t('mcp.calls.searchPlaceholder')}
+        status={{ key: 'decision', label: t('mcp.calls.decisionFilter'), allLabel: t('mcp.calls.allDecisions'), options: decisionOptions }}
         dateRange
       >
         <ComboboxFilter
-          label="Token"
-          allLabel="Semua token"
+          label={t('mcp.calls.tokenFilter')}
+          allLabel={t('mcp.calls.allTokens')}
           value={list.filters.tokenId}
           onChange={(v) => list.setFilter('tokenId', v)}
           options={tokenOptions}
         />
         <div className="w-full sm:w-48">
-          <label htmlFor="mcp-actor-filter" className="sr-only">Cari aktor</label>
+          <label htmlFor="mcp-actor-filter" className="sr-only">{t('mcp.calls.actorSearch')}</label>
           <Input
             id="mcp-actor-filter"
             value={list.filters.actor ?? ''}
             onChange={(e) => list.setFilter('actor', e.target.value)}
-            placeholder="Cari aktor"
+            placeholder={t('mcp.calls.actorSearch')}
             autoComplete="off"
           />
         </div>
@@ -162,8 +163,8 @@ export function McpCallsCard() {
 
       <DataTable
         {...listTableProps(list, calls.data?.total)}
-        label="Riwayat panggilan MCP"
-        itemLabel="panggilan"
+        label={t('mcp.calls.tableLabel')}
+        itemLabel={t('mcp.calls.itemLabel')}
         columns={columns}
         data={calls.data?.data}
         getRowId={(row) => row.id}
@@ -173,7 +174,7 @@ export function McpCallsCard() {
         onRetry={() => calls.refetch()}
         density={density}
         onDensityChange={setDensity}
-        empty={{ title: 'Belum ada panggilan', description: 'Panggilan dari engine AIRA akan tampil di sini.' }}
+        empty={{ title: t('mcp.calls.emptyTitle'), description: t('mcp.calls.emptyDescription') }}
       />
     </SettingsCard>
   );

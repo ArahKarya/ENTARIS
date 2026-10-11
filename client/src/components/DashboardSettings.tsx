@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -20,12 +21,14 @@ interface DashboardSettingsProps {
   onToggle: (id: string) => void;
 }
 
-const DashboardSettings: React.FC<DashboardSettingsProps> = ({ isOpen, onClose, widgets, onToggle }) => (
+const DashboardSettings: React.FC<DashboardSettingsProps> = ({ isOpen, onClose, widgets, onToggle }) => {
+  const { t } = useTranslation('settings');
+  return (
   <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
     <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
       <DialogHeader className="border-b border-border p-5">
-        <DialogTitle>Konfigurasi Dashboard</DialogTitle>
-        <DialogDescription>Pilih widget yang ingin ditampilkan</DialogDescription>
+        <DialogTitle>{t('dashboardSettings.title')}</DialogTitle>
+        <DialogDescription>{t('dashboardSettings.description')}</DialogDescription>
       </DialogHeader>
 
       <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
@@ -51,10 +54,11 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ isOpen, onClose, 
       </ul>
 
       <DialogFooter className="border-t border-border p-5">
-        <Button onClick={onClose} className="w-full sm:w-auto">Selesai</Button>
+        <Button onClick={onClose} className="w-full sm:w-auto">{t('dashboardSettings.done')}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default DashboardSettings;

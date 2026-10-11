@@ -1,5 +1,7 @@
 /** Helper tampilan untuk Settings → AIRA (MCP): URL endpoint, header Authorization, health check. */
 
+import i18n from '@/i18n';
+
 /** Hapus garis miring akhir & spasi; kosong tetap kosong. */
 export function normalizeBaseUrl(raw: string): string {
   return raw.trim().replace(/\/+$/, '');
@@ -32,13 +34,14 @@ export function initializeCurl(baseUrl: string, token = '<TOKEN_MCP>'): string {
 
 export type CallDecision = 'allowed' | 'queued' | 'denied' | 'error' | 'inflight';
 
-export const DECISION_LABEL: Record<CallDecision, string> = {
-  allowed: 'Dijalankan',
-  queued: 'Menunggu persetujuan',
-  denied: 'Ditolak',
-  error: 'Galat',
-  inflight: 'Diproses',
-};
+export const CALL_DECISIONS: readonly CallDecision[] = ['allowed', 'queued', 'denied', 'error', 'inflight'];
+
+const isCallDecision = (d: string): d is CallDecision => (CALL_DECISIONS as readonly string[]).includes(d);
+
+/** Label keputusan, diterjemahkan saat dipanggil; nilai tak dikenal dikembalikan apa adanya. */
+export function decisionLabel(decision: string): string {
+  return isCallDecision(decision) ? i18n.t(`aira:mcp.decision.${decision}`) : decision;
+}
 
 export const DECISION_TONE: Record<CallDecision, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
   allowed: 'success',

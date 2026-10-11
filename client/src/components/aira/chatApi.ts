@@ -1,6 +1,7 @@
 // Panggilan REST panel chat (axios; stream SSE ada di sse.ts).
 
 import api from '@/lib/api';
+import i18n from '@/i18n';
 import type { ChatMessageDto, ChatSessionDto, EngineHealth, Paged, SessionStatus } from './types';
 
 export interface MessagesPage {
@@ -50,7 +51,7 @@ export async function downloadSession(id: string, format: 'md' | 'json'): Promis
   const url = URL.createObjectURL(res.data as Blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `percakapan-aira.${format}`;
+  a.download = `${i18n.t('aira:chat.exportFileName')}.${format}`;
   a.click();
   URL.revokeObjectURL(url);
 }

@@ -1,1 +1,289 @@
-{}
+{
+  "docTypes": {
+    "PurchaseInvoice": "Invoice Pembelian",
+    "ProductionRun": "Data Produksi",
+    "SalesReturn": "Retur Penjualan",
+    "DeliveryOrder": "Surat Jalan",
+    "PurchaseOrder": "Purchase Order",
+    "ProductionRunEdit": "Edit Data Produksi",
+    "PurchaseInvoiceRevisePrice": "Revisi Harga Invoice Pembelian",
+    "aiTool": "Permintaan AIRA"
+  },
+  "ruleDocTypes": {
+    "PurchaseInvoice": "Invoice Pembelian",
+    "ProductionRun": "Data Produksi",
+    "PurchaseOrder": "Purchase Order",
+    "PaymentRequest": "Pengajuan Pembayaran (tahap Direktur)",
+    "SalesInvoice": "Invoice Penjualan",
+    "Payment": "Pembayaran",
+    "JournalEntry": "Jurnal Umum"
+  },
+  "lookup": {
+    "partyFallback": "(pihak {{id}})",
+    "itemFallback": "(item {{id}})"
+  },
+  "status": {
+    "Pending": "Menunggu",
+    "Approved": "Disetujui",
+    "Rejected": "Ditolak",
+    "NeedsRevision": "Perlu Revisi"
+  },
+  "actions": {
+    "detail": "Detail",
+    "approve": "Setuju",
+    "requestEdit": "Minta Edit",
+    "reject": "Tolak",
+    "editResubmit": "Edit & Ajukan Ulang",
+    "viewDocument": "Lihat Dokumen",
+    "close": "Tutup",
+    "cancel": "Batal",
+    "save": "Simpan"
+  },
+  "reason": {
+    "rejected": "Alasan tolak:",
+    "revision": "Catatan revisi:"
+  },
+  "panel": {
+    "statusFilter": "Filter status pengajuan",
+    "loading": "Memuat pengajuan…",
+    "emptyTitle": "Tidak ada pengajuan berstatus \"{{status}}\"",
+    "emptyDescription": "Pengajuan baru akan muncul di sini.",
+    "listLabel": "Daftar pengajuan",
+    "amountKgInput": "{{value}} kg input",
+    "requestedBy": "oleh {{name}} ({{role}})",
+    "detailAria": "Detail pengajuan {{type}}",
+    "toast": {
+      "approvedWithDocument": "Disetujui. {{number}} dibuat.",
+      "approved": "Disetujui.",
+      "approveFailed": "Gagal approve.",
+      "rejected": "Pengajuan ditolak.",
+      "rejectFailed": "Gagal reject.",
+      "revisionRequested": "Dikembalikan ke staff untuk revisi.",
+      "revisionFailed": "Gagal minta revisi."
+    },
+    "reasonDialog": {
+      "revisionTitle": "Minta Edit (Kembalikan ke Staff)",
+      "rejectTitle": "Tolak Pengajuan",
+      "revisionDescription": "Pengajuan dikembalikan agar staff memperbaiki & mengajukan ulang.",
+      "rejectDescription": "Pengajuan ditolak permanen. Staff perlu mengajukan baru jika ingin lanjut.",
+      "reasonLabel": "Alasan (min 5 karakter)",
+      "revisionPlaceholder": "contoh: Harga rate salah, perbaiki sesuai PO",
+      "rejectPlaceholder": "contoh: Supplier tidak valid"
+    }
+  },
+  "detail": {
+    "title": "Detail Pengajuan {{type}}",
+    "requestedBy": "oleh {{name}} ({{role}})",
+    "minutes": "{{value}} mnt",
+    "fields": {
+      "date": "Tanggal:",
+      "customer": "Customer:",
+      "supplier": "Supplier:",
+      "dueDate": "Jatuh Tempo:",
+      "terms": "Syarat:",
+      "refNo": "No. Ref:",
+      "warehouse": "Gudang:",
+      "shift": "Shift:",
+      "shiftLead": "Kepala Shift:",
+      "manpower": "Jml Orang:",
+      "shiftWindow": "Jendela Shift:",
+      "break": "Istirahat:",
+      "notes": "Catatan:"
+    },
+    "deliveryOrder": {
+      "negativeStockReason": "Alasan stok minus:",
+      "itemsShipped": "Barang Dikirim",
+      "warehouseFallback": "gudang"
+    },
+    "production": {
+      "inputs": "Bahan Baku (Input)",
+      "outputs": "Hasil Produksi (Output)",
+      "batchRate": "batch @{{rate}}",
+      "byProduct": "Samping",
+      "costs": "Komponen Biaya",
+      "costSideOutput": "output",
+      "costSideInput": "input",
+      "machines": "Mesin",
+      "machineFallback": "(mesin)",
+      "machineShortFallback": "mesin",
+      "downtime": "Downtime",
+      "processes": "Proses",
+      "processCount_one": "{{count}} proses tercatat",
+      "processCount_other": "{{count}} proses tercatat",
+      "hppEstimate": "Estimasi HPP",
+      "hppPerKg": "/ kg produk utama (estimasi)",
+      "costSummary": "Biaya: {{cost}} · Nilai by-product: {{byproduct}}",
+      "hppFinalNote": "HPP final (termasuk biaya material) dihitung saat disetujui."
+    },
+    "basis": {
+      "InputQty": "per kg input",
+      "OutputQty": "per kg output",
+      "Fixed": "tetap"
+    },
+    "invoice": {
+      "warnAlreadyInvoiced": "{{stt}} sudah ditagih di {{invoice}}",
+      "warnCancelled": "{{stt}} berstatus DIBATALKAN",
+      "warnQtyMismatch": "{{stt}}: diterima {{received}} + refaksi {{refaksi}} ≠ STT {{sttQty}}",
+      "warnNoStt": "{{item}}: tidak terhubung STT",
+      "totalReceived": "Total Diterima",
+      "truckRefaksi": "truk {{truck}} · refaksi {{refaksi}}",
+      "avgPrice": "Harga Rata² / kg",
+      "avgPriceHint": "grand total ÷ kg diterima",
+      "supplierPayables": "Hutang Berjalan Supplier",
+      "unpaidInvoices_one": "{{count}} invoice belum lunas",
+      "unpaidInvoices_other": "{{count}} invoice belum lunas",
+      "deposit": "Deposit / Uang Muka",
+      "depositHint": "bisa dipotongkan",
+      "needsCheck": "Perlu dicek",
+      "itemsTitle_one": "Item Invoice ({{count}} baris)",
+      "itemsTitle_other": "Item Invoice ({{count}} baris)",
+      "itemsRegion": "Rincian item pengajuan",
+      "columns": {
+        "stt": "STT",
+        "itemWarehouse": "Item / Gudang",
+        "vehicle": "Mobil",
+        "moisture": "KA %",
+        "truckWeight": "Timb. Truk",
+        "refaksi": "Refaksi",
+        "received": "Diterima",
+        "price": "Harga",
+        "lastPrice": "Harga Lalu",
+        "taxDeduction": "Pajak/Pot.",
+        "subtotal": "Subtotal",
+        "description": "Keterangan"
+      },
+      "sttQty": "STT {{qty}}",
+      "taxDiscount": "disk {{value}}%",
+      "taxPpn": "PPN {{value}}%",
+      "taxPph": "PPh {{value}}%",
+      "thisSupplier": "supplier ini",
+      "otherSupplier": "lain",
+      "alreadyIn": "sudah di {{invoice}}",
+      "lastPriceNote": "Harga Lalu = harga beli item sama pada invoice terakhir (supplier ini bila ada). Arahkan kursor untuk lihat 5 riwayat. ▲ merah = lebih mahal.",
+      "attachments": "Lampiran",
+      "loadingAttachments": "Memuat lampiran…",
+      "fromRequest": "Dari pengajuan ({{n}})",
+      "driver": "supir {{name}}",
+      "sttCancelled": "(STT dibatalkan)",
+      "noSttAttachments": "Tidak ada lampiran di STT ini.",
+      "noAttachments": "Tidak ada lampiran (pengajuan tidak terhubung ke STT & tidak ada file diunggah).",
+      "subtotal": "Subtotal",
+      "discount": "Potongan",
+      "otherCosts": "Biaya Lain",
+      "grandTotal": "Grand Total",
+      "estimate": "(estimasi)"
+    }
+  },
+  "aiTool": {
+    "fallbackTitle": "Permintaan AIRA",
+    "meta": "Tool <code>{{tool}}</code> ({{risk}}) · diminta {{actor}}{{position}} lewat {{channel}}{{token}}",
+    "position": " ({{position}})",
+    "token": " · token {{name}}",
+    "lastError": "Percobaan sebelumnya gagal:",
+    "arguments": "Argumen",
+    "requesterFallback": "pengaju",
+    "runNote": "Saat disetujui, permintaan dijalankan sebagai {{actor}} (hak akses perannya + aturan persetujuan normal). Ditolak = tidak ada yang dijalankan."
+  },
+  "comparison": {
+    "loading": "Memuat perbandingan…",
+    "unavailable": "Data perbandingan tidak tersedia untuk pengajuan ini.",
+    "changedDocument": "Dokumen yang diubah",
+    "openDocumentAria": "Buka dokumen {{number}}",
+    "openDocument": "Buka dokumen",
+    "changedCount_one": "{{count}} nilai berubah dari kondisi saat ini.",
+    "changedCount_other": "{{count}} nilai berubah dari kondisi saat ini.",
+    "noChanges": "Tidak ada nilai yang berubah.",
+    "appliedAfterApproval": "Perubahan baru diterapkan setelah Anda menyetujui.",
+    "columns": {
+      "description": "Uraian",
+      "current": "Saat ini",
+      "proposed": "Usulan"
+    },
+    "changed": "Berubah"
+  },
+  "pendingNotice": {
+    "badge": "Menunggu persetujuan",
+    "message": "<strong>Menunggu persetujuan.</strong> {{what}} belum diterapkan dan tidak bisa diajukan lagi sampai manajer memutuskan."
+  },
+  "poSummary": {
+    "loading": "Memuat PO…",
+    "loadFailed": "PO tidak dapat dimuat (mungkin sudah dihapus).",
+    "number": "Nomor:",
+    "date": "Tanggal:",
+    "supplier": "Supplier:",
+    "generalPo": "PO Umum",
+    "warehouse": "Gudang:",
+    "paymentTerm": "Termin:",
+    "quoteRef": "No. Penawaran:",
+    "terms": "Syarat:",
+    "notes": "Catatan:",
+    "columns": {
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Harga",
+      "discount": "Disk %",
+      "vat": "PPN %",
+      "amount": "Jumlah"
+    },
+    "subtotal": "Subtotal",
+    "discount": "Diskon",
+    "vat": "PPN",
+    "otherCosts": "Biaya lain",
+    "grandTotal": "Grand Total"
+  },
+  "productionQueue": {
+    "summaryLabel": "Ringkasan antrean persetujuan produksi",
+    "awaitingDecision": "Menunggu keputusan",
+    "yourPending": "Pengajuan Anda menunggu",
+    "needsRevision": "Perlu revisi",
+    "oldest": "Antrean tertua",
+    "today": "Hari ini",
+    "days_one": "{{value}} hari",
+    "days_other": "{{value}} hari"
+  },
+  "page": {
+    "title": "Persetujuan",
+    "description": "Tinjau pengajuan dokumen yang menunggu keputusan dan atur batas nominal yang wajib disetujui.",
+    "addRule": "Tambah Aturan",
+    "tabsLabel": "Tampilan persetujuan",
+    "tabs": {
+      "requests": "Pengajuan",
+      "rules": "Aturan"
+    },
+    "toast": {
+      "ruleDeleted": "Aturan dihapus.",
+      "ruleCreated": "Aturan dibuat.",
+      "ruleCreateFailed": "Gagal membuat aturan"
+    },
+    "columns": {
+      "documentType": "Tipe Dokumen",
+      "byRole": "Oleh {{role}}",
+      "minAmount": "Min. Nominal",
+      "minAmountUnit": "(Rp)",
+      "approverRole": "Role Penyetuju",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "rowActionsLabel": "Aksi untuk aturan {{type}}",
+    "deleteRule": "Hapus aturan",
+    "tableLabel": "Daftar aturan persetujuan",
+    "itemLabel": "aturan",
+    "emptyTitle": "Belum ada aturan persetujuan",
+    "emptyDescription": "Tanpa aturan, dokumen langsung diproses tanpa menunggu persetujuan.",
+    "emptyAction": "Tambah aturan",
+    "deleteDialog": {
+      "title": "Hapus Aturan Approval",
+      "description": "Hapus aturan ini? Tindakan ini tidak bisa dibatalkan.",
+      "confirm": "Ya, Hapus"
+    },
+    "form": {
+      "title": "Tambah Aturan Approval",
+      "description": "Dokumen dengan nominal sama atau di atas batas ini harus disetujui sebelum diproses.",
+      "documentType": "Tipe Dokumen",
+      "minAmount": "Min. Nominal (Rp)",
+      "minAmountPlaceholder": "Mis: 10000000",
+      "minAmountError": "Isi nominal minimal (0 atau lebih).",
+      "requiredRole": "Role yang Dibutuhkan"
+    }
+  }
+}

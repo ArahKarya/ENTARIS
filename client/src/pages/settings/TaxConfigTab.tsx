@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Plus, Pencil, Trash2, Receipt } from 'lucide-react';
 import api from '../../lib/api';
 import { can, cap } from '../../lib/permissions';
@@ -30,22 +32,28 @@ type TaxErrors = Partial<Record<'name' | 'rate', string>>;
 
 const EMPTY_FORM: TaxForm = { name: '', rate: '', type: 'sales', accountId: '' };
 
-const TYPE_META: Record<string, { label: string; option: string; variant: BadgeProps['variant'] }> = {
-  sales: { label: 'Penjualan', option: 'Penjualan (PPN Keluaran)', variant: 'info' },
-  purchase: { label: 'Pembelian', option: 'Pembelian (PPN Masukan)', variant: 'warning' },
-  withholding: { label: 'Pemotongan', option: 'Pemotongan (PPh)', variant: 'primary' },
-};
+type TaxType = 'sales' | 'purchase' | 'withholding';
 
-function validate(f: TaxForm): TaxErrors {
+/** Labels live in `settings:tax.types.<type>`; translated at render time. */
+const TYPE_VARIANT: Record<TaxType, BadgeProps['variant']> = {
+  sales: 'info',
+  purchase: 'warning',
+  withholding: 'primary',
+};
+const TAX_TYPES = Object.keys(TYPE_VARIANT) as TaxType[];
+const isTaxType = (v: string): v is TaxType => v in TYPE_VARIANT;
+
+function validate(f: TaxForm, t: TFunction<'settings'>): TaxErrors {
   const errors: TaxErrors = {};
-  if (!f.name.trim()) errors.name = 'Nama pajak wajib diisi.';
+  if (!f.name.trim()) errors.name = t('tax.errors.nameRequired');
   const rate = parseFloat(f.rate);
-  if (f.rate.trim() === '' || Number.isNaN(rate)) errors.rate = 'Tarif wajib diisi.';
-  else if (rate < 0 || rate > 100) errors.rate = 'Tarif harus antara 0 dan 100.';
+  if (f.rate.trim() === '' || Number.isNaN(rate)) errors.rate = t('tax.errors.rateRequired');
+  else if (rate < 0 || rate > 100) errors.rate = t('tax.errors.rateRange');
   return errors;
 }
 
 export const TaxConfigTab: React.FC = () => {
+  const { t } = useTranslation('settings');
   const queryClient = useQueryClient();
   const canEdit = can('settings', 'edit');
   const canDelete = canEdit && cap('doc.cancel');
@@ -72,9 +80,9 @@ export const TaxConfigTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tax-configs'] });
       setIsModalOpen(false);
       resetForm();
-      toast.success('Konfigurasi pajak dibuat.');
+      toast.success(t('tax.toast.created'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal membuat konfigurasi pajak.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('tax.toast.createError')),
   });
 
   const updateMutation = useMutation({
@@ -83,18 +91,18 @@ export const TaxConfigTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tax-configs'] });
       setIsModalOpen(false);
       resetForm();
-      toast.success('Konfigurasi pajak diperbarui.');
+      toast.success(t('tax.toast.updated'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal memperbarui konfigurasi pajak.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('tax.toast.updateError')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => api.delete(`/tax/config/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tax-configs'] });
-      toast.success('Konfigurasi pajak dinonaktifkan.');
+      toast.success(t('tax.toast.deactivated'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal menghapus konfigurasi pajak.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('tax.toast.deleteError')),
   });
 
   const toggleMutation = useMutation({
@@ -102,9 +110,9 @@ export const TaxConfigTab: React.FC = () => {
       api.put(`/tax/config/${id}`, { isActive }),
     onSuccess: (_res, vars) => {
       queryClient.invalidateQueries({ queryKey: ['tax-configs'] });
-      toast.success(vars.isActive ? 'Pajak diaktifkan.' : 'Pajak dinonaktifkan.');
+      toast.success(vars.isActive ? t('tax.toast.enabled') : t('tax.toast.disabled'));
     },
-    onError: (error: any) => toast.error(error.response?.data?.error || 'Gagal mengubah status.'),
+    onError: (error: any) => toast.error(error.response?.data?.error || t('tax.toast.toggleError')),
   });
 
   const handleEdit = (config: TaxConfig) => {
@@ -116,7 +124,7 @@ export const TaxConfigTab: React.FC = () => {
 
   const handleSubmit = () => {
     setSubmitted(true);
-    if (Object.keys(validate(formData)).length > 0) return;
+    if (Object.keys(validate(formData, t)).length > 0) return;
     const data = {
       name: formData.name,
       rate: parseFloat(formData.rate),
@@ -128,46 +136,46 @@ export const TaxConfigTab: React.FC = () => {
   };
 
   const saving = createMutation.isPending || updateMutation.isPending;
-  const errors = submitted ? validate(formData) : {};
+  const errors = submitted ? validate(formData, t) : {};
 
   return (
     <div className="space-y-5">
       <SettingsCard
-        title="Konfigurasi Pajak"
-        description="Pajak nonaktif tidak muncul sebagai pilihan di transaksi baru."
+        title={t('tax.title')}
+        description={t('tax.description')}
         actions={canEdit && (
           <Button onClick={() => { resetForm(); setIsModalOpen(true); }}>
-            <Plus aria-hidden /> Tambah Pajak
+            <Plus aria-hidden /> {t('tax.add')}
           </Button>
         )}
         contentClassName="px-0 pb-0"
       >
         {isLoading ? (
-          <LoadingState className="pb-5" label="Memuat konfigurasi pajak…" />
+          <LoadingState className="pb-5" label={t('tax.loading')} />
         ) : !configs || configs.length === 0 ? (
-          <EmptyState compact icon={Receipt} title="Belum ada konfigurasi pajak" className="pb-5" />
+          <EmptyState compact icon={Receipt} title={t('tax.empty')} className="pb-5" />
         ) : (
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region must be keyboard focusable (axe scrollable-region-focusable)
-          <div className="relative overflow-x-auto border-t border-border" role="region" aria-label="Tabel konfigurasi pajak" tabIndex={0}>
+          <div className="relative overflow-x-auto border-t border-border" role="region" aria-label={t('tax.table.label')} tabIndex={0}>
             <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-5 py-2.5 text-left font-medium">Nama Pajak</th>
-                  <th scope="col" className="px-3 py-2.5 text-right font-medium">Tarif</th>
-                  <th scope="col" className="px-3 py-2.5 text-left font-medium">Tipe</th>
-                  <th scope="col" className="px-3 py-2.5 text-left font-medium">Status</th>
-                  {canEdit && <th scope="col" className="px-5 py-2.5 text-right font-medium"><span className="sr-only">Aksi</span></th>}
+                  <th scope="col" className="px-5 py-2.5 text-left font-medium">{t('tax.table.name')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">{t('tax.table.rate')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-left font-medium">{t('tax.table.type')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-left font-medium">{t('tax.table.status')}</th>
+                  {canEdit && <th scope="col" className="px-5 py-2.5 text-right font-medium"><span className="sr-only">{t('tax.table.actions')}</span></th>}
                 </tr>
               </thead>
               <tbody>
                 {configs.map((config) => {
-                  const meta = TYPE_META[config.type];
+                  const knownType = isTaxType(config.type) ? config.type : null;
                   return (
                     <tr key={config.id} className="border-t border-border">
                       <td className={cn('px-5 py-2.5 font-medium text-foreground', !config.isActive && 'text-muted-foreground')}>{config.name}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{Number(config.rate).toFixed(2)}%</td>
                       <td className="px-3 py-2.5">
-                        <Badge variant={meta?.variant ?? 'neutral'}>{meta?.label ?? config.type}</Badge>
+                        <Badge variant={knownType ? TYPE_VARIANT[knownType] : 'neutral'}>{knownType ? t(`tax.types.${knownType}.label`) : config.type}</Badge>
                       </td>
                       <td className="px-3 py-2.5">
                         {canEdit ? (
@@ -176,7 +184,7 @@ export const TaxConfigTab: React.FC = () => {
                               checked={config.isActive}
                               disabled={toggleMutation.isPending}
                               onCheckedChange={(v) => toggleMutation.mutate({ id: config.id, isActive: v })}
-                              aria-label={`${config.isActive ? 'Nonaktifkan' : 'Aktifkan'} ${config.name}`}
+                              aria-label={config.isActive ? t('tax.deactivate', { name: config.name }) : t('tax.activate', { name: config.name })}
                             />
                             <StatusBadge status={config.isActive ? 'active' : 'inactive'} dot={false} />
                           </span>
@@ -187,11 +195,11 @@ export const TaxConfigTab: React.FC = () => {
                       {canEdit && (
                         <td className="px-5 py-2.5">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(config)} aria-label={`Ubah ${config.name}`}>
+                            <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(config)} aria-label={t('tax.edit', { name: config.name })}>
                               <Pencil aria-hidden />
                             </Button>
                             {canDelete && (
-                              <Button variant="ghost" size="icon-sm" onClick={() => setConfirmDelete(config)} aria-label={`Nonaktifkan ${config.name}`}>
+                              <Button variant="ghost" size="icon-sm" onClick={() => setConfirmDelete(config)} aria-label={t('tax.deactivate', { name: config.name })}>
                                 <Trash2 className="text-danger-text" aria-hidden />
                               </Button>
                             )}
@@ -210,21 +218,21 @@ export const TaxConfigTab: React.FC = () => {
       <Dialog open={isModalOpen} onOpenChange={(o) => { if (!saving) { setIsModalOpen(o); if (!o) resetForm(); } }}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Ubah Konfigurasi Pajak' : 'Tambah Konfigurasi Pajak'}</DialogTitle>
-            <DialogDescription>Tarif dalam persen, mis. 11 untuk PPN 11%.</DialogDescription>
+            <DialogTitle>{editingId ? t('tax.form.editTitle') : t('tax.form.addTitle')}</DialogTitle>
+            <DialogDescription>{t('tax.form.description')}</DialogDescription>
           </DialogHeader>
           <form id="tax-form" noValidate className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-            <Field label="Nama pajak" required error={errors.name}>
+            <Field label={t('tax.form.name')} required error={errors.name}>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder='Contoh: "PPN 11%", "PPh 23"'
+                placeholder={t('tax.form.namePlaceholder')}
                 // eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens
                 autoFocus
               />
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Tarif (%)" required error={errors.rate}>
+              <Field label={t('tax.form.rate')} required error={errors.rate}>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -236,13 +244,13 @@ export const TaxConfigTab: React.FC = () => {
                   placeholder="11.00"
                 />
               </Field>
-              <Field label="Tipe" required>
+              <Field label={t('tax.table.type')} required>
                 {(control) => (
                   <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
                     <SelectTrigger {...control}><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(TYPE_META).map(([value, m]) => (
-                        <SelectItem key={value} value={value}>{m.option}</SelectItem>
+                      {TAX_TYPES.map((value) => (
+                        <SelectItem key={value} value={value}>{t(`tax.types.${value}.option`)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -251,8 +259,8 @@ export const TaxConfigTab: React.FC = () => {
             </div>
           </form>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsModalOpen(false); resetForm(); }} disabled={saving}>Batal</Button>
-            <Button type="submit" form="tax-form" loading={saving}>Simpan</Button>
+            <Button variant="outline" onClick={() => { setIsModalOpen(false); resetForm(); }} disabled={saving}>{t('tax.form.cancel')}</Button>
+            <Button type="submit" form="tax-form" loading={saving}>{t('tax.form.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -261,9 +269,9 @@ export const TaxConfigTab: React.FC = () => {
         open={confirmDelete !== null}
         onOpenChange={(o) => !o && setConfirmDelete(null)}
         tone="danger"
-        title={`Nonaktifkan ${confirmDelete?.name ?? 'pajak'}?`}
-        description="Konfigurasi pajak ini tidak akan bisa dipilih di transaksi baru. Transaksi lama tidak berubah."
-        confirmLabel="Nonaktifkan"
+        title={t('tax.deleteConfirm.title', { name: confirmDelete?.name ?? t('tax.deleteConfirm.fallbackName') })}
+        description={t('tax.deleteConfirm.description')}
+        confirmLabel={t('tax.deleteConfirm.confirm')}
         loading={deleteMutation.isPending}
         onConfirm={() => (confirmDelete ? deleteMutation.mutateAsync(confirmDelete.id) : undefined)}
       />

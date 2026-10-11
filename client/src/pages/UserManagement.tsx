@@ -19,6 +19,8 @@ import {
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import api from '@/lib/api';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { formatRelativeTime } from '@/lib/auditDiff';
@@ -51,7 +53,6 @@ import {
   type Paginated,
 } from '@/components/shared';
 import UserFormModal from '@/components/UserFormModal';
-import { TIER_LABEL } from '@/lib/mcpEndpoint';
 
 interface UserRow {
   id: string;
@@ -95,10 +96,6 @@ type Pending =
 
 const ENDPOINT = '/users';
 const FILTER_KEYS = ['role', 'status'] as const;
-const STATUS_FILTER = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'inactive', label: 'Nonaktif' },
-];
 
 function apiError(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { error?: string } } };
@@ -110,6 +107,11 @@ function UserStatus({ user, className }: { user: UserRow; className?: string }) 
 }
 
 export const UserManagement = () => {
+  const { t } = useTranslation('settings');
+  const statusFilter = [
+    { value: 'active', label: t('users.status.active') },
+    { value: 'inactive', label: t('users.status.inactive') },
+  ];
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'createdAt', desc: true } });
   const [density, setDensity] = useTableDensity();
   const queryClient = useQueryClient();
@@ -160,36 +162,36 @@ export const UserManagement = () => {
     mutationFn: async (id: string) => (await api.patch<UserRow>(`/users/${id}/toggle`)).data,
     onSuccess: (user) => {
       invalidate();
-      toast.success(`Pengguna ${user.fullName} ${user.isActive ? 'diaktifkan' : 'dinonaktifkan'}.`);
+      toast.success(user.isActive ? t('users.toast.activated', { name: user.fullName }) : t('users.toast.deactivated', { name: user.fullName }));
     },
-    onError: (err) => toast.error(apiError(err, 'Gagal mengubah status pengguna.')),
+    onError: (err) => toast.error(apiError(err, t('users.toast.toggleError'))),
   });
 
   const resetMutation = useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) => api.put(`/users/${id}`, { password }),
-    onSuccess: () => toast.success('Kata sandi diatur ulang.'),
-    onError: (err) => toast.error(apiError(err, 'Gagal mengatur ulang kata sandi.')),
+    onSuccess: () => toast.success(t('users.toast.passwordReset')),
+    onError: (err) => toast.error(apiError(err, t('users.toast.passwordResetError'))),
   });
 
   const linkMutation = useMutation({
     mutationFn: async (user: UserRow) => ({ user, ...(await api.post(`/users/${user.id}/telegram-link`)).data }),
     onSuccess: (d: LinkInfo) => setLinkInfo(d),
-    onError: (err) => toast.error(apiError(err, 'Gagal membuat kode tautan.')),
+    onError: (err) => toast.error(apiError(err, t('users.toast.linkError'))),
   });
 
   const unlinkMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}/telegram`),
     onSuccess: () => {
       invalidate();
-      toast.success('Tautan Telegram diputus.');
+      toast.success(t('users.toast.unlinked'));
     },
-    onError: (err) => toast.error(apiError(err, 'Gagal memutus tautan.')),
+    onError: (err) => toast.error(apiError(err, t('users.toast.unlinkError'))),
   });
 
   const testMutation = useMutation({
     mutationFn: (id: string) => api.post(`/users/${id}/telegram-test`),
-    onSuccess: (res) => toast.success(res.data?.message || 'Pesan uji terkirim.'),
-    onError: (err) => toast.error(apiError(err, 'Tes gagal.')),
+    onSuccess: (res) => toast.success(res.data?.message || t('users.toast.testSent')),
+    onError: (err) => toast.error(apiError(err, t('users.toast.testError'))),
   });
 
   const openPending = (p: Pending) => {
@@ -219,7 +221,7 @@ export const UserManagement = () => {
     () => [
       {
         id: 'fullName',
-        header: 'Nama',
+        header: t('users.columns.name'),
         enableSorting: true,
         meta: { cellClassName: 'min-w-0 max-w-72' },
         cell: ({ row }) => {
@@ -243,28 +245,28 @@ export const UserManagement = () => {
       },
       {
         id: 'username',
-        header: 'Nama Pengguna',
+        header: t('users.columns.username'),
         enableSorting: true,
         meta: { hideBelow: 'md', cellClassName: 'font-mono text-xs text-muted-foreground' },
         cell: ({ row }) => row.original.username,
       },
       {
         id: 'email',
-        header: 'Email',
+        header: t('users.columns.email'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'max-w-64 truncate text-muted-foreground' },
         cell: ({ row }) => row.original.email,
       },
       {
         id: 'role',
-        header: 'Peran',
+        header: t('users.columns.role'),
         enableSorting: true,
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <span className="whitespace-nowrap">{roleName(row.original.role)}</span>,
       },
       {
         id: 'supervisor',
-        header: 'Atasan',
+        header: t('users.columns.supervisor'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-48 truncate whitespace-nowrap' },
         cell: ({ row }) =>
           row.original.supervisor ? (
@@ -275,18 +277,18 @@ export const UserManagement = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('users.columns.status'),
         cell: ({ row }) => <UserStatus user={row.original} />,
       },
       {
         id: 'lastLoginAt',
-        header: 'Login Terakhir',
+        header: t('users.columns.lastLogin'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap text-muted-foreground' },
         cell: ({ row }) => {
           const at = row.original.lastLoginAt;
-          if (!at) return <span>Belum pernah</span>;
+          if (!at) return <span>{t('users.never')}</span>;
           return (
             <time dateTime={at} title={formatDateTime(at)}>
               {formatRelativeTime(at)}
@@ -300,7 +302,7 @@ export const UserManagement = () => {
         meta: { hideBelow: 'xl' },
         cell: ({ row }) => (
           <StatusBadge
-            label={row.original.telegramLinked ? 'Tertaut' : 'Belum'}
+            label={row.original.telegramLinked ? t('users.telegram.linked') : t('users.telegram.notLinked')}
             tone={row.original.telegramLinked ? 'success' : 'neutral'}
           />
         ),
@@ -312,59 +314,59 @@ export const UserManagement = () => {
         cell: ({ row }) =>
           row.original.airaEnabled ? (
             <StatusBadge
-              label={TIER_LABEL[row.original.airaTier ?? 'standard']}
+              label={t(`users.airaTier.${row.original.airaTier ?? 'standard'}`)}
               tone={row.original.airaTier === 'direct' ? 'warning' : row.original.airaTier === 'read' ? 'info' : 'success'}
               className="whitespace-nowrap"
             />
           ) : (
-            <span className="text-muted-foreground">Nonaktif</span>
+            <span className="text-muted-foreground">{t('users.status.inactive')}</span>
           ),
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('users.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const u = row.original;
           const isSelf = u.id === selfId;
           return (
             <RowActions
-              label={`Aksi untuk ${u.fullName}`}
+              label={t('users.actions.menuLabel', { name: u.fullName })}
               actions={[
-                { label: 'Ubah', icon: Pencil, hidden: !canEdit, onSelect: () => setForm({ open: true, user: u }) },
+                { label: t('users.actions.edit'), icon: Pencil, hidden: !canEdit, onSelect: () => setForm({ open: true, user: u }) },
                 {
-                  label: 'Atur ulang kata sandi',
+                  label: t('users.actions.resetPassword'),
                   icon: KeyRound,
                   hidden: !canEdit,
                   onSelect: () => openPending({ kind: 'reset', user: u }),
                 },
                 {
-                  label: u.telegramLinked ? 'Tautkan ulang Telegram' : 'Hubungkan Telegram',
+                  label: u.telegramLinked ? t('users.actions.relinkTelegram') : t('users.actions.linkTelegram'),
                   icon: Send,
                   hidden: !canEdit,
                   onSelect: () => linkMutation.mutate(u),
                 },
                 {
-                  label: 'Tes Telegram',
+                  label: t('users.actions.testTelegram'),
                   icon: Send,
                   hidden: !canEdit || !u.telegramLinked,
                   onSelect: () => testMutation.mutate(u.id),
                 },
                 {
-                  label: 'Aktifkan',
+                  label: t('users.actions.activate'),
                   icon: ToggleLeft,
                   hidden: !canEdit || u.isActive,
                   onSelect: () => openPending({ kind: 'toggle', user: u }),
                 },
                 {
-                  label: 'Putuskan Telegram',
+                  label: t('users.actions.unlinkTelegram'),
                   icon: Link2Off,
                   tone: 'danger',
                   hidden: !canEdit || !u.telegramLinked,
                   onSelect: () => openPending({ kind: 'unlink', user: u }),
                 },
                 {
-                  label: isSelf ? 'Nonaktifkan (akun sendiri)' : 'Nonaktifkan',
+                  label: isSelf ? t('users.actions.deactivateSelf') : t('users.actions.deactivate'),
                   icon: ToggleRight,
                   tone: 'danger',
                   disabled: isSelf,
@@ -377,66 +379,66 @@ export const UserManagement = () => {
         },
       },
     ],
-    [canEdit, selfId, roleName, linkMutation, testMutation],
+    [canEdit, selfId, roleName, linkMutation, testMutation, t],
   );
 
-  const dialogCopy = pending ? confirmCopy(pending) : null;
+  const dialogCopy = pending ? confirmCopy(pending, t) : null;
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Manajemen Pengguna"
-        description="Kelola akun, peran dan status pengguna aplikasi."
+        title={t('users.title')}
+        description={t('users.description')}
         actions={
           canEdit ? (
             <Button onClick={() => setForm({ open: true, user: null })}>
               <Plus aria-hidden />
-              Tambah Pengguna
+              {t('users.add')}
             </Button>
           ) : undefined
         }
       />
 
-      <section aria-label="Ringkasan pengguna sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('users.summary.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Pengguna"
+          label={t('users.summary.total')}
           icon={Users}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.total) : '—'}
         />
         <StatCard
-          label="Aktif"
+          label={t('users.status.active')}
           icon={UserCheck}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.active) : '—'}
-          hint="dapat masuk ke aplikasi"
+          hint={t('users.summary.activeHint')}
         />
         <StatCard
-          label="Nonaktif"
+          label={t('users.status.inactive')}
           icon={UserX}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.inactive) : '—'}
-          hint="akses diblokir"
+          hint={t('users.summary.inactiveHint')}
         />
         <StatCard
-          label="Telegram Tertaut"
+          label={t('users.summary.telegramLinked')}
           icon={Send}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.telegramLinked) : '—'}
-          hint="menerima notifikasi"
+          hint={t('users.summary.telegramHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari pengguna"
-          searchPlaceholder="Cari nama, email atau nama pengguna"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('users.search.label')}
+          searchPlaceholder={t('users.search.placeholder')}
+          status={{ options: statusFilter }}
         >
           <ComboboxFilter
-            label="Peran"
-            allLabel="Semua peran"
+            label={t('users.columns.role')}
+            allLabel={t('users.filter.allRoles')}
             value={list.filters.role}
             onChange={(v) => list.setFilter('role', v)}
             options={roleOptions}
@@ -446,8 +448,8 @@ export const UserManagement = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar pengguna"
-          itemLabel="pengguna"
+          label={t('users.table.label')}
+          itemLabel={t('users.table.itemLabel')}
           columns={columns}
           data={users}
           getRowId={(row) => row.id}
@@ -460,8 +462,8 @@ export const UserManagement = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada pengguna',
-            description: 'Akun pengguna yang Anda buat akan muncul di sini.',
+            title: t('users.empty.title'),
+            description: t('users.empty.description'),
           }}
         />
       </div>
@@ -483,10 +485,10 @@ export const UserManagement = () => {
       >
         {pending?.kind === 'reset' && (
           <Field
-            label="Kata sandi baru"
+            label={t('users.reset.newPassword')}
             required
             error={passwordErr}
-            hint="Minimal 8 karakter, berisi huruf besar, angka dan karakter spesial."
+            hint={t('users.reset.hint')}
           >
             <Input
               type="password"
@@ -506,13 +508,13 @@ export const UserManagement = () => {
           {linkInfo && (
             <>
               <DialogHeader>
-                <DialogTitle>Hubungkan Telegram</DialogTitle>
+                <DialogTitle>{t('users.actions.linkTelegram')}</DialogTitle>
                 <DialogDescription>{linkInfo.user.fullName}</DialogDescription>
               </DialogHeader>
               {linkUserLive?.telegramLinked ? (
                 <div className="space-y-3 text-sm">
                   <p role="status" className="rounded-md bg-success-subtle px-3 py-2 text-success-text">
-                    Telegram <b>{linkInfo.user.fullName}</b> sudah tertaut. Notifikasi akan dikirim ke pesan pribadinya.
+                    <Trans t={t} i18nKey="users.link.linked" values={{ name: linkInfo.user.fullName }} components={{ b: <b /> }} />
                   </p>
                   <Button
                     variant="outline"
@@ -521,51 +523,49 @@ export const UserManagement = () => {
                     loading={testMutation.isPending}
                   >
                     <Send aria-hidden />
-                    Kirim pesan uji
+                    {t('users.link.sendTest')}
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm">
                   <p className="text-muted-foreground">
-                    Minta <b className="text-foreground">{linkInfo.user.fullName}</b> melakukan langkah berikut di ponselnya:
+                    <Trans t={t} i18nKey="users.link.intro" values={{ name: linkInfo.user.fullName }} components={{ b: <b className="text-foreground" /> }} />
                   </p>
                   <ol className="ml-5 list-decimal space-y-1 text-muted-foreground">
                     <li>
-                      Buka tautan bot di bawah lalu tekan <b>Start</b> (atau kirim{' '}
-                      <code className="font-mono">/start {linkInfo.code}</code> ke bot).
+                      <Trans t={t} i18nKey="users.link.step1" values={{ command: `/start ${linkInfo.code}` }} components={{ b: <b />, code: <code className="font-mono" /> }} />
                     </li>
                     <li>
-                      Status berubah menjadi <b>Tertaut</b> dalam kurang dari 1 menit.
+                      <Trans t={t} i18nKey="users.link.step2" components={{ b: <b /> }} />
                     </li>
                   </ol>
                   {linkInfo.deepLink ? (
                     <div className="flex items-center gap-2">
-                      <Input readOnly value={linkInfo.deepLink} aria-label="Tautan bot" className="font-mono text-xs" />
+                      <Input readOnly value={linkInfo.deepLink} aria-label={t('users.link.botLink')} className="font-mono text-xs" />
                       <Button
                         variant="outline"
                         onClick={() => {
                           navigator.clipboard.writeText(linkInfo.deepLink!);
-                          toast.success('Tautan disalin.');
+                          toast.success(t('users.link.copied'));
                         }}
                       >
                         <Copy aria-hidden />
-                        Salin
+                        {t('users.link.copy')}
                       </Button>
                     </div>
                   ) : (
                     <p className="rounded-md bg-warning-subtle px-3 py-2 text-warning-text">
-                      Bot belum dikonfigurasi. Atur dulu di <b>Pengaturan → Notifikasi</b>. Kode tautan:{' '}
-                      <code className="font-mono">{linkInfo.code}</code>
+                      <Trans t={t} i18nKey="users.link.botNotConfigured" values={{ code: linkInfo.code }} components={{ b: <b />, code: <code className="font-mono" /> }} />
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground" aria-live="polite">
-                    Menunggu pengguna menekan Start… status diperbarui otomatis.
+                    {t('users.link.waiting')}
                   </p>
                 </div>
               )}
               <DialogFooter>
                 <Button variant="outline" onClick={() => setLinkInfo(null)}>
-                  Tutup
+                  {t('users.link.close')}
                 </Button>
               </DialogFooter>
             </>
@@ -576,7 +576,7 @@ export const UserManagement = () => {
   );
 };
 
-function confirmCopy(p: Pending): {
+function confirmCopy(p: Pending, t: TFunction<'settings'>): {
   title: string;
   description: string;
   confirmLabel: string;
@@ -586,30 +586,30 @@ function confirmCopy(p: Pending): {
   switch (p.kind) {
     case 'reset':
       return {
-        title: `Atur ulang kata sandi ${name}?`,
-        description: 'Kata sandi lama langsung tidak berlaku. Sampaikan kata sandi baru kepada pengguna secara aman.',
-        confirmLabel: 'Atur ulang',
+        title: t('users.confirm.reset.title', { name }),
+        description: t('users.confirm.reset.description'),
+        confirmLabel: t('users.confirm.reset.confirm'),
         tone: 'default',
       };
     case 'unlink':
       return {
-        title: `Putuskan Telegram ${name}?`,
-        description: 'Pengguna tidak lagi menerima notifikasi Telegram sampai ditautkan ulang.',
-        confirmLabel: 'Putuskan',
+        title: t('users.confirm.unlink.title', { name }),
+        description: t('users.confirm.unlink.description'),
+        confirmLabel: t('users.confirm.unlink.confirm'),
         tone: 'danger',
       };
     case 'toggle':
       return p.user.isActive
         ? {
-            title: `Nonaktifkan ${name}?`,
-            description: 'Pengguna tidak dapat masuk ke aplikasi sampai diaktifkan kembali. Data dan riwayatnya tetap tersimpan.',
-            confirmLabel: 'Nonaktifkan',
+            title: t('users.confirm.deactivate.title', { name }),
+            description: t('users.confirm.deactivate.description'),
+            confirmLabel: t('users.confirm.deactivate.confirm'),
             tone: 'danger',
           }
         : {
-            title: `Aktifkan ${name}?`,
-            description: 'Pengguna dapat masuk kembali dengan kata sandinya.',
-            confirmLabel: 'Aktifkan',
+            title: t('users.confirm.activate.title', { name }),
+            description: t('users.confirm.activate.description'),
+            confirmLabel: t('users.confirm.activate.confirm'),
             tone: 'default',
           };
   }

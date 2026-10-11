@@ -2,6 +2,7 @@
 
 import { forwardRef, useRef } from 'react';
 import { FileText, Image as ImageIcon, Paperclip, Send, Square, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +25,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
   { value, onChange, onSend, onStop, busy, file, onFile, acceptsPdf },
   ref,
 ) {
+  const { t } = useTranslation('aira');
   const fileRef = useRef<HTMLInputElement>(null);
   const canSend = !busy && (!!value.trim() || !!file);
   const accept = acceptsPdf ? 'application/pdf,image/jpeg,image/png,image/webp' : 'image/jpeg,image/png,image/webp';
@@ -44,7 +46,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
             type="button"
             onClick={() => onFile(null)}
             className="ml-1 rounded-sm hover:text-danger-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`Hapus lampiran ${file.name}`}
+            aria-label={t('composer.removeAttachment', { name: file.name })}
           >
             <X className="size-3.5" aria-hidden />
           </button>
@@ -61,18 +63,18 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) {
-              if (f.size > MAX_BYTES) toast.error('Ukuran berkas maksimal 10 MB.');
+              if (f.size > MAX_BYTES) toast.error(t('composer.fileTooLarge'));
               else onFile(f);
             }
             e.target.value = '';
           }}
         />
-        <SimpleTooltip content={acceptsPdf ? 'Lampirkan gambar atau PDF (maks. 10 MB)' : 'Lampirkan gambar (JPG/PNG/WebP, maks. 10 MB)'}>
-          <Button type="button" variant="outline" size="icon-touch" className="rounded-lg text-muted-foreground" onClick={() => fileRef.current?.click()} disabled={busy} aria-label="Lampirkan berkas">
+        <SimpleTooltip content={t(acceptsPdf ? 'composer.attachImageOrPdf' : 'composer.attachImage')}>
+          <Button type="button" variant="outline" size="icon-touch" className="rounded-lg text-muted-foreground" onClick={() => fileRef.current?.click()} disabled={busy} aria-label={t('composer.attachFile')}>
             <Paperclip className="size-5" aria-hidden />
           </Button>
         </SimpleTooltip>
-        <label htmlFor="aira-input" className="sr-only">Pesan untuk AIRA</label>
+        <label htmlFor="aira-input" className="sr-only">{t('composer.inputLabel')}</label>
         <Textarea
           id="aira-input"
           ref={ref}
@@ -89,21 +91,21 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
           }}
           rows={1}
           aria-describedby="aira-input-hint"
-          placeholder="Tulis permintaan untuk AIRA…"
+          placeholder={t('composer.placeholder')}
           className="max-h-32 min-h-11 flex-1 resize-none rounded-lg px-3.5 py-2.5"
         />
         {busy ? (
-          <Button type="button" variant="outline" size="icon-touch" className="rounded-lg" onClick={onStop} aria-label="Hentikan jawaban">
+          <Button type="button" variant="outline" size="icon-touch" className="rounded-lg" onClick={onStop} aria-label={t('composer.stop')}>
             <Square className="size-4 fill-current" aria-hidden />
           </Button>
         ) : (
-          <Button type="submit" size="icon-touch" className="rounded-lg" disabled={!canSend} aria-label="Kirim pesan">
+          <Button type="submit" size="icon-touch" className="rounded-lg" disabled={!canSend} aria-label={t('composer.send')}>
             <Send className="size-5" aria-hidden />
           </Button>
         )}
       </div>
       <p id="aira-input-hint" className="mt-1.5 hidden text-xs text-muted-foreground sm:block">
-        Enter untuk kirim · Shift+Enter untuk baris baru · Esc untuk menghentikan jawaban
+        {t('composer.hint')}
       </p>
     </form>
   );

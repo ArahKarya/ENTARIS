@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -24,6 +25,7 @@ export interface TypedConfirmDialogProps {
 export function TypedConfirmDialog({
   open, onOpenChange, title, description, keyword, confirmLabel, loading = false, onConfirm, children,
 }: TypedConfirmDialogProps) {
+  const { t } = useTranslation('settings');
   const [value, setValue] = React.useState('');
   React.useEffect(() => { if (!open) setValue(''); }, [open]);
   const matches = value === keyword;
@@ -43,13 +45,13 @@ export function TypedConfirmDialog({
           id="typed-confirm-form"
           onSubmit={(e) => { e.preventDefault(); if (matches && !loading) onConfirm(); }}
         >
-          <Field label={<>Ketik <strong>{keyword}</strong> untuk mengonfirmasi</>}>
+          <Field label={<Trans t={t} i18nKey="typedConfirm.prompt" values={{ keyword }} components={{ strong: <strong /> }} />}>
             {/* eslint-disable-next-line jsx-a11y/no-autofocus -- focus moves to the first field when the dialog/inline editor opens */}
-            <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={`Ketik ${keyword}`} autoComplete="off" autoFocus disabled={loading} />
+            <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={t('typedConfirm.placeholder', { keyword })} autoComplete="off" autoFocus disabled={loading} />
           </Field>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Batal</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>{t('typedConfirm.cancel')}</Button>
           <Button type="submit" form="typed-confirm-form" variant="danger" disabled={!matches} loading={loading}>
             {confirmLabel}
           </Button>

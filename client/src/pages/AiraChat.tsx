@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { History, Loader2, MessageSquarePlus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { AiraIcon } from '@/components/shell/AiraIcon';
 import { useCurrentRoute } from '@/components/shell/useCurrentRoute';
@@ -29,6 +30,7 @@ function retryTarget(messages: ViewMessage[], assistantIndex: number): string | 
 }
 
 export function AiraChat() {
+  const { t } = useTranslation('aira');
   const route = useCurrentRoute();
   const userId = getStoredUser()?.id ?? null;
   const [input, setInput] = useState('');
@@ -135,7 +137,7 @@ export function AiraChat() {
         if (id === sessionId && archived) void open(null);
       }}
       onDelete={(id) => { void list.remove(id).then(() => { if (id === sessionId) void open(null); }); }}
-      onExport={(id) => void downloadSession(id, 'md').catch(() => toast.error('Gagal mengekspor sesi.'))}
+      onExport={(id) => void downloadSession(id, 'md').catch(() => toast.error(t('chat.exportFailed')))}
     />
   );
 
@@ -145,7 +147,7 @@ export function AiraChat() {
   return (
     <div className="flex h-[calc(100dvh-5rem)] gap-4 sm:h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-6.5rem)]">
       {isDesktop && (
-        <aside aria-label="Riwayat percakapan" className="w-72 shrink-0 rounded-lg border border-border bg-card p-3">
+        <aside aria-label={t('chat.history')} className="w-72 shrink-0 rounded-lg border border-border bg-card p-3">
           {sessionPanel}
         </aside>
       )}
@@ -154,15 +156,15 @@ export function AiraChat() {
         <header className="mb-2 flex items-center gap-3 border-b border-border pb-3">
           <AiraIcon size={32} className="size-7 shrink-0 sm:size-8" />
           <div className="min-w-0 flex-1">
-            <h1 id="aira-title" className="text-base font-semibold leading-tight text-foreground sm:text-lg">{route?.label ?? 'Asisten AIRA'}</h1>
-            <p className="hidden text-sm text-muted-foreground sm:block">Minta AIRA mengecek data, membuat draft, dan mengajukan persetujuan. Percakapan tersimpan di Entaris.</p>
+            <h1 id="aira-title" className="text-base font-semibold leading-tight text-foreground sm:text-lg">{route?.label ?? t('chat.title')}</h1>
+            <p className="hidden text-sm text-muted-foreground sm:block">{t('chat.subtitle')}</p>
           </div>
-          <Button size="icon" variant="outline" className="md:hidden" onClick={() => setDrawer(true)} aria-label="Riwayat percakapan">
+          <Button size="icon" variant="outline" className="md:hidden" onClick={() => setDrawer(true)} aria-label={t('chat.history')}>
             <History aria-hidden />
           </Button>
           <Button size="sm" variant="outline" onClick={startNew} className="md:hidden">
             <MessageSquarePlus aria-hidden />
-            Sesi baru
+            {t('chat.newSession')}
           </Button>
         </header>
 
@@ -172,7 +174,7 @@ export function AiraChat() {
           ref={scrollRef}
           role="log"
           aria-live="off"
-          aria-label="Percakapan dengan AIRA"
+          aria-label={t('chat.logLabel')}
           aria-busy={conv.busy || conv.loading}
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- log yang dapat digulir harus bisa difokus keyboard
           tabIndex={0}
@@ -185,12 +187,12 @@ export function AiraChat() {
           {(conv.loading || !ready) && (
             <div className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-5 animate-spin" aria-hidden />
-              Memuat percakapan…
+              {t('chat.loadingConversation')}
             </div>
           )}
           {ready && conv.hasOlder && !conv.loading && (
             <div className="text-center">
-              <Button size="sm" variant="ghost" onClick={() => void conv.loadOlder()}>Muat pesan sebelumnya</Button>
+              <Button size="sm" variant="ghost" onClick={() => void conv.loadOlder()}>{t('chat.loadOlder')}</Button>
             </div>
           )}
           {empty && <EmptyChat onPick={(t) => { setInput(t); inputRef.current?.focus(); }} />}
@@ -224,8 +226,8 @@ export function AiraChat() {
       <Sheet open={drawer && !isDesktop} onOpenChange={setDrawer}>
         <SheetContent side="left" size="sm">
           <SheetHeader>
-            <SheetTitle>Riwayat percakapan</SheetTitle>
-            <SheetDescription>Cari, buka, atau kelola sesi AIRA Anda.</SheetDescription>
+            <SheetTitle>{t('chat.history')}</SheetTitle>
+            <SheetDescription>{t('chat.historyDescription')}</SheetDescription>
           </SheetHeader>
           <SheetBody className="px-4">{sessionPanel}</SheetBody>
         </SheetContent>

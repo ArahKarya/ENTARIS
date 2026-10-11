@@ -1,1 +1,289 @@
-{}
+{
+  "docTypes": {
+    "PurchaseInvoice": "Purchase Invoice",
+    "ProductionRun": "Production Data",
+    "SalesReturn": "Sales Return",
+    "DeliveryOrder": "Delivery Order",
+    "PurchaseOrder": "Purchase Order",
+    "ProductionRunEdit": "Production Data Edit",
+    "PurchaseInvoiceRevisePrice": "Purchase Invoice Price Revision",
+    "aiTool": "AIRA Request"
+  },
+  "ruleDocTypes": {
+    "PurchaseInvoice": "Purchase Invoice",
+    "ProductionRun": "Production Data",
+    "PurchaseOrder": "Purchase Order",
+    "PaymentRequest": "Payment Request (Director stage)",
+    "SalesInvoice": "Sales Invoice",
+    "Payment": "Payment",
+    "JournalEntry": "General Journal"
+  },
+  "lookup": {
+    "partyFallback": "(partner {{id}})",
+    "itemFallback": "(item {{id}})"
+  },
+  "status": {
+    "Pending": "Pending",
+    "Approved": "Approved",
+    "Rejected": "Rejected",
+    "NeedsRevision": "Needs revision"
+  },
+  "actions": {
+    "detail": "Details",
+    "approve": "Approve",
+    "requestEdit": "Request edit",
+    "reject": "Reject",
+    "editResubmit": "Edit & resubmit",
+    "viewDocument": "View document",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "reason": {
+    "rejected": "Rejection reason:",
+    "revision": "Revision note:"
+  },
+  "panel": {
+    "statusFilter": "Filter requests by status",
+    "loading": "Loading requests…",
+    "emptyTitle": "No requests with status \"{{status}}\"",
+    "emptyDescription": "New requests will appear here.",
+    "listLabel": "Request list",
+    "amountKgInput": "{{value}} kg input",
+    "requestedBy": "by {{name}} ({{role}})",
+    "detailAria": "{{type}} request details",
+    "toast": {
+      "approvedWithDocument": "Approved. {{number}} created.",
+      "approved": "Approved.",
+      "approveFailed": "Could not approve.",
+      "rejected": "Request rejected.",
+      "rejectFailed": "Could not reject.",
+      "revisionRequested": "Returned to staff for revision.",
+      "revisionFailed": "Could not request a revision."
+    },
+    "reasonDialog": {
+      "revisionTitle": "Request edit (return to staff)",
+      "rejectTitle": "Reject request",
+      "revisionDescription": "The request is returned so staff can fix and resubmit it.",
+      "rejectDescription": "The request is rejected for good. Staff must submit a new one to continue.",
+      "reasonLabel": "Reason (min. 5 characters)",
+      "revisionPlaceholder": "e.g. Wrong rate, correct it to match the PO",
+      "rejectPlaceholder": "e.g. Invalid supplier"
+    }
+  },
+  "detail": {
+    "title": "{{type}} request details",
+    "requestedBy": "by {{name}} ({{role}})",
+    "minutes": "{{value}} min",
+    "fields": {
+      "date": "Date:",
+      "customer": "Customer:",
+      "supplier": "Supplier:",
+      "dueDate": "Due date:",
+      "terms": "Terms:",
+      "refNo": "Ref. no.:",
+      "warehouse": "Warehouse:",
+      "shift": "Shift:",
+      "shiftLead": "Shift lead:",
+      "manpower": "Headcount:",
+      "shiftWindow": "Shift window:",
+      "break": "Break:",
+      "notes": "Notes:"
+    },
+    "deliveryOrder": {
+      "negativeStockReason": "Negative stock reason:",
+      "itemsShipped": "Items shipped",
+      "warehouseFallback": "warehouse"
+    },
+    "production": {
+      "inputs": "Raw materials (input)",
+      "outputs": "Production output",
+      "batchRate": "batch @{{rate}}",
+      "byProduct": "By-product",
+      "costs": "Cost components",
+      "costSideOutput": "output",
+      "costSideInput": "input",
+      "machines": "Machines",
+      "machineFallback": "(machine)",
+      "machineShortFallback": "machine",
+      "downtime": "Downtime",
+      "processes": "Processes",
+      "processCount_one": "{{count}} process recorded",
+      "processCount_other": "{{count}} processes recorded",
+      "hppEstimate": "Estimated COGS",
+      "hppPerKg": "/ kg main product (estimate)",
+      "costSummary": "Costs: {{cost}} · By-product value: {{byproduct}}",
+      "hppFinalNote": "Final COGS (including material cost) is calculated on approval."
+    },
+    "basis": {
+      "InputQty": "per kg input",
+      "OutputQty": "per kg output",
+      "Fixed": "fixed"
+    },
+    "invoice": {
+      "warnAlreadyInvoiced": "{{stt}} is already billed on {{invoice}}",
+      "warnCancelled": "{{stt}} is cancelled",
+      "warnQtyMismatch": "{{stt}}: received {{received}} + refaksi {{refaksi}} ≠ goods receipt {{sttQty}}",
+      "warnNoStt": "{{item}}: not linked to a goods receipt",
+      "totalReceived": "Total received",
+      "truckRefaksi": "truck {{truck}} · refaksi {{refaksi}}",
+      "avgPrice": "Avg. price / kg",
+      "avgPriceHint": "grand total ÷ kg received",
+      "supplierPayables": "Open supplier payables",
+      "unpaidInvoices_one": "{{count}} unpaid invoice",
+      "unpaidInvoices_other": "{{count}} unpaid invoices",
+      "deposit": "Deposit",
+      "depositHint": "can be deducted",
+      "needsCheck": "Needs checking",
+      "itemsTitle_one": "Invoice items ({{count}} row)",
+      "itemsTitle_other": "Invoice items ({{count}} rows)",
+      "itemsRegion": "Request item details",
+      "columns": {
+        "stt": "Receipt",
+        "itemWarehouse": "Item / Warehouse",
+        "vehicle": "Vehicle",
+        "moisture": "MC %",
+        "truckWeight": "Truck wt.",
+        "refaksi": "Refaksi",
+        "received": "Received",
+        "price": "Price",
+        "lastPrice": "Last price",
+        "taxDeduction": "Tax/Ded.",
+        "subtotal": "Subtotal",
+        "description": "Description"
+      },
+      "sttQty": "Receipt {{qty}}",
+      "taxDiscount": "disc {{value}}%",
+      "taxPpn": "VAT {{value}}%",
+      "taxPph": "WHT {{value}}%",
+      "thisSupplier": "this supplier",
+      "otherSupplier": "other",
+      "alreadyIn": "already on {{invoice}}",
+      "lastPriceNote": "Last price = purchase price of the same item on the latest invoice (from this supplier when available). Hover to see the last 5 prices. Red ▲ = more expensive.",
+      "attachments": "Attachments",
+      "loadingAttachments": "Loading attachments…",
+      "fromRequest": "From the request ({{n}})",
+      "driver": "driver {{name}}",
+      "sttCancelled": "(goods receipt cancelled)",
+      "noSttAttachments": "This goods receipt has no attachments.",
+      "noAttachments": "No attachments (the request is not linked to a goods receipt and no files were uploaded).",
+      "subtotal": "Subtotal",
+      "discount": "Deduction",
+      "otherCosts": "Other costs",
+      "grandTotal": "Grand total",
+      "estimate": "(estimate)"
+    }
+  },
+  "aiTool": {
+    "fallbackTitle": "AIRA Request",
+    "meta": "Tool <code>{{tool}}</code> ({{risk}}) · requested by {{actor}}{{position}} via {{channel}}{{token}}",
+    "position": " ({{position}})",
+    "token": " · token {{name}}",
+    "lastError": "Previous attempt failed:",
+    "arguments": "Arguments",
+    "requesterFallback": "the requester",
+    "runNote": "When approved, the request runs as {{actor}} (their role's permissions + normal approval rules). Rejected = nothing runs."
+  },
+  "comparison": {
+    "loading": "Loading comparison…",
+    "unavailable": "Comparison data is not available for this request.",
+    "changedDocument": "Document being changed",
+    "openDocumentAria": "Open document {{number}}",
+    "openDocument": "Open document",
+    "changedCount_one": "{{count}} value differs from the current state.",
+    "changedCount_other": "{{count}} values differ from the current state.",
+    "noChanges": "No values change.",
+    "appliedAfterApproval": "Changes apply only after you approve.",
+    "columns": {
+      "description": "Description",
+      "current": "Current",
+      "proposed": "Proposed"
+    },
+    "changed": "Changed"
+  },
+  "pendingNotice": {
+    "badge": "Awaiting approval",
+    "message": "<strong>Awaiting approval.</strong> {{what}} is not applied yet and cannot be submitted again until a manager decides."
+  },
+  "poSummary": {
+    "loading": "Loading PO…",
+    "loadFailed": "The PO could not be loaded (it may have been deleted).",
+    "number": "Number:",
+    "date": "Date:",
+    "supplier": "Supplier:",
+    "generalPo": "General PO",
+    "warehouse": "Warehouse:",
+    "paymentTerm": "Payment term:",
+    "quoteRef": "Quotation no.:",
+    "terms": "Terms:",
+    "notes": "Notes:",
+    "columns": {
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Price",
+      "discount": "Disc. %",
+      "vat": "VAT %",
+      "amount": "Amount"
+    },
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "vat": "VAT",
+    "otherCosts": "Other costs",
+    "grandTotal": "Grand total"
+  },
+  "productionQueue": {
+    "summaryLabel": "Production approval queue summary",
+    "awaitingDecision": "Awaiting decision",
+    "yourPending": "Your pending requests",
+    "needsRevision": "Needs revision",
+    "oldest": "Oldest in queue",
+    "today": "Today",
+    "days_one": "{{value}} day",
+    "days_other": "{{value}} days"
+  },
+  "page": {
+    "title": "Approval",
+    "description": "Review document requests awaiting a decision and set the amount thresholds that require approval.",
+    "addRule": "Add rule",
+    "tabsLabel": "Approval view",
+    "tabs": {
+      "requests": "Requests",
+      "rules": "Rules"
+    },
+    "toast": {
+      "ruleDeleted": "Rule deleted.",
+      "ruleCreated": "Rule created.",
+      "ruleCreateFailed": "Could not create the rule"
+    },
+    "columns": {
+      "documentType": "Document type",
+      "byRole": "By {{role}}",
+      "minAmount": "Min. amount",
+      "minAmountUnit": "(Rp)",
+      "approverRole": "Approver role",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActionsLabel": "Actions for the {{type}} rule",
+    "deleteRule": "Delete rule",
+    "tableLabel": "Approval rules",
+    "itemLabel": "rules",
+    "emptyTitle": "No approval rules yet",
+    "emptyDescription": "Without rules, documents are processed right away without waiting for approval.",
+    "emptyAction": "Add rule",
+    "deleteDialog": {
+      "title": "Delete approval rule",
+      "description": "Delete this rule? This cannot be undone.",
+      "confirm": "Yes, delete"
+    },
+    "form": {
+      "title": "Add approval rule",
+      "description": "Documents with an amount at or above this threshold must be approved before they are processed.",
+      "documentType": "Document type",
+      "minAmount": "Min. amount (Rp)",
+      "minAmountPlaceholder": "e.g. 10000000",
+      "minAmountError": "Enter a minimum amount (0 or more).",
+      "requiredRole": "Required role"
+    }
+  }
+}

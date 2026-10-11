@@ -1,21 +1,23 @@
 // Keadaan kosong: sapaan + tiga contoh permintaan (klik = isi kotak pesan).
 
+import { useTranslation } from 'react-i18next';
 import { AiraIcon } from '@/components/shell/AiraIcon';
 import { cn } from '@/lib/utils';
-import { EXAMPLE_PROMPTS } from './examples';
+import { examplePrompts } from './examples';
 
 export function EmptyChat({ onPick }: { onPick: (text: string) => void }) {
+  const { t } = useTranslation('aira');
   return (
     <div className="mx-auto mt-8 flex max-w-md flex-col items-center gap-4 text-center sm:mt-12">
       <AiraIcon size={48} />
       <div>
-        <p className="font-heading text-base font-semibold text-foreground">Apa yang bisa AIRA bantu?</p>
+        <p className="font-heading text-base font-semibold text-foreground">{t('empty.title')}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tulis permintaan dalam bahasa sehari-hari atau lampirkan foto nota. Percakapan Anda tersimpan di Entaris dan aksi penting menunggu persetujuan.
+          {t('empty.description')}
         </p>
       </div>
-      <ul className="flex w-full flex-col gap-2" aria-label="Contoh permintaan">
-        {EXAMPLE_PROMPTS.map((p) => (
+      <ul className="flex w-full flex-col gap-2" aria-label={t('empty.examplesLabel')}>
+        {examplePrompts().map((p) => (
           <li key={p}>
             <button
               type="button"
