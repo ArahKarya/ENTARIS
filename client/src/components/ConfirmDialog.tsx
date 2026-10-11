@@ -3,6 +3,7 @@
  * fires only for dismissals, never after a confirm.
  */
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConfirmDialog as SharedConfirmDialog } from '@/components/shared/confirm-dialog';
 
 interface ConfirmDialogProps {
@@ -18,17 +19,18 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   open,
-  title = 'Konfirmasi',
+  title,
   message,
   onConfirm,
   onCancel,
-  confirmLabel = 'Konfirmasi',
-  cancelLabel = 'Batal',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
 }: ConfirmDialogProps) {
   // The shared dialog calls onOpenChange(false) right after onConfirm resolves;
   // swallow that one so legacy onCancel handlers do not run after a confirm.
   const confirmedRef = useRef(false);
+  const { t } = useTranslation('common');
 
   return (
     <SharedConfirmDialog
@@ -38,7 +40,7 @@ export function ConfirmDialog({
         if (confirmedRef.current) return;
         onCancel();
       }}
-      title={title}
+      title={title ?? t('actions.confirm')}
       description={message}
       tone={variant}
       confirmLabel={confirmLabel}

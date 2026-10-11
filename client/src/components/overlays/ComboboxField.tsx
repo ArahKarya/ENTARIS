@@ -55,7 +55,6 @@ export function ComboboxField({
           onChange={onChange}
           options={options}
           allLabel={placeholder}
-          searchPlaceholder="Cari…"
           onSearchChange={onSearchChange}
           loading={loading}
         />

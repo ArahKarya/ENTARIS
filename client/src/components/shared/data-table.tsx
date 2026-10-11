@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils';
 import { EmptyState } from './empty-state';
 import { Pagination } from './pagination';
 import { DensityToggle } from './density-toggle';
+import { useTranslation } from 'react-i18next';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -173,6 +174,7 @@ export function DataTable<TData, TValue = unknown>({
   pageSize = 10,
   mobileCard,
 }: DataTableProps<TData, TValue>) {
+  const { t } = useTranslation('common');
   const server = !!pagination;
   const [clientSorting, setClientSorting] = useState<SortingState>([]);
   const [clientPage, setClientPage] = useState({ pageIndex: 0, pageSize });
@@ -255,7 +257,7 @@ export function DataTable<TData, TValue = unknown>({
           onRetry && (
             <Button variant="outline" size="sm" onClick={onRetry}>
               <RotateCcw aria-hidden />
-              Coba lagi
+              {t('actions.retry')}
             </Button>
           )
         }
@@ -268,7 +270,7 @@ export function DataTable<TData, TValue = unknown>({
           onClearFilters && (
             <Button variant="outline" size="sm" onClick={onClearFilters}>
               <X aria-hidden />
-              Hapus filter
+              {t('dataTable.clearFilters')}
             </Button>
           )
         }

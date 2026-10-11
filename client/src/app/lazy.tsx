@@ -5,6 +5,8 @@
 import { Component, lazy, Suspense, type ComponentProps, type ComponentType, type ErrorInfo, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { LoadingState } from '@/components/shared';
+import i18n from '@/i18n';
+import { useTranslation } from 'react-i18next';
 import { isChunkLoadError } from './lazyUtils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,9 +14,10 @@ type AnyComponent = ComponentType<any>;
 type PageComponent<C extends AnyComponent> = ((props: ComponentProps<C>) => ReactNode) & { preload: () => void };
 
 export function PageFallback() {
+  const { t } = useTranslation('shell');
   return (
     <div className="min-h-[50vh] flex items-center justify-center">
-      <LoadingState label="Memuat halaman…" />
+      <LoadingState label={t('lazy.loadingPage')} />
     </div>
   );
 }
@@ -39,16 +42,16 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, BoundaryStat
     if (!isChunkLoadError(error)) throw error;
     return (
       <div role="alert" className="min-h-[50vh] flex flex-col items-center justify-center gap-3 p-8 text-center">
-        <h1 className="text-lg font-semibold text-foreground">Gagal memuat halaman</h1>
+        <h1 className="text-lg font-semibold text-foreground">{i18n.t('lazy.failedTitle', { ns: 'shell' })}</h1>
         <p className="max-w-md text-sm text-muted-foreground">
-          Aplikasi baru saja diperbarui atau koneksi terputus. Muat ulang untuk mengambil versi terbaru.
+          {i18n.t('lazy.failedBody', { ns: 'shell' })}
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
           className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          Muat ulang
+          {i18n.t('actions.refresh', { ns: 'common' })}
         </button>
       </div>
     );

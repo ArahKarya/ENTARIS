@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Copy, Download, Printer, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -23,6 +24,7 @@ const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
 
 const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
+  const { t, i18n } = useTranslation(['shell', 'common']);
   const [copied, setCopied] = React.useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -37,17 +39,17 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success('Link disalin.');
+      toast.success(t('gaAssetQr.copied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Gagal menyalin. Salin manual dari kotak URL.');
+      toast.error(t('gaAssetQr.copyFailed'));
     }
   };
 
   const handleDownload = () => {
     const canvas = canvasRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
     if (!canvas) {
-      toast.error('QR belum siap. Coba lagi.');
+      toast.error(t('gaAssetQr.notReady'));
       return;
     }
     const dataUrl = canvas.toDataURL('image/png');
@@ -60,19 +62,19 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
   const handlePrint = () => {
     const canvas = canvasRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
     if (!canvas) {
-      toast.error('QR belum siap. Coba lagi.');
+      toast.error(t('gaAssetQr.notReady'));
       return;
     }
     const dataUrl = canvas.toDataURL('image/png');
     const w = window.open('', '_blank', 'width=420,height=560');
     if (!w) {
-      toast.error('Popup diblokir. Izinkan popup untuk mencetak.');
+      toast.error(t('gaAssetQr.popupBlocked'));
       return;
     }
     // Asset code/name are user-entered: escape before writing into the print window.
     const code = escapeHtml(asset?.code ?? '');
     const name = escapeHtml(asset?.name ?? '');
-    w.document.write(`<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>QR ${code}</title>
+    w.document.write(`<!DOCTYPE html><html lang="${i18n.language}"><head><meta charset="utf-8"><title>QR ${code}</title>
       <style>
         *{box-sizing:border-box}
         body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;padding:24px;color:#1B2B48;background:#fff;display:flex;justify-content:center}
@@ -87,7 +89,7 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
         <img src="${dataUrl}" alt="QR ${code}" />
         <div class="code">${code}</div>
         <div class="name">${name}</div>
-        <div class="hint">Pindai untuk melihat info aset</div>
+        <div class="hint">${escapeHtml(t('gaAssetQr.scanHint'))}</div>
       </div>
       </body></html>`);
     w.document.close();
@@ -109,13 +111,13 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
     <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
       <DialogContent size="md">
         <DialogHeader>
-          <DialogTitle>QR Aset {asset.code}</DialogTitle>
-          <DialogDescription>{asset.name}. Pindai untuk melihat info aset.</DialogDescription>
+          <DialogTitle>{t('gaAssetQr.title', { code: asset.code })}</DialogTitle>
+          <DialogDescription>{t('gaAssetQr.description', { name: asset.name })}</DialogDescription>
         </DialogHeader>
 
         {!qrCode ? (
           <div role="status" className="rounded-lg border border-warning/40 bg-warning-subtle p-4 text-sm text-warning-text">
-            Aset ini belum punya kode QR. Hubungi admin untuk generate ulang.
+            {t('gaAssetQr.noQr')}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -130,7 +132,7 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
                   bgColor="#ffffff"
                   fgColor="#0f172a"
                   role="img"
-                  aria-label={`Kode QR aset ${asset.code}`}
+                  aria-label={t('gaAssetQr.qrLabel', { code: asset.code })}
                 />
               </div>
               <p className="break-all px-4 text-center font-mono text-[11px] text-[#525252]">{url}</p>
@@ -139,18 +141,18 @@ const GaAssetQRModal: React.FC<Props> = ({ isOpen, onClose, asset }) => {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Button variant="outline" onClick={handleCopy}>
                 {copied ? <Check className="text-success" aria-hidden /> : <Copy aria-hidden />}
-                {copied ? 'Tersalin' : 'Salin'}
+                {copied ? t('gaAssetQr.copiedShort') : t('common:actions.copy')}
               </Button>
               <Button variant="outline" onClick={handleDownload}>
                 <Download aria-hidden /> PNG
               </Button>
               <Button onClick={handlePrint}>
-                <Printer aria-hidden /> Cetak
+                <Printer aria-hidden /> {t('common:actions.print')}
               </Button>
             </div>
 
             <div className="rounded-lg border border-info/30 bg-info-subtle p-3 text-xs leading-relaxed text-info-text">
-              <strong>Tip:</strong> Cetak QR lalu tempel di aset fisik. Scan dengan HP untuk lihat kode, nama, kategori, status & kondisi aset.
+              <strong>{t('gaAssetQr.tipLabel')}</strong> {t('gaAssetQr.tip')}
             </div>
           </div>
         )}
