@@ -65,8 +65,9 @@ test.describe('palette, bell, shortcuts', () => {
     await shot(page, project, 'palette-empty')
     expect(await axe(page, project, 'palette-empty', '[data-testid="command-palette"]')).toEqual([])
 
+    // The old term still finds the renamed page (search covers legacy names).
     await page.getByRole('combobox').fill('faktur')
-    await expect(dialog.getByRole('option', { name: /Faktur Penjualan/ })).toBeVisible()
+    await expect(dialog.getByRole('option', { name: /Invoice Penjualan/ })).toBeVisible()
     await page.waitForTimeout(700)
     await shot(page, project, 'palette-pages')
 

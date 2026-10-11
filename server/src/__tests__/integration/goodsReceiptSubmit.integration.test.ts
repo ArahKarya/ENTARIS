@@ -13,6 +13,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { submitGoodsReceiptInTx } from '../../services/goodsReceiptSubmit';
 import { cancelGoodsReceiptInTx } from '../../services/goodsReceiptCancel';
+import { systemAccountNumber } from '../helpers/systemAccountNumbers';
 
 const hasDb = !!process.env.DATABASE_URL;
 const d = hasDb ? describe : describe.skip;
@@ -123,9 +124,10 @@ d('submitGoodsReceiptInTx', () => {
         const totalCr = jv!.items.reduce((s, i) => s + Number(i.credit), 0);
         expect(totalDr).toBe(1_000_000);
         expect(totalCr).toBe(1_000_000);
-        // Find accrual CR line — must be on 2.1.5 (Hutang Belum Tagih)
+        // Accrual CR line must be on the ACCRUED_PAYABLE account (Hutang Belum Tagih)
         const accrualLine = jv!.items.find((i) => Number(i.credit) > 0);
-        expect(accrualLine!.account.accountNumber).toBe('2.1.5');
+        expect(accrualLine).toBeDefined();
+        expect(accrualLine!.account.accountNumber).toBe(await systemAccountNumber(prisma, 'ACCRUED_PAYABLE'));
         expect(accrualLine!.partyId).toBe(supplierId);
 
         throw new RollbackSentinel();
