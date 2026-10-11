@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Copy, Download, Share2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -14,19 +15,21 @@ interface Props {
   onClose: () => void;
 }
 
+/** `value` is the ?src= tag stored with the inquiry; `labelKey` names its label under inquiryQRModal.sources. */
 const SRC_OPTIONS = [
-  { value: '', label: 'Tanpa tracking' },
-  { value: 'qr-cetak', label: 'QR Cetak / Brosur' },
-  { value: 'qr-toko', label: 'QR di Toko / Display' },
-  { value: 'qr-kartu-nama', label: 'QR Kartu Nama' },
-  { value: 'wa', label: 'WhatsApp' },
-  { value: 'ig', label: 'Instagram' },
-  { value: 'ref', label: 'Referral' },
-];
+  { value: '', labelKey: 'none' },
+  { value: 'qr-cetak', labelKey: 'print' },
+  { value: 'qr-toko', labelKey: 'store' },
+  { value: 'qr-kartu-nama', labelKey: 'businessCard' },
+  { value: 'wa', labelKey: 'whatsapp' },
+  { value: 'ig', labelKey: 'instagram' },
+  { value: 'ref', labelKey: 'referral' },
+] as const;
 
 const NO_SRC = '__none';
 
 const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation('sales');
   const [src, setSrc] = useState('qr-cetak');
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -49,17 +52,17 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success('Link disalin ke clipboard.');
+      toast.success(t('inquiryQRModal.toast.copied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Gagal menyalin. Salin manual dari kotak URL.');
+      toast.error(t('inquiryQRModal.errors.copyFailed'));
     }
   };
 
   const handleDownload = () => {
     const canvas = canvasRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
     if (!canvas) {
-      toast.error('QR belum siap. Coba lagi.');
+      toast.error(t('inquiryQRModal.errors.qrNotReady'));
       return;
     }
     const dataUrl = canvas.toDataURL('image/png');
@@ -71,7 +74,7 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleShareWA = () => {
     const text = encodeURIComponent(
-      `Halo, untuk pertanyaan harga & ketersediaan stok, silakan isi form di:\n${url}\n\nKami akan respons dalam 1×24 jam. Terima kasih!`,
+      t('inquiryQRModal.share.whatsappMessage', { url }),
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
@@ -83,8 +86,8 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
     }
     try {
       await (navigator as any).share({
-        title: 'Tanya Harga / Pemesanan',
-        text: 'Silakan isi form pertanyaan harga di sini.',
+        title: t('inquiryQRModal.share.title'),
+        text: t('inquiryQRModal.share.text'),
         url,
       });
     } catch { /* user cancelled */ }
@@ -94,18 +97,18 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent size="md" className={dialogShellClass}>
         <OverlayHeader>
-          <DialogTitle>QR Form Inquiry</DialogTitle>
-          <DialogDescription>Bagikan form tanya harga agar calon pelanggan bisa mengirim inquiry sendiri.</DialogDescription>
+          <DialogTitle>{t('inquiryQRModal.title')}</DialogTitle>
+          <DialogDescription>{t('inquiryQRModal.description')}</DialogDescription>
         </OverlayHeader>
 
         <OverlayBody>
-          <Field label="Tracking sumber (opsional)" hint="Setiap inquiry yang masuk dari QR ini akan otomatis di-tag dengan channel terkait.">
+          <Field label={t('inquiryQRModal.sourceLabel')} hint={t('inquiryQRModal.sourceHint')}>
             {(control) => (
               <Select value={src || NO_SRC} onValueChange={(v) => setSrc(v === NO_SRC ? '' : v)}>
                 <SelectTrigger {...control}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {SRC_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value || NO_SRC} value={opt.value || NO_SRC}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value || NO_SRC} value={opt.value || NO_SRC}>{t(`inquiryQRModal.sources.${opt.labelKey}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -123,7 +126,7 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 bgColor="#ffffff"
                 fgColor="#374151"
                 role="img"
-                aria-label={`Kode QR menuju ${url}`}
+                aria-label={t('inquiryQRModal.qrAria', { url })}
                 style={{ maxWidth: '100%', height: 'auto' }}
               />
             </div>
@@ -133,26 +136,26 @@ const InquiryQRModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
             <Button type="button" variant="outline" onClick={handleCopy} className="min-h-11 sm:min-h-9">
               {copied ? <Check className="text-success-text" aria-hidden /> : <Copy aria-hidden />}
-              {copied ? 'Tersalin' : 'Salin Link'}
+              {copied ? t('inquiryQRModal.actions.copied') : t('inquiryQRModal.actions.copyLink')}
             </Button>
             <Button type="button" variant="outline" onClick={handleDownload} className="min-h-11 sm:min-h-9">
-              <Download aria-hidden /> Unduh PNG
+              <Download aria-hidden /> {t('inquiryQRModal.actions.downloadPng')}
             </Button>
             <Button type="button" variant="outline" onClick={handleShareWA} className="min-h-11 sm:min-h-9">
-              <Share2 aria-hidden /> Kirim via WA
+              <Share2 aria-hidden /> {t('inquiryQRModal.actions.sendWhatsapp')}
             </Button>
             <Button type="button" onClick={handleNativeShare} className="min-h-11 sm:min-h-9">
-              <Share2 aria-hidden /> Bagikan
+              <Share2 aria-hidden /> {t('inquiryQRModal.actions.share')}
             </Button>
           </div>
 
           <div className="rounded-lg bg-info-subtle p-3 text-xs leading-relaxed text-info-text">
-            <strong>Tip:</strong> Cetak QR untuk display di toko, kartu nama, atau brosur. Untuk WA/IG bio, salin link saja. Customer scan/klik → buka form, tim sales langsung dapat notifikasi inquiry baru.
+            <Trans t={t} i18nKey="inquiryQRModal.tip" components={{ strong: <strong /> }} />
           </div>
         </OverlayBody>
 
         <OverlayFooter>
-          <Button type="button" variant="ghost" onClick={onClose}>Tutup</Button>
+          <Button type="button" variant="ghost" onClick={onClose}>{t('inquiryQRModal.actions.close')}</Button>
         </OverlayFooter>
       </DialogContent>
     </Dialog>

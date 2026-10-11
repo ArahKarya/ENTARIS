@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Pencil, Send, Ban, Truck, CheckCircle2, Download } from 'lucide-react';
-import { formatRupiah, formatDate } from '@/lib/format';
+import { LOCALE, formatRupiah, formatDate } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ interface Props {
 }
 
 const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
+  const { t } = useTranslation('sales');
   const queryClient = useQueryClient();
   const company = useCompanyPDF();
   const [genDOOpen, setGenDOOpen] = useState(false);
@@ -110,9 +112,9 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
       link.download = `${so.soNumber}_with_lampiran.pdf`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success(`PDF + ${attachments.length} lampiran siap diunduh.`);
+      toast.success(t('salesOrderDetailDrawer.toast.pdfReady', { count: attachments.length }));
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal membuat PDF.');
+      toast.error(err?.message || t('salesOrderDetailDrawer.toast.pdfFailed'));
     } finally {
       setIsDownloading(false);
     }
@@ -141,8 +143,8 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
   const depositMut = useMutation({
     mutationFn: async () => {
-      if (dpAmount <= 0) throw new Error('Jumlah uang muka harus > 0.');
-      if (!dpAccountId) throw new Error('Pilih akun kas/bank.');
+      if (dpAmount <= 0) throw new Error(t('salesOrderDetailDrawer.deposit.errors.amountPositive'));
+      if (!dpAccountId) throw new Error(t('salesOrderDetailDrawer.deposit.errors.accountRequired'));
       const res = await api.post('/payments', {
         date: dpDate,
         partyId: so.partyId,
@@ -150,7 +152,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
         paymentType: 'CustomerDeposit',
         accountId: dpAccountId,
         salesOrderId: soId,
-        notes: dpNotes || `Uang muka ${so.soNumber}`,
+        notes: dpNotes || t('salesOrderDetailDrawer.deposit.defaultNote', { number: so.soNumber }),
       });
       return res.data;
     },
@@ -158,13 +160,13 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
       queryClient.invalidateQueries({ queryKey: ['sales-order', soId] });
       queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
-      toast.success('Uang muka diterima.');
+      toast.success(t('salesOrderDetailDrawer.toast.depositReceived'));
       setDpOpen(false);
       setDpAmount(0);
       setDpNotes('');
       setDpError('');
     },
-    onError: (err: any) => setDpError(err?.response?.data?.error || err?.message || 'Gagal terima uang muka.'),
+    onError: (err: any) => setDpError(err?.response?.data?.error || err?.message || t('salesOrderDetailDrawer.toast.depositFailed')),
   });
 
   useEffect(() => {
@@ -189,9 +191,9 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
       queryClient.invalidateQueries({ queryKey: ['sales-order', soId] });
-      toast.success('Sales Order disubmit.');
+      toast.success(t('salesOrderDetailDrawer.toast.submitted'));
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || 'Gagal submit.'),
+    onError: (err: any) => toast.error(err?.response?.data?.error || t('salesOrderDetailDrawer.toast.submitFailed')),
   });
 
   const cancelMut = useMutation({
@@ -202,10 +204,10 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
       queryClient.invalidateQueries({ queryKey: ['sales-order', soId] });
-      toast.success('Sales Order dibatalkan.');
+      toast.success(t('salesOrderDetailDrawer.toast.cancelled'));
       onClose();
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || 'Gagal cancel.'),
+    onError: (err: any) => toast.error(err?.response?.data?.error || t('salesOrderDetailDrawer.toast.cancelFailed')),
   });
 
   const genDOMut = useMutation({
@@ -217,9 +219,9 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
           quantity,
           warehouseId: genWarehouseId || null,
         }));
-      if (items.length === 0) throw new Error('Pilih minimal 1 item dengan qty > 0.');
-      if (!genWarehouseId) throw new Error('Pilih gudang sumber.');
-      if (genAllowNeg && genNegReason.trim().length < 10) throw new Error('Alasan bypass stok minus wajib diisi (min 10 karakter).');
+      if (items.length === 0) throw new Error(t('salesOrderDetailDrawer.generateDo.errors.noItems'));
+      if (!genWarehouseId) throw new Error(t('salesOrderDetailDrawer.generateDo.errors.warehouseRequired'));
+      if (genAllowNeg && genNegReason.trim().length < 10) throw new Error(t('salesOrderDetailDrawer.generateDo.errors.reasonRequired'));
       const res = await api.post(`/sales-orders/${soId}/generate-do`, {
         date: genDate,
         nomorMobil: genNomorMobil || null,
@@ -236,12 +238,12 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
       queryClient.invalidateQueries({ queryKey: ['sales-order', soId] });
       queryClient.invalidateQueries({ queryKey: ['delivery-orders'] });
-      toast.success(`Surat Jalan ${data.doNumber} dibuat.`);
+      toast.success(t('salesOrderDetailDrawer.toast.doCreated', { number: data.doNumber }));
       setGenDOOpen(false);
       setGenError('');
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error || err?.message || 'Gagal generate Surat Jalan.';
+      const msg = err?.response?.data?.error || err?.message || t('salesOrderDetailDrawer.toast.doFailed');
       setGenError(msg);
     },
   });
@@ -260,8 +262,8 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
           <SheetHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <SheetTitle>Detail Sales Order</SheetTitle>
-                <SheetDescription className="font-mono">{so ? so.soNumber : 'Memuat…'}</SheetDescription>
+                <SheetTitle>{t('salesOrderDetailDrawer.title')}</SheetTitle>
+                <SheetDescription className="font-mono">{so ? so.soNumber : t('salesOrderDetailDrawer.loading')}</SheetDescription>
               </div>
               {so && so.status !== 'Cancelled' && (
                 <Button
@@ -270,10 +272,10 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                   className="max-sm:h-11"
                   onClick={handleDownloadPDF}
                   loading={isDownloading}
-                  title={attachments.length > 0 ? `Unduh PDF SO + ${attachments.length} lampiran dalam 1 file` : 'Unduh PDF SO'}
+                  title={attachments.length > 0 ? t('salesOrderDetailDrawer.pdf.titleWithAttachments', { count: attachments.length }) : t('salesOrderDetailDrawer.pdf.title')}
                 >
                   {!isDownloading && <Download aria-hidden />}
-                  {isDownloading ? 'Menyiapkan…' : (attachments.length > 0 ? `Download PDF +${attachments.length}` : 'Download PDF')}
+                  {isDownloading ? t('salesOrderDetailDrawer.pdf.preparing') : (attachments.length > 0 ? t('salesOrderDetailDrawer.pdf.downloadWithCount', { count: attachments.length }) : t('salesOrderDetailDrawer.pdf.download'))}
                 </Button>
               )}
             </div>
@@ -281,35 +283,35 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
           <SheetBody>
             {isLoading ? (
-              <LoadingState label="Memuat sales order…" />
+              <LoadingState label={t('salesOrderDetailDrawer.loadingOrder')} />
             ) : !so ? (
-              <div className="p-6 text-center text-muted-foreground">SO tidak ditemukan.</div>
+              <div className="p-6 text-center text-muted-foreground">{t('salesOrderDetailDrawer.notFound')}</div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <p className="text-sm"><span className={metaLabel}>Tanggal:</span> {formatDate(so.date)}</p>
-                    {so.expectedDelivery && <p className="text-sm"><span className={metaLabel}>Target Kirim:</span> {formatDate(so.expectedDelivery)}</p>}
-                    <p className="text-sm"><span className={metaLabel}>Pelanggan:</span> <span className="font-medium">{so.customer?.name}</span></p>
-                    {so.customerRefNo && <p className="text-sm"><span className={metaLabel}>Ref PO:</span> {so.customerRefNo}</p>}
+                    <p className="text-sm"><span className={metaLabel}>{t('salesOrderDetailDrawer.meta.date')}</span> {formatDate(so.date)}</p>
+                    {so.expectedDelivery && <p className="text-sm"><span className={metaLabel}>{t('salesOrderDetailDrawer.meta.expectedDelivery')}</span> {formatDate(so.expectedDelivery)}</p>}
+                    <p className="text-sm"><span className={metaLabel}>{t('salesOrderDetailDrawer.meta.customer')}</span> <span className="font-medium">{so.customer?.name}</span></p>
+                    {so.customerRefNo && <p className="text-sm"><span className={metaLabel}>{t('salesOrderDetailDrawer.meta.customerRef')}</span> {so.customerRefNo}</p>}
                     {so.quotation?.quotationNumber && (
-                      <p className="text-sm"><span className={metaLabel}>Penawaran:</span> <span className="font-mono">{so.quotation.quotationNumber}</span></p>
+                      <p className="text-sm"><span className={metaLabel}>{t('salesOrderDetailDrawer.meta.quotation')}</span> <span className="font-mono">{so.quotation.quotationNumber}</span></p>
                     )}
-                    {so.notes && <p className="text-sm text-muted-foreground">Catatan: {so.notes}</p>}
+                    {so.notes && <p className="text-sm text-muted-foreground">{t('salesOrderDetailDrawer.meta.notes', { notes: so.notes })}</p>}
                   </div>
                   <StatusBadge status={so.status} docType="sales_order" />
                 </div>
 
-                <TableRegion label="Item sales order">
+                <TableRegion label={t('salesOrderDetailDrawer.items.label')}>
                   <table className="min-w-[640px] w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr>
-                        <th scope="col" className="px-3 py-2 text-left text-xs">Item</th>
-                        <th scope="col" className="px-3 py-2 text-right text-xs">Qty</th>
-                        <th scope="col" className="px-3 py-2 text-right text-xs">Terkirim</th>
-                        <th scope="col" className="px-3 py-2 text-right text-xs">Sisa</th>
-                        <th scope="col" className="px-3 py-2 text-right text-xs">Harga</th>
-                        <th scope="col" className="px-3 py-2 text-right text-xs">Subtotal</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs">{t('salesOrderDetailDrawer.items.item')}</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">{t('salesOrderDetailDrawer.items.qty')}</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">{t('salesOrderDetailDrawer.items.delivered')}</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">{t('salesOrderDetailDrawer.items.remaining')}</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">{t('salesOrderDetailDrawer.items.rate')}</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs">{t('salesOrderDetailDrawer.items.subtotal')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -323,20 +325,20 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                               <p className="font-medium">{it.itemName}</p>
                               {it.inventoryItem && <p className="font-mono text-xs text-muted-foreground">{it.inventoryItem.code}</p>}
                             </td>
-                            <td className="px-3 py-2 text-right tabular-nums">{Number(it.quantity).toLocaleString('id-ID')} {it.unit}</td>
-                            <td className="px-3 py-2 text-right tabular-nums">{Number(it.deliveredQty).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{Number(it.quantity).toLocaleString(LOCALE)} {it.unit}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{Number(it.deliveredQty).toLocaleString(LOCALE)}</td>
                             <td className="px-3 py-2 text-right tabular-nums">
                               {over ? (
-                                <span className="font-medium text-info-text" title="Terkirim melebihi pesanan SO">
-                                  +{Math.abs(remaining).toLocaleString('id-ID')} lebih
+                                <span className="font-medium text-info-text" title={t('salesOrderDetailDrawer.items.overDeliveredTitle')}>
+                                  {t('salesOrderDetailDrawer.items.overDelivered', { qty: Math.abs(remaining).toLocaleString(LOCALE) })}
                                 </span>
                               ) : fully ? (
                                 <span className="text-success-text">
                                   <CheckCircle2 size={12} className="inline" aria-hidden />
-                                  <span className="sr-only">Terkirim penuh</span>
+                                  <span className="sr-only">{t('salesOrderDetailDrawer.items.fullyDelivered')}</span>
                                 </span>
                               ) : (
-                                <span className="font-medium text-warning-text">{remaining.toLocaleString('id-ID')}</span>
+                                <span className="font-medium text-warning-text">{remaining.toLocaleString(LOCALE)}</span>
                               )}
                             </td>
                             <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(it.rate))}</td>
@@ -347,29 +349,29 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     </tbody>
                     <tfoot className="border-t border-border bg-muted/30">
                       <tr>
-                        <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">Subtotal</td>
+                        <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">{t('salesOrderDetailDrawer.totals.subtotal')}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(so.subtotal))}</td>
                       </tr>
                       {Number(so.potongan) > 0 && (
                         <tr>
-                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">Potongan</td>
+                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">{t('salesOrderDetailDrawer.totals.discount')}</td>
                           <td className="px-3 py-2 text-right tabular-nums">-{formatRupiah(Number(so.potongan))}</td>
                         </tr>
                       )}
                       {Number(so.taxPct) > 0 && (
                         <tr>
-                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">PPN {so.taxPct}%</td>
+                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">{t('salesOrderDetailDrawer.totals.tax', { pct: so.taxPct })}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatRupiah((Number(so.subtotal) - Number(so.potongan)) * Number(so.taxPct) / 100)}</td>
                         </tr>
                       )}
                       {Number(so.biayaLain) > 0 && (
                         <tr>
-                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">Biaya Lain</td>
+                          <td colSpan={5} className="px-3 py-2 text-right text-sm text-muted-foreground">{t('salesOrderDetailDrawer.totals.otherCosts')}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatRupiah(Number(so.biayaLain))}</td>
                         </tr>
                       )}
                       <tr className="border-t border-border">
-                        <td colSpan={5} className="px-3 py-2 text-right font-semibold">Grand Total</td>
+                        <td colSpan={5} className="px-3 py-2 text-right font-semibold">{t('salesOrderDetailDrawer.totals.grandTotal')}</td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-primary">{formatRupiah(Number(so.grandTotal))}</td>
                       </tr>
                     </tfoot>
@@ -378,36 +380,36 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
                 {/* Panel Uang Muka (DP) */}
                 {so.depositSummary && so.status !== 'Cancelled' && (
-                  <section aria-label="Uang muka" className="space-y-2 rounded-lg border border-success/30 bg-success-subtle/40 p-3">
+                  <section aria-label={t('salesOrderDetailDrawer.deposit.label')} className="space-y-2 rounded-lg border border-success/30 bg-success-subtle/40 p-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-success-text">Uang Muka (DP)</h3>
+                      <h3 className="text-sm font-semibold text-success-text">{t('salesOrderDetailDrawer.deposit.title')}</h3>
                       {so.depositSummary.pct > 0 && (
                         <span className="rounded bg-success-subtle px-2 py-0.5 text-xs font-medium text-success-text">
-                          {so.depositSummary.pct}% dari total
+                          {t('salesOrderDetailDrawer.deposit.pctOfTotal', { pct: so.depositSummary.pct })}
                         </span>
                       )}
                     </div>
                     <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
                       <div>
-                        <p className="text-[11px] text-muted-foreground">DP Diterima</p>
+                        <p className="text-[11px] text-muted-foreground">{t('salesOrderDetailDrawer.deposit.received')}</p>
                         <p className="font-semibold tabular-nums text-success-text">{formatRupiah(so.depositSummary.received)}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted-foreground">DP Terpakai</p>
+                        <p className="text-[11px] text-muted-foreground">{t('salesOrderDetailDrawer.deposit.applied')}</p>
                         <p className="tabular-nums">{formatRupiah(so.depositSummary.applied ?? 0)}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted-foreground">Sisa Uang Muka</p>
+                        <p className="text-[11px] text-muted-foreground">{t('salesOrderDetailDrawer.deposit.remaining')}</p>
                         <p className="font-semibold tabular-nums text-success-text">{formatRupiah(so.depositSummary.depositRemaining ?? so.depositSummary.received)}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 border-t border-success/20 pt-2 text-sm">
                       <div>
-                        <p className="text-[11px] text-muted-foreground">Grand Total</p>
+                        <p className="text-[11px] text-muted-foreground">{t('salesOrderDetailDrawer.deposit.grandTotal')}</p>
                         <p className="tabular-nums">{formatRupiah(so.depositSummary.grandTotal)}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted-foreground">Sisa Tagihan</p>
+                        <p className="text-[11px] text-muted-foreground">{t('salesOrderDetailDrawer.deposit.outstanding')}</p>
                         <p className="font-semibold tabular-nums">{formatRupiah(so.depositSummary.remaining)}</p>
                       </div>
                     </div>
@@ -423,35 +425,35 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     )}
                     {so.status !== 'Draft' && !dpOpen && (
                       <Button variant="secondary" size="sm" className="max-sm:h-11" onClick={() => { setDpOpen(true); setDpError(''); }}>
-                        + Terima Uang Muka
+                        {t('salesOrderDetailDrawer.deposit.receive')}
                       </Button>
                     )}
                     {dpOpen && (
                       <div className="space-y-2 border-t border-success/20 pt-2">
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          <Field label="Tanggal">
+                          <Field label={t('salesOrderDetailDrawer.fields.date')}>
                             {(c) => <DateInput id={c.id} value={dpDate} onChange={setDpDate} />}
                           </Field>
-                          <Field label="Jumlah">
+                          <Field label={t('salesOrderDetailDrawer.deposit.amount')}>
                             <NumberInput value={dpAmount} onChange={(e) => setDpAmount(Number(e.target.value))} className={numberInputClass} min={0} />
                           </Field>
                         </div>
-                        <Field label="Terima ke Kas/Bank">
+                        <Field label={t('salesOrderDetailDrawer.deposit.account')}>
                           {() => (
                             <OptionSelect
-                              aria-label="Terima ke Kas/Bank"
+                              aria-label={t('salesOrderDetailDrawer.deposit.account')}
                               value={dpAccountId}
                               onChange={setDpAccountId}
-                              emptyLabel="Pilih akun"
+                              emptyLabel={t('salesOrderDetailDrawer.deposit.accountPlaceholder')}
                               options={(cashAccounts ?? []).map((a: any) => ({ value: a.id, label: `${a.accountNumber} · ${a.name}` }))}
                             />
                           )}
                         </Field>
                         <FormError>{dpError}</FormError>
                         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-                          <Button variant="ghost" className="max-sm:h-11" onClick={() => { setDpOpen(false); setDpError(''); }} disabled={depositMut.isPending}>Batal</Button>
+                          <Button variant="ghost" className="max-sm:h-11" onClick={() => { setDpOpen(false); setDpError(''); }} disabled={depositMut.isPending}>{t('salesOrderDetailDrawer.cancel')}</Button>
                           <Button className="max-sm:h-11" onClick={() => depositMut.mutate()} loading={depositMut.isPending}>
-                            {depositMut.isPending ? 'Menyimpan…' : 'Simpan DP'}
+                            {depositMut.isPending ? t('salesOrderDetailDrawer.saving') : t('salesOrderDetailDrawer.deposit.save')}
                           </Button>
                         </div>
                       </div>
@@ -461,7 +463,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
                 {so.deliveryOrders?.length > 0 && (
                   <div>
-                    <h3 className="mb-2 text-sm font-semibold">Surat Jalan Terkait</h3>
+                    <h3 className="mb-2 text-sm font-semibold">{t('salesOrderDetailDrawer.relatedDeliveryOrders')}</h3>
                     <ul className="space-y-1 text-sm">
                       {so.deliveryOrders.map((d: any) => (
                         <li key={d.id} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1.5">
@@ -476,7 +478,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                 {/* Lampiran — PO pelanggan, kontrak, bukti, dll */}
                 <div className="border-t border-border pt-3">
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Lampiran (PO Pelanggan / Dokumen)
+                    {t('salesOrderDetailDrawer.attachments')}
                   </h3>
                   <AttachmentPreview referenceType="sales_order" referenceId={so.id} />
                   {so.status !== 'Cancelled' && (
@@ -488,45 +490,45 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
 
                 {/* Generate DO inline panel */}
                 {genDOOpen && canGenerateDO && (
-                  <section aria-label="Buat Surat Jalan" className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary-subtle/40 p-4">
+                  <section aria-label={t('salesOrderDetailDrawer.generateDo.title')} className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary-subtle/40 p-4">
                     <h3 className="flex items-center gap-2 text-sm font-semibold">
-                      <Truck size={14} aria-hidden /> Buat Surat Jalan
+                      <Truck size={14} aria-hidden /> {t('salesOrderDetailDrawer.generateDo.title')}
                     </h3>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <Field label="Tanggal">
+                      <Field label={t('salesOrderDetailDrawer.fields.date')}>
                         {(c) => <DateInput id={c.id} value={genDate} onChange={setGenDate} />}
                       </Field>
-                      <Field label="Gudang Sumber" required>
+                      <Field label={t('salesOrderDetailDrawer.generateDo.warehouse')} required>
                         {() => (
                           <OptionSelect
-                            aria-label="Gudang Sumber"
+                            aria-label={t('salesOrderDetailDrawer.generateDo.warehouse')}
                             value={genWarehouseId}
                             onChange={setGenWarehouseId}
-                            emptyLabel="Pilih gudang"
+                            emptyLabel={t('salesOrderDetailDrawer.generateDo.warehousePlaceholder')}
                             options={(warehouses ?? []).map((w: any) => ({ value: w.id, label: w.name }))}
                           />
                         )}
                       </Field>
-                      <Field label="No. Mobil">
+                      <Field label={t('salesOrderDetailDrawer.generateDo.vehicleNo')}>
                         <Input value={genNomorMobil} onChange={(e) => setGenNomorMobil(e.target.value)} autoComplete="off" />
                       </Field>
                     </div>
-                    <Field label="Sopir">
+                    <Field label={t('salesOrderDetailDrawer.generateDo.driver')}>
                       <Input value={genDriver} onChange={(e) => setGenDriver(e.target.value)} autoComplete="off" />
                     </Field>
-                    <Field label="Penerima">
-                      <Input value={genRecipient} onChange={(e) => setGenRecipient(e.target.value)} placeholder="Nama penerima barang" autoComplete="off" />
+                    <Field label={t('salesOrderDetailDrawer.generateDo.recipient')}>
+                      <Input value={genRecipient} onChange={(e) => setGenRecipient(e.target.value)} placeholder={t('salesOrderDetailDrawer.generateDo.recipientPlaceholder')} autoComplete="off" />
                     </Field>
-                    <Field label="Catatan">
-                      <Input value={genNotes} onChange={(e) => setGenNotes(e.target.value)} placeholder="Opsional" autoComplete="off" />
+                    <Field label={t('salesOrderDetailDrawer.generateDo.notes')}>
+                      <Input value={genNotes} onChange={(e) => setGenNotes(e.target.value)} placeholder={t('salesOrderDetailDrawer.generateDo.optional')} autoComplete="off" />
                     </Field>
-                    <TableRegion label="Qty kirim per item" className="bg-card">
+                    <TableRegion label={t('salesOrderDetailDrawer.generateDo.table.label')} className="bg-card">
                       <table className="min-w-[420px] w-full text-sm">
                         <thead className="bg-muted/40">
                           <tr>
-                            <th scope="col" className="px-2 py-1 text-left text-xs">Item</th>
-                            <th scope="col" className="px-2 py-1 text-right text-xs">Sisa</th>
-                            <th scope="col" className="w-36 px-2 py-1 text-right text-xs">Qty Kirim</th>
+                            <th scope="col" className="px-2 py-1 text-left text-xs">{t('salesOrderDetailDrawer.generateDo.table.item')}</th>
+                            <th scope="col" className="px-2 py-1 text-right text-xs">{t('salesOrderDetailDrawer.generateDo.table.remaining')}</th>
+                            <th scope="col" className="w-36 px-2 py-1 text-right text-xs">{t('salesOrderDetailDrawer.generateDo.table.qty')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -536,17 +538,17 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                             return (
                               <tr key={it.id} className="border-t border-border">
                                 <td className="px-2 py-1.5">{it.itemName}</td>
-                                <td className="px-2 py-1.5 text-right tabular-nums">{remaining.toLocaleString('id-ID')} {it.unit}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">{remaining.toLocaleString(LOCALE)} {it.unit}</td>
                                 <td className="px-2 py-1.5">
                                   <NumberInput
-                                    aria-label={`Qty kirim ${it.itemName}`}
+                                    aria-label={t('salesOrderDetailDrawer.generateDo.table.qtyFor', { name: it.itemName })}
                                     value={genItems[it.id] ? String(genItems[it.id]) : ''}
                                     onChange={(e) => setGenItems((prev) => ({ ...prev, [it.id]: Number(e.target.value) }))}
                                     className={numberInputClass}
                                     min={0}
                                     max={remaining}
                                     step="0.001"
-                                    placeholder={`maks ${remaining}`}
+                                    placeholder={t('salesOrderDetailDrawer.generateDo.table.max', { qty: remaining })}
                                   />
                                 </td>
                               </tr>
@@ -557,23 +559,22 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                     </TableRegion>
                     {canBypassNegativeStock && (
                       <div className="space-y-1.5 rounded border border-warning/30 bg-warning-subtle p-2">
-                        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
                         <label className="flex cursor-pointer items-start gap-2 text-xs text-warning-text max-sm:min-h-11">
                           <Checkbox className="mt-0.5" checked={genAllowNeg} onCheckedChange={(checked) => setGenAllowNeg(checked === true)} />
-                          <span><strong>Admin override:</strong> izinkan stok minus (produksi/penerimaan menyusul). Audit dicatat.</span>
+                          <span><strong>{t('salesOrderDetailDrawer.generateDo.override.label')}</strong> {t('salesOrderDetailDrawer.generateDo.override.text')}</span>
                         </label>
                         {genAllowNeg && (
-                          <Field label="Alasan bypass stok minus" required>
-                            <Textarea value={genNegReason} onChange={(e) => setGenNegReason(e.target.value)} placeholder="Alasan bypass (min 10 karakter)" className="text-xs" rows={2} />
+                          <Field label={t('salesOrderDetailDrawer.generateDo.override.reason')} required>
+                            <Textarea value={genNegReason} onChange={(e) => setGenNegReason(e.target.value)} placeholder={t('salesOrderDetailDrawer.generateDo.override.reasonPlaceholder')} className="text-xs" rows={2} />
                           </Field>
                         )}
                       </div>
                     )}
                     <FormError>{genError}</FormError>
                     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-                      <Button variant="ghost" className="max-sm:h-11" onClick={() => { setGenDOOpen(false); setGenError(''); }} disabled={genDOMut.isPending}>Batal</Button>
+                      <Button variant="ghost" className="max-sm:h-11" onClick={() => { setGenDOOpen(false); setGenError(''); }} disabled={genDOMut.isPending}>{t('salesOrderDetailDrawer.cancel')}</Button>
                       <Button className="max-sm:h-11" onClick={() => genDOMut.mutate()} loading={genDOMut.isPending}>
-                        {genDOMut.isPending ? 'Membuat…' : 'Buat Surat Jalan'}
+                        {genDOMut.isPending ? t('salesOrderDetailDrawer.generateDo.creating') : t('salesOrderDetailDrawer.generateDo.title')}
                       </Button>
                     </div>
                   </section>
@@ -587,7 +588,7 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 {canCancel && (
                   <Button variant="ghost" className="text-danger-text max-sm:h-11" onClick={() => setCancelOpen(true)} disabled={cancelMut.isPending}>
-                    <Ban aria-hidden /> Batalkan SO
+                    <Ban aria-hidden /> {t('salesOrderDetailDrawer.cancelSo')}
                   </Button>
                 )}
               </div>
@@ -595,16 +596,16 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                 {so.status === 'Draft' && (
                   <>
                     <Button variant="outline" className="max-sm:h-11" onClick={() => onEdit(so)}>
-                      <Pencil aria-hidden /> Edit
+                      <Pencil aria-hidden /> {t('salesOrderDetailDrawer.edit')}
                     </Button>
                     <Button className="max-sm:h-11" onClick={() => submitMut.mutate()} loading={submitMut.isPending}>
-                      {!submitMut.isPending && <Send aria-hidden />} Submit
+                      {!submitMut.isPending && <Send aria-hidden />} {t('salesOrderDetailDrawer.submit')}
                     </Button>
                   </>
                 )}
                 {canGenerateDO && !genDOOpen && (
                   <Button className="max-sm:h-11" onClick={() => setGenDOOpen(true)}>
-                    <Truck aria-hidden /> Buat Surat Jalan
+                    <Truck aria-hidden /> {t('salesOrderDetailDrawer.generateDo.title')}
                   </Button>
                 )}
               </div>
@@ -617,10 +618,10 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         tone="danger"
-        title="Batalkan Sales Order ini?"
-        description={so ? `${so.soNumber} akan dibatalkan dan tidak dapat diproses lebih lanjut.` : undefined}
-        confirmLabel="Batalkan SO"
-        cancelLabel="Kembali"
+        title={t('salesOrderDetailDrawer.confirmCancel.title')}
+        description={so ? t('salesOrderDetailDrawer.confirmCancel.description', { number: so.soNumber }) : undefined}
+        confirmLabel={t('salesOrderDetailDrawer.cancelSo')}
+        cancelLabel={t('salesOrderDetailDrawer.confirmCancel.back')}
         loading={cancelMut.isPending}
         onConfirm={() => cancelMut.mutateAsync()}
       />

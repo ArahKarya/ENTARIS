@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Wallet } from 'lucide-react';
@@ -22,6 +23,7 @@ interface ApplyCustomerDepositModalProps {
 const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
   isOpen, onClose, salesInvoiceId, partyId, invoiceOutstanding,
 }) => {
+  const { t } = useTranslation('sales');
   const [selectedDepositId, setSelectedDepositId] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
   const [error, setError] = useState('');
@@ -61,7 +63,7 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal mengaplikasikan uang muka.'),
+    onError: (err: any) => setError(err.response?.data?.error || t('applyCustomerDepositModal.errors.applyFailed')),
   });
 
   const numAmount = Number(amount) || 0;
@@ -88,29 +90,34 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
           <OverlayHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wallet className="size-5 text-primary" aria-hidden />
-              Gunakan Uang Muka Pelanggan
+              {t('applyCustomerDepositModal.title')}
             </DialogTitle>
-            <DialogDescription>Aplikasikan deposit ke invoice penjualan</DialogDescription>
+            <DialogDescription>{t('applyCustomerDepositModal.description')}</DialogDescription>
           </OverlayHeader>
 
           <OverlayBody>
             <div className="rounded-lg border border-border bg-muted/40 p-3">
               <p className="text-xs font-medium text-foreground">
-                Sisa tagihan invoice: <span className="font-bold tabular-nums">{formatRupiah(invoiceOutstanding)}</span>
+                <Trans
+                  t={t}
+                  i18nKey="applyCustomerDepositModal.outstanding"
+                  values={{ amount: formatRupiah(invoiceOutstanding) }}
+                  components={{ amount: <span className="font-bold tabular-nums" /> }}
+                />
               </p>
             </div>
 
             {isLoading ? (
-              <LoadingState size="sm" label="Memuat deposit…" />
+              <LoadingState size="sm" label={t('applyCustomerDepositModal.loading')} />
             ) : availableDeposits.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                Tidak ada deposit aktif untuk pelanggan ini.
+                {t('applyCustomerDepositModal.empty')}
               </div>
             ) : (
               <>
                 <div role="radiogroup" aria-labelledby="apply-deposit-label" className="grid gap-2">
                   <span id="apply-deposit-label" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Pilih Deposit
+                    {t('applyCustomerDepositModal.chooseDeposit')}
                   </span>
                   {availableDeposits.map((dep: any) => (
                     // eslint-disable-next-line jsx-a11y/control-has-associated-label -- accessible name comes from the button's text children
@@ -134,7 +141,7 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
                         </span>
                         <span className="text-right">
                           <span className="block text-sm font-bold tabular-nums text-foreground">{formatRupiah(dep.remaining)}</span>
-                          <span className="block text-xs text-muted-foreground">dari {formatRupiah(dep.amount)}</span>
+                          <span className="block text-xs text-muted-foreground">{t('applyCustomerDepositModal.ofAmount', { amount: formatRupiah(dep.amount) })}</span>
                         </span>
                       </span>
                     </button>
@@ -142,7 +149,7 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
                 </div>
 
                 {selectedDepositId && (
-                  <Field label="Jumlah yang diaplikasikan (Rp)" required>
+                  <Field label={t('applyCustomerDepositModal.amount')} required>
                     <NumberInput
                       value={amount}
                       onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -159,9 +166,10 @@ const ApplyCustomerDepositModal: React.FC<ApplyCustomerDepositModalProps> = ({
           </OverlayBody>
 
           <OverlayFooter>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('applyCustomerDepositModal.cancel')}</Button>
             <Button type="submit" disabled={!canSubmit} loading={mutation.isPending}>
-              {mutation.isPending ? 'Menyimpan…' : 'Aplikasikan'}
+              {mutation.isPending ? t('applyCustomerDepositModal.saving') : t('applyCustomerDepositModal.apply')}
+
             </Button>
           </OverlayFooter>
         </form>

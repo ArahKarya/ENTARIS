@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { AlertCircle, FileText, Image as ImageIcon, Paperclip, Plus, Truck, X, AlertTriangle } from 'lucide-react';
-import { formatRupiah } from '@/lib/format';
+import { useTranslation, Trans } from 'react-i18next';
+import { formatRupiah, LOCALE } from '@/lib/format';
 import { PickerSelect, type PickerOption } from '@/components/sales-a/PickerSelect';
 import { usePartyPicker } from '@/hooks/usePartyPicker';
 import type { PartyRecord } from '@/hooks/useSelectedPartyOption';
@@ -41,6 +42,7 @@ const SalesInvoiceModal: React.FC<{
   onClose: () => void;
   prefillFromDO?: { doId: string; partyId: string } | null;
 }> = ({ isOpen, onClose, prefillFromDO }) => {
+  const { t } = useTranslation('sales');
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
   const [partyId, setPartyId] = useState('');
@@ -56,8 +58,8 @@ const SalesInvoiceModal: React.FC<{
   };
   const [potongan, setPotongan] = useState(0);     // deduction amount
   const [biayaLain, setBiayaLain] = useState(0);   // extra charge amount
-  const [labelPotongan, setLabelPotongan] = useState('Potongan');
-  const [labelBiaya, setLabelBiaya] = useState('Biaya Lain');
+  const [labelPotongan, setLabelPotongan] = useState(() => t('salesInvoiceModal.defaultDeductionLabel'));
+  const [labelBiaya, setLabelBiaya] = useState(() => t('salesInvoiceModal.defaultExtraChargeLabel'));
   const [items, setItems] = useState<InvoiceItem[]>([defaultItem()]);
   const [allowNegativeStock, setAllowNegativeStock] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -152,7 +154,7 @@ const SalesInvoiceModal: React.FC<{
             headers: { 'Content-Type': 'multipart/form-data' },
           });
         } catch (err) {
-          console.warn('Upload lampiran gagal:', err);
+          console.warn('Attachment upload failed:', err);
         }
       }
       return invoice;
@@ -173,8 +175,8 @@ const SalesInvoiceModal: React.FC<{
       setCustomerRefNo('');
       setPotongan(0);
       setBiayaLain(0);
-      setLabelPotongan('Potongan');
-      setLabelBiaya('Biaya Lain');
+      setLabelPotongan(t('salesInvoiceModal.defaultDeductionLabel'));
+      setLabelBiaya(t('salesInvoiceModal.defaultExtraChargeLabel'));
       setItems([defaultItem()]);
       setAllowNegativeStock(false);
       setStagedFiles([]);
@@ -186,7 +188,7 @@ const SalesInvoiceModal: React.FC<{
       queryClient.invalidateQueries({ queryKey: ['delivery-orders-pending'] });
       onClose();
     },
-    onError: (err: any) => setError(err.response?.data?.error || 'Gagal menyimpan invoice.')
+    onError: (err: any) => setError(err.response?.data?.error || t('salesInvoiceModal.errors.saveFailed'))
   });
 
   const addItem = () => setItems([...items, defaultItem()]);
@@ -328,11 +330,11 @@ const SalesInvoiceModal: React.FC<{
     const valid: File[] = [];
     for (const f of files) {
       if (!ALLOWED_MIME.includes(f.type)) {
-        setError(`${f.name}: tipe file tidak didukung (JPG/PNG/WebP/PDF).`);
+        setError(t('salesInvoiceModal.errors.unsupportedType', { name: f.name }));
         continue;
       }
       if (f.size > MAX_FILE_SIZE) {
-        setError(`${f.name}: ukuran melebihi 5 MB.`);
+        setError(t('salesInvoiceModal.errors.tooLarge', { name: f.name }));
         continue;
       }
       valid.push(f);
@@ -403,15 +405,15 @@ const SalesInvoiceModal: React.FC<{
           className={formShellClass}
         >
           <FormDialogHeader>
-            <DialogTitle>Invoice Penjualan Baru</DialogTitle>
-            <DialogDescription>Draft • belum disimpan</DialogDescription>
+            <DialogTitle>{t('salesInvoiceModal.title')}</DialogTitle>
+            <DialogDescription>{t('salesInvoiceModal.description')}</DialogDescription>
           </FormDialogHeader>
 
           <FormDialogBody className="space-y-0 p-0">
             {/* Top meta section */}
             <div className="grid grid-cols-1 gap-6 border-b border-border p-6 md:grid-cols-2 md:gap-8">
               <div className="space-y-2">
-                <Field label="Tagihkan Kepada" required>
+                <Field label={t('salesInvoiceModal.billTo')} required>
                   {() => (
                     <PickerSelect
                       {...partyPicker.pickerProps}
@@ -425,8 +427,8 @@ const SalesInvoiceModal: React.FC<{
                           setItems([defaultItem()]);
                         }
                       }}
-                      placeholder="Pilih / cari pelanggan"
-                      aria-label="Pilih pelanggan"
+                      placeholder={t('salesInvoiceModal.customerPlaceholder')}
+                      aria-label={t('salesInvoiceModal.customerAria')}
                     />
                   )}
                 </Field>
@@ -441,15 +443,14 @@ const SalesInvoiceModal: React.FC<{
                   <div role="status" className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-subtle p-2">
                     <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-warning-text"><AlertTriangle className="size-3.5" aria-hidden />WAPU</span>
                     <p className="text-xs leading-snug text-warning-text">
-                      Customer ini Wajib Pungut. PPN dipungut sendiri oleh customer ke kas negara.
-                      Semua baris item akan otomatis PPN 0%.
+                      {t('salesInvoiceModal.wapuNotice')}
                     </p>
                   </div>
                 )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Tanggal Invoice">
+                <Field label={t('salesInvoiceModal.invoiceDate')}>
                   {(c) => (
                     <DateInput
                       id={c.id}
@@ -458,13 +459,13 @@ const SalesInvoiceModal: React.FC<{
                     />
                   )}
                 </Field>
-                <Field label="Jatuh Tempo">
+                <Field label={t('salesInvoiceModal.dueDate')}>
                   {(c) => <DateInput id={c.id} value={dueDate} onChange={setDueDate} />}
                 </Field>
-                <Field label="Termin Pembayaran" className="sm:col-span-2">
+                <Field label={t('salesInvoiceModal.paymentTerms')} className="sm:col-span-2">
                   {() => (
                     <OptionSelect
-                      aria-label="Termin Pembayaran"
+                      aria-label={t('salesInvoiceModal.paymentTerms')}
                       value={terms}
                       onChange={(v) => { setTerms(v); setDueDate(calcDueDate(invoiceDate, v)); }}
                       options={['Cash', 'Net 7', 'Net 14', 'Net 30', 'Net 60'].map((t) => ({ value: t, label: t }))}
@@ -472,14 +473,14 @@ const SalesInvoiceModal: React.FC<{
                   )}
                 </Field>
                 <Field
-                  label="No. Referensi PO / Penawaran (opsional)"
-                  hint="Akan dicetak di invoice sebagai referensi pembeli. PPN & PPh diatur per baris item."
+                  label={t('salesInvoiceModal.customerRefNo')}
+                  hint={t('salesInvoiceModal.customerRefNoHint')}
                   className="sm:col-span-2"
                 >
                   <Input
                     value={customerRefNo}
                     onChange={(e) => setCustomerRefNo(e.target.value)}
-                    placeholder="mis. PO-2026-001 atau QO-202604-0012"
+                    placeholder={t('salesInvoiceModal.customerRefNoPlaceholder')}
                     maxLength={100}
                     autoComplete="off"
                   />
@@ -510,31 +511,31 @@ const SalesInvoiceModal: React.FC<{
                 <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary-subtle p-2.5 text-xs text-primary-subtle-foreground">
                   <Truck size={13} className="mt-0.5 shrink-0" aria-hidden />
                   <span>
-                    Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim. COGS pakai biaya per unit yang dikunci di Surat Jalan.
+                    {t('salesInvoiceModal.fromDONotice')}
                   </span>
                 </p>
               )}
               <div className="mb-3 flex items-center justify-between">
-                <h3 id="inv-items-title" className={sectionLabel}>Daftar Barang / Jasa</h3>
+                <h3 id="inv-items-title" className={sectionLabel}>{t('salesInvoiceModal.itemsTitle')}</h3>
                 <Button variant="ghost" size="sm" className="text-primary max-sm:h-11" onClick={addItem}>
-                  <Plus aria-hidden /> Tambah Baris
+                  <Plus aria-hidden /> {t('salesInvoiceModal.addRow')}
                 </Button>
               </div>
 
-              <TableRegion label="Daftar barang dan jasa invoice">
+              <TableRegion label={t('salesInvoiceModal.itemsTableLabel')}>
                 <table className="w-full min-w-[1040px] text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       <th scope="col" className="w-8 px-4 py-3 text-left">#</th>
-                      <th scope="col" className="min-w-[240px] px-4 py-3 text-left">Nama Barang / Jasa</th>
-                      <th scope="col" className="w-28 min-w-[112px] px-3 py-3 text-right">Qty</th>
-                      <th scope="col" className="w-32 min-w-[112px] px-3 py-3 text-left">Satuan</th>
-                      <th scope="col" className="w-36 min-w-[130px] px-3 py-3 text-right">Harga Satuan</th>
-                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">Diskon %</th>
-                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">PPN %</th>
-                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">PPh %</th>
-                      <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right">Jumlah</th>
-                      <th scope="col" className="w-12 px-2 py-3"><span className="sr-only">Aksi</span></th>
+                      <th scope="col" className="min-w-[240px] px-4 py-3 text-left">{t('salesInvoiceModal.columns.itemName')}</th>
+                      <th scope="col" className="w-28 min-w-[112px] px-3 py-3 text-right">{t('salesInvoiceModal.columns.qty')}</th>
+                      <th scope="col" className="w-32 min-w-[112px] px-3 py-3 text-left">{t('salesInvoiceModal.columns.unit')}</th>
+                      <th scope="col" className="w-36 min-w-[130px] px-3 py-3 text-right">{t('salesInvoiceModal.columns.unitPrice')}</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">{t('salesInvoiceModal.columns.discountPct')}</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">{t('salesInvoiceModal.columns.vatPct')}</th>
+                      <th scope="col" className="w-28 min-w-[96px] px-3 py-3 text-right">{t('salesInvoiceModal.columns.pphPct')}</th>
+                      <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right">{t('salesInvoiceModal.columns.amount')}</th>
+                      <th scope="col" className="w-12 px-2 py-3"><span className="sr-only">{t('salesInvoiceModal.columns.actions')}</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -562,11 +563,11 @@ const SalesInvoiceModal: React.FC<{
 
             {/* Summary + notes */}
             <div className="grid grid-cols-1 items-start gap-6 px-6 pb-6 md:grid-cols-2 md:gap-8">
-              <Field label="Catatan untuk Pelanggan">
+              <Field label={t('salesInvoiceModal.notesLabel')}>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Misal: Terima kasih atas kepercayaan Anda. Pembayaran via transfer ke rekening BCA..."
+                  placeholder={t('salesInvoiceModal.notesPlaceholder')}
                   rows={4}
                   className="resize-none"
                 />
@@ -575,40 +576,40 @@ const SalesInvoiceModal: React.FC<{
               <div className="space-y-2.5 rounded-xl border border-border bg-muted/40 p-4">
                 {Object.keys(totalQtyByUnit).length > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Qty</span>
+                    <span className="text-muted-foreground">{t('salesInvoiceModal.totalQty')}</span>
                     <span className="tabular-nums text-foreground">
                       {Object.entries(totalQtyByUnit)
-                        .map(([u, q]) => `${q.toLocaleString('id-ID', { maximumFractionDigits: 3 })} ${u}`)
+                        .map(([u, q]) => `${q.toLocaleString(LOCALE, { maximumFractionDigits: 3 })} ${u}`)
                         .join(' · ')}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t('salesInvoiceModal.subtotal')}</span>
                   <span className="tabular-nums text-foreground">{formatRupiah(subtotal)}</span>
                 </div>
                 {taxAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">PPN (per item)</span>
+                    <span className="text-muted-foreground">{t('salesInvoiceModal.vatPerItem')}</span>
                     <span className="tabular-nums text-foreground">+ {formatRupiah(taxAmount)}</span>
                   </div>
                 )}
                 {pphAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">PPh (per item)</span>
+                    <span className="text-muted-foreground">{t('salesInvoiceModal.pphPerItem')}</span>
                     <span className="tabular-nums text-warning-text">− {formatRupiah(pphAmount)}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-sm">
                   <Input
-                    aria-label="Label potongan"
+                    aria-label={t('salesInvoiceModal.deductionLabelAria')}
                     value={labelPotongan}
                     onChange={(e) => setLabelPotongan(e.target.value)}
                     className="min-w-0 flex-1"
-                    placeholder="Label potongan..."
+                    placeholder={t('salesInvoiceModal.deductionLabelPlaceholder')}
                   />
                   <NumberInput
-                    aria-label="Nilai potongan"
+                    aria-label={t('salesInvoiceModal.deductionValueAria')}
                     value={potongan || ''}
                     onChange={(e) => setPotongan(Math.max(0, Number(e.target.value)))}
                     placeholder="0"
@@ -617,14 +618,14 @@ const SalesInvoiceModal: React.FC<{
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Input
-                    aria-label="Label biaya lain"
+                    aria-label={t('salesInvoiceModal.extraChargeLabelAria')}
                     value={labelBiaya}
                     onChange={(e) => setLabelBiaya(e.target.value)}
                     className="min-w-0 flex-1"
-                    placeholder="Label biaya lain..."
+                    placeholder={t('salesInvoiceModal.extraChargeLabelPlaceholder')}
                   />
                   <NumberInput
-                    aria-label="Nilai biaya lain"
+                    aria-label={t('salesInvoiceModal.extraChargeValueAria')}
                     value={biayaLain || ''}
                     onChange={(e) => setBiayaLain(Math.max(0, Number(e.target.value)))}
                     placeholder="0"
@@ -632,7 +633,7 @@ const SalesInvoiceModal: React.FC<{
                   />
                 </div>
                 <div className="flex items-baseline justify-between border-t border-border pt-2.5">
-                  <span className="text-sm font-semibold text-foreground">Total</span>
+                  <span className="text-sm font-semibold text-foreground">{t('salesInvoiceModal.total')}</span>
                   <span className="text-2xl font-bold tabular-nums text-primary">{formatRupiah(grandTotal)}</span>
                 </div>
               </div>
@@ -644,23 +645,24 @@ const SalesInvoiceModal: React.FC<{
                 <div className="flex items-start gap-2">
                   <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden />
                   <div>
-                    <p className="font-medium">Item inventori harus via Surat Jalan</p>
+                    <p className="font-medium">{t('salesInvoiceModal.orphan.title')}</p>
                     <p className="mt-0.5 text-xs">
-                      Sejak 20 Mei 2026, stok keluar wajib lewat Surat Jalan (DO). Invoice = tagihan saja.
-                      Berikut item yg masih direct-sale di invoice ini:
+                      {t('salesInvoiceModal.orphan.body')}
                     </p>
                     <ul className="ml-1 mt-1.5 list-inside list-disc space-y-0.5 text-xs">
                       {orphanInventoryLines.map((l) => (
                         <li key={l.id}>
                           <span className="font-medium">{l.itemName}</span>
-                          <span>: belum link ke Surat Jalan</span>
+                          <span>{t('salesInvoiceModal.orphan.notLinked')}</span>
                         </li>
                       ))}
                     </ul>
                     <p className="mt-2 text-xs">
-                      <strong>Solusi:</strong> buat <span className="font-semibold">Surat Jalan</span> dulu di menu Penjualan → Surat Jalan,
-                      lalu kembali ke sini dan pilih dari daftar <span className="font-semibold">Pending Surat Jalan</span> di atas.
-                      Atau hapus baris item inventory di sini dan ganti dengan service / akun bebas.
+                      <Trans
+                        t={t}
+                        i18nKey="salesInvoiceModal.orphan.solution"
+                        components={{ strong: <strong />, b: <span className="font-semibold" /> }}
+                      />
                     </p>
                   </div>
                 </div>
@@ -671,15 +673,15 @@ const SalesInvoiceModal: React.FC<{
             <section aria-labelledby="inv-attach-title" className="px-6 pb-4">
               <div className="mb-3 flex items-center justify-between">
                 <h3 id="inv-attach-title" className={`${sectionLabel} flex items-center gap-1`}>
-                  <Paperclip size={12} aria-hidden /> Dokumen Pendukung
+                  <Paperclip size={12} aria-hidden /> {t('salesInvoiceModal.attachments.title')}
                 </h3>
                 <label className="relative flex cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-accent focus-within:ring-2 focus-within:ring-ring max-sm:min-h-11">
-                  <Plus size={13} aria-hidden /> Tambah File
+                  <Plus size={13} aria-hidden /> {t('salesInvoiceModal.attachments.addFile')}
                   <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={handleFileSelect} className="sr-only" />
                 </label>
               </div>
               {stagedFiles.length === 0 ? (
-                <p className="text-xs italic text-muted-foreground">Belum ada file. Max {MAX_ATTACHMENTS} file, 5 MB/file (JPG/PNG/PDF).</p>
+                <p className="text-xs italic text-muted-foreground">{t('salesInvoiceModal.attachments.empty', { max: MAX_ATTACHMENTS })}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {stagedFiles.map((f, i) => (
@@ -687,7 +689,7 @@ const SalesInvoiceModal: React.FC<{
                       {f.type === 'application/pdf' ? <FileText size={14} className="text-danger-text" aria-hidden /> : <ImageIcon size={14} className="text-info-text" aria-hidden />}
                       <span className="flex-1 truncate">{f.name}</span>
                       <span className="text-muted-foreground">{(f.size / 1024).toFixed(0)} KB</span>
-                      <Button variant="ghost" size="icon-sm" className="max-sm:size-11" aria-label={`Hapus file ${f.name}`} onClick={() => removeStagedFile(i)}>
+                      <Button variant="ghost" size="icon-sm" className="max-sm:size-11" aria-label={t('salesInvoiceModal.attachments.remove', { name: f.name })} onClick={() => removeStagedFile(i)}>
                         <X aria-hidden />
                       </Button>
                     </li>
@@ -704,17 +706,17 @@ const SalesInvoiceModal: React.FC<{
           </FormDialogBody>
 
           <FormDialogFooter>
-            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</FooterButton>
+            <FooterButton variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('salesInvoiceModal.cancel')}</FooterButton>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
               <p className="text-xs text-muted-foreground">
                 {canSubmit
-                  ? `Total: ${formatRupiah(grandTotal)}`
+                  ? t('salesInvoiceModal.footer.total', { amount: formatRupiah(grandTotal) })
                   : hasOrphanInventory
-                    ? 'Item inventori harus via Surat Jalan. Lihat peringatan di atas.'
-                    : 'Lengkapi pelanggan dan minimal 1 item untuk melanjutkan'}
+                    ? t('salesInvoiceModal.footer.orphan')
+                    : t('salesInvoiceModal.footer.incomplete')}
               </p>
               <FooterButton type="submit" loading={mutation.isPending} disabled={!canSubmit && !mutation.isPending}>
-                {mutation.isPending ? 'Menyimpan…' : 'Simpan Invoice'}
+                {mutation.isPending ? t('salesInvoiceModal.saving') : t('salesInvoiceModal.save')}
               </FooterButton>
             </div>
           </FormDialogFooter>

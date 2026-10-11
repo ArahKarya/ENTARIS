@@ -3,6 +3,7 @@
  * the source invoice number opens the invoice drawer.
  */
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, Plus } from 'lucide-react';
@@ -46,7 +47,7 @@ interface SalesReturnRow {
 
 const ENDPOINT = '/sales-returns';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Submitted', 'Cancelled'], 'sales_return');
+const STATUS_VALUES = ['Submitted', 'Cancelled'];
 
 const withUnit = (label: string) => (
   <>
@@ -69,6 +70,9 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export default function SalesReturnsPage() {
+  const { t } = useTranslation('sales');
+  // Built per render so status labels follow language changes.
+  const statusFilter = statusOptions(STATUS_VALUES, 'sales_return');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -92,9 +96,9 @@ export default function SalesReturnsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-returns'] });
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
-      toast.success('Retur dibatalkan.');
+      toast.success(t('salesReturnsPage.toast.cancelled'));
     },
-    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan retur.')),
+    onError: (err: unknown) => toast.error(errorMessage(err, t('salesReturnsPage.toast.cancelFailed'))),
   });
 
   const { isPending: cancelling } = cancelMutation;
@@ -114,7 +118,7 @@ export default function SalesReturnsPage() {
     return [
       {
         id: 'returnNumber',
-        header: 'Nomor',
+        header: t('salesReturnsPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -130,7 +134,7 @@ export default function SalesReturnsPage() {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('salesReturnsPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -138,7 +142,7 @@ export default function SalesReturnsPage() {
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('salesReturnsPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
@@ -154,13 +158,13 @@ export default function SalesReturnsPage() {
       },
       {
         id: 'invoice',
-        header: 'Faktur Asal',
+        header: t('salesReturnsPage.columns.sourceInvoice'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => invoiceRef(row.original),
       },
       {
         id: 'totalReturn',
-        header: () => withUnit('Total Retur'),
+        header: () => withUnit(t('salesReturnsPage.columns.totalReturn')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -174,34 +178,34 @@ export default function SalesReturnsPage() {
       },
       {
         id: 'arReducedAmount',
-        header: () => withUnit('Kurangi Piutang'),
+        header: () => withUnit(t('salesReturnsPage.columns.arReduced')),
         meta: { align: 'right', hideBelow: 'lg' },
         cell: ({ row }) => <Amount value={row.original.arReducedAmount} />,
       },
       {
         id: 'creditCreatedAmount',
-        header: () => withUnit('Jadi Kredit'),
+        header: () => withUnit(t('salesReturnsPage.columns.creditCreated')),
         meta: { align: 'right', hideBelow: 'lg' },
         cell: ({ row }) => <Amount value={row.original.creditCreatedAmount} />,
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('salesReturnsPage.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="sales_return" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('salesReturnsPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const r = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${r.returnNumber}`}
+              label={t('salesReturnsPage.rowActions', { number: r.returnNumber })}
               actions={[
                 {
-                  label: 'Batalkan retur',
+                  label: t('salesReturnsPage.cancelAction'),
                   icon: Ban,
                   tone: 'danger',
                   hidden: !canCancel || r.status !== 'Submitted',
@@ -214,18 +218,18 @@ export default function SalesReturnsPage() {
         },
       },
     ];
-  }, [canCancel, canOpenInvoice, cancelling]);
+  }, [canCancel, canOpenInvoice, cancelling, t]);
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Retur Penjualan"
-        description="Kembalikan barang/nilai dari faktur penjualan (nota kredit)."
+        title={t('salesReturnsPage.title')}
+        description={t('salesReturnsPage.description')}
         actions={
           canCreate && (
             <Button onClick={() => setModalOpen(true)}>
               <Plus aria-hidden />
-              Retur Baru
+              {t('salesReturnsPage.create')}
             </Button>
           )
         }
@@ -234,9 +238,9 @@ export default function SalesReturnsPage() {
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari retur"
-          searchPlaceholder="Cari no. retur, faktur, pelanggan"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('salesReturnsPage.searchLabel')}
+          searchPlaceholder={t('salesReturnsPage.searchPlaceholder')}
+          status={{ options: statusFilter }}
           dateRange
         >
           <PartyFilter
@@ -248,8 +252,8 @@ export default function SalesReturnsPage() {
 
         <DataTable
           {...listTableProps(list, returnsQuery.data?.total)}
-          label="Daftar retur penjualan"
-          itemLabel="retur"
+          label={t('salesReturnsPage.tableLabel')}
+          itemLabel={t('salesReturnsPage.itemLabel')}
           columns={columns}
           data={returnsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -260,12 +264,12 @@ export default function SalesReturnsPage() {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada retur penjualan',
-            description: 'Retur yang dibuat dari faktur penjualan akan muncul di sini.',
+            title: t('salesReturnsPage.empty.title'),
+            description: t('salesReturnsPage.empty.description'),
             action: canCreate ? (
               <Button size="sm" onClick={() => setModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat retur pertama
+                {t('salesReturnsPage.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -277,10 +281,10 @@ export default function SalesReturnsPage() {
         open={cancelTarget !== null}
         onOpenChange={(open) => !open && setCancelTarget(null)}
         tone="danger"
-        title={`Batalkan retur ${cancelTarget?.returnNumber ?? ''}?`}
-        description="Stok dan jurnal akan dibalik. Tindakan ini tidak dapat diurungkan."
-        confirmLabel="Batalkan Retur"
-        cancelLabel="Kembali"
+        title={t('salesReturnsPage.confirm.title', { number: cancelTarget?.returnNumber ?? '' })}
+        description={t('salesReturnsPage.confirm.description')}
+        confirmLabel={t('salesReturnsPage.confirm.confirm')}
+        cancelLabel={t('salesReturnsPage.confirm.cancel')}
         loading={cancelling}
         onConfirm={() => (cancelTarget ? cancelMutation.mutateAsync(cancelTarget.id) : undefined)}
       />

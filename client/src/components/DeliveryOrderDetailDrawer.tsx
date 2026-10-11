@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import {
   Truck, User, Calendar, Package, Loader2, XCircle, FileDown, FileText, ExternalLink, AlertTriangle, Pencil,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/format';
+import { formatDate, LOCALE } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ConfirmDialog, LoadingState, StatusBadge } from '@/components/shared';
@@ -28,6 +29,7 @@ interface Props {
 }
 
 const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
+  const { t } = useTranslation('sales');
   const company = useCompanyPDF();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -53,9 +55,9 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['delivery-order-detail', doId] });
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success('Surat jalan dibatalkan. Stok dikembalikan ke gudang.');
+      toast.success(t('deliveryOrderDetailDrawer.toast.cancelled'));
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Gagal membatalkan surat jalan.'),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('deliveryOrderDetailDrawer.errors.cancel')),
   });
 
   if (!doId) return null;
@@ -132,63 +134,63 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
             <div className="flex flex-wrap items-center gap-2">
               <SheetTitle className="flex items-center gap-2">
                 <Truck className="size-5 text-primary" aria-hidden />
-                {isLoading ? 'Memuat…' : doc?.doNumber ?? 'Surat Jalan'}
+                {isLoading ? t('deliveryOrderDetailDrawer.loading') : doc?.doNumber ?? t('deliveryOrderDetailDrawer.docType')}
               </SheetTitle>
               {doc && <StatusBadge status={status} docType="delivery_order" />}
             </div>
-            <SheetDescription>Surat Jalan</SheetDescription>
+            <SheetDescription>{t('deliveryOrderDetailDrawer.docType')}</SheetDescription>
           </SheetHeader>
 
           <SheetBody className="px-0 py-0">
             {isLoading ? (
-              <LoadingState label="Memuat surat jalan…" />
+              <LoadingState label={t('deliveryOrderDetailDrawer.loadingDoc')} />
             ) : !doc ? (
               <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                Surat jalan tidak ditemukan.
+                {t('deliveryOrderDetailDrawer.notFound')}
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-6 border-b border-border px-6 py-5 sm:grid-cols-2">
                   <div>
-                    <h3 className={sectionTitle}><User size={10} aria-hidden /> Pelanggan</h3>
+                    <h3 className={sectionTitle}><User size={10} aria-hidden /> {t('deliveryOrderDetailDrawer.customer')}</h3>
                     <p className="text-sm font-semibold text-foreground">{customer?.name ?? '—'}</p>
                     {customer?.phone && <p className="mt-0.5 text-xs text-muted-foreground">{customer.phone}</p>}
                     {customer?.address && <p className="mt-0.5 text-xs text-muted-foreground">{customer.address}</p>}
                   </div>
 
                   <div>
-                    <h3 className={sectionTitle}><Calendar size={10} aria-hidden /> Informasi Pengiriman</h3>
+                    <h3 className={sectionTitle}><Calendar size={10} aria-hidden /> {t('deliveryOrderDetailDrawer.shippingInfo')}</h3>
                     <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <dt className="text-xs text-muted-foreground">Tanggal</dt>
+                        <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.date')}</dt>
                         <dd className="text-xs font-medium text-foreground">{formatDate(doc.date)}</dd>
                       </div>
                       {doc.salesOrder && (
                         <>
                           <div>
-                            <dt className="text-xs text-muted-foreground">No. PO Pelanggan</dt>
+                            <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.customerPo')}</dt>
                             <dd className="font-mono text-xs font-medium text-foreground">{doc.salesOrder.customerRefNo?.trim() || '—'}</dd>
                           </div>
                           <div>
-                            <dt className="text-xs text-muted-foreground">No. Pesanan (SO)</dt>
+                            <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.soNumber')}</dt>
                             <dd className="font-mono text-xs font-medium text-foreground">{doc.salesOrder.soNumber}</dd>
                           </div>
                         </>
                       )}
                       <div>
-                        <dt className="text-xs text-muted-foreground">No. Mobil</dt>
+                        <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.vehicle')}</dt>
                         <dd className="font-mono text-xs font-medium uppercase text-foreground">{doc.nomorMobil || '—'}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-muted-foreground">Supir</dt>
+                        <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.driver')}</dt>
                         <dd className="text-xs font-medium text-foreground">{doc.driverName || '—'}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-muted-foreground">Penerima</dt>
+                        <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.recipient')}</dt>
                         <dd className="text-xs font-medium text-foreground">{doc.recipientName || '—'}</dd>
                       </div>
                       <div className="sm:col-span-2">
-                        <dt className="text-xs text-muted-foreground">Dibuat oleh</dt>
+                        <dt className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.fields.createdBy')}</dt>
                         <dd className="text-xs font-medium text-foreground">{doc.user?.fullName ?? doc.createdBy ?? '—'}</dd>
                       </div>
                     </dl>
@@ -201,29 +203,29 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                       <div className="flex items-center gap-2">
                         <FileText size={14} className="text-success-text" aria-hidden />
                         <div>
-                          <p className="text-xs text-muted-foreground">Sudah ditagihkan via invoice</p>
+                          <p className="text-xs text-muted-foreground">{t('deliveryOrderDetailDrawer.invoicedVia')}</p>
                           <p className="font-mono text-sm font-medium text-success-text">{invoiceRef.invoiceNumber}</p>
                         </div>
                       </div>
                       <Button variant="link" size="sm" className="max-sm:h-11" onClick={handleLihatInvoice}>
-                        Lihat Invoice <ExternalLink aria-hidden />
+                        {t('deliveryOrderDetailDrawer.viewInvoice')} <ExternalLink aria-hidden />
                       </Button>
                     </div>
                   </div>
                 )}
 
                 <div className="border-b border-border px-6 py-4">
-                  <h3 className={sectionTitle}><Package size={10} aria-hidden /> Daftar Barang ({items.length} item)</h3>
-                  <TableRegion label="Daftar barang surat jalan">
+                  <h3 className={sectionTitle}><Package size={10} aria-hidden /> {t('deliveryOrderDetailDrawer.items.title', { count: items.length })}</h3>
+                  <TableRegion label={t('deliveryOrderDetailDrawer.items.tableLabel')}>
                     <table className="w-full min-w-[480px] text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           <th scope="col" className="w-8 px-3 py-2.5 text-left">#</th>
-                          <th scope="col" className="w-20 px-3 py-2.5 text-left">Kode</th>
-                          <th scope="col" className="px-3 py-2.5 text-left">Nama</th>
-                          <th scope="col" className="px-3 py-2.5 text-left">Gudang</th>
-                          <th scope="col" className="w-20 px-3 py-2.5 text-right">Qty</th>
-                          <th scope="col" className="w-16 px-3 py-2.5 text-center">Satuan</th>
+                          <th scope="col" className="w-20 px-3 py-2.5 text-left">{t('deliveryOrderDetailDrawer.columns.code')}</th>
+                          <th scope="col" className="px-3 py-2.5 text-left">{t('deliveryOrderDetailDrawer.columns.name')}</th>
+                          <th scope="col" className="px-3 py-2.5 text-left">{t('deliveryOrderDetailDrawer.columns.warehouse')}</th>
+                          <th scope="col" className="w-20 px-3 py-2.5 text-right">{t('deliveryOrderDetailDrawer.columns.qty')}</th>
+                          <th scope="col" className="w-16 px-3 py-2.5 text-center">{t('deliveryOrderDetailDrawer.columns.unit')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -237,7 +239,7 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                             </td>
                             <td className="px-3 py-2.5 text-xs text-muted-foreground">{it.warehouse?.name ?? '—'}</td>
                             <td className="px-3 py-2.5 text-right text-xs font-medium tabular-nums text-foreground">
-                              {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+                              {Number(it.quantity).toLocaleString(LOCALE, { maximumFractionDigits: 3 })}
                             </td>
                             <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{it.unit}</td>
                           </tr>
@@ -248,15 +250,15 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                 </div>
 
                 <div className="px-6 py-4">
-                  <h3 className={sectionTitle}>Catatan</h3>
+                  <h3 className={sectionTitle}>{t('deliveryOrderDetailDrawer.notes')}</h3>
                   <p className="whitespace-pre-wrap text-sm text-foreground">
-                    {doc.notes || <span className="italic text-muted-foreground">Tidak ada catatan</span>}
+                    {doc.notes || <span className="italic text-muted-foreground">{t('deliveryOrderDetailDrawer.noNotes')}</span>}
                   </p>
                 </div>
 
                 {/* Attachments — bukti jembatan timbang / foto kendaraan / dll */}
                 <div className="border-t border-border px-6 py-4">
-                  <h3 className={sectionTitle}>Lampiran (Bukti Timbang / Foto)</h3>
+                  <h3 className={sectionTitle}>{t('deliveryOrderDetailDrawer.attachments')}</h3>
                   <AttachmentPreview referenceType="delivery_order" referenceId={doc.id} />
                   {status !== 'Cancelled' && (
                     <div className="mt-2">
@@ -268,7 +270,7 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                 {status === 'Cancelled' && (
                   <div role="status" className="mx-6 mb-4 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-subtle p-3 text-xs text-danger-text">
                     <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>Surat jalan ini sudah dibatalkan. Stok telah dikembalikan ke gudang. Dokumen disimpan untuk jejak audit.</span>
+                    <span>{t('deliveryOrderDetailDrawer.cancelledNotice')}</span>
                   </div>
                 )}
               </>
@@ -283,9 +285,9 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                     variant="ghost"
                     className={cn('text-danger-text', footBtn)}
                     onClick={() => setConfirmCancel(true)}
-                    title="Hanya Admin yang bisa membatalkan surat jalan"
+                    title={t('deliveryOrderDetailDrawer.cancelTitle')}
                   >
-                    <XCircle aria-hidden /> Batalkan
+                    <XCircle aria-hidden /> {t('deliveryOrderDetailDrawer.cancel')}
                   </Button>
                 )}
               </div>
@@ -299,7 +301,7 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                     {({ loading }) => (
                       <>
                         {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
-                        {loading ? 'Membuat…' : 'Cetak PDF'}
+                        {loading ? t('deliveryOrderDetailDrawer.generating') : t('deliveryOrderDetailDrawer.printPdf')}
                       </>
                     )}
                   </PDFDownloadLink>
@@ -312,18 +314,18 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
                         variant="outline"
                         className={footBtn}
                         onClick={() => setEditOpen(true)}
-                        title="Edit surat jalan (nomor & tanggal dipertahankan)"
+                        title={t('deliveryOrderDetailDrawer.editTitle')}
                       >
-                        <Pencil aria-hidden /> Edit
+                        <Pencil aria-hidden /> {t('deliveryOrderDetailDrawer.edit')}
                       </Button>
                     )}
-                    <Button className={footBtn} onClick={handleBuatInvoice}>Buat Invoice</Button>
+                    <Button className={footBtn} onClick={handleBuatInvoice}>{t('deliveryOrderDetailDrawer.createInvoice')}</Button>
                   </>
                 )}
 
                 {status === 'Invoiced' && (
                   <Button className={footBtn} onClick={handleLihatInvoice}>
-                    <ExternalLink aria-hidden /> Lihat Invoice
+                    <ExternalLink aria-hidden /> {t('deliveryOrderDetailDrawer.viewInvoice')}
                   </Button>
                 )}
               </div>
@@ -336,9 +338,9 @@ const DeliveryOrderDetailDrawer: React.FC<Props> = ({ doId, onClose }) => {
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
         tone="danger"
-        title="Batalkan Surat Jalan"
-        description={`Batalkan surat jalan ${doc?.doNumber ?? ''}? Stok akan dikembalikan ke gudang asal. Tindakan ini tercatat di audit trail.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('deliveryOrderDetailDrawer.confirmCancel.title')}
+        description={t('deliveryOrderDetailDrawer.confirmCancel.description', { number: doc?.doNumber ?? '' })}
+        confirmLabel={t('deliveryOrderDetailDrawer.confirmCancel.confirm')}
         loading={cancelMutation.isPending}
         onConfirm={() => cancelMutation.mutateAsync()}
       />

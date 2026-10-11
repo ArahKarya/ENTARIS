@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ interface Props {
 }
 
 const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit }) => {
+  const { t } = useTranslation('sales');
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [offsetAmount, setOffsetAmount] = useState<number>(0);
@@ -69,7 +71,7 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
   const mutation = useMutation({
     mutationFn: (body: any) => api.post(`/customer-deposits/${deposit!.id}/refund`, body),
     onSuccess: () => {
-      toast.success('Uang muka diselesaikan.');
+      toast.success(t('refundCustomerDepositModal.toast.settled'));
       queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
       queryClient.invalidateQueries({ queryKey: ['journals'] });
@@ -78,7 +80,7 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
       onClose();
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Gagal memproses refund/offset.');
+      setError(err.response?.data?.error || t('refundCustomerDepositModal.errors.failed'));
     },
   });
 
@@ -90,10 +92,13 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
 
   const handleSubmit = () => {
     setError('');
-    if (!totalValid) { setError('Total offset + kas harus > 0 dan ≤ sisa.'); return; }
-    if (Number(cashAmount) > 0 && !cashAccountId) { setError('Pilih akun kas/bank untuk refund kas.'); return; }
+    if (!totalValid) { setError(t('refundCustomerDepositModal.errors.invalidTotal')); return; }
+    if (Number(cashAmount) > 0 && !cashAccountId) { setError(t('refundCustomerDepositModal.errors.accountRequired')); return; }
     if (Number(offsetAmount) > Number(partyOutstanding ?? 0) + 0.01) {
-      setError(`Offset (${formatRupiah(Number(offsetAmount))}) melebihi total piutang pelanggan (${formatRupiah(Number(partyOutstanding ?? 0))}).`);
+      setError(t('refundCustomerDepositModal.errors.offsetExceeds', {
+        offset: formatRupiah(Number(offsetAmount)),
+        outstanding: formatRupiah(Number(partyOutstanding ?? 0)),
+      }));
       return;
     }
     mutation.mutate({
@@ -114,49 +119,49 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
           className="flex min-h-0 flex-1 flex-col"
         >
           <OverlayHeader>
-            <DialogTitle>Refund / Offset Uang Muka</DialogTitle>
+            <DialogTitle>{t('refundCustomerDepositModal.title')}</DialogTitle>
             <DialogDescription>{deposit?.paymentNumber} · {deposit?.party?.name}</DialogDescription>
           </OverlayHeader>
 
           <OverlayBody>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Sisa Uang Muka</p>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">{t('refundCustomerDepositModal.remaining')}</p>
                 <p className="text-lg font-bold tabular-nums text-foreground">{formatRupiah(remaining)}</p>
               </div>
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Piutang Pelanggan</p>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">{t('refundCustomerDepositModal.receivable')}</p>
                 <p className="text-lg font-bold tabular-nums text-foreground">{formatRupiah(Number(partyOutstanding ?? 0))}</p>
               </div>
             </div>
 
-            <Field label="Tanggal">
+            <Field label={t('refundCustomerDepositModal.fields.date')}>
               <DateInput value={date} onChange={setDate} />
             </Field>
 
             <div className="grid gap-2">
-              <Field label="Offset ke Piutang (FIFO invoice terlama)">
+              <Field label={t('refundCustomerDepositModal.fields.offset')}>
                 <NumberInput min={0} value={offsetAmount || ''} onChange={(e) => setOffsetAmount(Number(e.target.value) || 0)}
                   className="h-10 text-right tabular-nums md:h-9" placeholder="0" />
               </Field>
               <Button type="button" variant="link" size="sm" className="justify-self-end text-xs" onClick={setOffsetMax}>
-                Maks: {formatRupiah(maxOffset)}
+                {t('refundCustomerDepositModal.max', { amount: formatRupiah(maxOffset) })}
               </Button>
             </div>
 
             <div className="grid gap-2">
-              <Field label="Refund Kas ke Bank">
+              <Field label={t('refundCustomerDepositModal.fields.cash')}>
                 <NumberInput min={0} value={cashAmount || ''} onChange={(e) => setCashAmount(Number(e.target.value) || 0)}
                   className="h-10 text-right tabular-nums md:h-9" placeholder="0" />
               </Field>
               <Button type="button" variant="link" size="sm" className="justify-self-end text-xs" onClick={setCashRest}>
-                Sisa: {formatRupiah(Math.max(0, remaining - Number(offsetAmount || 0)))}
+                {t('refundCustomerDepositModal.rest', { amount: formatRupiah(Math.max(0, remaining - Number(offsetAmount || 0))) })}
               </Button>
               {Number(cashAmount) > 0 && (
-                <Field label="Akun kas/bank" required>
+                <Field label={t('refundCustomerDepositModal.fields.account')} required>
                   {(control) => (
                     <Select value={cashAccountId} onValueChange={setCashAccountId}>
-                      <SelectTrigger {...control}><SelectValue placeholder="Pilih akun kas/bank" /></SelectTrigger>
+                      <SelectTrigger {...control}><SelectValue placeholder={t('refundCustomerDepositModal.fields.accountPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {(cashAccounts || []).map((a: any) => (
                           <SelectItem key={a.id} value={a.id}>{a.accountNumber} · {a.name}</SelectItem>
@@ -168,23 +173,24 @@ const RefundCustomerDepositModal: React.FC<Props> = ({ isOpen, onClose, deposit 
               )}
             </div>
 
-            <Field label="Catatan (opsional)">
+            <Field label={t('refundCustomerDepositModal.fields.notes')}>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
 
             <dl className="grid gap-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs" aria-live="polite">
-              <div className="flex justify-between"><dt className="text-muted-foreground">Total penyelesaian:</dt><dd className="font-semibold tabular-nums">{formatRupiah(total)}</dd></div>
-              <div className="flex justify-between text-muted-foreground"><dt>Sisa setelah ini:</dt><dd className="tabular-nums">{formatRupiah(Math.max(0, remaining - total))}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">{t('refundCustomerDepositModal.total')}</dt><dd className="font-semibold tabular-nums">{formatRupiah(total)}</dd></div>
+              <div className="flex justify-between text-muted-foreground"><dt>{t('refundCustomerDepositModal.after')}</dt><dd className="tabular-nums">{formatRupiah(Math.max(0, remaining - total))}</dd></div>
             </dl>
 
             <FormError message={error} />
           </OverlayBody>
 
           <OverlayFooter>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Batal</Button>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>{t('refundCustomerDepositModal.cancel')}</Button>
             <Button type="submit" disabled={!totalValid} loading={mutation.isPending}>
               {!mutation.isPending && <CheckCircle2 aria-hidden />}
-              {mutation.isPending ? 'Memproses…' : 'Proses'}
+              {mutation.isPending ? t('refundCustomerDepositModal.processing') : t('refundCustomerDepositModal.submit')}
+
             </Button>
           </OverlayFooter>
         </form>

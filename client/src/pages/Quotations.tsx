@@ -5,6 +5,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, CheckCircle2, Clock, Download, Eye, FileText, Pencil, Percent, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import api from '@/lib/api';
 import { exportToExcel } from '@/lib/exportExcel';
 import { formatDate, formatNumber, formatPercent, formatRupiah, toNumber } from '@/lib/format';
@@ -78,7 +80,7 @@ interface InquiryPrefill {
 
 const ENDPOINT = '/quotations';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled'], 'quotation');
+const statusFilter = () => statusOptions(['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled'], 'quotation');
 /** Same window as the server's expiringSoonCount. */
 const EXPIRING_SOON_DAYS = 3;
 
@@ -98,31 +100,37 @@ function isExpiringSoon(q: QuotationRow, now = Date.now()): boolean {
   return days >= 0 && days <= EXPIRING_SOON_DAYS;
 }
 
+type ExportColumn =
+  | 'number' | 'date' | 'validUntil' | 'customer' | 'status' | 'productName' | 'qty' | 'unit'
+  | 'unitPrice' | 'discountPct' | 'vatPct' | 'pphPct' | 'itemSubtotal' | 'grandTotal' | 'salesInvoice' | 'notes';
+const col = (key: ExportColumn): string => i18n.t(`sales:quotationsPage.export.${key}`);
+
 function toExportRows(quotations: QuotationRow[]): Record<string, unknown>[] {
   return quotations.flatMap((q) => {
     const items: Array<QuotationItemRow | null> = q.items && q.items.length > 0 ? q.items : [null];
     return items.map((it) => ({
-      'No. Penawaran': q.quotationNumber,
-      Tanggal: formatDate(q.date),
-      'Berlaku Sampai': formatDate(q.validUntil),
-      Pelanggan: q.customer?.name ?? '',
-      Status: getStatusLabel(q.status, 'quotation'),
-      'Nama Produk': it?.itemName ?? '',
-      Qty: it ? num(it.quantity) : '',
-      Unit: it?.unit ?? '',
-      'Harga Satuan': it ? num(it.rate) : '',
-      'Diskon (%)': it ? num(it.discount) : '',
-      'PPN (%)': it ? num(it.taxPct) : '',
-      'PPh (%)': it ? num(it.pphPct) : '',
-      'Subtotal Item': it ? num(it.amount) : '',
-      'Grand Total Penawaran': num(q.grandTotal),
-      'Sales Invoice': q.salesInvoice?.invoiceNumber ?? '',
-      Catatan: q.notes ?? '',
+      [col('number')]: q.quotationNumber,
+      [col('date')]: formatDate(q.date),
+      [col('validUntil')]: formatDate(q.validUntil),
+      [col('customer')]: q.customer?.name ?? '',
+      [col('status')]: getStatusLabel(q.status, 'quotation'),
+      [col('productName')]: it?.itemName ?? '',
+      [col('qty')]: it ? num(it.quantity) : '',
+      [col('unit')]: it?.unit ?? '',
+      [col('unitPrice')]: it ? num(it.rate) : '',
+      [col('discountPct')]: it ? num(it.discount) : '',
+      [col('vatPct')]: it ? num(it.taxPct) : '',
+      [col('pphPct')]: it ? num(it.pphPct) : '',
+      [col('itemSubtotal')]: it ? num(it.amount) : '',
+      [col('grandTotal')]: num(q.grandTotal),
+      [col('salesInvoice')]: q.salesInvoice?.invoiceNumber ?? '',
+      [col('notes')]: q.notes ?? '',
     }));
   });
 }
 
 export const Quotations = () => {
+  const { t } = useTranslation('sales');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -150,8 +158,8 @@ export const Quotations = () => {
         setEditTarget({
           partyId: payload.partyId,
           notes: payload.notes
-            ? `${payload.notes}\n\n[Dari inquiry ${payload.inquiryNumber}]`
-            : `[Dari inquiry ${payload.inquiryNumber}]`,
+            ? `${payload.notes}\n\n${t('quotationsPage.fromInquiryNote', { number: payload.inquiryNumber })}`
+            : t('quotationsPage.fromInquiryNote', { number: payload.inquiryNumber }),
           items: payload.items ?? [],
         });
         setIsModalOpen(true);
@@ -162,7 +170,7 @@ export const Quotations = () => {
     // Clear param so refresh doesn't re-trigger
     searchParams.delete('from-inquiry');
     setSearchParams(searchParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, t]);
 
   const quotationsQuery = useQuery({
     queryKey: ['quotations', 'list', list.params],
@@ -193,10 +201,10 @@ export const Quotations = () => {
       const params = { ...list.filterParams, ...(list.params.sort ? { sort: list.params.sort } : {}) };
       const { rows, truncated } = await fetchAllPages<QuotationRow>(ENDPOINT, params);
       const stamp = new Date().toISOString().slice(0, 10);
-      exportToExcel(toExportRows(rows), `penawaran-${stamp}`);
-      if (truncated) toast.warning(`Ekspor dibatasi ${formatNumber(rows.length)} penawaran pertama. Persempit filter.`);
+      exportToExcel(toExportRows(rows), `${t('quotationsPage.export.fileName')}-${stamp}`);
+      if (truncated) toast.warning(t('quotationsPage.export.truncated', { count: rows.length, formatted: formatNumber(rows.length) }));
     } catch {
-      toast.error('Gagal mengekspor penawaran. Coba lagi.');
+      toast.error(t('quotationsPage.export.failed'));
     } finally {
       setExporting(false);
     }
@@ -206,7 +214,7 @@ export const Quotations = () => {
     () => [
       {
         id: 'quotationNumber',
-        header: 'Nomor',
+        header: t('quotationsPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -222,7 +230,7 @@ export const Quotations = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('quotationsPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -230,7 +238,7 @@ export const Quotations = () => {
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('quotationsPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => (
@@ -246,7 +254,7 @@ export const Quotations = () => {
       },
       {
         id: 'validUntil',
-        header: 'Berlaku Sampai',
+        header: t('quotationsPage.columns.validUntil'),
         enableSorting: true,
         meta: { hideBelow: 'lg', cellClassName: 'num whitespace-nowrap' },
         cell: ({ row }) => {
@@ -254,13 +262,13 @@ export const Quotations = () => {
           return (
             <span
               className={cn('inline-flex items-center gap-1', soon ? 'font-medium text-warning-text' : 'text-muted-foreground')}
-              title={soon ? 'Segera kedaluwarsa (≤ 3 hari)' : undefined}
+              title={soon ? t('quotationsPage.expiringSoonTitle', { count: EXPIRING_SOON_DAYS }) : undefined}
             >
               {formatDate(row.original.validUntil)}
               {soon && (
                 <>
                   <AlertTriangle className="size-3.5" aria-hidden />
-                  <span className="sr-only">(segera kedaluwarsa)</span>
+                  <span className="sr-only">{t('quotationsPage.expiringSoonSr')}</span>
                 </>
               )}
             </span>
@@ -269,7 +277,7 @@ export const Quotations = () => {
       },
       {
         id: 'grandTotal',
-        header: () => withUnit('Total'),
+        header: () => withUnit(t('quotationsPage.columns.total')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -283,36 +291,36 @@ export const Quotations = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('quotationsPage.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="quotation" />,
       },
       {
         id: 'conversion',
-        header: 'Konversi',
+        header: t('quotationsPage.columns.conversion'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
           const q = row.original;
           if (q.salesInvoice) {
             return <span className="num font-mono text-xs text-success-text">{q.salesInvoice.invoiceNumber}</span>;
           }
-          if (q.status === 'Accepted') return <span className="text-xs text-info-text">Belum dikonversi</span>;
+          if (q.status === 'Accepted') return <span className="text-xs text-info-text">{t('quotationsPage.notConverted')}</span>;
           return <span className="text-muted-foreground">—</span>;
         },
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('quotationsPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const q = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${q.quotationNumber}`}
+              label={t('quotationsPage.rowActions.label', { number: q.quotationNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(q.id) },
+                { label: t('quotationsPage.rowActions.view'), icon: Eye, onSelect: () => setSelectedId(q.id) },
                 {
-                  label: 'Edit',
+                  label: t('quotationsPage.rowActions.edit'),
                   icon: Pencil,
                   hidden: !canEdit || q.status !== 'Draft',
                   onSelect: () => {
@@ -326,73 +334,73 @@ export const Quotations = () => {
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   const sentHint = summary
     ? summary.expiringSoonCount > 0
-      ? `${formatNumber(summary.expiringSoonCount)} segera kedaluwarsa`
-      : 'menunggu konfirmasi'
+      ? t('quotationsPage.stats.expiringSoon', { count: summary.expiringSoonCount, formatted: formatNumber(summary.expiringSoonCount) })
+      : t('quotationsPage.stats.awaitingConfirmation')
     : undefined;
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Penawaran"
-        description="Kelola dokumen penawaran ke pelanggan dan konversi ke faktur penjualan."
+        title={t('quotationsPage.title')}
+        description={t('quotationsPage.description')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} loading={exporting} disabled={!total}>
               <Download aria-hidden />
-              <span className="sr-only sm:not-sr-only">Ekspor Excel</span>
+              <span className="sr-only sm:not-sr-only">{t('quotationsPage.exportExcel')}</span>
             </Button>
             {canEdit && (
               <Button onClick={openCreate}>
                 <Plus aria-hidden />
-                Buat Penawaran
+                {t('quotationsPage.create')}
               </Button>
             )}
           </>
         }
       />
 
-      <section aria-label="Ringkasan penawaran sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('quotationsPage.stats.regionLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Penawaran"
+          label={t('quotationsPage.stats.count')}
           icon={FileText}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary ? `Nilai ${formatRupiah(summary.grandTotal)}` : undefined}
+          hint={summary ? t('quotationsPage.stats.value', { amount: formatRupiah(summary.grandTotal) }) : undefined}
         />
         <StatCard
-          label="Terkirim"
+          label={t('quotationsPage.stats.sent')}
           icon={Clock}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.sentCount) : '—'}
           hint={sentHint}
         />
         <StatCard
-          label="Diterima"
+          label={t('quotationsPage.stats.accepted')}
           icon={CheckCircle2}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.acceptedCount) : '—'}
-          hint={summary ? `${formatNumber(summary.awaitingConversionCount)} belum dikonversi` : undefined}
+          hint={summary ? t('quotationsPage.stats.awaitingConversion', { count: summary.awaitingConversionCount, formatted: formatNumber(summary.awaitingConversionCount) }) : undefined}
         />
         <StatCard
-          label="Tingkat Konversi"
+          label={t('quotationsPage.stats.conversionRate')}
           icon={Percent}
           loading={summaryLoading}
           value={summary ? formatPercent(summary.conversionRate) : '—'}
-          hint={summary ? `dari ${formatNumber(summary.issuedCount)} diterbitkan` : undefined}
+          hint={summary ? t('quotationsPage.stats.ofIssued', { count: summary.issuedCount, formatted: formatNumber(summary.issuedCount) }) : undefined}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari penawaran"
-          searchPlaceholder="Cari nomor atau pelanggan"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('quotationsPage.search.label')}
+          searchPlaceholder={t('quotationsPage.search.placeholder')}
+          status={{ options: statusFilter() }}
           dateRange
         >
           <PartyFilter
@@ -404,8 +412,8 @@ export const Quotations = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar penawaran"
-          itemLabel="penawaran"
+          label={t('quotationsPage.table.label')}
+          itemLabel={t('quotationsPage.table.itemLabel')}
           columns={columns}
           data={quotationsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -417,12 +425,12 @@ export const Quotations = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada penawaran',
-            description: 'Penawaran yang Anda buat akan muncul di sini.',
+            title: t('quotationsPage.empty.title'),
+            description: t('quotationsPage.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={openCreate}>
                 <Plus aria-hidden />
-                Buat penawaran pertama
+                {t('quotationsPage.empty.action')}
               </Button>
             ) : undefined,
           }}

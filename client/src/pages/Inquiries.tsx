@@ -3,6 +3,7 @@ import { useId, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CheckCircle2, Eye, FileSignature, Globe, Inbox, Mail, MapPin, MessageCircle, Pencil, Percent, Phone, Plus, QrCode, Share2, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { formatDate, formatNumber, formatPercent } from '@/lib/format';
 import { statusOptions } from '@/lib/status';
@@ -51,17 +52,21 @@ interface InquirySummary {
 
 const ENDPOINT = '/inquiries';
 const FILTER_KEYS = ['status', 'channel', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Baru', 'Diproses', 'Dikonversi', 'Hilang', 'Ditutup'], 'inquiry');
+const statusFilter = () => statusOptions(['Baru', 'Diproses', 'Dikonversi', 'Hilang', 'Ditutup'], 'inquiry');
 const ALL = '__all__';
 
-const CHANNELS: Record<string, { label: string; icon: LucideIcon }> = {
-  WhatsApp: { label: 'WhatsApp', icon: MessageCircle },
-  Telepon: { label: 'Telepon', icon: Phone },
-  Email: { label: 'Email', icon: Mail },
-  WalkIn: { label: 'Walk-in', icon: MapPin },
-  Referral: { label: 'Referral', icon: Share2 },
-  Lainnya: { label: 'Lainnya', icon: Inbox },
-};
+/** Channel enum values from the API; labels come from inquiriesPage.channels.<value>. */
+const CHANNELS = {
+  WhatsApp: MessageCircle,
+  Telepon: Phone,
+  Email: Mail,
+  WalkIn: MapPin,
+  Referral: Share2,
+  Lainnya: Inbox,
+} as const satisfies Record<string, LucideIcon>;
+type Channel = keyof typeof CHANNELS;
+const CHANNEL_KEYS = Object.keys(CHANNELS) as Channel[];
+const isChannel = (value: string): value is Channel => Object.hasOwn(CHANNELS, value);
 
 /** Set by POST /public/inquiry (self-service QR form). */
 const PUBLIC_FORM_NOTE = 'Submitted via public form';
@@ -70,16 +75,17 @@ const isPublicForm = (q: InquiryRow) => !!q.notes?.startsWith(PUBLIC_FORM_NOTE);
 const chip = 'inline-flex items-center gap-1 rounded-sm px-1.5 py-px text-[11px] font-medium leading-4';
 
 function SourceChips({ inquiry }: { inquiry: InquiryRow }) {
+  const { t } = useTranslation('sales');
   const prospect = !inquiry.partyId;
   const publicForm = isPublicForm(inquiry);
   if (!prospect && !publicForm) return null;
   return (
     <span className="flex flex-wrap gap-1 group-data-[density=compact]/table:hidden">
-      {prospect && <span className={`${chip} bg-warning-subtle text-warning-text`}>Prospek</span>}
+      {prospect && <span className={`${chip} bg-warning-subtle text-warning-text`}>{t('inquiriesPage.chips.prospect')}</span>}
       {publicForm && (
-        <span className={`${chip} bg-info-subtle text-info-text`} title="Masuk lewat formulir publik (QR)">
+        <span className={`${chip} bg-info-subtle text-info-text`} title={t('inquiriesPage.chips.publicFormTitle')}>
           <Globe className="size-3" aria-hidden />
-          Form publik
+          {t('inquiriesPage.chips.publicForm')}
         </span>
       )}
     </span>
@@ -87,21 +93,22 @@ function SourceChips({ inquiry }: { inquiry: InquiryRow }) {
 }
 
 function ChannelFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation('sales');
   const id = useId();
   return (
     <div className="w-[calc(50%-0.25rem)] sm:w-40">
       <label htmlFor={id} className="sr-only">
-        Channel
+        {t('inquiriesPage.channelFilter.label')}
       </label>
       <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? '' : v)}>
         <SelectTrigger id={id}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>Semua channel</SelectItem>
-          {Object.entries(CHANNELS).map(([key, c]) => (
+          <SelectItem value={ALL}>{t('inquiriesPage.channelFilter.all')}</SelectItem>
+          {CHANNEL_KEYS.map((key) => (
             <SelectItem key={key} value={key}>
-              {c.label}
+              {t(`inquiriesPage.channels.${key}`)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -111,6 +118,7 @@ function ChannelFilter({ value, onChange }: { value: string; onChange: (v: strin
 }
 
 export const Inquiries = () => {
+  const { t } = useTranslation('sales');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -145,7 +153,7 @@ export const Inquiries = () => {
     () => [
       {
         id: 'inquiryNumber',
-        header: 'Nomor',
+        header: t('inquiriesPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -161,7 +169,7 @@ export const Inquiries = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('inquiriesPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -169,7 +177,7 @@ export const Inquiries = () => {
       },
       {
         id: 'prospectName',
-        header: 'Prospek / Pelanggan',
+        header: t('inquiriesPage.columns.prospect'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-44 max-w-72' },
         cell: ({ row }) => {
@@ -179,7 +187,7 @@ export const Inquiries = () => {
             <div className="flex min-w-0 flex-col items-start gap-0.5">
               <p className="max-w-full truncate font-medium text-foreground">{name}</p>
               {q.party && q.prospectName !== q.party.name && (
-                <p className="max-w-full truncate text-xs text-muted-foreground">via {q.prospectName}</p>
+                <p className="max-w-full truncate text-xs text-muted-foreground">{t('inquiriesPage.via', { name: q.prospectName })}</p>
               )}
               <SourceChips inquiry={q} />
             </div>
@@ -188,7 +196,7 @@ export const Inquiries = () => {
       },
       {
         id: 'contact',
-        header: 'Kontak',
+        header: t('inquiriesPage.columns.contact'),
         meta: { hideBelow: 'lg', cellClassName: 'max-w-56' },
         cell: ({ row }) => {
           const q = row.original;
@@ -205,27 +213,28 @@ export const Inquiries = () => {
       },
       {
         id: 'channel',
-        header: 'Channel',
+        header: t('inquiriesPage.columns.channel'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) => {
-          const c = CHANNELS[row.original.channel];
-          const Icon = c?.icon ?? Inbox;
+          const channel = row.original.channel;
+          const known = isChannel(channel);
+          const Icon = known ? CHANNELS[channel] : Inbox;
           return (
             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
               <Icon className="size-3.5" aria-hidden />
-              {c?.label ?? row.original.channel}
+              {known ? t(`inquiriesPage.channels.${channel}`) : channel}
             </span>
           );
         },
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('inquiriesPage.columns.status'),
         cell: ({ row }) => <StatusBadge status={row.original.status} docType="inquiry" />,
       },
       {
         id: 'quotation',
-        header: 'Penawaran',
+        header: t('inquiriesPage.columns.quotation'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) =>
           row.original.quotation ? (
@@ -236,17 +245,17 @@ export const Inquiries = () => {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('inquiriesPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const q = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${q.inquiryNumber}`}
+              label={t('inquiriesPage.rowActions.label', { number: q.inquiryNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(q.id) },
+                { label: t('inquiriesPage.rowActions.view'), icon: Eye, onSelect: () => setSelectedId(q.id) },
                 {
-                  label: 'Edit',
+                  label: t('inquiriesPage.rowActions.edit'),
                   icon: Pencil,
                   hidden: !canEdit || q.status === 'Dikonversi',
                   onSelect: () => {
@@ -260,67 +269,67 @@ export const Inquiries = () => {
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Pertanyaan Pelanggan"
-        description="Pertanyaan calon pelanggan / prospek sebelum penawaran resmi."
+        title={t('inquiriesPage.title')}
+        description={t('inquiriesPage.description')}
         actions={
           <>
-            <Button variant="outline" onClick={() => setIsQROpen(true)} title="Buat QR untuk formulir publik">
+            <Button variant="outline" onClick={() => setIsQROpen(true)} title={t('inquiriesPage.qrButtonTitle')}>
               <QrCode aria-hidden />
-              <span className="sr-only sm:not-sr-only">QR Form</span>
+              <span className="sr-only sm:not-sr-only">{t('inquiriesPage.qrButton')}</span>
             </Button>
             {canEdit && (
               <Button onClick={openCreate}>
                 <Plus aria-hidden />
-                Catat Pertanyaan
+                {t('inquiriesPage.create')}
               </Button>
             )}
           </>
         }
       />
 
-      <section aria-label="Ringkasan pertanyaan sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('inquiriesPage.stats.regionLabel')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Jumlah Pertanyaan"
+          label={t('inquiriesPage.stats.count')}
           icon={Inbox}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.count) : '—'}
-          hint={summary ? `${formatNumber(summary.inProgressCount)} sedang diproses` : undefined}
+          hint={summary ? t('inquiriesPage.stats.inProgress', { count: summary.inProgressCount, formatted: formatNumber(summary.inProgressCount) }) : undefined}
         />
         <StatCard
-          label="Baru"
+          label={t('inquiriesPage.stats.new')}
           icon={Inbox}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.newCount) : '—'}
-          hint="belum ditindaklanjuti"
+          hint={t('inquiriesPage.stats.newHint')}
         />
         <StatCard
-          label="Dikonversi"
+          label={t('inquiriesPage.stats.converted')}
           icon={CheckCircle2}
           loading={summaryLoading}
           value={summary ? formatNumber(summary.convertedCount) : '—'}
-          hint="jadi penawaran"
+          hint={t('inquiriesPage.stats.convertedHint')}
         />
         <StatCard
-          label="Tingkat Konversi"
+          label={t('inquiriesPage.stats.conversionRate')}
           icon={Percent}
           loading={summaryLoading}
           value={summary ? formatPercent(summary.conversionRate) : '—'}
-          hint="dari semua pertanyaan"
+          hint={t('inquiriesPage.stats.conversionRateHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari pertanyaan"
-          searchPlaceholder="Cari nomor, prospek, atau pelanggan"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('inquiriesPage.search.label')}
+          searchPlaceholder={t('inquiriesPage.search.placeholder')}
+          status={{ options: statusFilter() }}
           dateRange
         >
           <ChannelFilter value={list.filters.channel} onChange={(v) => list.setFilter('channel', v)} />
@@ -328,8 +337,8 @@ export const Inquiries = () => {
 
         <DataTable
           {...listTableProps(list, total)}
-          label="Daftar pertanyaan pelanggan"
-          itemLabel="pertanyaan"
+          label={t('inquiriesPage.table.label')}
+          itemLabel={t('inquiriesPage.table.itemLabel')}
           columns={columns}
           data={inquiriesQuery.data?.data}
           getRowId={(row) => row.id}
@@ -341,12 +350,12 @@ export const Inquiries = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada pertanyaan pelanggan',
-            description: 'Catat pertanyaan dari WhatsApp, telepon, atau bagikan QR formulir publik.',
+            title: t('inquiriesPage.empty.title'),
+            description: t('inquiriesPage.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={openCreate}>
                 <FileSignature aria-hidden />
-                Catat pertanyaan pertama
+                {t('inquiriesPage.empty.action')}
               </Button>
             ) : undefined,
           }}

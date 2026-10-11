@@ -3,6 +3,7 @@
  * server (same rules as the badge). Deposits have no detail view yet, so rows are not clickable.
  */
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CheckCircle2, Clock, Plus, Undo2, Wallet, XCircle } from 'lucide-react';
@@ -60,7 +61,8 @@ interface CustomerDepositSummary {
 
 const ENDPOINT = '/customer-deposits';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Active', 'PartiallyUsed', 'FullyUsed', 'Cancelled'], 'deposit');
+/** Built at render time so labels follow the UI language. */
+const statusFilterOptions = () => statusOptions(['Active', 'PartiallyUsed', 'FullyUsed', 'Cancelled'], 'deposit');
 /** Same threshold as the server: a remaining balance above this can still be used/refunded. */
 const REMAINING_EPSILON = 0.01;
 
@@ -87,6 +89,7 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export const CustomerDeposits = () => {
+  const { t } = useTranslation('sales');
   const queryClient = useQueryClient();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -112,12 +115,12 @@ export const CustomerDeposits = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`${ENDPOINT}/${id}/cancel`),
     onSuccess: () => {
-      toast.success('Uang muka pelanggan dibatalkan.');
+      toast.success(t('customerDepositsPage.toast.cancelled'));
       queryClient.invalidateQueries({ queryKey: ['customer-deposits'] });
       queryClient.invalidateQueries({ queryKey: ['coa'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
     },
-    onError: (err: unknown) => toast.error(errorMessage(err, 'Gagal membatalkan uang muka.')),
+    onError: (err: unknown) => toast.error(errorMessage(err, t('customerDepositsPage.toast.cancelFailed'))),
   });
 
   const summary = summaryQuery.data;
@@ -126,7 +129,7 @@ export const CustomerDeposits = () => {
     () => [
       {
         id: 'paymentNumber',
-        header: 'Nomor',
+        header: t('customerDepositsPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -142,7 +145,7 @@ export const CustomerDeposits = () => {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('customerDepositsPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -150,7 +153,7 @@ export const CustomerDeposits = () => {
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('customerDepositsPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => {
@@ -168,7 +171,7 @@ export const CustomerDeposits = () => {
       },
       {
         id: 'amount',
-        header: () => withUnit('Jumlah'),
+        header: () => withUnit(t('customerDepositsPage.columns.amount')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'sm' },
@@ -176,7 +179,7 @@ export const CustomerDeposits = () => {
       },
       {
         id: 'totalApplied',
-        header: () => withUnit('Digunakan'),
+        header: () => withUnit(t('customerDepositsPage.columns.applied')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right', hideBelow: 'lg' },
@@ -186,8 +189,8 @@ export const CustomerDeposits = () => {
             <div>
               <span className={totalApplied > 0 ? 'text-foreground' : 'text-muted-foreground'}>{money(totalApplied)}</span>
               {totalRefunded > 0 && (
-                <div className="mt-0.5 text-xs text-warning-text" title={`Dikembalikan (refund kas): ${formatRupiah(totalRefunded)}`}>
-                  refund {money(totalRefunded)}
+                <div className="mt-0.5 text-xs text-warning-text" title={t('customerDepositsPage.refundedTitle', { amount: formatRupiah(totalRefunded) })}>
+                  {t('customerDepositsPage.refundedShort', { amount: money(totalRefunded) })}
                 </div>
               )}
             </div>
@@ -196,7 +199,7 @@ export const CustomerDeposits = () => {
       },
       {
         id: 'remaining',
-        header: () => withUnit('Sisa'),
+        header: () => withUnit(t('customerDepositsPage.columns.remaining')),
         enableSorting: true,
         sortDescFirst: true,
         meta: { align: 'right' },
@@ -216,29 +219,29 @@ export const CustomerDeposits = () => {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('customerDepositsPage.columns.status'),
         meta: { hideBelow: 'sm' },
         cell: ({ row }) => <StatusBadge status={depositState(row.original)} docType="deposit" />,
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('customerDepositsPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const d = row.original;
           const isCancelled = d.status === 'Cancelled';
           return (
             <RowActions
-              label={`Aksi untuk ${d.paymentNumber}`}
+              label={t('customerDepositsPage.actions.menuLabel', { number: d.paymentNumber })}
               actions={[
                 {
-                  label: 'Refund / offset',
+                  label: t('customerDepositsPage.actions.refund'),
                   icon: Undo2,
                   hidden: !canEdit || isCancelled || d.remaining <= REMAINING_EPSILON,
                   onSelect: () => setRefundTarget(d),
                 },
                 {
-                  label: 'Batalkan',
+                  label: t('customerDepositsPage.actions.cancel'),
                   icon: XCircle,
                   tone: 'danger',
                   hidden: !canEdit || isCancelled,
@@ -250,7 +253,7 @@ export const CustomerDeposits = () => {
         },
       },
     ],
-    [canEdit],
+    [canEdit, t],
   );
 
   const kpiMoney = (v: number | undefined) => (v === undefined ? '—' : formatRupiah(v, { compact: true }));
@@ -258,37 +261,41 @@ export const CustomerDeposits = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader
-        title="Uang Muka Pelanggan"
-        description="Kelola deposit dan uang muka dari pelanggan."
+        title={t('customerDepositsPage.title')}
+        description={t('customerDepositsPage.description')}
         actions={
           canEdit && (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus aria-hidden />
-              Buat Uang Muka
+              {t('customerDepositsPage.create')}
             </Button>
           )
         }
       />
 
-      <section aria-label="Ringkasan uang muka sesuai filter" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t('customerDepositsPage.kpi.label')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Total Deposit"
+          label={t('customerDepositsPage.kpi.total')}
           icon={Wallet}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalDeposit)}
           valueTitle={summary ? formatRupiah(summary.totalDeposit) : undefined}
-          hint={summary ? `${formatNumber(summary.count - summary.cancelledCount)} uang muka` : undefined}
+          hint={summary ? t('customerDepositsPage.kpi.totalHint', { total: formatNumber(summary.count - summary.cancelledCount) }) : undefined}
         />
         <StatCard
-          label="Sudah Digunakan"
+          label={t('customerDepositsPage.kpi.applied')}
           icon={CheckCircle2}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalApplied)}
           valueTitle={summary ? formatRupiah(summary.totalApplied) : undefined}
-          hint={summary && summary.totalRefunded > 0 ? `Refund ${formatRupiah(summary.totalRefunded)}` : 'ke faktur'}
+          hint={
+            summary && summary.totalRefunded > 0
+              ? t('customerDepositsPage.kpi.refundHint', { amount: formatRupiah(summary.totalRefunded) })
+              : t('customerDepositsPage.kpi.appliedHint')
+          }
         />
         <StatCard
-          label="Sisa Deposit"
+          label={t('customerDepositsPage.kpi.remaining')}
           icon={Wallet}
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalRemaining)}
@@ -296,20 +303,20 @@ export const CustomerDeposits = () => {
           hint={summary ? formatRupiah(summary.totalRemaining) : undefined}
         />
         <StatCard
-          label="Deposit Aktif"
+          label={t('customerDepositsPage.kpi.active')}
           icon={Clock}
           loading={!summary && !summaryQuery.isError}
           value={summary ? formatNumber(summary.activeCount) : '—'}
-          hint="masih punya sisa"
+          hint={t('customerDepositsPage.kpi.activeHint')}
         />
       </section>
 
       <div className="space-y-3">
         <FilterBar
           list={list}
-          searchLabel="Cari uang muka"
-          searchPlaceholder="Cari nomor deposit atau pelanggan"
-          status={{ options: STATUS_FILTER }}
+          searchLabel={t('customerDepositsPage.filters.searchLabel')}
+          searchPlaceholder={t('customerDepositsPage.filters.searchPlaceholder')}
+          status={{ options: statusFilterOptions() }}
           dateRange
         >
           <PartyFilter
@@ -321,8 +328,8 @@ export const CustomerDeposits = () => {
 
         <DataTable
           {...listTableProps(list, depositsQuery.data?.total)}
-          label="Daftar uang muka pelanggan"
-          itemLabel="uang muka"
+          label={t('customerDepositsPage.table.label')}
+          itemLabel={t('customerDepositsPage.table.itemLabel')}
           columns={columns}
           data={depositsQuery.data?.data}
           getRowId={(row) => row.id}
@@ -333,12 +340,12 @@ export const CustomerDeposits = () => {
           density={density}
           onDensityChange={setDensity}
           empty={{
-            title: 'Belum ada uang muka pelanggan',
-            description: 'Deposit yang diterima dari pelanggan akan muncul di sini.',
+            title: t('customerDepositsPage.empty.title'),
+            description: t('customerDepositsPage.empty.description'),
             action: canEdit ? (
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus aria-hidden />
-                Buat uang muka pertama
+                {t('customerDepositsPage.empty.action')}
               </Button>
             ) : undefined,
           }}
@@ -373,9 +380,10 @@ export const CustomerDeposits = () => {
             setCancelTarget(null);
           }
         }}
-        title="Batalkan Uang Muka"
-        message={`Apakah Anda yakin ingin membatalkan uang muka ${cancelTarget?.paymentNumber}? Saldo akun dan deposit pelanggan akan dikembalikan.`}
-        confirmLabel="Ya, Batalkan"
+        title={t('customerDepositsPage.cancelDialog.title')}
+        message={t('customerDepositsPage.cancelDialog.message', { number: cancelTarget?.paymentNumber ?? '' })}
+        confirmLabel={t('customerDepositsPage.cancelDialog.confirm')}
+
         variant="danger"
       />
     </div>

@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Plus, ReceiptText } from 'lucide-react';
 import api from '@/lib/api';
@@ -41,8 +42,8 @@ interface DeliveryOrderRow {
 
 const ENDPOINT = '/delivery-orders';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-// Filter values are what the API expects; labels match the row badges.
-const STATUS_FILTER = [
+// Filter values are what the API expects; labels match the row badges (built at render to follow the language).
+const statusFilter = () => [
   { value: 'Submitted', label: getStatusLabel('Uninvoiced', 'delivery_order') },
   { value: 'Invoiced', label: getStatusLabel('Invoiced', 'delivery_order') },
   { value: 'Cancelled', label: getStatusLabel('Cancelled', 'delivery_order') },
@@ -60,6 +61,7 @@ export interface DeliveryOrdersListProps {
 }
 
 export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
+  const { t } = useTranslation('sales');
   const navigate = useNavigate();
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
@@ -76,7 +78,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
     () => [
       {
         id: 'doNumber',
-        header: 'Nomor',
+        header: t('deliveryOrdersOfficialPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -92,7 +94,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('deliveryOrdersOfficialPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -100,14 +102,14 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('deliveryOrdersOfficialPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-72' },
         cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.customer?.name ?? '—'}</p>,
       },
       {
         id: 'poRef',
-        header: 'Ref PO / SO',
+        header: t('deliveryOrdersOfficialPage.columns.poSoRef'),
         meta: { hideBelow: 'lg', cellClassName: 'min-w-32 whitespace-nowrap' },
         cell: ({ row }) => {
           const so = row.original.salesOrder;
@@ -122,19 +124,19 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
       },
       {
         id: 'nomorMobil',
-        header: 'No. Mobil',
+        header: t('deliveryOrdersOfficialPage.columns.vehicle'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
         cell: ({ row }) => row.original.nomorMobil || '—',
       },
       {
         id: 'items',
-        header: 'Item',
+        header: t('deliveryOrdersOfficialPage.columns.items'),
         meta: { align: 'right', hideBelow: 'xl', cellClassName: 'text-muted-foreground' },
         cell: ({ row }) => formatNumber(row.original._count?.items ?? 0),
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('deliveryOrdersOfficialPage.columns.status'),
         cell: ({ row }) => (
           <div className="flex flex-col items-start gap-0.5">
             <StatusBadge status={deliveryOrderDisplayStatus(row.original)} docType="delivery_order" />
@@ -149,7 +151,7 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
       },
       {
         id: 'invoice',
-        header: 'Faktur',
+        header: t('deliveryOrdersOfficialPage.columns.invoice'),
         meta: { hideBelow: 'md', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) =>
           row.original.invoice ? (
@@ -160,18 +162,18 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('deliveryOrdersOfficialPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => {
           const d = row.original;
           return (
             <RowActions
-              label={`Aksi untuk ${d.doNumber}`}
+              label={t('deliveryOrdersOfficialPage.rowActions.label', { number: d.doNumber })}
               actions={[
-                { label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(d.id) },
+                { label: t('deliveryOrdersOfficialPage.rowActions.view'), icon: Eye, onSelect: () => setSelectedId(d.id) },
                 {
                   // Same deep link as the drawer's "Buat Invoice".
-                  label: 'Buat faktur',
+                  label: t('deliveryOrdersOfficialPage.rowActions.createInvoice'),
                   icon: ReceiptText,
                   hidden: !canInvoice || deliveryOrderDisplayStatus(d) !== 'Uninvoiced',
                   onSelect: () => navigate(`/sales?fromDO=${d.id}&party=${d.partyId}`),
@@ -182,16 +184,16 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
         },
       },
     ],
-    [canInvoice, navigate],
+    [canInvoice, navigate, t],
   );
 
   return (
     <div className="space-y-3">
       <FilterBar
         list={list}
-        searchLabel="Cari surat jalan"
-        searchPlaceholder="Cari nomor DO, SO, PO, pelanggan, no. mobil"
-        status={{ options: STATUS_FILTER }}
+        searchLabel={t('deliveryOrdersOfficialPage.searchLabel')}
+        searchPlaceholder={t('deliveryOrdersOfficialPage.searchPlaceholder')}
+        status={{ options: statusFilter() }}
         dateRange
       >
         <PartyFilter partyType="Customer" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
@@ -199,8 +201,8 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
 
       <DataTable
         {...listTableProps(list, ordersQuery.data?.total)}
-        label="Daftar surat jalan resmi"
-        itemLabel="surat jalan"
+        label={t('deliveryOrdersOfficialPage.tableLabel')}
+        itemLabel={t('deliveryOrdersOfficialPage.itemLabel')}
         columns={columns}
         data={ordersQuery.data?.data}
         getRowId={(row) => row.id}
@@ -212,12 +214,12 @@ export function DeliveryOrdersList({ onCreate }: DeliveryOrdersListProps) {
         density={density}
         onDensityChange={setDensity}
         empty={{
-          title: 'Belum ada surat jalan',
-          description: 'Surat jalan resmi memotong stok saat dibuat; faktur menyusul.',
+          title: t('deliveryOrdersOfficialPage.empty.title'),
+          description: t('deliveryOrdersOfficialPage.empty.description'),
           action: (
             <Button size="sm" onClick={onCreate}>
               <Plus aria-hidden />
-              Buat surat jalan pertama
+              {t('deliveryOrdersOfficialPage.empty.action')}
             </Button>
           ),
         }}

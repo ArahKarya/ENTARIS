@@ -4,6 +4,7 @@
  */
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Clock, Eye, Plus } from 'lucide-react';
 import api from '@/lib/api';
@@ -48,9 +49,11 @@ interface TemporaryNoteRow {
 
 const ENDPOINT = '/temporary-delivery-notes';
 const FILTER_KEYS = ['status', 'partyId', 'startDate', 'endDate'] as const;
-const STATUS_FILTER = statusOptions(['Open', 'Linked', 'Cancelled'], 'temporary_delivery_note');
+/** Built at render so labels follow the UI language. */
+const statusFilter = () => statusOptions(['Open', 'Linked', 'Cancelled'], 'temporary_delivery_note');
 
 export function SjsReminder({ summary }: { summary: SjsSummary | undefined }) {
+  const { t } = useTranslation('sales');
   if (!summary || summary.open <= 0) return null;
   const late = summary.overdue > 0;
   return (
@@ -63,15 +66,23 @@ export function SjsReminder({ summary }: { summary: SjsSummary | undefined }) {
     >
       <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
-        <b className="num">{formatNumber(summary.open)}</b> surat jalan sementara masih Terbuka (belum ditautkan ke surat
-        jalan resmi)
-        {late && (
-          <>
-            ,{' '}
-            <b className="num">{formatNumber(summary.overdue)}</b> sudah lebih dari {SJS_REMINDER_DAYS} hari
-          </>
+        {late ? (
+          <Trans
+            t={t}
+            i18nKey="temporaryDeliveryNotesPage.reminder.openLate"
+            count={summary.open}
+            values={{ open: formatNumber(summary.open), overdue: formatNumber(summary.overdue), days: SJS_REMINDER_DAYS }}
+            components={{ b: <b className="num" /> }}
+          />
+        ) : (
+          <Trans
+            t={t}
+            i18nKey="temporaryDeliveryNotesPage.reminder.open"
+            count={summary.open}
+            values={{ open: formatNumber(summary.open) }}
+            components={{ b: <b className="num" /> }}
+          />
         )}
-        .
       </span>
     </div>
   );
@@ -84,6 +95,7 @@ export interface TemporaryDeliveryNotesListProps {
 }
 
 export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliveryNotesListProps) {
+  const { t } = useTranslation('sales');
   const list = useListState({ filters: FILTER_KEYS, defaultSort: { id: 'date', desc: true } });
   const [density, setDensity] = useTableDensity();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -98,7 +110,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
     () => [
       {
         id: 'number',
-        header: 'Nomor',
+        header: t('temporaryDeliveryNotesPage.columns.number'),
         enableSorting: true,
         sortDescFirst: true,
         cell: ({ row }) => (
@@ -114,7 +126,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
       },
       {
         id: 'date',
-        header: 'Tanggal',
+        header: t('temporaryDeliveryNotesPage.columns.date'),
         enableSorting: true,
         sortDescFirst: true,
         meta: { hideBelow: 'md', cellClassName: 'num whitespace-nowrap text-muted-foreground' },
@@ -122,20 +134,20 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
       },
       {
         id: 'customer',
-        header: 'Pelanggan',
+        header: t('temporaryDeliveryNotesPage.columns.customer'),
         enableSorting: true,
         meta: { hideBelow: 'sm', cellClassName: 'min-w-40 max-w-64' },
         cell: ({ row }) => <p className="truncate font-medium text-foreground">{row.original.customerName}</p>,
       },
       {
         id: 'nomorMobil',
-        header: 'No. Mobil',
+        header: t('temporaryDeliveryNotesPage.columns.vehicle'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap font-mono text-xs uppercase text-muted-foreground' },
         cell: ({ row }) => row.original.nomorMobil || '—',
       },
       {
         id: 'ringkasan',
-        header: 'Barang',
+        header: t('temporaryDeliveryNotesPage.columns.items'),
         meta: { hideBelow: 'md', cellClassName: 'max-w-72' },
         cell: ({ row }) => (
           <p className="truncate text-muted-foreground" title={row.original.ringkasan ?? undefined}>
@@ -145,7 +157,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
       },
       {
         id: 'status',
-        header: 'Status',
+        header: t('temporaryDeliveryNotesPage.columns.status'),
         cell: ({ row }) => {
           const r = row.original;
           const stale = r.status === 'Open' && r.umur_hari > SJS_REMINDER_DAYS;
@@ -154,7 +166,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
               <StatusBadge status={r.status} docType="temporary_delivery_note" />
               {stale && (
                 <span className="num text-xs font-medium text-danger-text">
-                  {formatNumber(r.umur_hari)} hari<span className="sr-only"> belum ditautkan</span>
+                  {t('temporaryDeliveryNotesPage.ageDays', { count: r.umur_hari, days: formatNumber(r.umur_hari) })}<span className="sr-only"> {t('temporaryDeliveryNotesPage.notLinked')}</span>
                 </span>
               )}
             </div>
@@ -163,7 +175,7 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
       },
       {
         id: 'doNumber',
-        header: 'DO Resmi',
+        header: t('temporaryDeliveryNotesPage.columns.officialDo'),
         meta: { hideBelow: 'lg', cellClassName: 'whitespace-nowrap' },
         cell: ({ row }) =>
           row.original.doNumber ? (
@@ -174,34 +186,32 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
       },
       {
         id: 'actions',
-        header: () => <span className="sr-only">Aksi</span>,
+        header: () => <span className="sr-only">{t('temporaryDeliveryNotesPage.columns.actions')}</span>,
         meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
         cell: ({ row }) => (
           <RowActions
-            label={`Aksi untuk ${row.original.number}`}
-            actions={[{ label: 'Lihat detail', icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
+            label={t('temporaryDeliveryNotesPage.rowActions.label', { number: row.original.number })}
+            actions={[{ label: t('temporaryDeliveryNotesPage.rowActions.view'), icon: Eye, onSelect: () => setSelectedId(row.original.id) }]}
           />
         ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Barang dikirim sebelum produksi diinput.{' '}
-        <b className="font-medium text-foreground">Tidak memotong stok, tanpa jurnal, tidak bisa diinvoice.</b>{' '}
-        Tautkan ke surat jalan resmi setelah produksi selesai.
+        <Trans t={t} i18nKey="temporaryDeliveryNotesPage.intro" components={{ b: <b className="font-medium text-foreground" /> }} />
       </p>
 
       <SjsReminder summary={summary} />
 
       <FilterBar
         list={list}
-        searchLabel="Cari surat jalan sementara"
-        searchPlaceholder="Cari nomor, pelanggan, no. mobil"
-        status={{ options: STATUS_FILTER }}
+        searchLabel={t('temporaryDeliveryNotesPage.searchLabel')}
+        searchPlaceholder={t('temporaryDeliveryNotesPage.searchPlaceholder')}
+        status={{ options: statusFilter() }}
         dateRange
       >
         <PartyFilter partyType="Customer" value={list.filters.partyId} onChange={(v) => list.setFilter('partyId', v)} />
@@ -209,8 +219,8 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
 
       <DataTable
         {...listTableProps(list, notesQuery.data?.total)}
-        label="Daftar surat jalan sementara"
-        itemLabel="surat jalan sementara"
+        label={t('temporaryDeliveryNotesPage.tableLabel')}
+        itemLabel={t('temporaryDeliveryNotesPage.itemLabel')}
         columns={columns}
         data={notesQuery.data?.data}
         getRowId={(row) => row.id}
@@ -222,12 +232,12 @@ export function TemporaryDeliveryNotesList({ summary, onCreate }: TemporaryDeliv
         density={density}
         onDensityChange={setDensity}
         empty={{
-          title: 'Belum ada surat jalan sementara',
-          description: 'Gunakan saat barang harus dikirim sebelum produksi diinput.',
+          title: t('temporaryDeliveryNotesPage.empty.title'),
+          description: t('temporaryDeliveryNotesPage.empty.description'),
           action: onCreate ? (
             <Button size="sm" onClick={onCreate}>
               <Plus aria-hidden />
-              Buat surat jalan sementara
+              {t('temporaryDeliveryNotesPage.empty.action')}
             </Button>
           ) : undefined,
         }}

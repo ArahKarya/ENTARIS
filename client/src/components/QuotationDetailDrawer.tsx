@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Send, CheckCircle2, XCircle, FileCheck2, Download, Edit3, Trash2, Ban, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -24,6 +25,7 @@ interface Props {
 }
 
 const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }) => {
+  const { t } = useTranslation('sales');
   const isOpen = quotationId !== null;
 
   const queryClient = useQueryClient();
@@ -49,28 +51,28 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
 
   const sendMut = useMutation({
     mutationFn: () => api.patch(`/quotations/${quotationId}/send`),
-    onSuccess: () => { toast.success('Penawaran dikirim.'); invalidate(); },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal mengirim.'),
+    onSuccess: () => { toast.success(t('quotationDetailDrawer.toast.sent')); invalidate(); },
+    onError: (e: any) => toast.error(e.response?.data?.error ?? t('quotationDetailDrawer.errors.sendFailed')),
   });
   const acceptMut = useMutation({
     mutationFn: () => api.patch(`/quotations/${quotationId}/accept`),
-    onSuccess: () => { toast.success('Penawaran ditandai diterima.'); invalidate(); },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal accept.'),
+    onSuccess: () => { toast.success(t('quotationDetailDrawer.toast.accepted')); invalidate(); },
+    onError: (e: any) => toast.error(e.response?.data?.error ?? t('quotationDetailDrawer.errors.acceptFailed')),
   });
   const rejectMut = useMutation({
     mutationFn: (reason: string) => api.patch(`/quotations/${quotationId}/reject`, { reason }),
-    onSuccess: () => { toast.success('Penawaran ditandai ditolak.'); invalidate(); setRejectOpen(false); },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal reject.'),
+    onSuccess: () => { toast.success(t('quotationDetailDrawer.toast.rejected')); invalidate(); setRejectOpen(false); },
+    onError: (e: any) => toast.error(e.response?.data?.error ?? t('quotationDetailDrawer.errors.rejectFailed')),
   });
   const cancelMut = useMutation({
     mutationFn: () => api.patch(`/quotations/${quotationId}/cancel`),
-    onSuccess: () => { toast.success('Penawaran dibatalkan.'); invalidate(); },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal cancel.'),
+    onSuccess: () => { toast.success(t('quotationDetailDrawer.toast.cancelled')); invalidate(); },
+    onError: (e: any) => toast.error(e.response?.data?.error ?? t('quotationDetailDrawer.errors.cancelFailed')),
   });
   const deleteMut = useMutation({
     mutationFn: () => api.delete(`/quotations/${quotationId}`),
-    onSuccess: () => { toast.success('Penawaran dihapus.'); invalidate(); onClose(); },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal hapus.'),
+    onSuccess: () => { toast.success(t('quotationDetailDrawer.toast.deleted')); invalidate(); onClose(); },
+    onError: (e: any) => toast.error(e.response?.data?.error ?? t('quotationDetailDrawer.errors.deleteFailed')),
   });
 
   const convertMut = useMutation({
@@ -103,7 +105,9 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
         labelPotongan: p.labelPotongan,
         labelBiaya: p.labelBiaya,
         terms: p.terms,
-        notes: p.notes ? `${p.notes}\n\n[Konversi dari ${p.quotationNumber}]` : `[Konversi dari ${p.quotationNumber}]`,
+        notes: p.notes
+          ? `${p.notes}\n\n${t('quotationDetailDrawer.convertedFromNote', { number: p.quotationNumber })}`
+          : t('quotationDetailDrawer.convertedFromNote', { number: p.quotationNumber }),
         allowNegativeStock: false,
       });
       const invoice = invRes.data;
@@ -112,7 +116,7 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
       return invoice;
     },
     onSuccess: (invoice) => {
-      toast.success(`Sales Invoice ${invoice.invoiceNumber} dibuat.`);
+      toast.success(t('quotationDetailDrawer.toast.invoiceCreated', { number: invoice.invoiceNumber }));
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['parties'] });
@@ -120,7 +124,7 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
       onClose();
       navigate('/sales');
     },
-    onError: (e: any) => toast.error(e.response?.data?.error ?? 'Gagal konversi.'),
+    onError: (e: any) => toast.error(e.response?.data?.error ?? t('quotationDetailDrawer.errors.convertFailed')),
   });
 
   if (!isOpen) return null;
@@ -136,41 +140,41 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
       <Sheet open onOpenChange={(open) => !open && onClose()}>
         <SheetContent size="md">
           <SheetHeader>
-            <SheetTitle>Detail Penawaran</SheetTitle>
-            <SheetDescription className="font-mono">{q ? q.quotationNumber : 'Memuat…'}</SheetDescription>
+            <SheetTitle>{t('quotationDetailDrawer.title')}</SheetTitle>
+            <SheetDescription className="font-mono">{q ? q.quotationNumber : t('quotationDetailDrawer.loading')}</SheetDescription>
           </SheetHeader>
 
           <SheetBody className="space-y-4">
             {isLoading || !q ? (
-              <LoadingState label="Memuat penawaran…" />
+              <LoadingState label={t('quotationDetailDrawer.loadingQuotation')} />
             ) : (
               <>
                 <div className="space-y-2 rounded-lg bg-muted/40 p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Status</span>
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">{t('quotationDetailDrawer.fields.status')}</span>
                     <StatusBadge status={q.status} docType="quotation" />
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Tanggal</span>
+                    <span className="text-muted-foreground">{t('quotationDetailDrawer.fields.date')}</span>
                     <span className="font-medium text-foreground">{formatDate(q.date)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Berlaku Sampai</span>
+                    <span className="text-muted-foreground">{t('quotationDetailDrawer.fields.validUntil')}</span>
                     <span className="font-medium text-foreground">{formatDate(q.validUntil)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground">Pelanggan</span>
+                    <span className="text-muted-foreground">{t('quotationDetailDrawer.fields.customer')}</span>
                     <span className="font-medium text-foreground">{q.customer?.name}</span>
                   </div>
                   {q.salesInvoice && (
                     <div className="flex items-center justify-between border-t border-border pt-1 text-xs">
-                      <span className="text-muted-foreground">Sales Invoice</span>
+                      <span className="text-muted-foreground">{t('quotationDetailDrawer.fields.salesInvoice')}</span>
                       <span className="font-mono text-success-text">{q.salesInvoice.invoiceNumber}</span>
                     </div>
                   )}
                   {(q.salesOrders ?? []).length > 0 && (
                     <div className="flex items-center justify-between gap-2 border-t border-border pt-1 text-xs">
-                      <span className="text-muted-foreground">Sales Order</span>
+                      <span className="text-muted-foreground">{t('quotationDetailDrawer.fields.salesOrder')}</span>
                       <span className="font-mono text-success-text">
                         {q.salesOrders.map((so: { soNumber: string }) => so.soNumber).join(', ')}
                       </span>
@@ -178,22 +182,22 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                   )}
                   {q.rejectReason && (
                     <div className="border-t border-border pt-1 text-xs">
-                      <span className="text-muted-foreground">Alasan ditolak: </span>
+                      <span className="text-muted-foreground">{t('quotationDetailDrawer.fields.rejectReason')} </span>
                       <span className="italic text-danger-text">{q.rejectReason}</span>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-foreground">Item</h4>
-                  <TableRegion label="Item penawaran">
+                  <h4 className="mb-2 text-sm font-semibold text-foreground">{t('quotationDetailDrawer.items.title')}</h4>
+                  <TableRegion label={t('quotationDetailDrawer.items.tableLabel')}>
                     <table className="w-full min-w-[420px] text-xs">
                       <thead>
                         <tr className="border-b border-border text-muted-foreground">
-                          <th scope="col" className="px-2 py-1.5 text-left">Item</th>
-                          <th scope="col" className="px-2 py-1.5 text-right">Qty</th>
-                          <th scope="col" className="px-2 py-1.5 text-right">Harga</th>
-                          <th scope="col" className="px-2 py-1.5 text-right">Total</th>
+                          <th scope="col" className="px-2 py-1.5 text-left">{t('quotationDetailDrawer.items.item')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-right">{t('quotationDetailDrawer.items.qty')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-right">{t('quotationDetailDrawer.items.price')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-right">{t('quotationDetailDrawer.items.total')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -214,18 +218,18 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                 </div>
 
                 <div className="space-y-1 rounded-lg bg-muted/40 p-3 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{t('quotationDetailDrawer.summary.subtotal')}</span>
                     <span className="tabular-nums">{formatRupiah(Number(q.subtotal))}</span></div>
                   {Number(q.potongan) > 0 && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">{q.labelPotongan ?? 'Potongan'}</span>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{q.labelPotongan ?? t('quotationDetailDrawer.summary.discount')}</span>
                       <span className="tabular-nums">−{formatRupiah(Number(q.potongan))}</span></div>
                   )}
                   {Number(q.biayaLain) !== 0 && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">{q.labelBiaya ?? 'Biaya Lain'}</span>
+                    <div className="flex justify-between"><span className="text-muted-foreground">{q.labelBiaya ?? t('quotationDetailDrawer.summary.otherCosts')}</span>
                       <span className="tabular-nums">{formatRupiah(Number(q.biayaLain))}</span></div>
                   )}
                   <div className="flex justify-between border-t border-border pt-1 font-bold">
-                    <span>Grand Total</span>
+                    <span>{t('quotationDetailDrawer.summary.grandTotal')}</span>
                     <span className="tabular-nums text-primary">{formatRupiah(Number(q.grandTotal))}</span>
                   </div>
                 </div>
@@ -234,13 +238,13 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                   <div className="space-y-2 text-xs">
                     {q.notes && (
                       <div>
-                        <p className="mb-1 font-semibold text-foreground">Catatan</p>
+                        <p className="mb-1 font-semibold text-foreground">{t('quotationDetailDrawer.fields.notes')}</p>
                         <p className="whitespace-pre-line text-muted-foreground">{q.notes}</p>
                       </div>
                     )}
                     {q.terms && (
                       <div>
-                        <p className="mb-1 font-semibold text-foreground">Syarat &amp; Ketentuan</p>
+                        <p className="mb-1 font-semibold text-foreground">{t('quotationDetailDrawer.fields.terms')}</p>
                         <p className="whitespace-pre-line text-muted-foreground">{q.terms}</p>
                       </div>
                     )}
@@ -255,12 +259,12 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 {q.status === 'Draft' && (
                   <Button variant="ghost" className={cn('text-danger-text', footBtn)} onClick={() => setConfirmAction('delete')}>
-                    <Trash2 aria-hidden /> Hapus
+                    <Trash2 aria-hidden /> {t('quotationDetailDrawer.actions.delete')}
                   </Button>
                 )}
                 {canCancel && (
                   <Button variant="ghost" className={cn('text-danger-text', footBtn)} onClick={() => setConfirmAction('cancel')} disabled={cancelMut.isPending}>
-                    <Ban aria-hidden /> Batalkan
+                    <Ban aria-hidden /> {t('quotationDetailDrawer.actions.cancel')}
                   </Button>
                 )}
               </div>
@@ -281,10 +285,10 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                 {q.status === 'Draft' && (
                   <>
                     <Button variant="outline" className={footBtn} onClick={() => onEdit?.(q)}>
-                      <Edit3 aria-hidden /> Edit
+                      <Edit3 aria-hidden /> {t('quotationDetailDrawer.actions.edit')}
                     </Button>
                     <Button className={footBtn} onClick={() => setConfirmAction('send')} disabled={sendMut.isPending}>
-                      <Send aria-hidden /> Kirim
+                      <Send aria-hidden /> {t('quotationDetailDrawer.actions.send')}
                     </Button>
                   </>
                 )}
@@ -292,10 +296,10 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                 {q.status === 'Sent' && (
                   <>
                     <Button variant="danger" className={footBtn} onClick={() => setRejectOpen(true)} disabled={rejectMut.isPending}>
-                      <XCircle aria-hidden /> Tolak
+                      <XCircle aria-hidden /> {t('quotationDetailDrawer.actions.reject')}
                     </Button>
                     <Button className={footBtn} onClick={() => setConfirmAction('accept')} disabled={acceptMut.isPending}>
-                      <CheckCircle2 aria-hidden /> Diterima
+                      <CheckCircle2 aria-hidden /> {t('quotationDetailDrawer.actions.accept')}
                     </Button>
                   </>
                 )}
@@ -306,14 +310,14 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                     className={footBtn}
                     onClick={() => navigate(`/sales-orders?fromQuotation=${encodeURIComponent(q.id)}`)}
                   >
-                    <ClipboardList aria-hidden /> Buat Sales Order
+                    <ClipboardList aria-hidden /> {t('quotationDetailDrawer.actions.createSalesOrder')}
                   </Button>
                 )}
 
                 {canConvert && (
                   <Button className={footBtn} onClick={() => convertMut.mutate()} loading={convertMut.isPending}>
                     {!convertMut.isPending && <FileCheck2 aria-hidden />}
-                    Konversi ke Sales Invoice
+                    {t('quotationDetailDrawer.actions.convertToInvoice')}
                   </Button>
                 )}
               </div>
@@ -325,18 +329,18 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
       <ConfirmDialog
         open={confirmAction === 'send'}
         onOpenChange={(open) => !open && setConfirmAction(null)}
-        title="Kirim Penawaran"
-        description={`Kirim penawaran ${q?.quotationNumber} ke pelanggan? Setelah dikirim, penawaran tidak bisa diedit.`}
-        confirmLabel="Ya, Kirim"
+        title={t('quotationDetailDrawer.confirm.send.title')}
+        description={t('quotationDetailDrawer.confirm.send.description', { number: q?.quotationNumber ?? '' })}
+        confirmLabel={t('quotationDetailDrawer.confirm.send.confirm')}
         loading={sendMut.isPending}
         onConfirm={() => sendMut.mutateAsync()}
       />
       <ConfirmDialog
         open={confirmAction === 'accept'}
         onOpenChange={(open) => !open && setConfirmAction(null)}
-        title="Tandai Diterima"
-        description="Tandai penawaran ini diterima oleh pelanggan?"
-        confirmLabel="Ya, Diterima"
+        title={t('quotationDetailDrawer.confirm.accept.title')}
+        description={t('quotationDetailDrawer.confirm.accept.description')}
+        confirmLabel={t('quotationDetailDrawer.confirm.accept.confirm')}
         loading={acceptMut.isPending}
         onConfirm={() => acceptMut.mutateAsync()}
       />
@@ -344,9 +348,9 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
         open={confirmAction === 'cancel'}
         onOpenChange={(open) => !open && setConfirmAction(null)}
         tone="danger"
-        title="Batalkan Penawaran"
-        description="Batalkan penawaran ini? Status akan jadi Cancelled dan tidak bisa di-aktifkan kembali."
-        confirmLabel="Ya, Batalkan"
+        title={t('quotationDetailDrawer.confirm.cancel.title')}
+        description={t('quotationDetailDrawer.confirm.cancel.description')}
+        confirmLabel={t('quotationDetailDrawer.confirm.cancel.confirm')}
         loading={cancelMut.isPending}
         onConfirm={() => cancelMut.mutateAsync()}
       />
@@ -354,9 +358,9 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
         open={confirmAction === 'delete'}
         onOpenChange={(open) => !open && setConfirmAction(null)}
         tone="danger"
-        title="Hapus Penawaran"
-        description="Hapus penawaran Draft ini secara permanen?"
-        confirmLabel="Ya, Hapus"
+        title={t('quotationDetailDrawer.confirm.delete.title')}
+        description={t('quotationDetailDrawer.confirm.delete.description')}
+        confirmLabel={t('quotationDetailDrawer.confirm.delete.confirm')}
         loading={deleteMut.isPending}
         onConfirm={() => deleteMut.mutateAsync()}
       />
@@ -364,13 +368,13 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
         open={rejectOpen}
         onOpenChange={setRejectOpen}
         tone="danger"
-        title="Tolak Penawaran"
-        description="Berikan alasan singkat (minimal 5 karakter)."
-        confirmLabel="Tolak Penawaran"
+        title={t('quotationDetailDrawer.confirm.reject.title')}
+        description={t('quotationDetailDrawer.confirm.reject.description')}
+        confirmLabel={t('quotationDetailDrawer.confirm.reject.confirm')}
         requireReason={{
-          label: 'Alasan penolakan',
+          label: t('quotationDetailDrawer.confirm.reject.reasonLabel'),
           minLength: 5,
-          placeholder: 'Mis: Pelanggan minta harga lebih rendah, beralih ke kompetitor...',
+          placeholder: t('quotationDetailDrawer.confirm.reject.reasonPlaceholder'),
         }}
         loading={rejectMut.isPending}
         onConfirm={(reason) => rejectMut.mutateAsync(reason ?? '')}

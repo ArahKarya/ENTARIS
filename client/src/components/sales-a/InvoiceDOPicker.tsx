@@ -4,7 +4,8 @@
  */
 import { ChevronRight, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
+import { formatDate, LOCALE } from '@/lib/format';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export interface PendingDOItem {
@@ -49,21 +50,21 @@ export function InvoiceDOPicker({
   onToggleSelect,
   onToggleExpand,
 }: InvoiceDOPickerProps) {
+  const { t } = useTranslation('sales');
   return (
     <div className="border-b border-border px-6 pb-3 pt-5">
-      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- wraps a Checkbox (button role) */}
       <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-foreground max-sm:min-h-11">
         <Checkbox checked={fromDOMode} onCheckedChange={(checked) => onToggleMode(checked === true)} />
         <Truck size={14} className="text-primary" aria-hidden />
-        <span className="font-medium">Dari Surat Jalan</span>
-        <span className="text-xs text-muted-foreground">(Surat Jalan sudah dikirim sebelumnya)</span>
+        <span className="font-medium">{t('invoiceDOPicker.fromDO')}</span>
+        <span className="text-xs text-muted-foreground">{t('invoiceDOPicker.fromDOHint')}</span>
       </label>
 
       {fromDOMode && (
         <div className="mt-3 space-y-2">
           {(pendingDOs?.length ?? 0) === 0 ? (
             <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs italic text-muted-foreground">
-              Tidak ada surat jalan terbuka untuk pelanggan ini.
+              {t('invoiceDOPicker.empty')}
             </p>
           ) : (
             pendingDOs!.map((doc) => {
@@ -77,7 +78,7 @@ export function InvoiceDOPicker({
                 >
                   <div className="flex items-center gap-3 px-3 py-2.5">
                     <Checkbox
-                      aria-label={`Pilih surat jalan ${doc.doNumber}`}
+                      aria-label={t('invoiceDOPicker.selectAria', { number: doc.doNumber })}
                       checked={isSelected}
                       onCheckedChange={() => onToggleSelect(doc.id)}
                     />
@@ -86,7 +87,7 @@ export function InvoiceDOPicker({
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-sm font-medium text-foreground">{doc.doNumber}</span>
                         <span className="text-xs text-muted-foreground">{formatDate(doc.date)}</span>
-                        <span className="text-xs text-muted-foreground">• {doc.items.length} item</span>
+                        <span className="text-xs text-muted-foreground">• {t('invoiceDOPicker.itemCount', { count: doc.items.length })}</span>
                       </div>
                     </div>
                     <button
@@ -97,7 +98,7 @@ export function InvoiceDOPicker({
                       className="flex shrink-0 items-center gap-0.5 rounded px-1 text-xs text-muted-foreground hover:text-foreground max-sm:min-h-11"
                     >
                       <ChevronRight size={12} aria-hidden className={cn('transition-transform', isExpanded && 'rotate-90')} />
-                      {isExpanded ? 'Tutup' : 'Lihat detail'}
+                      {isExpanded ? t('invoiceDOPicker.collapse') : t('invoiceDOPicker.expand')}
                     </button>
                   </div>
                   {isExpanded && (
@@ -111,7 +112,7 @@ export function InvoiceDOPicker({
                               {it.inventoryItem?.code && <span> · {it.inventoryItem.code}</span>}
                             </span>
                             <span className="tabular-nums text-foreground">
-                              {Number(it.quantity).toLocaleString('id-ID', { maximumFractionDigits: 3 })} {it.unit}
+                              {Number(it.quantity).toLocaleString(LOCALE, { maximumFractionDigits: 3 })} {it.unit}
                             </span>
                           </li>
                         ))}

@@ -3,6 +3,7 @@
 import { Calendar, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { DateInput, Field } from '@/components/shared';
 
@@ -31,6 +32,7 @@ export function InvoiceInfoGrid({
   onEditDueDate,
   onEditTerms,
 }: InvoiceInfoGridProps) {
+  const { t } = useTranslation('sales');
   return (
     <div className="grid grid-cols-1 gap-6 border-b border-border px-6 py-4 sm:grid-cols-2">
       <div>
@@ -39,46 +41,46 @@ export function InvoiceInfoGrid({
         {party?.phone && <p className="mt-0.5 text-xs text-muted-foreground">{party.phone}</p>}
         {party?.email && <p className="text-xs text-muted-foreground">{party.email}</p>}
         {party?.address && <p className="mt-0.5 text-xs text-muted-foreground">{party.address}</p>}
-        {party?.taxId && <p className="text-xs text-muted-foreground">NPWP: {party.taxId}</p>}
+        {party?.taxId && <p className="text-xs text-muted-foreground">{t('invoiceInfoGrid.taxId', { value: party.taxId })}</p>}
       </div>
 
       <div>
-        <h3 className={sectionTitle}><Calendar size={10} aria-hidden /> Informasi Invoice</h3>
+        <h3 className={sectionTitle}><Calendar size={10} aria-hidden /> {t('invoiceInfoGrid.title')}</h3>
         {isEditing ? (
           <div className="space-y-3">
-            <Field label="Jatuh Tempo">
+            <Field label={t('invoiceInfoGrid.dueDate')}>
               {(c) => <DateInput id={c.id} value={editDueDate} onChange={onEditDueDate} />}
             </Field>
-            <Field label="Termin">
+            <Field label={t('invoiceInfoGrid.terms')}>
               <Input value={editTerms} onChange={(e) => onEditTerms(e.target.value)} placeholder="Net 30" autoComplete="off" />
             </Field>
           </div>
         ) : (
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <dt className="text-xs text-muted-foreground">Tanggal</dt>
+              <dt className="text-xs text-muted-foreground">{t('invoiceInfoGrid.date')}</dt>
               <dd className="text-xs font-medium text-foreground">{formatDate(invoice.date)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Jatuh Tempo</dt>
+              <dt className="text-xs text-muted-foreground">{t('invoiceInfoGrid.dueDate')}</dt>
               <dd className={cn('text-xs font-medium', isOverdue ? 'text-danger-text' : 'text-foreground')}>
                 {invoice.dueDate ? formatDate(invoice.dueDate) : '—'}
               </dd>
             </div>
             {invoice.terms && (
               <div>
-                <dt className="text-xs text-muted-foreground">Termin</dt>
+                <dt className="text-xs text-muted-foreground">{t('invoiceInfoGrid.terms')}</dt>
                 <dd className="text-xs font-medium text-foreground">{invoice.terms}</dd>
               </div>
             )}
             {invoice.customerRefNo && (
               <div className="sm:col-span-2">
-                <dt className="text-xs text-muted-foreground">No. Ref. PO / Penawaran</dt>
+                <dt className="text-xs text-muted-foreground">{t('invoiceInfoGrid.customerRefNo')}</dt>
                 <dd className="font-mono text-xs font-medium text-foreground">{invoice.customerRefNo}</dd>
               </div>
             )}
             <div>
-              <dt className="text-xs text-muted-foreground">Dibuat oleh</dt>
+              <dt className="text-xs text-muted-foreground">{t('invoiceInfoGrid.createdBy')}</dt>
               <dd className="text-xs font-medium text-foreground">{invoice.user?.fullName ?? '—'}</dd>
             </div>
           </dl>

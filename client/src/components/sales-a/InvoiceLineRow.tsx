@@ -6,6 +6,7 @@
 import { Trash2, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRupiah } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
@@ -68,6 +69,7 @@ export function InvoiceLineRow({
   selectServiceItem,
   removeItemAt,
 }: InvoiceLineRowProps) {
+  const { t } = useTranslation('sales');
   const n = idx + 1;
   const fromDO = !!item.deliveryOrderItemId;
   return (
@@ -81,17 +83,17 @@ export function InvoiceLineRow({
             </span>
             <div className="text-sm font-medium text-foreground">{item.itemName}</div>
             <Input
-              aria-label={`Keterangan baris ${n}`}
+              aria-label={t('invoiceLineRow.descriptionAria', { n })}
               value={item.description}
               onChange={(e) => updateItem(idx, 'description', e.target.value)}
-              placeholder="Keterangan baris (opsional)..."
+              placeholder={t('invoiceLineRow.descriptionPlaceholder')}
               className={bareInput}
               autoComplete="off"
             />
           </div>
         ) : (
           <div className="space-y-1.5">
-            <div role="group" aria-label={`Jenis item baris ${n}`} className="flex items-center gap-1">
+            <div role="group" aria-label={t('invoiceLineRow.itemTypeAria', { n })} className="flex items-center gap-1">
               {(['product', 'service'] as const).map((type) => (
                 <button
                   key={type}
@@ -107,7 +109,7 @@ export function InvoiceLineRow({
                       : 'bg-muted text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  {type === 'product' ? 'Barang' : 'Jasa'}
+                  {type === 'product' ? t('invoiceLineRow.product') : t('invoiceLineRow.service')}
                 </button>
               ))}
             </div>
@@ -115,18 +117,18 @@ export function InvoiceLineRow({
             {item.itemType === 'product' ? (
               <>
                 <PickerSelect
-                  aria-label={`Barang baris ${n}`}
+                  aria-label={t('invoiceLineRow.productAria', { n })}
                   options={inventoryOptions}
                   value={item.inventoryItemId}
                   onChange={(v) => selectInventoryItem(idx, v)}
-                  placeholder="Pilih dari Stok Gudang"
+                  placeholder={t('invoiceLineRow.productPlaceholder')}
                 />
                 {!item.inventoryItemId && (
                   <Input
-                    aria-label={`Nama barang manual baris ${n}`}
+                    aria-label={t('invoiceLineRow.manualProductAria', { n })}
                     value={item.itemName}
                     onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                    placeholder="Atau ketik nama barang manual..."
+                    placeholder={t('invoiceLineRow.manualProductPlaceholder')}
                     className={bareInput}
                     autoComplete="off"
                   />
@@ -134,14 +136,14 @@ export function InvoiceLineRow({
                 <WarehouseSelect
                   value={item.warehouseId}
                   onChange={(v) => updateItem(idx, 'warehouseId', v)}
-                  label={`Gudang sumber baris ${n}`}
+                  label={t('invoiceLineRow.warehouseAria', { n })}
                 />
                 {/* Optional batch picker (hybrid FIFO/specific-id) */}
                 {item.inventoryItemId && item.warehouseId && !fromDO && (
                   <div>
-                    <p className="mb-0.5 text-xs text-muted-foreground">Batch (opsional, default WAC)</p>
+                    <p className="mb-0.5 text-xs text-muted-foreground">{t('invoiceLineRow.batchLabel')}</p>
                     <BatchSelect
-                      label={`Batch baris ${n}`}
+                      label={t('invoiceLineRow.batchAria', { n })}
                       itemId={item.inventoryItemId}
                       warehouseId={item.warehouseId}
                       value={item.sourceMovementId ?? ''}
@@ -156,18 +158,18 @@ export function InvoiceLineRow({
             ) : (
               <>
                 <PickerSelect
-                  aria-label={`Layanan baris ${n}`}
+                  aria-label={t('invoiceLineRow.serviceAria', { n })}
                   options={serviceOptions}
                   value={item.serviceItemId}
                   onChange={(v) => selectServiceItem(idx, v)}
-                  placeholder="Pilih Layanan"
+                  placeholder={t('invoiceLineRow.servicePlaceholder')}
                 />
                 {!item.serviceItemId && (
                   <Input
-                    aria-label={`Nama jasa manual baris ${n}`}
+                    aria-label={t('invoiceLineRow.manualServiceAria', { n })}
                     value={item.itemName}
                     onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
-                    placeholder="Atau ketik nama jasa manual..."
+                    placeholder={t('invoiceLineRow.manualServicePlaceholder')}
                     className={bareInput}
                     autoComplete="off"
                   />
@@ -179,7 +181,7 @@ export function InvoiceLineRow({
       </td>
       <td className="px-3 py-3">
         <NumberInput
-          aria-label={`Qty baris ${n}`}
+          aria-label={t('invoiceLineRow.qtyAria', { n })}
           value={item.quantity}
           onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
           min={1}
@@ -192,7 +194,7 @@ export function InvoiceLineRow({
           <span className="text-sm text-muted-foreground">{item.unit}</span>
         ) : (
           <OptionSelect
-            aria-label={`Satuan baris ${n}`}
+            aria-label={t('invoiceLineRow.unitAria', { n })}
             value={item.unit}
             onChange={(v) => updateItem(idx, 'unit', v)}
             options={UNITS.map((u) => ({ value: u, label: u }))}
@@ -201,7 +203,7 @@ export function InvoiceLineRow({
       </td>
       <td className="px-3 py-3">
         <NumberInput
-          aria-label={`Harga satuan baris ${n}`}
+          aria-label={t('invoiceLineRow.rateAria', { n })}
           value={item.rate || ''}
           onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))}
           placeholder="0"
@@ -210,7 +212,7 @@ export function InvoiceLineRow({
       </td>
       <td className="px-3 py-3">
         <NumberInput
-          aria-label={`Diskon persen baris ${n}`}
+          aria-label={t('invoiceLineRow.discountAria', { n })}
           value={item.discount || ''}
           onChange={(e) => updateItem(idx, 'discount', Math.min(100, Number(e.target.value)))}
           placeholder="0"
@@ -221,7 +223,7 @@ export function InvoiceLineRow({
       </td>
       <td className="px-3 py-3">
         <NumberInput
-          aria-label={`PPN persen baris ${n}`}
+          aria-label={t('invoiceLineRow.vatAria', { n })}
           value={item.taxPct || ''}
           onChange={(e) => updateItem(idx, 'taxPct', Math.max(0, Math.min(100, Number(e.target.value))))}
           placeholder="0"
@@ -232,7 +234,7 @@ export function InvoiceLineRow({
       </td>
       <td className="px-3 py-3">
         <NumberInput
-          aria-label={`PPh persen baris ${n}`}
+          aria-label={t('invoiceLineRow.pphAria', { n })}
           value={item.pphPct || ''}
           onChange={(e) => updateItem(idx, 'pphPct', Math.max(0, Math.min(100, Number(e.target.value))))}
           placeholder="0"
@@ -250,7 +252,7 @@ export function InvoiceLineRow({
             variant="ghost"
             size="icon-sm"
             className="text-danger-text max-sm:size-11"
-            aria-label={`Hapus baris ${n}`}
+            aria-label={t('invoiceLineRow.removeAria', { n })}
             onClick={() => removeItemAt(idx)}
           >
             <Trash2 aria-hidden />

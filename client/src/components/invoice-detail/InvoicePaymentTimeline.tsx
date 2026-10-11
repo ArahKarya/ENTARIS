@@ -6,6 +6,7 @@
 import { CreditCard, Wallet, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate, formatRupiah } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 export interface PaymentTimelineEntry {
@@ -31,12 +32,13 @@ export function InvoicePaymentTimeline({
   invoiceCancelled,
   onCancelDepositApp,
 }: InvoicePaymentTimelineProps) {
+  const { t } = useTranslation('sales');
   if (entries.length === 0) return null;
   const depositTone = isSales ? 'info' : 'warning';
   return (
     <div className="border-b border-border px-6 py-4">
       <h3 className="mb-3 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <CreditCard size={10} aria-hidden /> Riwayat Pembayaran ({entries.length})
+        <CreditCard size={10} aria-hidden /> {t('invoicePaymentTimeline.title', { count: entries.length })}
       </h3>
       <ul className="space-y-2">
         {entries.map((entry) => {
@@ -77,14 +79,14 @@ export function InvoicePaymentTimeline({
                   <p className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-foreground">
                     {entry.label}
                     <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
-                      {isDeposit ? 'Uang Muka' : 'Tunai/Bank'}
+                      {isDeposit ? t('invoicePaymentTimeline.deposit') : t('invoicePaymentTimeline.cashBank')}
                     </span>
-                    {cancelled && <span className="text-xs font-normal text-danger-text">(Dibatalkan)</span>}
+                    {cancelled && <span className="text-xs font-normal text-danger-text">{t('invoicePaymentTimeline.cancelledTag')}</span>}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(entry.date)}
                     {cancelled && entry.raw?.cancelledAt && (
-                      <span className="text-danger-text"> · dibatalkan {formatDate(entry.raw.cancelledAt)}</span>
+                      <span className="text-danger-text"> · {t('invoicePaymentTimeline.cancelledOn', { date: formatDate(entry.raw.cancelledAt) })}</span>
                     )}
                   </p>
                 </div>
@@ -109,8 +111,8 @@ export function InvoicePaymentTimeline({
                     variant="ghost"
                     size="icon-sm"
                     className="text-danger-text max-sm:size-11"
-                    aria-label={`Batalkan alokasi uang muka ${entry.label ?? ''}`.trim()}
-                    title="Batalkan alokasi uang muka"
+                    aria-label={t('invoicePaymentTimeline.cancelAllocationAria', { label: entry.label ?? '' }).trim()}
+                    title={t('invoicePaymentTimeline.cancelAllocation')}
                     onClick={() => onCancelDepositApp(entry.id)}
                   >
                     <XCircle aria-hidden />

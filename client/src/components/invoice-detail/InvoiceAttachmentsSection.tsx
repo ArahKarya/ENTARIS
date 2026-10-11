@@ -1,5 +1,6 @@
 /** Invoice attachments + read-only payment attachments for InvoiceDetailDrawer. */
 import { FileText, Image as ImageIcon, Paperclip, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 export interface InvoiceAttachment {
@@ -38,15 +39,16 @@ export function InvoiceAttachmentsSection({
   onUpload,
   onDelete,
 }: InvoiceAttachmentsSectionProps) {
+  const { t } = useTranslation('sales');
   return (
     <div className="border-b border-border px-6 py-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className={sectionTitle}>
-          <Paperclip size={10} aria-hidden /> Dokumen Pendukung ({attachments.length})
+          <Paperclip size={10} aria-hidden /> {t('invoiceAttachmentsSection.title', { count: attachments.length })}
         </h3>
         {!cancelled && (
           <label className="relative flex cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-accent focus-within:ring-2 focus-within:ring-ring max-sm:min-h-11">
-            + Tambah File
+            + {t('invoiceAttachmentsSection.addFile')}
             <input
               type="file"
               multiple
@@ -62,7 +64,7 @@ export function InvoiceAttachmentsSection({
         )}
       </div>
       {attachments.length === 0 ? (
-        <p className="text-xs italic text-muted-foreground">Belum ada lampiran.</p>
+        <p className="text-xs italic text-muted-foreground">{t('invoiceAttachmentsSection.empty')}</p>
       ) : (
         <ul className="space-y-1.5">
           {attachments.map((a) => (
@@ -82,7 +84,7 @@ export function InvoiceAttachmentsSection({
                   variant="ghost"
                   size="icon-sm"
                   className="max-sm:size-11"
-                  aria-label={`Hapus lampiran ${a.fileName}`}
+                  aria-label={t('invoiceAttachmentsSection.remove', { name: a.fileName })}
                   onClick={() => onDelete(a.id)}
                 >
                   <Trash2 aria-hidden />
@@ -97,7 +99,7 @@ export function InvoiceAttachmentsSection({
       {paymentAttachments.length > 0 && (
         <div className="mt-4">
           <h4 className={`${sectionTitle} mb-2 text-[11px]`}>
-            <Paperclip size={10} aria-hidden /> Dari Pembayaran ({paymentAttachments.length})
+            <Paperclip size={10} aria-hidden /> {t('invoiceAttachmentsSection.fromPayments', { count: paymentAttachments.length })}
           </h4>
           <ul className="space-y-1.5">
             {paymentAttachments.map((a) => (
@@ -122,7 +124,7 @@ export function InvoiceAttachmentsSection({
             ))}
           </ul>
           <p className="mt-1.5 text-xs italic text-muted-foreground">
-            Lampiran ini milik pembayaran terkait. Kelola dari menu Bank &amp; Kas.
+            {t('invoiceAttachmentsSection.paymentNote')}
           </p>
         </div>
       )}
