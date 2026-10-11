@@ -24,29 +24,27 @@ npx prisma migrate deploy
 echo "[APP] Migrations complete."
 
 # ── 2b. Apply loose SQL migrations ──────────────────────────────────────────
-# Sebagian migration di repo ini berupa file .sql lepas (bukan folder Prisma),
-# yang TIDAK di-apply oleh `prisma migrate deploy`. File-file ini idempotent
-# (IF NOT EXISTS / DO-block), jadi aman dijalankan setiap startup.
+# Migrasi berupa file .sql lepas (bukan folder Prisma) tidak dijalankan oleh
+# `prisma migrate deploy`. Skrip ini menjalankan yang belum tercatat di tabel
+# _loose_sql_migrations dan menampilkan galat apa adanya (tidak disembunyikan).
 echo "[APP] Applying loose SQL migrations..."
-# Prisma 7: `db execute` baca datasource dari prisma.config.ts — JANGAN pakai
-# --schema (opsi itu invalid di Prisma 7 dan bikin SEMUA file gagal di-skip).
-for f in $(ls prisma/migrations/*.sql 2>/dev/null | sort); do
-  echo "[APP]  - $(basename "$f")"
-  npx prisma db execute --file "$f" 2>/dev/null \
-    || echo "[APP]    (skip: $(basename "$f") — sudah ter-apply / non-idempotent)"
-done
-echo "[APP] Loose SQL migrations done."
+node prisma/apply-loose-sql.mjs \
+  || echo "[APP] PERINGATAN: ada migrasi SQL yang gagal, lihat baris [SQL] GAGAL di atas."
 
 # ── 3. Auto-seed jika database kosong ───────────────────────────────────────
+# Seed only when the users table is readable and empty. A failed query must never
+# count as "empty": re-seeding an existing database recreates the demo accounts.
 USER_COUNT=$(node -e "
   const { Pool } = require('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   pool.query('SELECT COUNT(*)::int AS c FROM users')
     .then(r => { console.log(r.rows[0].c); pool.end(); })
-    .catch(() => { console.log('0'); pool.end(); });
-" 2>/dev/null || echo "0")
+    .catch(() => { console.log('unknown'); pool.end(); });
+" 2>/dev/null || echo "unknown")
 
-if [ "$USER_COUNT" = "0" ]; then
+if [ "$USER_COUNT" = "unknown" ]; then
+  echo "[APP] PERINGATAN: jumlah user tidak bisa dibaca, seed dilewati. Periksa koneksi database dan migrasi."
+elif [ "$USER_COUNT" = "0" ]; then
   echo "[APP] Database kosong, menjalankan seed data awal..."
   npx tsx prisma/seed.ts
   echo "[APP] Seed selesai — login: admin@entaris.demo / Adminentaris123!dsw"

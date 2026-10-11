@@ -53,6 +53,11 @@ cd /app/server
 npx prisma migrate deploy
 echo "[APP] Migrations complete."
 
+# Migrasi .sql lepas: hanya yang belum tercatat di _loose_sql_migrations.
+echo "[APP] Applying loose SQL migrations..."
+node prisma/apply-loose-sql.mjs \
+  || echo "[APP] PERINGATAN: ada migrasi SQL yang gagal, lihat baris [SQL] GAGAL di atas."
+
 # ── 4b. Auto-seed jika database masih kosong (pertama kali) ────────────────
 # Seed only when the users table is readable and empty. A failed query must never
 # count as "empty": re-seeding an existing database recreates the demo accounts.

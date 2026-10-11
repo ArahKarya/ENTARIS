@@ -3636,3 +3636,12 @@ model ChatAttachment {
   @@index([messageId])
   @@map("chat_attachments")
 }
+
+/// Ledger of loose SQL migrations (prisma/migrations/*.sql) applied by prisma/apply-loose-sql.mjs.
+model LooseSqlMigration {
+  filename  String   @id
+  checksum  String
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@map("_loose_sql_migrations")
+}
