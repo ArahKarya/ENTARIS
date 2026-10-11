@@ -4,6 +4,7 @@ import { systemAccounts } from '../services/systemAccounts';
 import { logger } from '../lib/logger';
 import fixedAssetsRouter from './dashboard/fixedAssets';
 import { requestLanguage } from '../middleware/responseLanguage';
+import { translateFields } from '../i18n/translateFields';
 
 /** Chart month labels follow the UI language the client sends. */
 const monthLocale = (req: Pick<Request, 'get'>): string => (requestLanguage(req) === 'en' ? 'en-US' : 'id-ID');
@@ -568,7 +569,7 @@ router.get('/monthly-profit', async (req, res) => {
 });
 
 // GET /api/dashboard/aging-summary — AP/AR aging summary
-router.get('/aging-summary', async (_req, res) => {
+router.get('/aging-summary', async (req, res) => {
   try {
     const now = new Date();
     const aging = (invoices: Array<{ outstanding: any; dueDate: Date | null }>) => {
@@ -599,13 +600,14 @@ router.get('/aging-summary', async (_req, res) => {
     const arBuckets = aging(salesInvoices);
     const apBuckets = aging(purchaseInvoices);
 
-    const toBucketArray = (b: typeof arBuckets) => [
+    const lang = requestLanguage(req);
+    const toBucketArray = (b: typeof arBuckets) => translateFields([
       { label: 'Belum JT', amount: b.current },
       { label: '1-30 hari', amount: b.days30 },
       { label: '31-60 hari', amount: b.days60 },
       { label: '61-90 hari', amount: b.days90 },
       { label: '>90 hari', amount: b.over90 },
-    ];
+    ], lang, ['label']);
 
     const totalReceivable = Object.values(arBuckets).reduce((s, v) => s + v, 0);
     const totalPayable = Object.values(apBuckets).reduce((s, v) => s + v, 0);

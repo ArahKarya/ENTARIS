@@ -6,6 +6,8 @@ import { AuthRequest, requireCap } from '../middleware/auth';
 import { BusinessError, handleRouteError } from '../utils/errors';
 import { validateBody } from '../utils/validate';
 import { buildStockSnapshot } from '../services/stockSnapshot';
+import { translateFields } from '../i18n/translateFields';
+import { requestLanguage } from '../middleware/responseLanguage';
 
 const router = Router();
 
@@ -75,7 +77,7 @@ router.get('/stock-snapshot', async (req, res) => {
       ? warehouseIds.split(',').map((s) => s.trim()).filter(Boolean)
       : undefined;
     const snapshot = await buildStockSnapshot(dateStr, ids);
-    return res.json(snapshot);
+    return res.json(translateFields(snapshot, requestLanguage(req), ['valuationNote']));
   } catch (error) {
     return handleRouteError(res, error, 'GET /warehouses/stock-snapshot', 'Gagal membuat snapshot stok.');
   }

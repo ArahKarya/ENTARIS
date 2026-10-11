@@ -5,6 +5,8 @@ import { prisma } from '../../lib/prisma';
 import { logger } from '../../lib/logger';
 import { systemAccounts } from '../../services/systemAccounts';
 import { buildStockSnapshot } from '../../services/stockSnapshot';
+import { translateMessage } from '../../i18n/translateMessage';
+import { requestLanguage } from '../../middleware/responseLanguage';
 
 const router = Router();
 
@@ -619,7 +621,7 @@ router.get('/daily', async (req, res) => {
     const snapshot = await buildStockSnapshot(dateStr);
     const stock = {
       asOfDate: snapshot.asOfDate,
-      valuationNote: snapshot.valuationNote,
+      valuationNote: translateMessage(snapshot.valuationNote, requestLanguage(req) ?? 'id'),
       warehouses: snapshot.warehouses.map((w) => ({
         code: w.code,
         name: w.name,
