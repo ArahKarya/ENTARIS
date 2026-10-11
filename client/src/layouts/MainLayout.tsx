@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { NotificationBell } from '../components/NotificationBell';
 import { useHotkey } from '../hooks/useHotkeys';
@@ -21,6 +22,7 @@ import { queryClient } from '../lib/queryClient';
 import { DummyDataBanner } from '@/components/shell/DummyDataBanner';
 
 export const MainLayout = () => {
+  const { t, i18n } = useTranslation('shell');
   const location = useLocation();
   const navigate = useNavigate();
   const settings = useCompanySettings();
@@ -48,16 +50,19 @@ export const MainLayout = () => {
   // for protected pages): "<Halaman> · <Perusahaan|Entaris>".
   // The seed placeholder ("Nama Perusahaan Anda") counts as no company name.
   const companyName = tenantName(settings?.companyName);
+  // The label is translated on read, so the title also follows a language change.
+  const language = i18n.language;
   useEffect(() => {
     document.title = documentTitleFor(location.pathname, companyName);
-  }, [location.pathname, companyName]);
+  }, [location.pathname, companyName, language]);
 
   useHotkey('mod+k', () => setIsSearchOpen(true));
   useHotkey('?', () => setIsShortcutHelpOpen(true), !isSearchOpen && !isShortcutHelpOpen);
 
   // Read once per mount; ProtectedRoute refreshes the stored user before this renders.
   const user = useMemo(() => getStoredUser(), []);
-  const breadcrumbs = useMemo(() => breadcrumbsFor(location.pathname), [location.pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- labels are translated on read; recompute on language change
+  const breadcrumbs = useMemo(() => breadcrumbsFor(location.pathname), [location.pathname, language]);
 
   const handleLogout = async () => {
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
@@ -73,7 +78,7 @@ export const MainLayout = () => {
         href="#main-content"
         className="skip-to-content"
       >
-        Langsung ke konten utama
+        {t('layout.skipToContent')}
       </a>
 
       {/* Desktop Sidebar (hidden on mobile) */}
@@ -89,8 +94,8 @@ export const MainLayout = () => {
           onOpenAutoFocus={drawerFocus.capture}
           onCloseAutoFocus={drawerFocus.onCloseAutoFocus}
         >
-          <SheetTitle className="sr-only">Menu navigasi</SheetTitle>
-          <SheetDescription className="sr-only">Daftar halaman Entaris</SheetDescription>
+          <SheetTitle className="sr-only">{t('layout.mobileMenuTitle')}</SheetTitle>
+          <SheetDescription className="sr-only">{t('layout.mobileMenuDescription')}</SheetDescription>
           <Sidebar mobile onNavigate={() => setMobileMenuOpen(false)} />
         </SheetContent>
       </Sheet>

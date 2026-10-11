@@ -1,6 +1,8 @@
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Info, Keyboard, KeyRound, LogOut, Monitor, Moon, Palette, Sun } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { LOCALE } from '@/lib/format';
 import { useTheme, type ThemeId } from '@/contexts/ThemeContext';
 import { roleLabel, initials } from './role-label';
 
@@ -19,10 +21,11 @@ interface UserMenuProps {
   onLogout: () => void;
 }
 
-const THEME_OPTIONS: { id: ThemeId; label: string; icon: typeof Sun }[] = [
-  { id: 'light', label: 'Terang', icon: Sun },
-  { id: 'dark', label: 'Gelap', icon: Moon },
-  { id: 'system', label: 'Sistem', icon: Monitor },
+/** Label: `common:theme.<id>.label`. */
+const THEME_OPTIONS: { id: ThemeId; icon: typeof Sun }[] = [
+  { id: 'light', icon: Sun },
+  { id: 'dark', icon: Moon },
+  { id: 'system', icon: Monitor },
 ];
 
 const contentClass =
@@ -38,17 +41,18 @@ const Separator = () => <Menu.Separator className="-mx-1 my-1 h-px bg-border" />
 
 /** Avatar menu: identity, password, theme, shortcuts, about, sign out. */
 export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts, onOpenAbout, onLogout }: UserMenuProps) {
+  const { t } = useTranslation(['shell', 'common']);
   const { theme, setTheme } = useTheme();
-  const name = user?.fullName || user?.username || 'Pengguna';
+  const name = user?.fullName || user?.username || t('userMenu.fallbackName');
   const role = roleLabel(user?.role);
   // Seed/admin accounts are often named after their role; don't print it twice.
-  const showRole = role.localeCompare(name, 'id-ID', { sensitivity: 'base' }) !== 0;
+  const showRole = role.localeCompare(name, LOCALE, { sensitivity: 'base' }) !== 0;
   const ThemeIcon = THEME_OPTIONS.find((o) => o.id === theme)?.icon ?? Monitor;
 
   return (
     <Menu.Root modal={false}>
       <Menu.Trigger
-        aria-label={`Menu pengguna: ${name}`}
+        aria-label={t('userMenu.trigger', { name })}
         className={cn(
           'flex h-9 items-center gap-2 rounded-md pr-1 pl-0.5 transition-colors hover:bg-accent xl:pr-2',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
@@ -86,26 +90,26 @@ export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts,
 
           <Menu.Item className={itemClass} onSelect={onChangePassword}>
             <KeyRound aria-hidden />
-            Ganti Kata Sandi
+            {t('userMenu.changePassword')}
           </Menu.Item>
 
           <Menu.Sub>
             <Menu.SubTrigger className={itemClass}>
               <Palette aria-hidden />
-              <span className="flex-1">Tema</span>
+              <span className="flex-1">{t('userMenu.theme')}</span>
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <ThemeIcon aria-hidden className="!size-3.5" />
-                {THEME_OPTIONS.find((o) => o.id === theme)?.label}
+                {t(`common:theme.${theme}.label`)}
               </span>
               <ChevronRight aria-hidden />
             </Menu.SubTrigger>
             <Menu.Portal>
               <Menu.SubContent sideOffset={6} alignOffset={-4} className={cn(contentClass, 'min-w-[10rem]')}>
                 <Menu.RadioGroup value={theme} onValueChange={(v) => setTheme(v as ThemeId)}>
-                  {THEME_OPTIONS.map(({ id, label, icon: Icon }) => (
+                  {THEME_OPTIONS.map(({ id, icon: Icon }) => (
                     <Menu.RadioItem key={id} value={id} className={cn(itemClass, 'pr-8')}>
                       <Icon aria-hidden />
-                      {label}
+                      {t(`common:theme.${id}.label`)}
                       <Menu.ItemIndicator className="absolute right-2.5 flex items-center">
                         <Check aria-hidden className="!text-primary" />
                       </Menu.ItemIndicator>
@@ -118,12 +122,12 @@ export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts,
 
           <Menu.Item className={itemClass} onSelect={onOpenShortcuts}>
             <Keyboard aria-hidden />
-            <span className="flex-1">Pintasan Keyboard</span>
+            <span className="flex-1">{t('userMenu.shortcuts')}</span>
             <kbd className="rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground">?</kbd>
           </Menu.Item>
           <Menu.Item className={itemClass} onSelect={onOpenAbout}>
             <Info aria-hidden />
-            Tentang Entaris
+            {t('userMenu.about')}
           </Menu.Item>
           <Separator />
           <Menu.Item
@@ -131,7 +135,7 @@ export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts,
             onSelect={onLogout}
           >
             <LogOut aria-hidden />
-            Keluar
+            {t('userMenu.logout')}
           </Menu.Item>
         </Menu.Content>
       </Menu.Portal>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Loader2, AlertCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,7 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf';
 
 const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, referenceId }) => {
+  const { t } = useTranslation('shell');
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +42,7 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
       setError('');
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Gagal mengupload file.');
+      setError(err.response?.data?.error || t('attachmentUpload.failed'));
     },
   });
 
@@ -50,23 +52,23 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
 
     for (const file of files) {
       if (!validTypes.includes(file.type)) {
-        setError(`File "${file.name}" tidak didukung. Hanya JPG, PNG, WebP, PDF.`);
+        setError(t('attachmentUpload.badType', { name: file.name }));
         return;
       }
       if (file.size > MAX_SIZE) {
-        setError(`File "${file.name}" terlalu besar. Maksimal 5MB.`);
+        setError(t('attachmentUpload.tooLarge', { name: file.name, size: '5MB' }));
         return;
       }
     }
 
     if (files.length > 5) {
-      setError('Maksimal 5 file sekaligus.');
+      setError(t('attachmentUpload.tooMany', { max: 5 }));
       return;
     }
 
     setError('');
     mutation.mutate(files);
-  }, [mutation]);
+  }, [mutation, t]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -103,18 +105,18 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
         {mutation.isPending ? (
           <span role="status" className="flex items-center justify-center gap-2 py-1">
             <Loader2 size={16} className="animate-spin text-primary" aria-hidden />
-            <span className="text-xs text-primary">Mengupload...</span>
+            <span className="text-xs text-primary">{t('attachmentUpload.uploading')}</span>
           </span>
         ) : (
           <span className="flex items-center justify-center gap-2 py-1">
             <Upload size={16} className="text-muted-foreground" aria-hidden />
             <span className="text-xs text-muted-foreground">
-              Seret file atau klik untuk upload bukti transfer
+              {t('attachmentUpload.dropzone')}
             </span>
           </span>
         )}
         <span className="mt-1 block text-xs text-muted-foreground">
-          JPG, PNG, PDF (maks 5MB, maks 5 file)
+          {t('attachmentUpload.hint', { size: '5MB', max: 5 })}
         </span>
       </button>
       <input
@@ -123,7 +125,7 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
         accept={ACCEPT}
         multiple
         className="hidden"
-        aria-label="Pilih file lampiran"
+        aria-label={t('attachmentUpload.choose')}
         onChange={handleFileChange}
       />
       {error && (
@@ -134,7 +136,7 @@ const AttachmentUpload: React.FC<AttachmentUploadProps> = ({ referenceType, refe
             type="button"
             onClick={() => setError('')}
             className="ml-auto inline-flex size-6 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Tutup pesan"
+            aria-label={t('attachmentUpload.dismiss')}
           >
             <X size={12} aria-hidden />
           </button>

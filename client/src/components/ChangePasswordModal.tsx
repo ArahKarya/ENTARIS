@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 };
 
 function PasswordForm({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation(['shell', 'common']);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,33 +39,33 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
   const mutation = useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) => api.put('/users/me/password', data),
     onSuccess: () => {
-      toast.success('Kata sandi diubah.');
+      toast.success(t('changePassword.changed'));
       onClose();
     },
     onError: (err: unknown) => {
       const message = (err as { response?: { data?: { error?: unknown } } })?.response?.data?.error;
-      setError({ field: 'current', message: typeof message === 'string' ? message : 'Gagal mengubah kata sandi.' });
+      setError({ field: 'current', message: typeof message === 'string' ? message : t('changePassword.failed') });
     },
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!currentPassword) { setError({ field: 'current', message: 'Kata sandi saat ini wajib diisi.' }); return; }
-    if (!newPassword) { setError({ field: 'new', message: 'Kata sandi baru wajib diisi.' }); return; }
-    if (newPassword.length < 8) { setError({ field: 'new', message: 'Kata sandi baru minimal 8 karakter.' }); return; }
-    if (newPassword !== confirmPassword) { setError({ field: 'confirm', message: 'Konfirmasi kata sandi tidak cocok.' }); return; }
+    if (!currentPassword) { setError({ field: 'current', message: t('changePassword.currentRequired') }); return; }
+    if (!newPassword) { setError({ field: 'new', message: t('changePassword.newRequired') }); return; }
+    if (newPassword.length < 8) { setError({ field: 'new', message: t('changePassword.newMin', { min: 8 }) }); return; }
+    if (newPassword !== confirmPassword) { setError({ field: 'confirm', message: t('changePassword.mismatch') }); return; }
     mutation.mutate({ currentPassword, newPassword });
   };
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
       <DialogHeader>
-        <DialogTitle>Ganti Kata Sandi</DialogTitle>
-        <DialogDescription>Ubah kata sandi akun Anda.</DialogDescription>
+        <DialogTitle>{t('changePassword.title')}</DialogTitle>
+        <DialogDescription>{t('changePassword.description')}</DialogDescription>
       </DialogHeader>
 
-      <Field label="Kata sandi saat ini" required error={errorFor('current')}>
+      <Field label={t('changePassword.current')} required error={errorFor('current')}>
         <Input
           type="password"
           value={currentPassword}
@@ -71,7 +73,7 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
           autoComplete="current-password"
         />
       </Field>
-      <Field label="Kata sandi baru" required hint="Minimal 8 karakter." error={errorFor('new')}>
+      <Field label={t('changePassword.new')} required hint={t('changePassword.newHint', { min: 8 })} error={errorFor('new')}>
         <Input
           type="password"
           value={newPassword}
@@ -79,7 +81,7 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
           autoComplete="new-password"
         />
       </Field>
-      <Field label="Ulangi kata sandi baru" required error={errorFor('confirm')}>
+      <Field label={t('changePassword.confirm')} required error={errorFor('confirm')}>
         <Input
           type="password"
           value={confirmPassword}
@@ -90,14 +92,14 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
-          Batal
+          {t('common:actions.cancel')}
         </Button>
         <Button
           type="submit"
           loading={mutation.isPending}
           disabled={!currentPassword || !newPassword || !confirmPassword}
         >
-          Ubah Kata Sandi
+          {t('changePassword.submit')}
         </Button>
       </DialogFooter>
     </form>

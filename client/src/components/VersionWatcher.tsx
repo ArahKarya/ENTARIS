@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { RefreshCcw } from 'lucide-react';
+import i18n from '@/i18n';
 
 // Polls /api/version (and on tab refocus) and shows a one-time reload toast when
 // the server build differs from the first-seen baseline. Fetch errors stay silent.
@@ -34,14 +35,14 @@ export default function VersionWatcher() {
       if (alreadyPromptedRef.current) return;
       alreadyPromptedRef.current = true;
       toast(
-        'Versi aplikasi terbaru tersedia',
+        i18n.t('versionWatcher.title', { ns: 'shell' }),
         {
           id: TOAST_ID,
           duration: Infinity,
-          description: 'Muat ulang halaman untuk menerima pembaruan terbaru.',
+          description: i18n.t('versionWatcher.description', { ns: 'shell' }),
           icon: <RefreshCcw size={16} />,
           action: {
-            label: 'Muat Ulang',
+            label: i18n.t('versionWatcher.reload', { ns: 'shell' }),
             onClick: () => {
               // Force network reload (bypass disk cache where supported)
               window.location.reload();

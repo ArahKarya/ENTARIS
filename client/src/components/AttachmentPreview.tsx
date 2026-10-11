@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, Download, Trash2, Loader2, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -22,6 +23,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
   referenceId,
   canDelete = true,
 }) => {
+  const { t } = useTranslation(['shell', 'common']);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -50,7 +52,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
     return (
       <div className="flex items-center gap-2 py-2">
         <Loader2 size={14} className="animate-spin text-muted-foreground" aria-hidden />
-        <span className="text-xs text-muted-foreground" role="status">Memuat lampiran...</span>
+        <span className="text-xs text-muted-foreground" role="status">{t('attachmentPreview.loading')}</span>
       </div>
     );
   }
@@ -76,7 +78,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                   type="button"
                   className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setLightboxUrl(fileUrl)}
-                  aria-label={`Preview ${att.fileName}`}
+                  aria-label={t('attachmentPreview.previewFile', { name: att.fileName })}
                 >
                   <img src={fileUrl} alt="" className="w-full h-24 object-cover cursor-pointer" loading="lazy" />
                 </button>
@@ -85,7 +87,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                   href={fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Buka ${att.fileName}`}
+                  aria-label={t('attachmentPreview.openFile', { name: att.fileName })}
                   className="w-full h-24 flex flex-col items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <FileText size={24} className="text-danger-text" aria-hidden />
@@ -100,8 +102,8 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                     type="button"
                     onClick={() => setLightboxUrl(fileUrl)}
                     className="inline-flex size-9 items-center justify-center rounded-md bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    title="Preview"
-                    aria-label={`Preview ${att.fileName}`}
+                    title={t('attachmentPreview.preview')}
+                    aria-label={t('attachmentPreview.previewFile', { name: att.fileName })}
                   >
                     <Eye size={14} aria-hidden />
                   </button>
@@ -110,8 +112,8 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                   href={fileUrl}
                   download={att.fileName}
                   className="inline-flex size-9 items-center justify-center rounded-md bg-card text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  title="Download"
-                  aria-label={`Download ${att.fileName}`}
+                  title={t('common:actions.download')}
+                  aria-label={t('attachmentPreview.downloadFile', { name: att.fileName })}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Download size={14} aria-hidden />
@@ -121,8 +123,8 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setDeleteId(att.id); }}
                     className="inline-flex size-9 items-center justify-center rounded-md bg-card text-danger-text shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    title="Hapus"
-                    aria-label={`Hapus ${att.fileName}`}
+                    title={t('common:actions.delete')}
+                    aria-label={t('attachmentPreview.deleteFile', { name: att.fileName })}
                   >
                     <Trash2 size={14} aria-hidden />
                   </button>
@@ -146,12 +148,12 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
       {/* Lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={(next) => !next && setLightboxUrl(null)}>
         <DialogContent size="doc" className="flex items-center justify-center p-3">
-          <DialogTitle className="sr-only">Pratinjau lampiran</DialogTitle>
-          <DialogDescription className="sr-only">Gambar lampiran ukuran penuh. Tekan Esc untuk menutup.</DialogDescription>
+          <DialogTitle className="sr-only">{t('attachmentPreview.lightboxTitle')}</DialogTitle>
+          <DialogDescription className="sr-only">{t('attachmentPreview.lightboxDescription')}</DialogDescription>
           {lightboxUrl && (
             <img
               src={lightboxUrl}
-              alt="Pratinjau lampiran"
+              alt={t('attachmentPreview.lightboxTitle')}
               className="max-h-[85dvh] max-w-full rounded-lg object-contain shadow-2xl"
             />
           )}
@@ -161,9 +163,9 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = ({
       {/* Delete confirmation */}
       <ConfirmDialog
         open={!!deleteId}
-        title="Hapus Lampiran"
-        message="Yakin ingin menghapus lampiran ini? File akan dihapus permanen."
-        confirmLabel="Hapus"
+        title={t('attachmentPreview.deleteTitle')}
+        message={t('attachmentPreview.deleteMessage')}
+        confirmLabel={t('common:actions.delete')}
         variant="danger"
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

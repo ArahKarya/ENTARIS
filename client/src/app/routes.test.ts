@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
+import i18n from '@/i18n';
 import appSource from '../App.tsx?raw';
 import {
   ROUTES,
@@ -76,7 +77,7 @@ describe('route registry', () => {
   });
 
   it('does not let /sales highlight /sales-orders or /sales-returns', () => {
-    expect(matchRoute('/sales-orders')?.label).toBe('Pesanan Penjualan');
+    expect(matchRoute('/sales-orders')?.label).toBe('Sales Order');
     expect(activeNavPath('/sales-orders')).toBe('/sales-orders');
     expect(activeNavPath('/sales-returns')).toBe('/sales-returns');
     expect(activeNavPath('/sales')).toBe('/sales');
@@ -128,14 +129,41 @@ describe('route registry', () => {
     expect(new Set(labels).size).toBe(labels.length);
   });
 
+  // Glossary terms (Invoice Penjualan, Sales Order, Purchase Order, Customer, Supplier) are allowed.
   it('uses Indonesian labels (no leftover English nav terms)', () => {
-    const banned = /\b(Dashboard|Inquiry|Invoice|Approval|Report|Overview|Health Check|Purchase|Order|User)\b/;
+    const banned = /\b(Dashboard|Inquiry|Approval|Report|Overview|Health Check|User)\b/;
     for (const e of ROUTES) expect(e.label, e.path).not.toMatch(banned);
     for (const s of NAV_SECTIONS) expect(s.label).not.toMatch(banned);
   });
 
   it('only links parents that exist', () => {
     for (const e of ROUTES) if (e.parent) expect(ROUTES.some((p) => p.path === e.parent), e.path).toBe(true);
+  });
+});
+
+describe('language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('id');
+  });
+
+  it('translates labels, breadcrumbs and titles at read time', async () => {
+    await i18n.changeLanguage('en');
+    expect(matchRoute('/sales')?.label).toBe('Sales invoices');
+    expect(breadcrumbsFor('/reports/profit-loss')).toEqual([
+      { label: 'Reports' },
+      { label: 'All reports', href: '/reports' },
+      { label: 'Profit and loss' },
+    ]);
+    expect(documentTitleFor('/sales-orders', 'PT Contoh')).toBe('Sales orders · PT Contoh');
+    expect(navSections(ALL).find((s) => s.id === 'cash')?.label).toBe('Cash & bank');
+    const labels = ROUTES.map((e) => e.label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it('finds pages by their label in either language', async () => {
+    expect(searchRoutes('sales invoices', ALL)[0].path).toBe('/sales');
+    await i18n.changeLanguage('en');
+    expect(searchRoutes('invoice penjualan', ALL)[0].path).toBe('/sales');
   });
 });
 
@@ -157,8 +185,8 @@ describe('navSections', () => {
 
 describe('document title and search', () => {
   it('formats "<label> · <company>" with an Entaris fallback', () => {
-    expect(documentTitleFor('/sales-orders', 'PT Contoh')).toBe('Pesanan Penjualan · PT Contoh');
-    expect(documentTitleFor('/sales-orders', '')).toBe('Pesanan Penjualan · Entaris');
+    expect(documentTitleFor('/sales-orders', 'PT Contoh')).toBe('Sales Order · PT Contoh');
+    expect(documentTitleFor('/sales-orders', '')).toBe('Sales Order · Entaris');
     expect(documentTitleFor('/nope', null)).toBe('Entaris');
   });
 
