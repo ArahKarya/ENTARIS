@@ -1713,5 +1713,11 @@
     "cancel": "Batal",
     "processing": "Memproses…",
     "submit": "Proses"
+  },
+  "invoiceExtras": {
+    "marginAnalysis": "Analisis margin",
+    "totalQty": "Total Qty",
+    "paidPercent": "Persentase terbayar",
+    "payment": "Pembayaran"
   }
 }

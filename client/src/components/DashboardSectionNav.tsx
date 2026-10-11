@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 import { tabId } from './dashboardTabId';
 import { scrollBehavior } from '@/lib/motion';
+import i18n from '@/i18n';
 
 export interface SectionDef {
   id: string;
@@ -62,7 +63,7 @@ export default function DashboardSectionNav({ sections, scrollRootId = 'main-con
 
   return (
     <nav
-      aria-label="Bagian dasbor"
+      aria-label={i18n.t('dashboard:sectionNav.label')}
       className="sticky top-0 z-20 -mx-3 border-b border-border bg-background/90 px-3 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6"
     >
       {/* Anchor-scroll nav rendered with the shared Tabs (underline). Manual activation:

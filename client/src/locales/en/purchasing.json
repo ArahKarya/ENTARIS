@@ -669,5 +669,6 @@
       "message": "Cancel deposit {{number}}? The account balance and supplier deposit will be reversed.",
       "confirm": "Yes, cancel"
     }
-  }
+  },
+  "documentDetails": "Document details"
 }

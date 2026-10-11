@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRupiah } from '@/lib/format';
 import { StatusBadge } from '@/components/shared';
+import i18n from '@/i18n';
 
 interface InvoiceStatusProgressProps {
   isSales: boolean;
@@ -39,14 +40,14 @@ export function InvoiceStatusProgress({
       </div>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Pembayaran</span>
+          <span className="text-muted-foreground">{i18n.t('sales:invoiceExtras.payment')}</span>
           <span className="font-medium tabular-nums text-foreground">
             {formatRupiah(paidAmount)} / {formatRupiah(grandTotal)}
           </span>
         </div>
         <div
           role="progressbar"
-          aria-label="Persentase terbayar"
+          aria-label={i18n.t('sales:invoiceExtras.paidPercent')}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.min(paidPct, 100)}

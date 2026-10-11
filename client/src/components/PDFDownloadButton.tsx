@@ -3,6 +3,7 @@ import { PDFDownloadLink, type DocumentProps } from '@react-pdf/renderer';
 import { FileDown, Loader2 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import i18n from '@/i18n';
 
 interface Props {
   document: React.ReactElement;
@@ -20,7 +21,7 @@ interface Props {
 const PDFDownloadButton: React.FC<Props> = ({
   document: doc,
   fileName,
-  label = 'Unduh PDF',
+  label,
   className,
   variant = 'button',
 }) => {
@@ -42,7 +43,7 @@ const PDFDownloadButton: React.FC<Props> = ({
         <>
           {loading ? <Loader2 className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}
           {variant === 'icon' ? (
-            <span className="sr-only">{loading ? 'Membuat PDF…' : label}</span>
+            <span className="sr-only">{loading ? i18n.t('pdfButton.generating') : (label ?? i18n.t('pdfButton.download'))}</span>
           ) : (
             <span role={loading ? 'status' : undefined}>{loading ? 'Membuat PDF…' : label}</span>
           )}

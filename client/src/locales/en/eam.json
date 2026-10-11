@@ -2451,5 +2451,16 @@
         "spare": "Spare"
       }
     }
+  },
+  "fleetPresets": {
+    "last12": "Last 12 months",
+    "thisQuarter": "This quarter",
+    "ytd": "Year to date",
+    "lastYear": "Last year",
+    "custom": "Custom range"
+  },
+  "itemImage": {
+    "noPhoto": "No photo",
+    "photo": "Inventory item photo"
   }
 }

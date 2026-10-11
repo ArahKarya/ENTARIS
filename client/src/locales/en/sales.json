@@ -1713,5 +1713,11 @@
     "cancel": "Cancel",
     "processing": "Processing…",
     "submit": "Process"
+  },
+  "invoiceExtras": {
+    "marginAnalysis": "Margin analysis",
+    "totalQty": "Total qty",
+    "paidPercent": "Percentage paid",
+    "payment": "Payment"
   }
 }
