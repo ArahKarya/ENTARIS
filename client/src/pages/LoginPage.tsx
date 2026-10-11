@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { HelpDialog } from '@/components/auth/HelpDialog';
-import { AUTH_COPY, type AuthProduct } from '@/components/auth/auth-copy';
+import { type AuthProduct } from '@/components/auth/auth-copy';
 import { safeRedirectTarget, tenantName } from '@/components/auth/login-helpers';
 
 interface PublicBranding {
@@ -31,14 +32,18 @@ const LoginPage = () => {
   const [help, setHelp] = useState<'forgot' | 'help' | null>(null);
   const [lastHelp, setLastHelp] = useState<'forgot' | 'help'>('forgot');
   const [alreadyAuthed] = useState(hasStoredUser);
+  const { t } = useTranslation('auth');
 
+  // Restore the previous title on leave; set ours (again on every language change).
   useEffect(() => {
     const previous = document.title;
-    document.title = AUTH_COPY[PRODUCT].documentTitle;
     return () => {
       document.title = previous;
     };
   }, []);
+  useEffect(() => {
+    document.title = t('copy.documentTitle');
+  }, [t]);
 
   useEffect(() => {
     if (alreadyAuthed) return undefined;

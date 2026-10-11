@@ -4,6 +4,7 @@ import { Command } from 'cmdk';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { controlBase } from '@/components/ui/styles';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface ComboboxOption {
   value: string;
@@ -37,11 +38,12 @@ export function ComboboxFilter({
   onChange,
   options,
   allLabel,
-  searchPlaceholder = 'Cari…',
+  searchPlaceholder,
   loading,
   className,
   onSearchChange,
 }: ComboboxFilterProps) {
+  const { t } = useTranslation('common');
   const id = useId();
   const [open, setOpenState] = useState(false);
   const [query, setQuery] = useState('');
@@ -107,14 +109,14 @@ export function ComboboxFilter({
               <div className="flex items-center gap-2 border-b border-border px-3 focus-within:shadow-[inset_0_-2px_0_var(--ring)]">
                 <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <Command.Input
-                  placeholder={searchPlaceholder}
+                  placeholder={searchPlaceholder ?? t('filters.searchPlaceholder')}
                   {...(serverSearch ? { value: query, onValueChange: changeQuery } : {})}
                   className="h-10 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
                 />
               </div>
               <Command.List className="max-h-72 overflow-y-auto p-1">
                 <Command.Empty className="px-2 py-6 text-center text-sm text-muted-foreground">
-                  {loading ? 'Memuat…' : 'Tidak ditemukan.'}
+                  {loading ? t('states.loading') : t('filters.notFound')}
                 </Command.Empty>
                 <Command.Item
                   value={`__all__ ${allLabel}`}
@@ -145,7 +147,7 @@ export function ComboboxFilter({
         <button
           type="button"
           onClick={() => onChange('')}
-          aria-label={`Hapus filter ${label.toLowerCase()}`}
+          aria-label={t('filters.clearFilter', { label: label.toLowerCase() })}
           className="absolute right-1.5 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-4" aria-hidden />

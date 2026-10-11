@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Field } from './field';
+import { useTranslation } from 'react-i18next';
 
 export interface ReasonOptions {
   label?: string;
@@ -47,13 +48,14 @@ export function ConfirmDialog({
   title,
   description,
   tone = 'default',
-  confirmLabel = 'Konfirmasi',
-  cancelLabel = 'Batal',
+  confirmLabel,
+  cancelLabel,
   requireReason = false,
   onConfirm,
   loading: externalLoading = false,
   children,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation('common');
   const reasonOpts: ReasonOptions | null = requireReason
     ? typeof requireReason === 'object'
       ? requireReason
@@ -77,7 +79,7 @@ export function ConfirmDialog({
   const trimmed = reason.trim();
   const reasonInvalid = reasonOpts !== null && trimmed.length < minLength;
   const reasonError =
-    touched && reasonInvalid ? `Alasan wajib diisi (minimal ${minLength} karakter).` : undefined;
+    touched && reasonInvalid ? t('confirmDialog.reasonRequired', { min: minLength }) : undefined;
 
   const handleConfirm = async () => {
     if (reasonInvalid) {
@@ -109,12 +111,12 @@ export function ConfirmDialog({
         {children}
 
         {reasonOpts && (
-          <Field label={reasonOpts.label ?? 'Alasan'} required error={reasonError}>
+          <Field label={reasonOpts.label ?? t('confirmDialog.reason')} required error={reasonError}>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               onBlur={() => setTouched(true)}
-              placeholder={reasonOpts.placeholder ?? 'Tuliskan alasan…'}
+              placeholder={reasonOpts.placeholder ?? t('confirmDialog.reasonPlaceholder')}
               disabled={loading}
               rows={3}
             />
@@ -123,10 +125,10 @@ export function ConfirmDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {cancelLabel}
+            {cancelLabel ?? t('actions.cancel')}
           </Button>
           <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={handleConfirm} loading={loading}>
-            {confirmLabel}
+            {confirmLabel ?? t('actions.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

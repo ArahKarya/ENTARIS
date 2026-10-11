@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type R
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
-import { AUTH_COPY, type AuthProduct } from './auth-copy';
+import { authCopy, type AuthProduct } from './auth-copy';
 import { classifyLoginError, formatCountdown, safeRedirectTarget, type LoginFailure } from './login-helpers';
-import { setUiLanguage } from '@/i18n';
+import i18n, { setUiLanguage } from '@/i18n';
+import { useTranslation } from 'react-i18next';
 
 export interface LoginFormProps {
   /** Only 'ERP' remains (EAM is a module of the main app). Defaults to 'ERP'. */
@@ -23,15 +24,17 @@ interface FieldErrors {
   password?: string;
 }
 
-const MESSAGES = {
-  usernameRequired: 'Email atau username wajib diisi',
-  passwordRequired: 'Kata sandi wajib diisi',
-  invalid: 'Email/username atau kata sandi salah.',
-  network: 'Tidak dapat terhubung ke server. Periksa koneksi Anda lalu coba lagi.',
-  server: 'Terjadi kendala di server. Coba lagi beberapa saat lagi.',
-  rateLimitedOpen: 'Terlalu banyak percobaan masuk. Coba lagi beberapa saat lagi.',
-  sessionExpired: 'Sesi Anda berakhir. Silakan masuk kembali.',
-} as const;
+type MessageKey =
+  | 'usernameRequired'
+  | 'passwordRequired'
+  | 'invalid'
+  | 'network'
+  | 'server'
+  | 'rateLimitedOpen'
+  | 'sessionExpired';
+
+/** `auth:login.messages.*`, read at call time so it follows the UI language. */
+const message = (key: MessageKey): string => i18n.t(`login.messages.${key}`, { ns: 'auth' });
 
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--surface)';
@@ -87,14 +90,15 @@ function useTicker(until: number | null, setNow: (value: number) => void): void 
 }
 
 function failureMessage(failure: LoginFailure): string {
-  if (failure.kind === 'invalid') return MESSAGES.invalid;
-  if (failure.kind === 'network') return MESSAGES.network;
-  if (failure.kind === 'server') return MESSAGES.server;
-  return MESSAGES.rateLimitedOpen;
+  if (failure.kind === 'invalid') return message('invalid');
+  if (failure.kind === 'network') return message('network');
+  if (failure.kind === 'server') return message('server');
+  return message('rateLimitedOpen');
 }
 
 export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onForgotPassword }: LoginFormProps) {
-  const copy = AUTH_COPY[product];
+  const { t } = useTranslation('auth');
+  const copy = authCopy(product);
   const navigate = useNavigate();
   const location = useLocation();
   const usernameRef = useRef<HTMLInputElement>(null);
@@ -137,8 +141,8 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
   };
 
   const validate = (): FieldErrors => ({
-    ...(username.trim() ? {} : { username: MESSAGES.usernameRequired }),
-    ...(password ? {} : { password: MESSAGES.passwordRequired }),
+    ...(username.trim() ? {} : { username: message('usernameRequired') }),
+    ...(password ? {} : { password: message('passwordRequired') }),
   });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -187,27 +191,27 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
       <header className="mb-8">
         {tenant && (
           <p className="mb-4 hidden max-w-full truncate rounded-md border border-(--border) bg-(--surface-sunken) px-3 py-1 text-[13px] leading-5 text-(--text-secondary) lg:inline-block">
-            Ruang kerja · <span className="font-medium text-(--text)">{tenant}</span>
+            {t('login.workspace')} · <span className="font-medium text-(--text)">{tenant}</span>
           </p>
         )}
         <h1 className="font-heading text-2xl font-semibold leading-8 tracking-tight text-(--text)">{copy.heading}</h1>
         {tenant && (
-          <p className="mt-1 truncate text-[13px] leading-5 text-(--text-muted) lg:hidden">Ruang kerja · {tenant}</p>
+          <p className="mt-1 truncate text-[13px] leading-5 text-(--text-muted) lg:hidden">{t('login.workspace')} · {tenant}</p>
         )}
         <p className="mt-2 hidden text-pretty text-sm leading-5 text-(--text-secondary) lg:block">{copy.subtitle}</p>
       </header>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
-        {showSessionNotice && <Banner tone="info">{MESSAGES.sessionExpired}</Banner>}
+        {showSessionNotice && <Banner tone="info">{message('sessionExpired')}</Banner>}
 
         {locked && (
           <>
             <p role="alert" className="sr-only">
-              {`Terlalu banyak percobaan masuk. Coba lagi dalam sekitar ${lockMinutes} menit.`}
+              {t('login.lockedAnnounce', { count: lockMinutes })}
             </p>
             <Banner tone="warning" live={false}>
               <span aria-hidden>
-                Terlalu banyak percobaan masuk. Coba lagi dalam{' '}
+                {t('login.lockedPrefix')}{' '}
                 <span className="font-semibold tabular-nums">{formatCountdown(remainingMs)}</span>.
               </span>
             </Banner>
@@ -221,7 +225,7 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
 
         <div>
           <label htmlFor="login-username" className="mb-1.5 block text-sm font-medium leading-5 text-(--text)">
-            Email atau username
+            {t('login.username')}
           </label>
           <input
             ref={usernameRef}
@@ -250,14 +254,14 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-3">
             <label htmlFor="login-password" className="block text-sm font-medium leading-5 text-(--text)">
-              Kata sandi
+              {t('login.password')}
             </label>
             <button
               type="button"
               onClick={onForgotPassword}
               className={`rounded-sm text-[13px] font-medium leading-5 text-(--primary) underline-offset-4 hover:underline ${focusRing}`}
             >
-              Lupa kata sandi?
+              {t('login.forgot')}
             </button>
           </div>
           <div className="relative">
@@ -285,17 +289,17 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
               onClick={() => setShowPassword((v) => !v)}
               aria-pressed={showPassword}
               aria-controls="login-password"
-              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+              aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
               className={`absolute right-1.5 top-1/2 -translate-y-1/2 rounded px-2.5 py-1.5 text-[13px] font-medium text-(--text-secondary) hover:bg-(--surface-sunken) hover:text-(--text) ${focusRing}`}
             >
-              {showPassword ? 'Sembunyikan' : 'Tampilkan'}
+              {showPassword ? t('login.hide') : t('login.show')}
             </button>
           </div>
           {errors.password && <FieldError id={passwordErrorId}>{errors.password}</FieldError>}
           {capsLock && (
             <p id={capsId} className="mt-1.5 flex items-center gap-1 text-[13px] font-medium leading-5 text-(--warning-text)">
               <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
-              Caps Lock aktif
+              {t('login.capsLock')}
             </p>
           )}
         </div>
@@ -314,7 +318,7 @@ export function LoginForm({ product = 'ERP', tenant, sessionExpired = false, onF
           }
         >
           {busy && <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden />}
-          {phase === 'verifying' ? 'Memverifikasi…' : phase === 'redirecting' ? 'Mengalihkan…' : 'Masuk'}
+          {phase === 'verifying' ? t('login.verifying') : phase === 'redirecting' ? t('login.redirecting') : t('login.submit')}
         </button>
       </form>
     </div>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import i18n from '@/i18n';
 import { STATUS_TONES, getStatusLabel, getStatusMeta, getStatusTone, normalizeStatusKey, statusOptions } from './status';
 
 describe('normalizeStatusKey', () => {
@@ -208,5 +209,20 @@ describe('GA maintenance statuses', () => {
     // Generic meaning elsewhere is unchanged.
     expect(getStatusMeta('PAID')).toEqual({ label: 'Lunas', tone: 'success' });
     expect(getStatusMeta('FULFILLED')).toEqual({ label: 'Terpenuhi', tone: 'success' });
+  });
+});
+
+describe('language', () => {
+  it('translates labels at call time', async () => {
+    await i18n.changeLanguage('en');
+    try {
+      expect(getStatusMeta('PartiallyPaid')).toEqual({ label: 'Partially paid', tone: 'warning' });
+      expect(getStatusLabel('Submitted', 'sales_order')).toBe('Confirmed');
+      expect(getStatusLabel('Accepted')).toBe('Accepted');
+      expect(getStatusLabel('Received')).toBe('Received');
+    } finally {
+      await i18n.changeLanguage('id');
+    }
+    expect(getStatusLabel('PartiallyPaid')).toBe('Dibayar Sebagian');
   });
 });

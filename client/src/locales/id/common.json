@@ -13,5 +13,253 @@
       "label": "Sistem",
       "description": "Mengikuti pengaturan perangkat"
     }
+  },
+  "status": {
+    "active": "Aktif",
+    "stockOk": "Aman",
+    "new": "Baru",
+    "notInvoiced": "Belum Diinvoice",
+    "notAccounted": "Belum Dipertanggungjawabkan",
+    "notBilled": "Belum Ditagih",
+    "notReceived": "Belum Diterima",
+    "unpaid": "Belum Lunas",
+    "ended": "Berakhir",
+    "spare": "Cadangan",
+    "inRepair": "Dalam Perbaikan",
+    "inProcess": "Dalam Proses",
+    "submitted": "Diajukan",
+    "archived": "Diarsipkan",
+    "cancelled": "Dibatalkan",
+    "partiallyPaid": "Dibayar Sebagian",
+    "paid": "Dibayar",
+    "discarded": "Dibuang",
+    "revoked": "Dicabut",
+    "retired": "Dihentikan",
+    "inProgress": "Dikerjakan",
+    "confirmed": "Dikonfirmasi",
+    "converted": "Dikonversi",
+    "reported": "Dilaporkan",
+    "disposed": "Dilepas",
+    "requested": "Diminta",
+    "ordered": "Dipesan",
+    "posted": "Diposting",
+    "processing": "Diproses",
+    "partiallySettled": "Diselesaikan Sebagian",
+    "deposited": "Disetor",
+    "approved": "Disetujui",
+    "onHold": "Ditahan",
+    "fullyReceived": "Diterima Penuh",
+    "partiallyReceived": "Diterima Sebagian",
+    "received": "Diterima",
+    "rejected": "Ditolak",
+    "assigned": "Ditugaskan",
+    "closed": "Ditutup",
+    "draft": "Draf",
+    "draftDoc": "Draft",
+    "failed": "Gagal",
+    "outOfStock": "Habis",
+    "lost": "Hilang",
+    "overdue": "Jatuh Tempo",
+    "expired": "Kedaluwarsa",
+    "insuranceClaim": "Klaim Asuransi",
+    "paidInFull": "Lunas",
+    "lowStock": "Menipis",
+    "pendingManager": "Menunggu Atasan",
+    "pendingDirector": "Menunggu Direktur",
+    "pendingApprovalDraft": "Menunggu persetujuan",
+    "pendingApproval": "Menunggu Persetujuan",
+    "pending": "Menunggu",
+    "inactive": "Nonaktif",
+    "quoted": "Penawaran Masuk",
+    "needsRevision": "Perlu Revisi",
+    "partiallyPosted": "Sebagian Diposting",
+    "completed": "Selesai",
+    "readyToPay": "Siap Dibayar",
+    "invoiced": "Sudah Diinvoice",
+    "accounted": "Sudah Dipertanggungjawabkan",
+    "billed": "Sudah Ditagih",
+    "open": "Terbuka",
+    "fullyDelivered": "Terkirim Penuh",
+    "partiallyDelivered": "Terkirim Sebagian",
+    "sent": "Terkirim",
+    "partiallyUsed": "Terpakai Sebagian",
+    "fullyUsed": "Terpakai",
+    "fulfilled": "Terpenuhi",
+    "linked": "Tertaut",
+    "customerOwned": "Titipan",
+    "financeReview": "Verifikasi Keuangan",
+    "accepted": "Diterima",
+    "settled": "Lunas"
+  },
+  "actions": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "delete": "Hapus",
+    "edit": "Ubah",
+    "add": "Tambah",
+    "create": "Buat",
+    "search": "Cari",
+    "back": "Kembali",
+    "next": "Berikutnya",
+    "previous": "Sebelumnya",
+    "confirm": "Konfirmasi",
+    "yes": "Ya",
+    "no": "Tidak",
+    "retry": "Coba lagi",
+    "refresh": "Muat ulang",
+    "reset": "Atur ulang",
+    "apply": "Terapkan",
+    "clear": "Hapus",
+    "select": "Pilih",
+    "upload": "Unggah",
+    "download": "Unduh",
+    "print": "Cetak",
+    "export": "Ekspor",
+    "import": "Impor",
+    "view": "Lihat",
+    "open": "Buka",
+    "copy": "Salin",
+    "submit": "Kirim",
+    "continue": "Lanjut",
+    "done": "Selesai",
+    "remove": "Hapus",
+    "change": "Ganti",
+    "more": "Lainnya",
+    "detail": "Detail",
+    "showAll": "Lihat semua"
+  },
+  "states": {
+    "loading": "Memuat…",
+    "loadingData": "Memuat data…",
+    "saving": "Menyimpan…",
+    "deleting": "Menghapus…",
+    "processing": "Memproses…",
+    "uploading": "Mengunggah…"
+  },
+  "errors": {
+    "generic": "Terjadi kesalahan. Coba lagi.",
+    "network": "Tidak dapat terhubung ke server. Periksa koneksi Anda.",
+    "loadFailed": "Data gagal dimuat.",
+    "saveFailed": "Gagal menyimpan.",
+    "required": "Wajib diisi."
+  },
+  "labels": {
+    "all": "Semua",
+    "none": "Tidak ada",
+    "optional": "opsional",
+    "required": "wajib",
+    "notes": "Catatan",
+    "status": "Status",
+    "date": "Tanggal",
+    "name": "Nama",
+    "description": "Keterangan",
+    "actions": "Aksi",
+    "total": "Total"
+  },
+  "confirmDialog": {
+    "reason": "Alasan",
+    "reasonPlaceholder": "Tuliskan alasan…",
+    "reasonRequired": "Alasan wajib diisi (minimal {{min}} karakter)."
+  },
+  "emptyState": {
+    "empty": {
+      "title": "Belum ada data",
+      "description": "Data yang Anda buat akan muncul di sini."
+    },
+    "noResults": {
+      "title": "Tidak ada hasil",
+      "description": "Coba ubah kata kunci atau hapus sebagian filter."
+    },
+    "error": {
+      "title": "Data gagal dimuat",
+      "description": "Periksa koneksi Anda lalu coba lagi."
+    }
+  },
+  "emptyRow": "Belum ada data yang tercatat.",
+  "pagination": {
+    "none": "Tidak ada data",
+    "noneOf": "Tidak ada {{item}}",
+    "summary": "Menampilkan {{from}}–{{to}} dari {{total}}",
+    "summaryOf": "Menampilkan {{from}}–{{to}} dari {{total}} {{item}}",
+    "rowsPerPage": "Baris per halaman",
+    "label": "Paginasi",
+    "previous": "Halaman sebelumnya",
+    "next": "Halaman berikutnya",
+    "page": "Halaman {{page}}"
+  },
+  "dataTable": {
+    "clearFilters": "Hapus filter"
+  },
+  "filters": {
+    "label": "Filter daftar",
+    "searchPlaceholder": "Cari…",
+    "clearSearch": "Hapus pencarian",
+    "allStatuses": "Semua status",
+    "dateRange": "Rentang tanggal",
+    "dateFrom": "Dari tanggal",
+    "dateTo": "Sampai tanggal",
+    "notFound": "Tidak ditemukan.",
+    "clearFilter": "Hapus filter {{label}}"
+  },
+  "partyFilter": {
+    "customer": {
+      "label": "Customer",
+      "all": "Semua customer",
+      "search": "Cari customer…"
+    },
+    "supplier": {
+      "label": "Supplier",
+      "all": "Semua supplier",
+      "search": "Cari supplier…"
+    }
+  },
+  "dateInput": {
+    "placeholder": "dd/mm/yyyy",
+    "openPicker": "Pilih tanggal"
+  },
+  "relativeTime": {
+    "justNow": "Baru saja",
+    "minutesAgo_one": "{{count}} menit lalu",
+    "minutesAgo_other": "{{count}} menit lalu",
+    "hoursAgo_one": "{{count}} jam lalu",
+    "hoursAgo_other": "{{count}} jam lalu",
+    "daysAgo_one": "{{count}} hari lalu",
+    "daysAgo_other": "{{count}} hari lalu"
+  },
+  "auditDiff": {
+    "value": "nilai",
+    "empty": "(kosong)",
+    "yes": "Ya",
+    "no": "Tidak",
+    "justNow": "baru saja",
+    "actions": {
+      "create": "Buat",
+      "update": "Ubah",
+      "delete": "Hapus",
+      "login": "Masuk",
+      "fixAleSync": "Perbaikan sinkron ALE",
+      "fixAccountBalanceDrift": "Perbaikan saldo akun",
+      "fixOrphanAle": "Perbaikan ALE yatim"
+    }
+  },
+  "attachments": {
+    "tooMany": "Maksimal {{max}} file per transaksi.",
+    "badType": "Tipe file tidak didukung (JPG, PNG, WebP, PDF saja).",
+    "tooLarge": "Ukuran file melebihi {{size}}."
+  },
+  "validation": {
+    "passwordMin": "Kata sandi minimal {{min}} karakter.",
+    "passwordUpper": "Kata sandi harus mengandung huruf besar.",
+    "passwordDigit": "Kata sandi harus mengandung angka.",
+    "passwordSpecial": "Kata sandi harus mengandung karakter spesial.",
+    "fullNameMin": "Nama lengkap minimal {{min}} karakter.",
+    "usernameMin": "Nama pengguna minimal {{min}} karakter.",
+    "emailInvalid": "Format email tidak valid.",
+    "roleRequired": "Peran wajib dipilih.",
+    "passwordRequired": "Kata sandi wajib diisi untuk pengguna baru."
+  },
+  "statCard": {
+    "viewDetail": "Lihat detail"
   }
 }

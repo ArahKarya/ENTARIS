@@ -1,4 +1,5 @@
 import api from './api';
+import i18n from '@/i18n';
 
 export type AttachmentRefType = 'payment' | 'journal';
 
@@ -21,14 +22,14 @@ export interface AttachmentValidationError {
  */
 export function validateAttachmentFiles(files: File[]): AttachmentValidationError | null {
   if (files.length > 5) {
-    return { file: '', reason: 'Maksimal 5 file per transaksi.' };
+    return { file: '', reason: i18n.t('attachments.tooMany', { ns: 'common', max: 5 }) };
   }
   for (const file of files) {
     if (!ATTACHMENT_VALID_TYPES.includes(file.type)) {
-      return { file: file.name, reason: 'Tipe file tidak didukung (JPG, PNG, WebP, PDF saja).' };
+      return { file: file.name, reason: i18n.t('attachments.badType', { ns: 'common' }) };
     }
     if (file.size > ATTACHMENT_MAX_SIZE) {
-      return { file: file.name, reason: 'Ukuran file melebihi 5MB.' };
+      return { file: file.name, reason: i18n.t('attachments.tooLarge', { ns: 'common', size: '5MB' }) };
     }
   }
   return null;
