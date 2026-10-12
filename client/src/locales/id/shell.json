@@ -285,7 +285,7 @@
     }
   },
   "dummyData": {
-    "banner": "Data uji coba sedang aktif. Mitra bertanda [Dummy] beserta transaksinya ikut terhitung di daftar, dasbor, dan laporan. Admin dapat menghapusnya di Pengaturan, tab Cadangan & Pemulihan."
+    "banner": "Data uji coba sedang aktif. Transaksinya ikut terhitung di daftar, dasbor, dan laporan. Admin dapat menghapusnya di Pengaturan, tab Cadangan & Pemulihan."
   },
   "about": {
     "title": "Tentang Entaris",

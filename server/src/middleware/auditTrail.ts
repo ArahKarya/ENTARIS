@@ -38,7 +38,7 @@ export const auditTrailMiddleware = async (req: AuthRequest, res: Response, next
             newValues: redactSecrets(body) as object,
             ipAddress: req.ip,
             userAgent: req.headers['user-agent'],
-            // Aksi agen (MCP): tandai via + token/channel/tool agar terlacak di Jejak Audit.
+            // Aksi agen (MCP) atau generator data uji coba: tandai via agar terlacak di Jejak Audit.
             ...(req.user!.via === 'mcp'
               ? {
                   via: 'mcp',
@@ -49,7 +49,9 @@ export const auditTrailMiddleware = async (req: AuthRequest, res: Response, next
                     approvalId: req.user!.mcpApprovalId ?? null,
                   },
                 }
-              : {}),
+              : req.user!.via === 'demo'
+                ? { via: 'demo' }
+                : {}),
           },
         })
         .catch((err) => logger.error({ err }, 'Audit log write failed'));

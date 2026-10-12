@@ -376,7 +376,7 @@
   },
   "src/pages/settings/BackupTab.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 7
+      "count": 5
     }
   },
   "src/pages/settings/CompanySettingsTab.tsx": {

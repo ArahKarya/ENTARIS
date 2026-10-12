@@ -15,8 +15,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 export interface TokenPayload {
   userId: string;
   role: string;
-  /** Penanda panggilan internal dari layer MCP (hanya ada di JWT berumur pendek buatan server). */
-  via?: 'mcp';
+  /**
+   * Penanda panggilan internal (hanya ada di JWT berumur pendek buatan server):
+   * 'mcp' = layer MCP, 'demo' = generator data uji coba.
+   */
+  via?: 'mcp' | 'demo';
   mcpToken?: string;
   mcpChannel?: string;
   mcpTool?: string;

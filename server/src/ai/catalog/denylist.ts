@@ -63,8 +63,15 @@ export const DENY_RULES: DenyRule[] = [
   {
     id: 'system-reset',
     category: 'destruktif-sistem',
-    exact: ['POST /api/settings/reset-data', 'POST /api/settings/generate-dummy', 'POST /api/settings/delete-dummy'],
-    reason: 'Reset data & data dummy menghapus/menimpa data transaksi. Tidak boleh dipicu agen.',
+    exact: [
+      'POST /api/settings/reset-data',
+      'POST /api/settings/generate-dummy',
+      'POST /api/settings/delete-dummy',
+      'GET /api/settings/demo-data',
+      'POST /api/settings/demo-data/generate',
+      'POST /api/settings/demo-data/delete',
+    ],
+    reason: 'Reset data, data dummy & data uji coba menghapus/menimpa data transaksi. Tidak boleh dipicu agen.',
   },
   {
     id: 'health-fix',

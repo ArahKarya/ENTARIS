@@ -410,15 +410,38 @@
       "invalidFile": "Only .sql.gz files are allowed.",
       "downloadError": "Could not download the backup."
     },
-    "dummy": {
-      "title": "Dummy Data (Testing)",
-      "description": "Create sample transactions (customers, suppliers, invoices, journals, inventory) for testing. Dummy data can be deleted without affecting real data.",
-      "create": "Create Dummy Data",
-      "delete": "Delete Dummy Data",
-      "created": "Dummy data created: {{parties}} partners, {{salesInvoices}} SI, {{purchaseInvoices}} PI, {{journals}} journals, {{items}} items.",
-      "createError": "Could not create dummy data.",
-      "deleted": "Dummy data deleted: {{parties}} partners, {{salesInvoices}} SI, {{purchaseInvoices}} PI, {{items}} items.",
-      "deleteError": "Could not delete dummy data."
+    "demo": {
+      "title": "Demo Data",
+      "description": "Fill the sales, purchasing, stock, and finance modules with sample transactions for the last three months (rice mill and distribution), created through the same app flows users go through. Only available while there are no transactions.",
+      "create": "Create Demo Data",
+      "delete": "Delete Demo Data",
+      "deleteLegacy": "Delete Old Dummy Data",
+      "loading": "Loading demo data status...",
+      "loadError": "The demo data status could not be loaded.",
+      "ready": "There are no transactions yet. Demo data is ready to be created.",
+      "blocked": "Transactions already exist, so demo data cannot be created. Demo data is only for companies that have not recorded transactions.",
+      "legacy": "Old dummy data is still present. Delete it before creating the new demo data.",
+      "running": "Creating: {{step}}",
+      "progressLabel": "Demo data progress",
+      "progressText": "{{done}} of {{total}} steps",
+      "active": "Demo data active since {{date}}.",
+      "failed": "Creating demo data stopped part way. Delete the demo data, then try again.",
+      "created": "Demo data created.",
+      "createError": "Could not start creating demo data.",
+      "deleted": "Demo data deleted.",
+      "deleteError": "Could not delete demo data.",
+      "legacyDeleted": "Old dummy data deleted.",
+      "legacyDeleteError": "Could not delete old dummy data.",
+      "confirm": {
+        "title": "Delete demo data?",
+        "description": "Every transaction in every module will be emptied, including transactions you recorded after the demo data was created.",
+        "items": {
+          "transactions": "All sales, purchasing, stock, journal, payment, approval, and EAM documents, and notifications since the demo data was created.",
+          "masters": "Partners, items, warehouses, and services the demo data created.",
+          "kept": "Kept: users, roles, chart of accounts, system accounts, company settings, fiscal years, and masters you created yourself."
+        },
+        "userChanges": "Users made {{count}} changes since the demo data was created. They will be deleted too."
+      }
     },
     "reset": {
       "title": "Reset All Data",

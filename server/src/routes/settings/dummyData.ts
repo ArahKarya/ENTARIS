@@ -14,6 +14,9 @@ const router = Router();
 
 // POST /api/settings/generate-dummy: requires settings edit permission.
 router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
+  if (await prisma.demoDataBatch.findFirst({ select: { id: true } })) {
+    return res.status(409).json({ error: 'Data uji coba sudah ada. Hapus terlebih dahulu sebelum membuat ulang.' });
+  }
   try {
     const admin = await prisma.user.findFirst({ where: { role: 'Admin' } });
     if (!admin) return res.status(400).json({ error: 'User admin tidak ditemukan.' });
@@ -617,6 +620,10 @@ router.post('/generate-dummy', requirePerm('settings'), async (req, res) => {
 // POST /api/settings/delete-dummy: deletes only dummy data; requires settings edit permission.
 router.post('/delete-dummy', requirePerm('settings'), async (_req, res) => {
   try {
+    // Demo parties are flagged isDummy too; they must go through the exclusive demo wipe instead.
+    if (await prisma.demoDataBatch.findFirst({ select: { id: true } })) {
+      return res.status(409).json({ error: 'Gunakan Hapus data uji coba untuk menghapus data uji coba lintas modul.' });
+    }
     const results = { parties: 0, salesInvoices: 0, purchaseInvoices: 0, payments: 0, journals: 0, inventoryItems: 0, movements: 0, productionRuns: 0 };
 
     await prisma.$transaction(async (tx) => {
