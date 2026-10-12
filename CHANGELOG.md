@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-12
+
+Rilis kecil sejak 4.0.0: data uji coba lintas modul yang dibuat lewat alur aplikasi asli, perbaikan tampilan KPI dan nilai retur, panel AIRA saat layanan dimatikan, serta alat rilis versi.
+
+### Migrasi deploy
+- Migrasi SQL lepas `2026102000000_demo_data.sql` (tabel `demo_data_batches`, `demo_data_records`) berjalan otomatis saat container boot. Tidak ada env baru.
+
+### Data uji coba lintas modul
+**Ditambahkan**:
+- Kartu **Data Uji Coba** di Pengaturan > Cadangan & Pemulihan menggantikan kartu "Data Dummy" lama. Setiap dokumen dibuat lewat handler API aplikasi sendiri (JWT singkat bertanda `via:'demo'`), jadi RBAC, gerbang persetujuan, jurnal, stok/WAC, notifikasi, dan audit trail berjalan seperti pemakaian biasa.
+- Cakupan: penjualan (Inquiry sampai Pembayaran, retur, uang muka Customer), pembelian (PO sampai Pembayaran, uang muka Supplier), saldo awal, jurnal rutin, produksi (draft dan posting, OEE), transfer dan stock opname, aset tetap dan penyusutan, Pengajuan Pembayaran dan pertanggungjawaban, Draft Buku Kas, rekonsiliasi bank, jaminan proyek, transaksi berulang, EAM (kendaraan, BBM, ban, inspeksi, asuransi, pajak, dokumen, gedung, timbangan, mesin), work order, Permintaan Barang, Tagihan EAM, dan 2 contoh percakapan AIRA.
+- Skenario disetel seperti pabrik yang berjalan: setiap bulan penuh untung, stok tidak negatif, ledger seimbang.
+
+**Diubah**:
+- Mode eksklusif: data uji coba hanya bisa dibuat saat semua tabel data kosong, dan hanya oleh peran dengan `approval.bypass`. Hapus (ketik HAPUS) mengosongkan semua tabel data, menghapus master yang dicatat demo, lalu mereset saldo turunan. Pengguna, peran, COA, dan Akun Sistem tetap.
+- Endpoint lama `/settings/generate-dummy` dan `/settings/delete-dummy` menolak (409) bila data uji coba lintas modul sudah ada.
+
+### Diperbaiki
+- Kartu KPI Invoice Penjualan, Invoice Pembelian, Uang Muka Customer, dan Uang Muka Supplier tidak lagi menampilkan nilai lengkap dua kali.
+- Retur penjualan yang menunggu persetujuan tidak lagi tampil Rp 0; nilainya diperkirakan dari baris invoice dengan rumus dan pembulatan yang sama seperti saat posting.
+- Panel AIRA saat layanan dimatikan administrator: banner menjelaskan statusnya dan daftar sesi menampilkan pesan gagal muat, bukan "Belum ada percakapan". `GET /api/ai/chat/health` kini mengembalikan `agenticEnabled`.
+
+### Rilis & dokumentasi
+- `scripts/bump-version.js` menyinkronkan versi di `version.ts`, `package.json`, dan `package-lock.json`; `--check` menjadi job CI "Version sync"; versi yang lebih rendah ditolak kecuali `--force`.
+- Push tag `vX.Y.Z` di `main` menerbitkan GitHub Release otomatis dari CHANGELOG.md (`.github/workflows/release.yml`).
+- README ditulis ulang dan diberi bagian Tampilan berisi 6 screenshot dari data uji coba; `.env.docker.example` tidak lagi memuat contoh password database yang bisa dipakai langsung.
+
 ## [4.0.0] - 2026-10-12
 
 Rilis mayor sejak 3.19.0 (2 Okt): integrasi AIRA dirombak (MCP server + panel chat sesi Entaris), antarmuka dwibahasa (Indonesia/Inggris) di seluruh modul, migrasi SQL lepas berbasis ledger, dan pembaruan tampilan.

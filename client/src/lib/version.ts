@@ -4,7 +4,7 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.0.0';
+export const APP_VERSION = '4.1.0';
 export const APP_BUILD_DATE = '2026-10-12';
 export const APP_NAME = 'Entaris';
 
@@ -25,6 +25,18 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.1.0',
+    date: '2026-10-12',
+    title: 'Data Uji Coba Lintas Modul dan Alat Rilis',
+    changes: [
+      'Data Uji Coba di Pengaturan > Cadangan & Pemulihan menggantikan Data Dummy: dokumen dibuat lewat alur aplikasi asli (persetujuan, jurnal, stok, audit trail) di penjualan, pembelian, produksi, persediaan, aset, keuangan, EAM, dan contoh percakapan AIRA',
+      'Mode eksklusif: data uji coba hanya bisa dibuat saat belum ada transaksi, dan dihapus seluruhnya dengan mengetik HAPUS tanpa menyentuh pengguna, COA, dan Akun Sistem',
+      'Diperbaiki: kartu KPI invoice dan uang muka tidak lagi menampilkan nilai dua kali; retur yang menunggu persetujuan menampilkan perkiraan nilainya, bukan Rp 0',
+      'Panel AIRA menjelaskan saat layanan dinonaktifkan administrator dan tidak lagi menampilkan "Belum ada percakapan"',
+      'Alat rilis: versi disinkronkan dan dicek otomatis di CI, tag versi menerbitkan GitHub Release dari changelog',
+    ],
+  },
   {
     version: '4.0.0',
     date: '2026-10-12',
