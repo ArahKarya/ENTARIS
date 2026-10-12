@@ -13,6 +13,16 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Version sync (version.ts / package.json / lockfiles / CHANGELOG)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/bump-version.js --check
+
   client:
     name: Client (lint, types, test, build)
     runs-on: ubuntu-latest
