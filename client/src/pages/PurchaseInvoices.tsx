@@ -337,7 +337,6 @@ export const PurchaseInvoices = () => {
             loading={kpiLoading}
             value={kpiMoney(summary?.outstanding)}
             valueTitle={summary ? formatRupiah(summary.outstanding) : undefined}
-            hint={summary ? formatRupiah(summary.outstanding) : undefined}
           />
           <StatCard
             label={t('invoiceList.kpi.paid')}

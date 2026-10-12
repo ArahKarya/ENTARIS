@@ -30,6 +30,7 @@
     }
   },
   "engineBanner": {
+    "disabled": "Layanan AIRA sedang dinonaktifkan oleh administrator.",
     "notConfigured": "Engine AIRA belum dikonfigurasi di server.",
     "keyRejected": "Kunci engine AIRA ditolak.",
     "offline": "Engine AIRA sedang offline.",
@@ -77,6 +78,7 @@
     "link": { "label": "Tautan", "cta": "Buka" }
   },
   "sessionList": {
+    "loadFailed": "Daftar percakapan tidak bisa dimuat.",
     "untitled": "Percakapan baru",
     "sessionName": "Nama sesi",
     "saveName": "Simpan nama",

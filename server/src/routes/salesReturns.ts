@@ -4,7 +4,7 @@ import { AuthRequest, requireCap } from '../middleware/auth';
 import { validateBody } from '../utils/validate';
 import { CreateSalesReturnSchema } from '../utils/schemas';
 import { handleRouteError } from '../utils/errors';
-import { submitSalesReturnInTx } from '../services/salesReturnSubmit';
+import { estimateSalesReturnAmount, submitSalesReturnInTx } from '../services/salesReturnSubmit';
 import { cancelSalesReturnInTx } from '../services/salesReturnCancel';
 import { needsApproval, queueApproval, approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
@@ -149,11 +149,12 @@ router.post('/', async (req: AuthRequest, res) => {
 
   try {
     if (await needsApproval(req.user!.role)) {
-      const request = await prisma.$transaction((tx) =>
+      const request = await prisma.$transaction(async (tx) =>
         queueApproval(tx, {
           documentType: 'SalesReturn',
           payload: req.body,
-          amount: 0,
+          // Shown to the approver; the posted value is recomputed from the invoice at approval.
+          amount: await estimateSalesReturnAmount(tx, body),
           requestedBy: req.user!.userId,
           label: 'Retur Penjualan (menunggu approval)',
         }),

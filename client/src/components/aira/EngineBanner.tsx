@@ -1,4 +1,5 @@
-// Shown while the AIRA engine is offline: retry, plus a Settings link when isAdmin.
+// Shown while the AIRA service is switched off or the engine is offline: retry, plus a Settings
+// link when isAdmin.
 
 import { Link } from 'react-router-dom';
 import { WifiOff } from 'lucide-react';
@@ -15,8 +16,12 @@ interface EngineBannerProps {
 
 export function EngineBanner({ health, checking, isAdmin, onRetry }: EngineBannerProps) {
   const { t } = useTranslation('aira');
-  if (!health || health.online) return null;
-  const msg = !health.configured
+  if (!health) return null;
+  const disabled = health.agenticEnabled === false;
+  if (!disabled && health.online) return null;
+  const msg = disabled
+    ? t('engineBanner.disabled')
+    : !health.configured
     ? t('engineBanner.notConfigured')
     : health.reason === 'auth'
       ? t('engineBanner.keyRejected')
@@ -25,7 +30,7 @@ export function EngineBanner({ health, checking, isAdmin, onRetry }: EngineBanne
     <div role="alert" className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-warning/40 bg-warning-subtle px-3 py-2 text-sm text-warning-text">
       <WifiOff className="size-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">
-        {msg} {t('engineBanner.keepMessages')}
+        {msg} {!disabled && t('engineBanner.keepMessages')}
       </span>
       <Button type="button" size="sm" variant="outline" onClick={onRetry} loading={checking}>
         {t('engineBanner.retry')}

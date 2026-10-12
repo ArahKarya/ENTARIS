@@ -59,6 +59,8 @@ export function useSessionList() {
   return {
     sessions,
     loading: query.isLoading,
+    /** Why the list could not be loaded (e.g. AIRA switched off by an admin), or null. */
+    error: query.isError ? errMsg(query.error, i18n.t('aira:sessionList.loadFailed')) : null,
     hasMore: !!query.hasNextPage,
     loadingMore: query.isFetchingNextPage,
     loadMore: () => void query.fetchNextPage(),
