@@ -8,6 +8,13 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.1.1': {
+    title: 'Reset Data Fixes',
+    changes: [
+      'After Reset Data, postings no longer fail with "Invalid data reference" until the server is restarted',
+      'Accounts 5.12 Conversion Cost Charged to Inventory and 6.41 Vehicle Tax & Licensing Expense are recreated after Reset Data, so EAM vehicle tax postings and production conversion costs work again',
+    ],
+  },
   '4.1.0': {
     title: 'Cross-Module Demo Data and Release Tooling',
     changes: [

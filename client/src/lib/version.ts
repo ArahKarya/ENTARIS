@@ -4,8 +4,8 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.1.0';
-export const APP_BUILD_DATE = '2026-10-12';
+export const APP_VERSION = '4.1.1';
+export const APP_BUILD_DATE = '2026-10-13';
 export const APP_NAME = 'Entaris';
 
 export interface ChangelogEntry {
@@ -25,6 +25,15 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.1.1',
+    date: '2026-10-13',
+    title: 'Perbaikan Reset Data',
+    changes: [
+      'Setelah Reset Data, posting tidak lagi gagal dengan "Referensi data tidak valid" sampai server di-restart',
+      'Akun 5.12 Biaya Konversi Dibebankan ke Persediaan dan 6.41 Beban Pajak & Perizinan Kendaraan dibuat ulang setelah Reset Data, sehingga posting pajak kendaraan EAM dan biaya konversi produksi kembali berjalan',
+    ],
+  },
   {
     version: '4.1.0',
     date: '2026-10-12',
