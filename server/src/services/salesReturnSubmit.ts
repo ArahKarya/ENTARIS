@@ -39,6 +39,48 @@ export interface SubmitSalesReturnInput {
  * Cost source priority per line: DO stockMovement.unitCost → invoice line
  * unitCostLoaded → item.averageCost.
  */
+/** Net value of one returned line: qty × invoice rate less the line discount (before tax). */
+export function returnLineAmount(quantity: number, rate: number, discountPct: number): number {
+  return new Decimal(quantity)
+    .mul(new Decimal(rate))
+    .mul(new Decimal(1).minus(new Decimal(discountPct).div(100)))
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    .toNumber();
+}
+
+/** Return value including line tax, for the given lines. */
+export function returnTotal(lines: Array<{ amount: number; taxPct: number }>): number {
+  const subtotal = lines.reduce((s, r) => s.plus(new Decimal(r.amount)), new Decimal(0));
+  const tax = lines
+    .reduce((s, r) => s.plus(new Decimal(r.amount).mul(new Decimal(r.taxPct).div(100))), new Decimal(0))
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  return subtotal.plus(tax).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+}
+
+/**
+ * Value a return would have when posted, priced from the invoice lines like submitSalesReturnInTx.
+ * Used to show the amount of a return that waits for approval; unknown lines count as zero.
+ */
+export async function estimateSalesReturnAmount(
+  tx: Prisma.TransactionClient,
+  body: Pick<SubmitSalesReturnInput, 'salesInvoiceId' | 'items'>,
+): Promise<number> {
+  const ids = body.items.map((l) => l.salesInvoiceItemId);
+  const src = await tx.salesInvoiceItem.findMany({
+    where: { id: { in: ids }, salesInvoiceId: body.salesInvoiceId },
+    select: { id: true, rate: true, discount: true, taxPct: true },
+  });
+  const byId = new Map(src.map((s) => [s.id, s]));
+  const total = returnTotal(
+    body.items.flatMap((l) => {
+      const s = byId.get(l.salesInvoiceItemId);
+      return s ? [{ amount: returnLineAmount(l.quantity, Number(s.rate), Number(s.discount)), taxPct: Number(s.taxPct) }] : [];
+    }),
+  );
+  // Display only: an absurd quantity must not block queueing (approval validates and rejects it).
+  return Number.isFinite(total) && total >= 0 && total < 1e15 ? total : 0;
+}
+
 export async function submitSalesReturnInTx(
   tx: Tx,
   body: SubmitSalesReturnInput,
@@ -121,11 +163,7 @@ export async function submitSalesReturnInTx(
 
     const discount = Number(src.discount);
     const rate = Number(src.rate);
-    const amount = new Decimal(line.quantity)
-      .mul(new Decimal(rate))
-      .mul(new Decimal(1).minus(new Decimal(discount).div(100)))
-      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-      .toNumber();
+    const amount = returnLineAmount(line.quantity, rate, discount);
 
     const restock = line.restock !== false && !!src.inventoryItemId;
 
@@ -162,7 +200,7 @@ export async function submitSalesReturnInTx(
   const taxAmount = resolved
     .reduce((s, r) => s.plus(new Decimal(r.amount).mul(new Decimal(r.taxPct).div(100))), new Decimal(0))
     .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-  const totalReturn = subtotal.plus(taxAmount).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const totalReturn = new Decimal(returnTotal(resolved));
   const totalReturnNum = totalReturn.toNumber();
   // Retur qty-only (rate 0, mis. barang titipan pelanggan) valid selama minimal 1
   // baris punya qty>0 — hanya mengembalikan stok fisik, tanpa nilai piutang/kredit.

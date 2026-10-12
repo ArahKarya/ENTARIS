@@ -121,6 +121,7 @@ export function AiraChat() {
     <SessionList
       sessions={list.sessions}
       loading={list.loading}
+      error={list.error}
       hasMore={list.hasMore}
       loadingMore={list.loadingMore}
       onLoadMore={list.loadMore}

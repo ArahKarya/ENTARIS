@@ -16,6 +16,8 @@ import type { ChatSessionDto, SessionStatus } from './types';
 export interface SessionListProps {
   sessions: ChatSessionDto[];
   loading: boolean;
+  /** Load failure shown instead of the empty-list text. */
+  error?: string | null;
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
@@ -138,7 +140,10 @@ export function SessionList(p: SessionListProps) {
         {p.loading && (
           <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden />{t('sessionList.loading')}</div>
         )}
-        {!p.loading && groups.length === 0 && (
+        {!p.loading && p.error && (
+          <p role="alert" className="px-2 py-6 text-center text-sm text-danger-text">{p.error}</p>
+        )}
+        {!p.loading && !p.error && groups.length === 0 && (
           <p className="px-2 py-6 text-center text-sm text-muted-foreground">
             {t(p.search ? 'sessionList.noMatches' : archived ? 'sessionList.noArchived' : 'sessionList.noSessions')}
           </p>

@@ -300,7 +300,6 @@ export const CustomerDeposits = () => {
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalRemaining)}
           valueTitle={summary ? formatRupiah(summary.totalRemaining) : undefined}
-          hint={summary ? formatRupiah(summary.totalRemaining) : undefined}
         />
         <StatCard
           label={t('customerDepositsPage.kpi.active')}

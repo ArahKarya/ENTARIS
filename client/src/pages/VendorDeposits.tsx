@@ -302,7 +302,6 @@ export const VendorDeposits = () => {
           loading={!summary && !summaryQuery.isError}
           value={kpiMoney(summary?.totalRemaining)}
           valueTitle={summary ? formatRupiah(summary.totalRemaining) : undefined}
-          hint={summary ? formatRupiah(summary.totalRemaining) : undefined}
         />
         <StatCard
           label={t('depositList.kpi.active')}

@@ -30,6 +30,7 @@
     }
   },
   "engineBanner": {
+    "disabled": "The AIRA service has been switched off by an administrator.",
     "notConfigured": "The AIRA engine is not configured on the server.",
     "keyRejected": "The AIRA engine key was rejected.",
     "offline": "The AIRA engine is offline.",
@@ -77,6 +78,7 @@
     "link": { "label": "Link", "cta": "Open" }
   },
   "sessionList": {
+    "loadFailed": "The conversation list could not be loaded.",
     "untitled": "New conversation",
     "sessionName": "Session name",
     "saveName": "Save name",

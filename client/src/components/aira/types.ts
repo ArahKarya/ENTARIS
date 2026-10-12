@@ -80,6 +80,8 @@ export interface Paged<T> {
 export interface EngineHealth {
   configured: boolean;
   online: boolean;
+  /** False when an admin switched the AIRA service off (kill switch). */
+  agenticEnabled?: boolean;
   latencyMs: number | null;
   reason?: string;
   acceptsPdf: boolean;

@@ -63,6 +63,8 @@ router.get('/health', async (req: AuthRequest, res) => {
   const admin = !!req.user && (await hasCap(req.user.role, 'rbac.manage'));
   return res.json({
     ...health,
+    // The panel shows the kill switch as its own banner; every other chat route answers 403.
+    agenticEnabled: await agenticEnabled(),
     acceptsPdf: cfg.acceptPdf,
     checkedAt: new Date().toISOString(),
     ...(admin && cfg.baseUrl ? { url: cfg.baseUrl } : {}),
