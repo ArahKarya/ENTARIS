@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-10-13
+
+Perbaikan setelah 4.1.0: Reset Data tidak lagi membuat posting gagal sampai server di-restart, dan akun yang dibutuhkan EAM serta produksi ikut dibuat ulang.
+
+### Diperbaiki
+- Setelah **Reset Data**, cache akun sistem di server dikosongkan. Sebelumnya server tetap memakai ID akun lama sampai di-restart, sehingga posting yang memakai akun sistem (mis. saldo awal stok saat membuat Data Uji Coba) gagal dengan "Referensi data tidak valid".
+- `seed.ts` kini membuat akun **5.12 Biaya Konversi Dibebankan ke Persediaan** dan **6.41 Beban Pajak & Perizinan Kendaraan** bila belum ada. Keduanya sebelumnya hanya dibuat migrasi SQL, jadi hilang setelah Reset Data: posting pajak kendaraan EAM gagal ("Akun 6.41 tidak ditemukan di COA") dan biaya konversi produksi jatuh ke 5.1.
+
+### Migrasi deploy
+- Tidak ada migrasi atau env baru.
+
 ## [4.1.0] - 2026-10-12
 
 Rilis kecil sejak 4.0.0: data uji coba lintas modul yang dibuat lewat alur aplikasi asli, perbaikan tampilan KPI dan nilai retur, panel AIRA saat layanan dimatikan, serta alat rilis versi.
