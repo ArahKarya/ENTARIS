@@ -8,6 +8,16 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.1.0': {
+    title: 'Cross-Module Demo Data and Release Tooling',
+    changes: [
+      'Demo Data in Settings > Backup & Restore replaces Dummy Data: documents are created through the real application flows (approvals, journals, stock, audit trail) across sales, purchasing, production, inventory, assets, finance, EAM, and sample AIRA conversations',
+      'Exclusive mode: demo data can only be created while there are no transactions, and is removed entirely by typing HAPUS without touching users, the chart of accounts, or System Accounts',
+      'Fixed: invoice and deposit KPI cards no longer show the amount twice; returns awaiting approval show their estimated amount instead of Rp 0',
+      'The AIRA panel explains when the service has been disabled by an administrator and no longer shows "No conversations yet"',
+      'Release tooling: versions are synced and checked in CI, and a version tag publishes a GitHub Release from the changelog',
+    ],
+  },
   '4.0.0': {
     title: 'AIRA MCP, New Chat Panel, and Bilingual Interface',
     changes: [
