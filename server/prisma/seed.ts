@@ -286,13 +286,17 @@ async function main() {
     console.log(`- Account: ${account.accountNumber} ${account.name}`);
   }
 
-  // Detail accounts that system-account roles below point to but that are not
-  // in the default chart above (without them stock opname variances and
-  // production conversion postings fail on a fresh install). Created only when
-  // the number is still free, so an existing tenant account is never renamed.
+  // Detail accounts that system-account roles or postings by number point to but
+  // that are not in the default chart above (without them stock opname variances,
+  // production conversion and EAM vehicle tax postings fail on a fresh install or
+  // after reset-data, which re-seeds without replaying the loose SQL migrations
+  // that added 5.12 and 6.41). Created only when the number is still free, so an
+  // existing tenant account is never renamed.
   const systemRoleAccounts = [
+    { accountNumber: '5.12', name: 'Biaya Konversi Dibebankan ke Persediaan', parentNumber: '5' },
     { accountNumber: '6.38', name: 'Selisih Persediaan', parentNumber: '6' },
     { accountNumber: '6.39', name: 'Biaya Konversi Produksi', parentNumber: '6' },
+    { accountNumber: '6.41', name: 'Beban Pajak & Perizinan Kendaraan', parentNumber: '6' },
   ];
   for (const item of systemRoleAccounts) {
     const account =
