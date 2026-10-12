@@ -8,6 +8,29 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.0.0': {
+    title: 'AIRA MCP, New Chat Panel, and Bilingual Interface',
+    changes: [
+      'AIRA integration rebuilt: Entaris is now an MCP server (`POST /mcp`, 474 tools, 14 toolsets) with per-user identity, access tiers, and human approval for risky actions',
+      'New AIRA chat panel: sessions and messages stored by Entaris (history, search, archive, export, attachments), agent called through an OpenAI-compatible API, result cards and tool progress chips',
+      'Cash-book drafts from receipts: debit/credit direction decided deterministically on the server, human account corrections are learned, suspicious rows flagged for review',
+      'Bilingual Indonesian/English interface across all modules, PDFs, API error messages, and the in-app changelog',
+      'Loose SQL migrations now run automatically with a ledger on every container boot',
+      'Fixed: GRN from a PO now fills quantities and updates the PO received quantity; Delivery Notes carry the customer PO number and SO number',
+      'BREAKING: env AIRA_CORE_BASE_URL/AIRA_API_TOKEN and the aira-net network removed; tables ai_whitelist and ai_executed_runs dropped; AIRA_ENGINE_URL, AIRA_ENGINE_KEY, AIRA_ENGINE_TURN_SECRET must be set. Take a pg_dump backup before upgrading',
+    ],
+  },
+  '3.19.0': {
+    title: 'Temporary Delivery Notes, COGS Fixes, and Finance-Integrated EAM',
+    changes: [
+      'Temporary Delivery Notes (SJS): new tab under Sales > Delivery Notes for goods shipped before production is entered; no stock or journal, linked to the official DO',
+      'One purchase invoice can bill more than one GRN; WAC guard rejects zero-price GRNs for own goods',
+      'Account 5.12 Conversion Cost Charged to Inventory and pure raw-material cost (WAC2) on production detail',
+      'Automatic COGS settlement reversal when a production run, purchase invoice, or manual movement is cancelled/edited',
+      'GA bills (vehicle tax/registration/inspection, service, material requests) integrated with finance: direct journal or purchase invoice',
+      'Company logo on all financial report PDFs; Bank & Cash page opens manual journal details',
+    ],
+  },
   '3.18.1': {
     title: 'PDF Export of Periodic Vehicle Inspection Results',
     changes: [

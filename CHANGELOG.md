@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-12
+
+Rilis mayor sejak 3.19.0 (2 Okt): integrasi AIRA dirombak (MCP server + panel chat sesi Entaris), antarmuka dwibahasa (Indonesia/Inggris) di seluruh modul, migrasi SQL lepas berbasis ledger, dan pembaruan tampilan.
+
+### BREAKING / Migrasi deploy (wajib dibaca sebelum upgrade)
+- **Env dihapus**: `AIRA_CORE_BASE_URL`, `AIRA_API_TOKEN`; jaringan Docker `aira-net` dihapus dari compose.
+- **Env baru wajib** bila memakai AIRA: `AIRA_ENGINE_URL`, `AIRA_ENGINE_KEY`, `AIRA_ENGINE_TURN_SECRET` (>= 32 karakter). Opsional: `MCP_SECRET_KEY`, `AIRA_ENGINE_MODEL`, `AIRA_ENGINE_TIMEOUT_MS`, `AIRA_CHAT_*`.
+- **Tabel dihapus**: `ai_whitelist`, `ai_executed_runs`; kolom `service_token`, `active_channels`, `whitelist_modules` pada `ai_settings`. Endpoint lama `/api/ai/router`, proxy chat lama, dan verifikasi A3 HMAC dipensiunkan.
+- **Migrasi**: jalankan `prisma migrate deploy` + file `.sql` lepas (entrypoint menjalankan keduanya; kini dicatat di ledger `_loose_sql_migrations`). **Backup `pg_dump` penuh sebelum upgrade.**
+- Aplikasi/subdomain EAM terpisah (`client-eam/`) sudah dihapus; EAM kini modul di aplikasi utama.
+
+### Antarmuka dwibahasa (i18n)
+**Ditambahkan**:
+- Terjemahan Indonesia/Inggris untuk shell, halaman login, penjualan, pembelian, persediaan, keuangan, laporan & dasbor, pengaturan, EAM, PDF, pesan galat API, dan label yang disusun server. Changelog dalam aplikasi ikut dwibahasa (`changelog.en.ts`).
+
+### Migrasi SQL otomatis
+**Diubah**:
+- Migrasi `.sql` lepas dijalankan otomatis dengan ledger (`npm run db:loose`; juga saat container boot) dan pemeriksaan seed yang aman.
+
+### Pengujian & dokumentasi
+**Ditambahkan**:
+- Uji integrasi/E2E diselaraskan dengan akuntansi terkini; `test-api.sh` ditulis ulang sebagai smoke test berbasis inventori route (`--write` untuk alur tulis yang membersihkan diri). Brand kit lengkap di `docs/brand/entaris/`, `DESIGN.md`.
+
 ### STT dari PO: qty diterima
 **Diperbaiki**:
 - Memilih PO lewat dropdown di form "Buat STT" (halaman Penerimaan Barang) tidak memuat baris PO, sehingga item dan **qty tetap kosong**. Lebih penting lagi, STT yang dibuat lewat jalur ini **tidak menambah qty diterima di PO** (status penerimaan PO tidak bergerak), karena tautan baris PO hanya dikirim bila STT dibuka dari halaman PO. Kini memilih PO memuat baris sisa PO (item, qty sisa, satuan, gudang tujuan), dengan konfirmasi bila baris sudah diisi, dan tautan baris dikirim berdasarkan PO asal tiap baris.
