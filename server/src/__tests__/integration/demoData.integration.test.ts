@@ -49,7 +49,7 @@ d('demo data (exclusive mode)', () => {
     if (await prisma.demoDataBatch.findFirst()) await wipeDemoData();
   });
 
-  it('generates every phase-1 module with balanced books', async () => {
+  it('generates every demo module with balanced books', async () => {
     const { runBatch } = await import('../../services/demoData/runner');
     const { createDemoApi } = await import('../../services/demoData/api');
     const batch = await prisma.demoDataBatch.create({ data: { createdBy: admin.id } });
@@ -73,9 +73,20 @@ d('demo data (exclusive mode)', () => {
       prisma.goodsReceipt.count(),
       prisma.purchaseInvoice.count(),
       prisma.payment.count(),
+      prisma.productionRun.count(),
+      prisma.stockTransfer.count(),
+      prisma.stockOpname.count(),
+      prisma.fixedAsset.count(),
+      prisma.depreciationEntry.count({ where: { isPosted: true } }),
+      prisma.paymentRequest.count(),
+      prisma.cashBookDraft.count(),
+      prisma.bankReconciliation.count(),
+      prisma.projectGuarantee.count(),
+      prisma.recurringTemplate.count(),
     ]);
     for (const c of counts) expect(c).toBeGreaterThan(0);
     expect(await prisma.auditLog.count({ where: { via: 'demo' } })).toBeGreaterThan(0);
+    expect(await prisma.inventoryStock.count({ where: { currentStock: { lt: 0 } } })).toBe(0);
   }, 300_000);
 
   it('deletes everything it created and leaves settings intact', async () => {

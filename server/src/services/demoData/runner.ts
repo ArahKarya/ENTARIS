@@ -12,6 +12,9 @@ import { schedulePurchasing, type PurchaseState } from './scenario/purchasing';
 import { scheduleSales, type SalesState } from './scenario/sales';
 import { scheduleSalesExtras } from './scenario/salesExtras';
 import { scheduleFinance } from './scenario/finance';
+import { scheduleProduction } from './scenario/production';
+import { scheduleBackOffice } from './scenario/backOffice';
+import { schedulePaymentRequests } from './scenario/paymentRequests';
 
 export type StartBlock =
   | { code: 'demo_exists' }
@@ -105,6 +108,8 @@ export async function runBatch(batchId: string, admin: DemoActor, api: DemoApi):
     scheduleSales(ctx, sales);
     scheduleSalesExtras(ctx, sales);
     scheduleFinance(ctx, purchases);
+    scheduleProduction(ctx);
+    schedulePaymentRequests(ctx, scheduleBackOffice(ctx));
     const events = sortEvents(queue);
     await progress('Transaksi', SETUP_STEPS + events.length);
 

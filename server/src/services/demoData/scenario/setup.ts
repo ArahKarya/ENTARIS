@@ -19,7 +19,8 @@ export async function ensureFiscalYears(api: DemoApi, admin: DemoActor, today: D
   const years = await prisma.fiscalYear.findMany({ select: { startDate: true, endDate: true, isClosed: true } });
   const coveredBy = (d: Date) => years.filter((fy) => fy.startDate <= d && fy.endDate >= d);
   const missingYears = new Set<number>();
-  for (let d = addDays(today, -DEMO_SPAN_DAYS - 1); d <= today; d = addDays(d, 1)) {
+  // Fixed assets may be acquired up to three days before the span (see backOffice.ts).
+  for (let d = addDays(today, -DEMO_SPAN_DAYS - 4); d <= today; d = addDays(d, 1)) {
     const fys = coveredBy(d);
     if (fys.some((fy) => !fy.isClosed)) continue;
     if (fys.length) throw new DemoSetupError(`Tahun buku untuk ${ymd(d)} sudah ditutup. Buka kembali tahun buku itu sebelum membuat data uji coba.`);
@@ -50,7 +51,9 @@ export async function resolveAccounts(api: DemoApi, admin: DemoActor): Promise<D
     utilities: expense(/listrik/i),
     serviceRevenue: role('SERVICE_REVENUE'),
   };
-  const missing = Object.entries(accounts).filter(([, v]) => !v).map(([k]) => k);
+  // Roles later steps post through (stock count, guarantees, cash advances, production COGS).
+  const required = ['INVENTORY_VARIANCE', 'PROJECT_GUARANTEE', 'EMPLOYEE_ADVANCE', 'COGS'].filter((r) => !role(r));
+  const missing = [...Object.entries(accounts).filter(([, v]) => !v).map(([k]) => k), ...required];
   if (missing.length) throw new DemoSetupError(`Pemetaan Akun Sistem belum lengkap (${missing.join(', ')}). Lengkapi di Pengaturan > Akun Sistem.`);
   return accounts as DemoContext['accounts'];
 }
@@ -75,9 +78,9 @@ const PARTIES = [
 
 const ITEMS: Array<Omit<DemoItem, 'id'> & { key: string; category: string; warehouse: 'plant' | 'distribution'; opening: number }> = [
   { key: 'gabah', code: 'DEMO-GKP', name: 'Gabah Kering Panen (GKP)', unit: 'Kg', category: 'Bahan Baku', cost: 6800, sellPrice: 0, warehouse: 'plant', opening: 8000 },
-  { key: 'berasPremium', code: 'DEMO-BRS-PRM', name: 'Beras Premium', unit: 'Kg', category: 'Produk Jadi', cost: 11500, sellPrice: 14500, warehouse: 'plant', opening: 20000 },
-  { key: 'berasMedium', code: 'DEMO-BRS-MED', name: 'Beras Medium', unit: 'Kg', category: 'Produk Jadi', cost: 10200, sellPrice: 12800, warehouse: 'plant', opening: 9000 },
-  { key: 'dedak', code: 'DEMO-DDK', name: 'Dedak', unit: 'Kg', category: 'Produk Samping', cost: 2500, sellPrice: 3500, warehouse: 'plant', opening: 6000 },
+  { key: 'berasPremium', code: 'DEMO-BRS-PRM', name: 'Beras Premium', unit: 'Kg', category: 'Produk Jadi', cost: 11500, sellPrice: 14500, warehouse: 'plant', opening: 8000 },
+  { key: 'berasMedium', code: 'DEMO-BRS-MED', name: 'Beras Medium', unit: 'Kg', category: 'Produk Jadi', cost: 10200, sellPrice: 12800, warehouse: 'plant', opening: 4000 },
+  { key: 'dedak', code: 'DEMO-DDK', name: 'Dedak', unit: 'Kg', category: 'Produk Samping', cost: 2500, sellPrice: 3500, warehouse: 'plant', opening: 2000 },
   { key: 'karung', code: 'DEMO-KRG-25', name: 'Karung Beras 25 kg', unit: 'Pcs', category: 'Kemasan', cost: 2200, sellPrice: 0, warehouse: 'plant', opening: 1500 },
   { key: 'minyak', code: 'DEMO-MNY-2L', name: 'Minyak Goreng 2 L', unit: 'Pcs', category: 'Barang Dagang', cost: 31000, sellPrice: 36000, warehouse: 'distribution', opening: 400 },
   { key: 'gula', code: 'DEMO-GLA-1KG', name: 'Gula Pasir 1 kg', unit: 'Pcs', category: 'Barang Dagang', cost: 15500, sellPrice: 18000, warehouse: 'distribution', opening: 600 },
