@@ -4,8 +4,8 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '3.18.1';
-export const APP_BUILD_DATE = '2026-07-31';
+export const APP_VERSION = '4.0.0';
+export const APP_BUILD_DATE = '2026-10-12';
 export const APP_NAME = 'Entaris';
 
 export interface ChangelogEntry {
@@ -25,6 +25,33 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.0.0',
+    date: '2026-10-12',
+    title: 'AIRA MCP, Panel Chat Baru, dan Antarmuka Dwibahasa',
+    changes: [
+      'Integrasi AIRA dirombak: Entaris menjadi MCP server (`POST /mcp`, 474 tool, 14 toolset) dengan identitas per-pengguna, tier akses, dan persetujuan manusia untuk aksi berisiko',
+      'Panel chat AIRA baru: sesi dan pesan disimpan Entaris (riwayat, pencarian, arsip, ekspor, lampiran), agen dipanggil lewat API kompatibel-OpenAI, kartu hasil dan chip progres tool',
+      'Draft Buku Kas dari nota: arah debit/kredit ditentukan deterministik di server, koreksi akun manusia dipelajari, baris mencurigakan ditandai untuk ditinjau',
+      'Antarmuka dwibahasa Indonesia/Inggris di seluruh modul, PDF, pesan galat API, dan changelog dalam aplikasi',
+      'Migrasi SQL lepas dijalankan otomatis dengan ledger setiap container boot',
+      'Diperbaiki: STT dari PO kini mengisi qty dan menambah qty diterima PO; Surat Jalan membawa No. PO pelanggan dan No. SO',
+      'BREAKING: env AIRA_CORE_BASE_URL/AIRA_API_TOKEN dan jaringan aira-net dihapus; tabel ai_whitelist dan ai_executed_runs di-drop; wajib set AIRA_ENGINE_URL, AIRA_ENGINE_KEY, AIRA_ENGINE_TURN_SECRET. Backup pg_dump sebelum upgrade',
+    ],
+  },
+  {
+    version: '3.19.0',
+    date: '2026-10-02',
+    title: 'Surat Jalan Sementara, Pembenahan HPP, dan EAM Terintegrasi Keuangan',
+    changes: [
+      'Surat Jalan Sementara (SJS): tab baru di Penjualan > Surat Jalan untuk barang dikirim sebelum produksi diinput; tanpa stok dan jurnal, ditautkan ke DO resmi',
+      'Satu faktur pembelian dapat menagih lebih dari satu STT/BPB; guard WAC menolak STT harga 0 untuk barang milik sendiri',
+      'Akun 5.12 Biaya Konversi Dibebankan ke Persediaan dan modal bahan baku murni (WAC2) pada detail produksi',
+      'Reversal otomatis penyelesaian HPP saat produksi, faktur pembelian, atau mutasi manual dibatalkan/diedit',
+      'Tagihan GA (pajak/STNK/KIR, servis, material request) terintegrasi ke keuangan: jurnal langsung atau faktur pembelian',
+      'Logo perusahaan tampil di semua PDF laporan keuangan; halaman Bank & Kas membuka detail jurnal manual',
+    ],
+  },
   {
     version: '3.18.1',
     date: '2026-07-31',
