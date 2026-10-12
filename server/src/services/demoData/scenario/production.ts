@@ -84,7 +84,7 @@ export function scheduleProduction(ctx: DemoContext): void {
   const plant = async () => (masters ??= await ensureMasters(ctx));
 
   for (let w = 0; w < 3; w++) {
-    for (const [day, kg, down] of [[6, 6000, 35], [13, 6000, 0], [21, 5500, 20]] as const) {
+    for (const [day, kg, down] of [[6, 6000, 35], [13, 6000, 0], [20, 5500, 20], [26, 6000, 0]] as const) {
       ctx.schedule(windowDate(ctx, w, day), 'Produksi giling', async () => {
         const body = runBody(ctx, await plant(), windowDate(ctx, w, day), kg, down);
         const { data } = await ctx.api.post<{ draft: { id: string } }>(ctx.admin, '/inventory/production-runs', body);

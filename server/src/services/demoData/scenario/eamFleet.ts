@@ -75,7 +75,7 @@ function scheduleComplianceAndDocuments(ctx: DemoContext, s: () => EamState, acc
       endDate: ymd(addDays(ctx.today, 165)), premium: 9_850_000, coverageValue: 380_000_000,
     });
     await ctx.api.post(ctx.admin, `/ga/vehicle/assets/${st.vehicles.truck}/taxes`, {
-      type: 'PAJAK_KENDARAAN', periodYear: year, dueDate: ymd(addDays(ctx.today, -150)), amount: 3_450_000, paidAt: ymd(addDays(ctx.today, -152)), status: 'ACTIVE',
+      type: 'PAJAK_KENDARAAN', periodYear: year, dueDate: ymd(addDays(ctx.today, 215)), amount: 3_450_000, paidAt: ymd(addDays(ctx.today, -150)), status: 'ACTIVE',
     });
     const docs: Array<[string, string, string, number]> = [
       ['STNK', 'truck', 'STNK Truk Engkel Hino Dutro', 210],

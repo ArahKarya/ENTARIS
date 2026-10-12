@@ -78,12 +78,12 @@ const PARTIES = [
 
 const ITEMS: Array<Omit<DemoItem, 'id'> & { key: string; category: string; warehouse: 'plant' | 'distribution'; opening: number }> = [
   { key: 'gabah', code: 'DEMO-GKP', name: 'Gabah Kering Panen (GKP)', unit: 'Kg', category: 'Bahan Baku', cost: 6800, sellPrice: 0, warehouse: 'plant', opening: 8000 },
-  { key: 'berasPremium', code: 'DEMO-BRS-PRM', name: 'Beras Premium', unit: 'Kg', category: 'Produk Jadi', cost: 11500, sellPrice: 14500, warehouse: 'plant', opening: 8000 },
-  { key: 'berasMedium', code: 'DEMO-BRS-MED', name: 'Beras Medium', unit: 'Kg', category: 'Produk Jadi', cost: 10200, sellPrice: 12800, warehouse: 'plant', opening: 4000 },
-  { key: 'dedak', code: 'DEMO-DDK', name: 'Dedak', unit: 'Kg', category: 'Produk Samping', cost: 2500, sellPrice: 3500, warehouse: 'plant', opening: 2000 },
+  { key: 'berasPremium', code: 'DEMO-BRS-PRM', name: 'Beras Premium', unit: 'Kg', category: 'Produk Jadi', cost: 11500, sellPrice: 16000, warehouse: 'plant', opening: 8000 },
+  { key: 'berasMedium', code: 'DEMO-BRS-MED', name: 'Beras Medium', unit: 'Kg', category: 'Produk Jadi', cost: 10200, sellPrice: 13500, warehouse: 'plant', opening: 4000 },
+  { key: 'dedak', code: 'DEMO-DDK', name: 'Dedak', unit: 'Kg', category: 'Produk Samping', cost: 2500, sellPrice: 4000, warehouse: 'plant', opening: 2000 },
   { key: 'karung', code: 'DEMO-KRG-25', name: 'Karung Beras 25 kg', unit: 'Pcs', category: 'Kemasan', cost: 2200, sellPrice: 0, warehouse: 'plant', opening: 1500 },
-  { key: 'minyak', code: 'DEMO-MNY-2L', name: 'Minyak Goreng 2 L', unit: 'Pcs', category: 'Barang Dagang', cost: 31000, sellPrice: 36000, warehouse: 'distribution', opening: 400 },
-  { key: 'gula', code: 'DEMO-GLA-1KG', name: 'Gula Pasir 1 kg', unit: 'Pcs', category: 'Barang Dagang', cost: 15500, sellPrice: 18000, warehouse: 'distribution', opening: 600 },
+  { key: 'minyak', code: 'DEMO-MNY-2L', name: 'Minyak Goreng 2 L', unit: 'Pcs', category: 'Barang Dagang', cost: 31000, sellPrice: 38000, warehouse: 'distribution', opening: 400 },
+  { key: 'gula', code: 'DEMO-GLA-1KG', name: 'Gula Pasir 1 kg', unit: 'Pcs', category: 'Barang Dagang', cost: 15500, sellPrice: 19000, warehouse: 'distribution', opening: 600 },
 ];
 
 /** Warehouse each demo item is stocked in. */
