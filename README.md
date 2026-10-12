@@ -34,6 +34,19 @@ Cocok untuk:
 - Manufaktur (rice mill, pangan, pupuk, produk industri) yang butuh BOM, konversi produksi, dan HPP
 - Kantor akuntan atau konsultan yang ingin menyimpan pembukuan klien di server sendiri
 
+## Tampilan
+
+Data pada gambar berasal dari fitur **Data Uji Coba** (Pengaturan → Cadangan & Pemulihan): tiga bulan transaksi contoh sebuah pabrik beras dan distributor, dibuat lewat alur aplikasi yang sama dengan pengguna.
+
+| | |
+|---|---|
+| ![Dasbor: omzet, laba bersih, kas, piutang, hutang, dan persediaan bulan lalu](docs/screenshots/dashboard-light.jpg) | ![Daftar invoice penjualan dengan status pembayaran dan sisa piutang](docs/screenshots/sales-invoices-light.jpg) |
+| Dasbor ringkasan per periode | Invoice penjualan dan piutang |
+| ![Laporan laba rugi bulan lalu dalam mode gelap](docs/screenshots/profit-loss-dark.jpg) | ![Ringkasan stok dan produksi dengan nilai persediaan per kategori](docs/screenshots/inventory-light.jpg) |
+| Laporan laba rugi (mode gelap) | Stok dan produksi |
+| ![Daftar kendaraan dengan odometer dan status kepatuhan](docs/screenshots/vehicles-light.jpg) | ![Ringkasan aset dan work order pemeliharaan yang aktif](docs/screenshots/eam-light.jpg) |
+| Armada kendaraan | Aset dan pemeliharaan |
+
 ## AIRA, agen AI di Entaris
 
 AIRA bekerja di atas data transaksi yang sama dengan modul lain, bukan salinan, sehingga jawabannya mengikuti buku besar saat itu.

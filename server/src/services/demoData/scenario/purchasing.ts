@@ -105,7 +105,7 @@ export function schedulePurchasing(ctx: DemoContext, state: PurchaseState): void
         paymentTermDays: 30,
         warehouseId: ctx.warehouses.plant,
         notes: 'Pembelian gabah musim panen',
-        items: [{ inventoryItemId: ctx.items.gabah.id, itemName: ctx.items.gabah.name, quantity: 20_000, unit: 'Kg', estimatedRate: 6800 }],
+        items: [{ inventoryItemId: ctx.items.gabah.id, itemName: ctx.items.gabah.name, quantity: 24_000, unit: 'Kg', estimatedRate: 6800 }],
         saveAs: 'submit',
       });
       // A company approval rule may hold the PO; the demo admin approves it like a manager would.
@@ -113,7 +113,7 @@ export function schedulePurchasing(ctx: DemoContext, state: PurchaseState): void
       s.poId = po.id;
       s.poLineId = (await withItems(ctx, '/purchase-orders', po))[0]?.id;
     });
-    for (const [day, qty] of [[5, 12_000], [9, 8_000]] as const) {
+    for (const [day, qty] of [[5, 14_000], [9, 10_000]] as const) {
       ctx.schedule(windowDate(ctx, w, day), 'Penerimaan gabah (STT) dari PO', async () => {
         s.stt.push(...(await receiveGoods(ctx, windowDate(ctx, w, day), 'gabahLestari', [{ key: 'gabah', qty, cost: 6800, poItemId: s.poLineId }], s.poId)));
       });
@@ -127,7 +127,7 @@ export function schedulePurchasing(ctx: DemoContext, state: PurchaseState): void
     // 2. Direct receipt from the farmer group, no PO.
     const f: { pi?: { partyKey: string; total: number } } = {};
     ctx.schedule(windowDate(ctx, w, 7), 'Gabah petani tanpa PO', async () => {
-      const lines = await receiveGoods(ctx, windowDate(ctx, w, 7), 'kelompokTani', [{ key: 'gabah', qty: 5_000, cost: 6700 }]);
+      const lines = await receiveGoods(ctx, windowDate(ctx, w, 7), 'kelompokTani', [{ key: 'gabah', qty: 6_000, cost: 6700 }]);
       f.pi = await billSupplier(ctx, state, windowDate(ctx, w, 7), 'kelompokTani', lines, () => 6700);
     });
     payLater(ctx, w, () => f.pi);

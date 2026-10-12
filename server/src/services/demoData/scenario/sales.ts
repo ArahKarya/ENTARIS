@@ -111,7 +111,7 @@ function scheduleWindow(ctx: DemoContext, state: SalesState, w: number): void {
   // SO delivered in full, invoiced the next day.
   const a: { so?: { id: string; lines: Line[] }; inv?: { total: number } } = {};
   ctx.schedule(windowDate(ctx, w, 4), 'Sales Order', async () => {
-    a.so = await createSalesOrder(ctx, windowDate(ctx, w, 4), 'tokoBerkah', [{ key: 'berasPremium', qty: 1500 }, { key: 'berasMedium', qty: 1000 }]);
+    a.so = await createSalesOrder(ctx, windowDate(ctx, w, 4), 'tokoBerkah', [{ key: 'berasPremium', qty: 2000 }, { key: 'berasMedium', qty: 1300 }]);
   });
   ctx.schedule(windowDate(ctx, w, 6), 'Surat Jalan dari SO', async () => {
     const lines = await deliverFromOrder(ctx, windowDate(ctx, w, 6), a.so!, 1, w === 2 && ctx.temporaryNote ? [ctx.temporaryNote] : []);
@@ -122,7 +122,7 @@ function scheduleWindow(ctx: DemoContext, state: SalesState, w: number): void {
   // SO delivered in two parts, each part invoiced.
   const b: { so?: { id: string; lines: Line[] }; inv: Array<{ total: number }> } = { inv: [] };
   ctx.schedule(windowDate(ctx, w, 14), 'Sales Order distributor', async () => {
-    b.so = await createSalesOrder(ctx, windowDate(ctx, w, 14), 'mitraNiaga', [{ key: 'berasPremium', qty: 3000 }]);
+    b.so = await createSalesOrder(ctx, windowDate(ctx, w, 14), 'mitraNiaga', [{ key: 'berasPremium', qty: 4500 }]);
   });
   for (const [day, share] of [[15, 2 / 3], [22, 1 / 3]] as const) {
     ctx.schedule(windowDate(ctx, w, day), 'Pengiriman bertahap', async () => {
@@ -135,8 +135,8 @@ function scheduleWindow(ctx: DemoContext, state: SalesState, w: number): void {
   // Direct deliveries without an order.
   const direct: Array<[number, string, Want[]]> = [
     [11, 'warungSari', [{ key: 'minyak', qty: 40 }, { key: 'gula', qty: 60 }]],
-    [19, 'koperasi', [{ key: 'dedak', qty: 1500 }, { key: 'berasMedium', qty: 500 }]],
-    [25, 'lumbungPangan', [{ key: 'berasPremium', qty: 800 }, { key: 'minyak', qty: 100 }]],
+    [19, 'koperasi', [{ key: 'dedak', qty: 1500 }, { key: 'berasMedium', qty: 600 }]],
+    [25, 'lumbungPangan', [{ key: 'berasPremium', qty: 1200 }, { key: 'minyak', qty: 120 }]],
   ];
   for (const [day, partyKey, wants] of direct) {
     const d: { inv?: { total: number } } = {};
@@ -155,7 +155,7 @@ function scheduleWindow(ctx: DemoContext, state: SalesState, w: number): void {
       date: ymd(windowDate(ctx, w, 18)),
       dueDate: ymd(addDays(windowDate(ctx, w, 18), 14)),
       partyId: ctx.parties.lumbungPangan,
-      items: [{ itemType: 'service', serviceItemId: svc.id, itemName: svc.name, quantity: 10_000, unit: 'Kg', rate: svc.rate }],
+      items: [{ itemType: 'service', serviceItemId: svc.id, itemName: svc.name, quantity: 20_000, unit: 'Kg', rate: svc.rate }],
     });
     s.inv = { total: num(data.grandTotal) };
     state.invoices.push({ id: data.id, partyKey: 'lumbungPangan', total: num(data.grandTotal), window: w });
