@@ -4,7 +4,8 @@
  *
  * Usage:
  *   node scripts/bump-version.js patch|minor|major   # bump from current version
- *   node scripts/bump-version.js 4.1.0               # set an explicit version
+ *   node scripts/bump-version.js 4.1.0               # set an explicit version (must be higher than current)
+ *   node scripts/bump-version.js 4.0.1 --force       # allow setting a version that is not higher
  *   node scripts/bump-version.js --check             # verify everything is in sync (CI), exit 1 if not
  *   node scripts/bump-version.js --check --tag v4.0.0  # additionally require the tag to equal APP_VERSION
  *   node scripts/bump-version.js --notes 4.0.0       # print the CHANGELOG.md section for a version (release notes)
@@ -89,7 +90,15 @@ function check(tag) {
   console.log(`Version in sync: v${v}`);
 }
 
-function bump(arg) {
+/** Compare two X.Y.Z strings: negative if a < b, 0 if equal, positive if a > b. */
+function compareSemver(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+  return 0;
+}
+
+function bump(arg, force) {
   const cur = currentVersion();
   const [major, minor, patch] = cur.split('.').map(Number);
   let next;
@@ -98,6 +107,9 @@ function bump(arg) {
   else if (arg === 'minor') next = `${major}.${minor + 1}.0`;
   else if (arg === 'patch' || !arg) next = `${major}.${minor}.${patch + 1}`;
   else fail(`Unknown argument: ${arg}. Use major|minor|patch|X.Y.Z|--check|--notes X.Y.Z`);
+  if (!force && compareSemver(next, cur) <= 0) {
+    fail(`${next} is not higher than the current version ${cur}. Pass --force to set it anyway.`);
+  }
 
   const date = today();
   const updated = read(VERSION_FILE)
@@ -122,12 +134,17 @@ function bump(arg) {
 const args = process.argv.slice(2);
 if (args[0] === '--check') {
   const i = args.indexOf('--tag');
-  check(i !== -1 ? args[i + 1] : undefined);
+  const tag = i !== -1 ? args[i + 1] : undefined;
+  if (i !== -1 && (!tag || tag.startsWith('--'))) fail('--tag requires a value, e.g. --tag v4.1.0');
+  check(tag);
 } else if (args[0] === '--notes') {
   const v = (args[1] || '').replace(/^v/, '');
   const s = SEMVER.test(v) ? changelogSection(v) : null;
   if (!s) fail(`No CHANGELOG.md section for "${args[1]}"`);
   process.stdout.write(s + '\n');
 } else {
-  bump(args[0]);
+  const force = args.includes('--force');
+  const rest = args.filter((a) => a !== '--force');
+  if (rest.length > 1) fail(`Unexpected arguments: ${rest.slice(1).join(' ')}`);
+  bump(rest[0], force);
 }
