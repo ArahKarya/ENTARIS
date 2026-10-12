@@ -846,6 +846,10 @@ router.post('/reset-data', requirePerm('settings'), async (req, res) => {
     } catch (seedError) {
       logger.error({ error: seedError }, 'Seed failed after reset');
       return res.status(500).json({ error: 'Data dihapus, tetapi data awal gagal diisi ulang. Silakan mulai ulang server.' });
+    } finally {
+      // The seed recreates accounts and their system mappings with new ids; drop the cached
+      // mappings so postings stop pointing at the truncated accounts.
+      systemAccounts.invalidateCache();
     }
 
     logger.info('Database reset and re-seeded successfully');
