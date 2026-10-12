@@ -5,6 +5,8 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthRequest, requirePerm } from '../../middleware/auth';
 import { logger } from '../../lib/logger';
+import { translateMessage } from '../../i18n/translateMessage';
+import { requestLanguage } from '../../middleware/responseLanguage';
 import { hasCap } from '../../services/permissionService';
 import { activeDemoBatch, countUserChangesSince, findNonEmptyDataTables, hasLegacyDummyData } from '../../services/demoData/guard';
 import { DemoStartBlocked, startDemoGeneration } from '../../services/demoData/runner';
@@ -26,10 +28,14 @@ const BLOCK_MESSAGES = {
 } as const;
 
 // GET /api/settings/demo-data: status batch terakhir + apakah pembuatan bisa dimulai.
-router.get('/demo-data', requirePerm('settings'), async (_req, res: Response) => {
+router.get('/demo-data', requirePerm('settings'), async (req, res: Response) => {
   try {
-    const [batch, legacy, blockingTables] = await Promise.all([activeDemoBatch(), hasLegacyDummyData(), findNonEmptyDataTables()]);
-    const userChanges = batch ? await countUserChangesSince(batch.startedAt) : 0;
+    const [found, legacy, blockingTables] = await Promise.all([activeDemoBatch(), hasLegacyDummyData(), findNonEmptyDataTables()]);
+    const userChanges = found ? await countUserChangesSince(found.startedAt) : 0;
+    // Step labels and failure reasons are stored in Indonesian; show them in the viewer's language.
+    const lang = requestLanguage(req);
+    const tr = (s: string | null) => (s && lang ? translateMessage(s, lang) : s);
+    const batch = found ? { ...found, step: tr(found.step), error: tr(found.error) } : null;
     return res.json({ batch, legacy: legacy && !batch, blockingTables: batch ? [] : blockingTables, userChanges });
   } catch (error) {
     logger.error({ error }, 'GET /settings/demo-data error');

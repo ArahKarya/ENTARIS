@@ -412,7 +412,7 @@
     },
     "demo": {
       "title": "Demo Data",
-      "description": "Fill the sales, purchasing, stock, and finance modules with sample transactions for the last three months (rice mill and distribution), created through the same app flows users go through. Only available while there are no transactions.",
+      "description": "Fill the sales, purchasing, production, stock, fixed asset, cash & bank, and payment request modules with sample transactions for the last three months (rice mill and distribution), created through the same app flows users go through. Only available while there are no transactions.",
       "create": "Create Demo Data",
       "delete": "Delete Demo Data",
       "deleteLegacy": "Delete Old Dummy Data",

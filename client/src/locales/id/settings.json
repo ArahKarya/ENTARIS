@@ -412,7 +412,7 @@
     },
     "demo": {
       "title": "Data Uji Coba",
-      "description": "Isi modul penjualan, pembelian, stok, dan keuangan dengan contoh transaksi tiga bulan terakhir (pabrik beras dan distribusi), dibuat lewat alur aplikasi yang sama dengan pengguna. Hanya bisa dibuat saat belum ada transaksi.",
+      "description": "Isi modul penjualan, pembelian, produksi, stok, aset tetap, kas & bank, dan pengajuan pembayaran dengan contoh transaksi tiga bulan terakhir (pabrik beras dan distribusi), dibuat lewat alur aplikasi yang sama dengan pengguna. Hanya bisa dibuat saat belum ada transaksi.",
       "create": "Buat Data Uji Coba",
       "delete": "Hapus Data Uji Coba",
       "deleteLegacy": "Hapus Data Dummy Lama",

@@ -39,7 +39,7 @@ export function scheduleFinance(ctx: DemoContext, purchases: PurchaseState): voi
     });
   }
 
-  ctx.schedule(windowDate(ctx, 2, 13), 'Uang muka pemasok', async () => {
+  ctx.schedule(windowDate(ctx, 2, 13), 'Uang Muka Supplier', async () => {
     const { data } = await ctx.api.post<{ id: string }>(ctx.admin, '/payments', {
       date: ymd(windowDate(ctx, 2, 13)),
       partyId: ctx.parties.minyakPrima,

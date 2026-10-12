@@ -28,7 +28,7 @@ function quotationBody(ctx: DemoContext, date: Date, partyKey: string, lines: Ar
 
 function scheduleInquiriesAndQuotations(ctx: DemoContext): void {
   const won: { inquiry?: string; quotation?: string } = {};
-  ctx.schedule(windowDate(ctx, 2, 8), 'Inquiry pelanggan', async () => {
+  ctx.schedule(windowDate(ctx, 2, 8), 'Inquiry Customer', async () => {
     const { data } = await ctx.api.post<{ id: string }>(ctx.admin, '/inquiries', {
       date: ymd(windowDate(ctx, 2, 8)),
       channel: 'WhatsApp',
@@ -85,7 +85,7 @@ function scheduleInquiriesAndQuotations(ctx: DemoContext): void {
   ctx.schedule(windowDate(ctx, 2, 18), 'Penawaran ditolak', async () => {
     const { data } = await ctx.api.post<{ id: string }>(ctx.admin, '/quotations', quotationBody(ctx, windowDate(ctx, 2, 18), 'warungSari', [{ key: 'berasMedium', qty: 300 }]));
     await ctx.api.patch(ctx.admin, `/quotations/${data.id}/send`);
-    await ctx.api.patch(ctx.admin, `/quotations/${data.id}/reject`, { reason: 'Pelanggan menunda pembelian bulan ini' });
+    await ctx.api.patch(ctx.admin, `/quotations/${data.id}/reject`, { reason: 'Customer menunda pembelian bulan ini' });
   });
   ctx.schedule(windowDate(ctx, 2, 22), 'Penawaran terkirim', async () => {
     const { data } = await ctx.api.post<{ id: string }>(ctx.admin, '/quotations', quotationBody(ctx, windowDate(ctx, 2, 22), 'koperasi', [{ key: 'berasMedium', qty: 1500 }, { key: 'dedak', qty: 1000 }]));
@@ -123,7 +123,7 @@ function scheduleReturnsAndDeposits(ctx: DemoContext, sales: SalesState): void {
     await ctx.api.post(ctx.admin, '/sales-returns', await returnBody(ctx, paid.id, windowDate(ctx, 2, 9), 50, 'Karung sobek saat bongkar muat'));
   });
 
-  ctx.schedule(windowDate(ctx, 2, 21), 'Uang muka pelanggan', async () => {
+  ctx.schedule(windowDate(ctx, 2, 21), 'Uang Muka Customer', async () => {
     const { data } = await ctx.api.post<{ id: string }>(ctx.admin, '/payments', {
       date: ymd(windowDate(ctx, 2, 21)),
       partyId: ctx.parties.mitraNiaga,

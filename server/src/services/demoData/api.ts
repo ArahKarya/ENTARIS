@@ -25,6 +25,7 @@ export interface DemoApi {
   get<T = unknown>(actor: DemoActor, path: string): Promise<T>;
   post<T = unknown>(actor: DemoActor, path: string, body?: unknown): Promise<{ status: number; data: T }>;
   patch<T = unknown>(actor: DemoActor, path: string, body?: unknown): Promise<T>;
+  put<T = unknown>(actor: DemoActor, path: string, body?: unknown): Promise<T>;
 }
 
 const TOKEN_TTL_SEC = 120;
@@ -84,5 +85,6 @@ export function createDemoApi(opts: { baseUrl?: string; minIntervalMs?: number }
     get: async <T>(actor: DemoActor, path: string) => (await request<T>(actor, 'GET', path)).data,
     post: <T>(actor: DemoActor, path: string, body?: unknown) => request<T>(actor, 'POST', path, body ?? {}),
     patch: async <T>(actor: DemoActor, path: string, body?: unknown) => (await request<T>(actor, 'PATCH', path, body ?? {})).data,
+    put: async <T>(actor: DemoActor, path: string, body?: unknown) => (await request<T>(actor, 'PUT', path, body ?? {})).data,
   };
 }

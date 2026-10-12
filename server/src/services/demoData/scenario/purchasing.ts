@@ -76,7 +76,7 @@ async function billSupplier(ctx: DemoContext, state: PurchaseState, date: Date, 
 
 function payLater(ctx: DemoContext, w: number, inv: () => { partyKey: string; total: number } | undefined): void {
   if (w >= 2) return;
-  ctx.schedule(windowDate(ctx, w + 1, 1), 'Pelunasan pemasok', async () => {
+  ctx.schedule(windowDate(ctx, w + 1, 1), 'Pelunasan Supplier', async () => {
     const i = inv();
     if (!i) return;
     await ctx.api.post(ctx.admin, '/payments', {
@@ -85,7 +85,7 @@ function payLater(ctx: DemoContext, w: number, inv: () => { partyKey: string; to
       amount: i.total,
       paymentType: 'Pay',
       accountId: ctx.accounts.bank,
-      notes: 'Pelunasan tagihan pemasok',
+      notes: 'Pelunasan tagihan Supplier',
     });
   });
 }
