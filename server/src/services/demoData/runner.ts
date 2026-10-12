@@ -15,6 +15,8 @@ import { scheduleFinance } from './scenario/finance';
 import { scheduleProduction } from './scenario/production';
 import { scheduleBackOffice } from './scenario/backOffice';
 import { schedulePaymentRequests } from './scenario/paymentRequests';
+import { scheduleEam } from './scenario/eamFleet';
+import { scheduleChat } from './scenario/chat';
 
 export type StartBlock =
   | { code: 'demo_exists' }
@@ -110,6 +112,8 @@ export async function runBatch(batchId: string, admin: DemoActor, api: DemoApi):
     scheduleFinance(ctx, purchases);
     scheduleProduction(ctx);
     schedulePaymentRequests(ctx, scheduleBackOffice(ctx));
+    scheduleEam(ctx);
+    scheduleChat(ctx);
     const events = sortEvents(queue);
     await progress('Transaksi', SETUP_STEPS + events.length);
 

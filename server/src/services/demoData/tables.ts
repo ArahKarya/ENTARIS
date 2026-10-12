@@ -158,6 +158,7 @@ export const DEMO_MASTER_TABLES = [
   'ga_cost_centers',
   'ga_branches',
   'ga_inventory_categories',
+  'ga_asset_categories',
   'payment_request_types',
 ] as const;
 
