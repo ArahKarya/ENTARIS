@@ -83,6 +83,13 @@ d('demo data (exclusive mode)', () => {
       prisma.bankReconciliation.count(),
       prisma.projectGuarantee.count(),
       prisma.recurringTemplate.count(),
+      prisma.gaAsset.count(),
+      prisma.gaVehicleFuelLog.count(),
+      prisma.gaVehicleInspection.count(),
+      prisma.gaWorkOrder.count(),
+      prisma.gaMaterialRequest.count(),
+      prisma.gaDocument.count(),
+      prisma.chatSession.count(),
     ]);
     for (const c of counts) expect(c).toBeGreaterThan(0);
     expect(await prisma.auditLog.count({ where: { via: 'demo' } })).toBeGreaterThan(0);
