@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Trans, useTranslation } from 'react-i18next';
 import { LOCALE } from '@/lib/format';
-import { Upload, HardDrive, Download, RotateCcw, AlertTriangle, ShieldCheck, Database, Plus, Trash2 } from 'lucide-react';
+import { Upload, HardDrive, Download, RotateCcw, AlertTriangle, ShieldCheck, Database } from 'lucide-react';
 import api from '../../lib/api';
 import { can, cap } from '../../lib/permissions';
 import { EmptyState, LoadingState } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { SettingsCard } from '../../components/settings/SettingsCard';
 import { TypedConfirmDialog } from '../../components/settings/TypedConfirmDialog';
+import { DemoDataCard } from '../../components/settings/DemoDataCard';
 
 interface BackupFile { filename: string; size: number; date: string }
 
@@ -31,26 +32,6 @@ export const BackupTab: React.FC = () => {
   const [confirmRestore, setConfirmRestore] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const generateDummyMutation = useMutation({
-    mutationFn: async () => api.post('/settings/generate-dummy'),
-    onSuccess: (res) => {
-      const r = res.data.results;
-      toast.success(t('backup.dummy.created', { parties: r.parties, salesInvoices: r.salesInvoices, purchaseInvoices: r.purchaseInvoices, journals: r.journals, items: r.inventoryItems }));
-      queryClient.invalidateQueries();
-    },
-    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.dummy.createError')),
-  });
-
-  const deleteDummyMutation = useMutation({
-    mutationFn: async () => api.post('/settings/delete-dummy'),
-    onSuccess: (res) => {
-      const r = res.data.results;
-      toast.success(t('backup.dummy.deleted', { parties: r.parties, salesInvoices: r.salesInvoices, purchaseInvoices: r.purchaseInvoices, items: r.inventoryItems }));
-      queryClient.invalidateQueries();
-    },
-    onError: (error: any) => toast.error(error.response?.data?.error || t('backup.dummy.deleteError')),
-  });
 
   const resetMutation = useMutation({
     mutationFn: async () => api.post('/settings/reset-data', { confirmation: 'RESET' }),
@@ -132,7 +113,6 @@ export const BackupTab: React.FC = () => {
   };
 
   const lastBackup = backups?.[0];
-  const dummyBusy = generateDummyMutation.isPending || deleteDummyMutation.isPending;
 
   return (
     <div className="space-y-5">
@@ -212,21 +192,7 @@ export const BackupTab: React.FC = () => {
         )}
       </SettingsCard>
 
-      {canDevTools && (
-        <SettingsCard
-          title={t('backup.dummy.title')}
-          description={t('backup.dummy.description')}
-        >
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => generateDummyMutation.mutate()} loading={generateDummyMutation.isPending} disabled={dummyBusy}>
-              {!generateDummyMutation.isPending && <Plus aria-hidden />} {t('backup.dummy.create')}
-            </Button>
-            <Button variant="outline" onClick={() => deleteDummyMutation.mutate()} loading={deleteDummyMutation.isPending} disabled={dummyBusy}>
-              {!deleteDummyMutation.isPending && <Trash2 aria-hidden />} {t('backup.dummy.delete')}
-            </Button>
-          </div>
-        </SettingsCard>
-      )}
+      {canDevTools && <DemoDataCard />}
 
       {canDevTools && (
         <SettingsCard

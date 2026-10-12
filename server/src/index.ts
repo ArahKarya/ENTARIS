@@ -79,6 +79,7 @@ import cogsBackfillRoutes from './routes/cogsBackfill';
 import { systemAccounts } from './services/systemAccounts';
 import { ensureRbacSeed } from './services/rbacSeed';
 import { ensureProjectGuaranteeAccount } from './services/projectGuaranteeSeed';
+import { failOrphanedDemoBatches } from './services/demoData/runner';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -336,6 +337,10 @@ app.listen(port, () => {
   });
   ensureProjectGuaranteeAccount().catch((err) => {
     logger.error({ err }, 'ensureProjectGuaranteeAccount failed');
+  });
+  // A demo-data batch runs in this process; one still 'running' at boot was cut off by a restart.
+  failOrphanedDemoBatches().catch((err) => {
+    logger.error({ err }, 'failOrphanedDemoBatches failed');
   });
 
   // All background jobs go through the central scheduler; Postgres advisory locks let only one replica run each tick.

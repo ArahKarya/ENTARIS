@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
     userId: string;
     role: string;
     /** 'mcp' bila panggilan berasal dari layer MCP (JWT internal); dicatat auditTrail. */
-    via?: 'mcp';
+    via?: 'mcp' | 'demo';
     mcpToken?: string;
     mcpChannel?: string;
     mcpTool?: string;

@@ -410,15 +410,38 @@
       "invalidFile": "Hanya file .sql.gz yang diperbolehkan.",
       "downloadError": "Gagal mengunduh backup."
     },
-    "dummy": {
-      "title": "Data Dummy (Pengujian)",
-      "description": "Buat data transaksi contoh (customer, supplier, invoice, jurnal, inventori) untuk pengujian. Data dummy bisa dihapus tanpa memengaruhi data asli.",
-      "create": "Buat Data Dummy",
-      "delete": "Hapus Data Dummy",
-      "created": "Data dummy dibuat: {{parties}} mitra, {{salesInvoices}} SI, {{purchaseInvoices}} PI, {{journals}} jurnal, {{items}} item.",
-      "createError": "Gagal membuat data dummy.",
-      "deleted": "Data dummy dihapus: {{parties}} mitra, {{salesInvoices}} SI, {{purchaseInvoices}} PI, {{items}} item.",
-      "deleteError": "Gagal menghapus data dummy."
+    "demo": {
+      "title": "Data Uji Coba",
+      "description": "Isi modul penjualan, pembelian, stok, dan keuangan dengan contoh transaksi tiga bulan terakhir (pabrik beras dan distribusi), dibuat lewat alur aplikasi yang sama dengan pengguna. Hanya bisa dibuat saat belum ada transaksi.",
+      "create": "Buat Data Uji Coba",
+      "delete": "Hapus Data Uji Coba",
+      "deleteLegacy": "Hapus Data Dummy Lama",
+      "loading": "Memuat status data uji coba...",
+      "loadError": "Status data uji coba tidak bisa dimuat.",
+      "ready": "Belum ada transaksi. Data uji coba siap dibuat.",
+      "blocked": "Sudah ada transaksi, jadi data uji coba tidak bisa dibuat. Data uji coba hanya untuk perusahaan yang belum mencatat transaksi.",
+      "legacy": "Data dummy versi lama masih ada. Hapus dulu sebelum membuat data uji coba yang baru.",
+      "running": "Sedang membuat: {{step}}",
+      "progressLabel": "Progres pembuatan data uji coba",
+      "progressText": "{{done}} dari {{total}} langkah",
+      "active": "Data uji coba aktif sejak {{date}}.",
+      "failed": "Pembuatan data uji coba berhenti di tengah jalan. Hapus data uji coba, lalu coba lagi.",
+      "created": "Data uji coba selesai dibuat.",
+      "createError": "Gagal memulai pembuatan data uji coba.",
+      "deleted": "Data uji coba dihapus.",
+      "deleteError": "Gagal menghapus data uji coba.",
+      "legacyDeleted": "Data dummy lama dihapus.",
+      "legacyDeleteError": "Gagal menghapus data dummy lama.",
+      "confirm": {
+        "title": "Hapus data uji coba?",
+        "description": "Semua transaksi di semua modul akan dikosongkan, termasuk transaksi yang Anda catat setelah data uji coba dibuat.",
+        "items": {
+          "transactions": "Semua dokumen penjualan, pembelian, stok, jurnal, pembayaran, persetujuan, data EAM, dan notifikasi sejak data uji coba dibuat.",
+          "masters": "Mitra, item, gudang, dan jasa yang dibuat data uji coba.",
+          "kept": "Tetap disimpan: pengguna, peran, bagan akun, Akun Sistem, pengaturan perusahaan, tahun buku, dan master yang Anda buat sendiri."
+        },
+        "userChanges": "Ada {{count}} perubahan oleh pengguna sejak data uji coba dibuat. Semuanya ikut terhapus."
+      }
     },
     "reset": {
       "title": "Reset Seluruh Data",

@@ -8,6 +8,7 @@ import { validateBody } from '../utils/validate';
 import { UpdateCompanySettingsSchema } from '../utils/schemas';
 import { logger } from '../lib/logger';
 import dummyDataRouter from './settings/dummyData';
+import demoDataRouter from './settings/demoData';
 import fs from 'fs';
 
 const router = Router();
@@ -16,6 +17,7 @@ const router = Router();
 // settings/dummyData.ts — kept off the main file because it was ~570 lines
 // of self-contained seed/teardown logic.
 router.use(dummyDataRouter);
+router.use(demoDataRouter);
 
 // GET /api/settings/runtime — runtime info (platform, domain, versions).
 // Requires settings view permission: nodeVersion, hostname and memory size
@@ -69,11 +71,12 @@ router.get('/runtime', requirePerm('settings'), async (req, res) => {
 // GET /api/settings/company
 router.get('/company', async (req, res) => {
   try {
-    const [settings, dummyParty] = await Promise.all([
+    const [settings, dummyParty, demoBatch] = await Promise.all([
       prisma.companySettings.findFirst({ where: { slug: 'default' } }),
       prisma.party.findFirst({ where: { isDummy: true }, select: { id: true } }),
+      prisma.demoDataBatch.findFirst({ select: { id: true } }),
     ]);
-    return res.json(settings ? { ...settings, hasDummyData: Boolean(dummyParty) } : settings);
+    return res.json(settings ? { ...settings, hasDummyData: Boolean(dummyParty || demoBatch) } : settings);
   } catch (error) {
     logger.error({ error }, 'GET /settings/company error');
     return res.status(500).json({ error: 'Gagal mengambil pengaturan perusahaan.' });

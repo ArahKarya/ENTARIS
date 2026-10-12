@@ -285,7 +285,7 @@
     }
   },
   "dummyData": {
-    "banner": "Test data is active. Partners tagged [Dummy] and their transactions are counted in lists, dashboards, and reports. An admin can remove them in Settings, Backup & Restore tab."
+    "banner": "Demo data is active. Its transactions are counted in lists, dashboards, and reports. An admin can remove it in Settings, Backup & Restore tab."
   },
   "about": {
     "title": "About Entaris",

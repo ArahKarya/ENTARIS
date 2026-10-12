@@ -23,49 +23,49 @@ enum RootType {
 }
 
 model Account {
-  id                      String                   @id @default(uuid())
-  name                    String
-  accountNumber           String                   @unique
-  accountType             AccountType
-  rootType                RootType
-  isGroup                 Boolean                  @default(false)
-  isActive                Boolean                  @default(true)
-  balance                 Decimal                  @default(0) @db.Decimal(15, 2)
-  currency                String                   @default("IDR")
-  description             String?
-  parentId                String?
-  parent                  Account?                 @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children                Account[]                @relation("AccountHierarchy")
-  ledgerEntries           AccountingLedgerEntry[]
-  journalItems            JournalItem[]
-  salesItems              SalesInvoiceItem[]
-  purchaseItems           PurchaseInvoiceItem[]
-  quotationItems          QuotationItem[]          @relation("QuotationItemAccount")
-  payments                Payment[]                @relation("PaymentAccount")
-  paymentSplits           PaymentSplit[]           @relation("PaymentSplitAccount")
-  inventoryItems          InventoryItem[]          @relation("ItemAccount")
-  movementsAsOffset       StockMovement[]          @relation("MovementOffset")
-  reconciliations         BankReconciliation[]     @relation("ReconciliationAccount")
-  serviceItems            ServiceItem[]            @relation("ServiceItemAccount")
-  systemAccountMappings   SystemAccountMapping[]   @relation("MappedAccount")
-  fixedAssetsAsAsset      FixedAsset[]             @relation("AssetAccount")
-  fixedAssetsAsDepr       FixedAsset[]             @relation("DepreciationAccount")
-  fixedAssetsAsAccDep     FixedAsset[]             @relation("AccumulatedDepAccount")
-  productionCostStandards ProductionCostStandard[] @relation("CostStandardAccount")
-  productionRunCosts      ProductionRunCost[]      @relation("RunCostAccount")
-  gaVehicleServiceExpense GaVehicleServiceLog[]    @relation("GaVehicleServiceExpense")
-  gaVehicleTaxExpense     GaVehicleTax[]           @relation("GaVehicleTaxExpense")
-  gaVehicleTaxCredit      GaVehicleTax[]           @relation("GaVehicleTaxCredit")
-  gaMaterialRequestExpense GaMaterialRequest[]     @relation("GaMaterialRequestExpense")
-  gaMaterialRequestCredit  GaMaterialRequest[]     @relation("GaMaterialRequestCredit")
-  gaVehicleServiceCredit  GaVehicleServiceLog[]    @relation("GaVehicleServiceCredit")
-  paymentRequestTypes     PaymentRequestType[]     @relation("PaymentRequestTypeAccount")
-  paymentRequestLines     PaymentRequestLine[]     @relation("PaymentRequestLineAccount")
-  paymentRequestsPaidFrom PaymentRequest[]         @relation("PaymentRequestCashAccount")
-  paymentRequestsSettledFrom PaymentRequest[]      @relation("PaymentRequestSettlementCash")
+  id                            String                         @id @default(uuid())
+  name                          String
+  accountNumber                 String                         @unique
+  accountType                   AccountType
+  rootType                      RootType
+  isGroup                       Boolean                        @default(false)
+  isActive                      Boolean                        @default(true)
+  balance                       Decimal                        @default(0) @db.Decimal(15, 2)
+  currency                      String                         @default("IDR")
+  description                   String?
+  parentId                      String?
+  parent                        Account?                       @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children                      Account[]                      @relation("AccountHierarchy")
+  ledgerEntries                 AccountingLedgerEntry[]
+  journalItems                  JournalItem[]
+  salesItems                    SalesInvoiceItem[]
+  purchaseItems                 PurchaseInvoiceItem[]
+  quotationItems                QuotationItem[]                @relation("QuotationItemAccount")
+  payments                      Payment[]                      @relation("PaymentAccount")
+  paymentSplits                 PaymentSplit[]                 @relation("PaymentSplitAccount")
+  inventoryItems                InventoryItem[]                @relation("ItemAccount")
+  movementsAsOffset             StockMovement[]                @relation("MovementOffset")
+  reconciliations               BankReconciliation[]           @relation("ReconciliationAccount")
+  serviceItems                  ServiceItem[]                  @relation("ServiceItemAccount")
+  systemAccountMappings         SystemAccountMapping[]         @relation("MappedAccount")
+  fixedAssetsAsAsset            FixedAsset[]                   @relation("AssetAccount")
+  fixedAssetsAsDepr             FixedAsset[]                   @relation("DepreciationAccount")
+  fixedAssetsAsAccDep           FixedAsset[]                   @relation("AccumulatedDepAccount")
+  productionCostStandards       ProductionCostStandard[]       @relation("CostStandardAccount")
+  productionRunCosts            ProductionRunCost[]            @relation("RunCostAccount")
+  gaVehicleServiceExpense       GaVehicleServiceLog[]          @relation("GaVehicleServiceExpense")
+  gaVehicleTaxExpense           GaVehicleTax[]                 @relation("GaVehicleTaxExpense")
+  gaVehicleTaxCredit            GaVehicleTax[]                 @relation("GaVehicleTaxCredit")
+  gaMaterialRequestExpense      GaMaterialRequest[]            @relation("GaMaterialRequestExpense")
+  gaMaterialRequestCredit       GaMaterialRequest[]            @relation("GaMaterialRequestCredit")
+  gaVehicleServiceCredit        GaVehicleServiceLog[]          @relation("GaVehicleServiceCredit")
+  paymentRequestTypes           PaymentRequestType[]           @relation("PaymentRequestTypeAccount")
+  paymentRequestLines           PaymentRequestLine[]           @relation("PaymentRequestLineAccount")
+  paymentRequestsPaidFrom       PaymentRequest[]               @relation("PaymentRequestCashAccount")
+  paymentRequestsSettledFrom    PaymentRequest[]               @relation("PaymentRequestSettlementCash")
   paymentRequestSettlementLines PaymentRequestSettlementLine[] @relation("PaymentRequestSettlementLineAccount")
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
 
   @@index([rootType])
   @@index([accountNumber])
@@ -105,10 +105,10 @@ model Party {
   ledgerEntries          AccountingLedgerEntry[]
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
+  paymentRequests        PaymentRequest[]        @relation("PaymentRequestParty")
 
   @@index([partyType])
   @@map("parties")
-  paymentRequests        PaymentRequest[]        @relation("PaymentRequestParty")
 }
 
 enum PartyType {
@@ -763,65 +763,65 @@ model FiscalYear {
 }
 
 model User {
-  id                          String                       @id @default(uuid())
-  username                    String                       @unique
-  fullName                    String                       @map("full_name")
-  email                       String                       @unique
-  passwordHash                String                       @map("password_hash")
+  id                                  String                       @id @default(uuid())
+  username                            String                       @unique
+  fullName                            String                       @map("full_name")
+  email                               String                       @unique
+  passwordHash                        String                       @map("password_hash")
   // role = Role.key (string dinamis). Nilai lama 'Admin'/'Accountant'/'StaffProduksi'/'Viewer'
   // tetap valid; role custom dibuat Admin lewat RBAC. Enum UserRole sudah ditinggalkan.
-  role                        String                       @default("Accountant")
-  isActive                    Boolean                      @default(true) @map("is_active")
-  lastLoginAt                 DateTime?                    @map("last_login_at")
+  role                                String                       @default("Accountant")
+  isActive                            Boolean                      @default(true) @map("is_active")
+  lastLoginAt                         DateTime?                    @map("last_login_at")
   // Notifikasi Telegram japri: chat id pribadi (tertaut via /start) + kode tautan sementara.
-  telegramChatId              String?                      @map("telegram_chat_id")
-  telegramLinkCode            String?                      @unique @map("telegram_link_code")
+  telegramChatId                      String?                      @map("telegram_chat_id")
+  telegramLinkCode                    String?                      @unique @map("telegram_link_code")
   // AIRA (MCP): user harus didaftarkan agar bisa dipakai sebagai aktor agen. Channel
   // (WhatsApp/Telegram) TIDAK disimpan di Entaris — engine AIRA memetakan identitas channel ke user id.
-  airaEnabled                 Boolean                      @default(false) @map("aira_enabled")
+  airaEnabled                         Boolean                      @default(false) @map("aira_enabled")
   // read = hanya tool baca | standard = semua tool dgn tier (tulis non-draft & kritis → antrian approval) | direct = tulis/kritis langsung sebagai aktor
-  airaTier                    String                       @default("standard") @map("aira_tier")
-  airaJabatan                 String?                      @map("aira_jabatan")
+  airaTier                            String                       @default("standard") @map("aira_tier")
+  airaJabatan                         String?                      @map("aira_jabatan")
   // UI language 'id' | 'en'; NULL = follow CompanySettings.defaultLanguage.
-  language                    String?                      @map("language")
-  journalEntries              JournalEntry[]
-  salesInvoices               SalesInvoice[]
-  purchaseInvoices            PurchaseInvoice[]
-  quotations                  Quotation[]                  @relation("QuotationCreator")
-  inquiries                   Inquiry[]                    @relation("InquiryCreator")
-  payments                    Payment[]
-  closedYears                 FiscalYear[]                 @relation("ClosedBy")
-  audits                      AuditLog[]
-  stockMovements              StockMovement[]              @relation("MovementCreatedBy")
-  productionRuns              ProductionRun[]              @relation("ProductionCreatedBy")
-  notifications               Notification[]               @relation("UserNotifications")
-  recurringTemplates          RecurringTemplate[]          @relation("UserRecurring")
-  vendorDepositApplications   VendorDepositApplication[]
-  customerDepositApplications CustomerDepositApplication[]
-  tokenBlacklist              TokenBlacklist[]
-  attachments                 TransactionAttachment[]
-  stockOpnames                StockOpname[]                @relation("OpnameCreatedBy")
-  stockTransfers              StockTransfer[]              @relation("TransferCreator")
-  deliveryOrders              DeliveryOrder[]              @relation("DeliveryOrderCreator")
-  salesOrders                 SalesOrder[]                 @relation("SalesOrderCreator")
-  purchaseOrders              PurchaseOrder[]              @relation("PurchaseOrderCreator")
-  goodsReceipts               GoodsReceipt[]               @relation("GoodsReceiptCreator")
-  fixedAssets                 FixedAsset[]                 @relation("AssetCreatedBy")
-  approvalRequests            ApprovalRequest[]            @relation("ApprovalRequester")
-  approvalApprovals           ApprovalRequest[]            @relation("ApprovalApprover")
-  approvalRejections          ApprovalRequest[]            @relation("ApprovalRejecter")
+  language                            String?                      @map("language")
+  journalEntries                      JournalEntry[]
+  salesInvoices                       SalesInvoice[]
+  purchaseInvoices                    PurchaseInvoice[]
+  quotations                          Quotation[]                  @relation("QuotationCreator")
+  inquiries                           Inquiry[]                    @relation("InquiryCreator")
+  payments                            Payment[]
+  closedYears                         FiscalYear[]                 @relation("ClosedBy")
+  audits                              AuditLog[]
+  stockMovements                      StockMovement[]              @relation("MovementCreatedBy")
+  productionRuns                      ProductionRun[]              @relation("ProductionCreatedBy")
+  notifications                       Notification[]               @relation("UserNotifications")
+  recurringTemplates                  RecurringTemplate[]          @relation("UserRecurring")
+  vendorDepositApplications           VendorDepositApplication[]
+  customerDepositApplications         CustomerDepositApplication[]
+  tokenBlacklist                      TokenBlacklist[]
+  attachments                         TransactionAttachment[]
+  stockOpnames                        StockOpname[]                @relation("OpnameCreatedBy")
+  stockTransfers                      StockTransfer[]              @relation("TransferCreator")
+  deliveryOrders                      DeliveryOrder[]              @relation("DeliveryOrderCreator")
+  salesOrders                         SalesOrder[]                 @relation("SalesOrderCreator")
+  purchaseOrders                      PurchaseOrder[]              @relation("PurchaseOrderCreator")
+  goodsReceipts                       GoodsReceipt[]               @relation("GoodsReceiptCreator")
+  fixedAssets                         FixedAsset[]                 @relation("AssetCreatedBy")
+  approvalRequests                    ApprovalRequest[]            @relation("ApprovalRequester")
+  approvalApprovals                   ApprovalRequest[]            @relation("ApprovalApprover")
+  approvalRejections                  ApprovalRequest[]            @relation("ApprovalRejecter")
   // Atasan langsung (approver tahap 1 Pengajuan Pembayaran). Nullable.
-  supervisorId                String?                      @map("supervisor_id")
-  supervisor                  User?                        @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
-  subordinates                User[]                       @relation("UserSupervisor")
-  paymentRequests             PaymentRequest[]             @relation("PaymentRequestRequester")
-  paymentRequestsSupervised   PaymentRequest[]             @relation("PaymentRequestSupervisor")
-  paymentRequestSettlementsSupervised PaymentRequest[]     @relation("PaymentRequestSettlementSupervisor")
-  paymentRequestsPaid         PaymentRequest[]             @relation("PaymentRequestPaidBy")
-  paymentRequestHistory       PaymentRequestHistory[]      @relation("PaymentRequestHistoryActor")
-  chatSessions                ChatSession[]
-  createdAt                   DateTime                     @default(now()) @map("created_at")
-  updatedAt                   DateTime                     @updatedAt @map("updated_at")
+  supervisorId                        String?                      @map("supervisor_id")
+  supervisor                          User?                        @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  subordinates                        User[]                       @relation("UserSupervisor")
+  paymentRequests                     PaymentRequest[]             @relation("PaymentRequestRequester")
+  paymentRequestsSupervised           PaymentRequest[]             @relation("PaymentRequestSupervisor")
+  paymentRequestSettlementsSupervised PaymentRequest[]             @relation("PaymentRequestSettlementSupervisor")
+  paymentRequestsPaid                 PaymentRequest[]             @relation("PaymentRequestPaidBy")
+  paymentRequestHistory               PaymentRequestHistory[]      @relation("PaymentRequestHistoryActor")
+  chatSessions                        ChatSession[]
+  createdAt                           DateTime                     @default(now()) @map("created_at")
+  updatedAt                           DateTime                     @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -891,7 +891,7 @@ model AuditLog {
   newValues  Json?    @map("new_values")
   ipAddress  String?  @map("ip_address")
   userAgent  String?  @map("user_agent")
-  /// 'mcp' bila aksi dijalankan agen lewat MCP; viaMeta = { token, channel, tool, approvalId? }.
+  /// 'mcp' bila aksi dijalankan agen lewat MCP (viaMeta = { token, channel, tool, approvalId? }); 'demo' bila dibuat generator data uji coba.
   via        String?
   viaMeta    Json?    @map("via_meta")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -903,20 +903,20 @@ model AuditLog {
 }
 
 model CompanySettings {
-  id                   String  @id @default(uuid())
-  slug                 String  @unique @default("default")
-  companyName          String  @map("company_name")
+  id                   String    @id @default(uuid())
+  slug                 String    @unique @default("default")
+  companyName          String    @map("company_name")
   address              String?
   phone                String?
   email                String?
-  taxId                String? @map("tax_id")
-  logoUrl              String? @map("logo_url")
-  logoUrlDark          String? @map("logo_url_dark")
-  defaultCurrency      String  @default("IDR") @map("default_currency")
-  fiscalYearStartMonth Int     @default(1) @map("fiscal_year_start_month")
+  taxId                String?   @map("tax_id")
+  logoUrl              String?   @map("logo_url")
+  logoUrlDark          String?   @map("logo_url_dark")
+  defaultCurrency      String    @default("IDR") @map("default_currency")
+  fiscalYearStartMonth Int       @default(1) @map("fiscal_year_start_month")
   /// Default UI language for users without their own choice: 'id' | 'en'.
-  defaultLanguage      String  @default("id") @map("default_language")
-  invoiceSettings      Json?   @map("invoice_settings")
+  defaultLanguage      String    @default("id") @map("default_language")
+  invoiceSettings      Json?     @map("invoice_settings")
   /// Penyiapan awal (onboarding wizard) selesai/dilewati admin. NULL = belum.
   onboardedAt          DateTime? @map("onboarded_at")
 
@@ -2476,13 +2476,13 @@ model GaBranch {
 }
 
 model GaCostCenter {
-  id       String    @id @default(cuid())
-  code     String    @unique
-  name     String
-  branchId String    @map("branch_id")
-  isActive Boolean   @default(true) @map("is_active")
-  branch   GaBranch  @relation(fields: [branchId], references: [id])
-  assets   GaAsset[]
+  id                  String               @id @default(cuid())
+  code                String               @unique
+  name                String
+  branchId            String               @map("branch_id")
+  isActive            Boolean              @default(true) @map("is_active")
+  branch              GaBranch             @relation(fields: [branchId], references: [id])
+  assets              GaAsset[]
   paymentRequests     PaymentRequest[]     @relation("PaymentRequestCostCenter")
   paymentRequestLines PaymentRequestLine[] @relation("PaymentRequestLineCostCenter")
 
@@ -2823,39 +2823,39 @@ model GaWorkOrderPart {
 }
 
 model GaMaterialRequest {
-  id              String                  @id @default(cuid())
-  code            String                  @unique
-  status          GaMaterialRequestStatus @default(DRAFT)
-  workOrderId     String?                 @map("work_order_id")
-  assetId         String?                 @map("asset_id")
-  machineTarget   String?                 @map("machine_target")
-  notes           String?
-  requestedById   String                  @map("requested_by_id")
-  requestedAt     DateTime                @default(now()) @map("requested_at")
-  approvedById    String?                 @map("approved_by_id")
-  approvedAt      DateTime?               @map("approved_at")
-  rejectedById    String?                 @map("rejected_by_id")
-  rejectedAt      DateTime?               @map("rejected_at")
-  rejectReason    String?                 @map("reject_reason")
+  id                String                  @id @default(cuid())
+  code              String                  @unique
+  status            GaMaterialRequestStatus @default(DRAFT)
+  workOrderId       String?                 @map("work_order_id")
+  assetId           String?                 @map("asset_id")
+  machineTarget     String?                 @map("machine_target")
+  notes             String?
+  requestedById     String                  @map("requested_by_id")
+  requestedAt       DateTime                @default(now()) @map("requested_at")
+  approvedById      String?                 @map("approved_by_id")
+  approvedAt        DateTime?               @map("approved_at")
+  rejectedById      String?                 @map("rejected_by_id")
+  rejectedAt        DateTime?               @map("rejected_at")
+  rejectReason      String?                 @map("reject_reason")
   // Forward-compat OPSI B (nullable, tidak dipakai sekarang): link ke PO/GL resmi.
-  purchaseOrderId String?                 @map("purchase_order_id")
-  glAccountId     String?                 @map("gl_account_id")
+  purchaseOrderId   String?                 @map("purchase_order_id")
+  glAccountId       String?                 @map("gl_account_id")
   // Linkage keuangan (diisi Akuntan saat bayar di ERP).
-  journalEntryId    String?               @unique @map("journal_entry_id")
-  purchaseInvoiceId String?               @map("purchase_invoice_id")
-  creditAccountId   String?               @map("credit_account_id")
-  paidById          String?               @map("paid_by_id")
-  paidAt            DateTime?             @map("paid_at")
-  paidAmount        Decimal?              @map("paid_amount") @db.Decimal(14, 2)
-  createdAt       DateTime                @default(now()) @map("created_at")
-  updatedAt       DateTime                @updatedAt @map("updated_at")
-  workOrder       GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
-  asset           GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  items           GaMaterialRequestItem[]
-  journalEntry    JournalEntry?           @relation("GaMaterialRequestJournal", fields: [journalEntryId], references: [id])
-  purchaseInvoice PurchaseInvoice?        @relation("GaMaterialRequestInvoice", fields: [purchaseInvoiceId], references: [id])
-  glAccount       Account?                @relation("GaMaterialRequestExpense", fields: [glAccountId], references: [id])
-  creditAccount   Account?                @relation("GaMaterialRequestCredit", fields: [creditAccountId], references: [id])
+  journalEntryId    String?                 @unique @map("journal_entry_id")
+  purchaseInvoiceId String?                 @map("purchase_invoice_id")
+  creditAccountId   String?                 @map("credit_account_id")
+  paidById          String?                 @map("paid_by_id")
+  paidAt            DateTime?               @map("paid_at")
+  paidAmount        Decimal?                @map("paid_amount") @db.Decimal(14, 2)
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  workOrder         GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  asset             GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  items             GaMaterialRequestItem[]
+  journalEntry      JournalEntry?           @relation("GaMaterialRequestJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice   PurchaseInvoice?        @relation("GaMaterialRequestInvoice", fields: [purchaseInvoiceId], references: [id])
+  glAccount         Account?                @relation("GaMaterialRequestExpense", fields: [glAccountId], references: [id])
+  creditAccount     Account?                @relation("GaMaterialRequestCredit", fields: [creditAccountId], references: [id])
 
   @@index([status])
   @@index([workOrderId])
@@ -2914,30 +2914,30 @@ model GaVehicleData {
 }
 
 model GaVehicleServiceLog {
-  id              String                   @id @default(cuid())
-  assetId         String                   @map("asset_id")
-  tanggal         DateTime
-  odometer        Int?
-  jenisService    GaVehicleServiceType     @map("jenis_service")
-  deskripsi       String
-  bengkel         String?
-  biaya           Decimal?                 @db.Decimal(14, 2)
-  workOrderId     String?                  @unique @map("work_order_id")
-  journalEntryId  String?                  @unique @map("journal_entry_id")
-  purchaseInvoiceId String?                @map("purchase_invoice_id")
-  accountId       String?                  @map("account_id")
-  creditAccountId String?                  @map("credit_account_id")
-  source          String                   @default("EAM")
-  externalRef     String?                  @unique @map("external_ref")
-  createdById     String?                  @map("created_by_id")
-  createdAt       DateTime                 @default(now()) @map("created_at")
-  asset           GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  workOrder       GaWorkOrder?             @relation(fields: [workOrderId], references: [id])
-  journalEntry    JournalEntry?            @relation("GaVehicleServiceJournal", fields: [journalEntryId], references: [id])
-  purchaseInvoice PurchaseInvoice?         @relation("GaServiceLogInvoice", fields: [purchaseInvoiceId], references: [id])
-  account         Account?                 @relation("GaVehicleServiceExpense", fields: [accountId], references: [id])
-  creditAccount   Account?                 @relation("GaVehicleServiceCredit", fields: [creditAccountId], references: [id])
-  serviceRequest  GaVehicleServiceRequest?
+  id                String                   @id @default(cuid())
+  assetId           String                   @map("asset_id")
+  tanggal           DateTime
+  odometer          Int?
+  jenisService      GaVehicleServiceType     @map("jenis_service")
+  deskripsi         String
+  bengkel           String?
+  biaya             Decimal?                 @db.Decimal(14, 2)
+  workOrderId       String?                  @unique @map("work_order_id")
+  journalEntryId    String?                  @unique @map("journal_entry_id")
+  purchaseInvoiceId String?                  @map("purchase_invoice_id")
+  accountId         String?                  @map("account_id")
+  creditAccountId   String?                  @map("credit_account_id")
+  source            String                   @default("EAM")
+  externalRef       String?                  @unique @map("external_ref")
+  createdById       String?                  @map("created_by_id")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  asset             GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  workOrder         GaWorkOrder?             @relation(fields: [workOrderId], references: [id])
+  journalEntry      JournalEntry?            @relation("GaVehicleServiceJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice   PurchaseInvoice?         @relation("GaServiceLogInvoice", fields: [purchaseInvoiceId], references: [id])
+  account           Account?                 @relation("GaVehicleServiceExpense", fields: [accountId], references: [id])
+  creditAccount     Account?                 @relation("GaVehicleServiceCredit", fields: [creditAccountId], references: [id])
+  serviceRequest    GaVehicleServiceRequest?
 
   @@index([assetId, tanggal])
   @@index([source])
@@ -2974,33 +2974,33 @@ model GaVehicleServiceRequest {
 // via assetId; kept out of GaVehicleData (1-1) because each one keeps a 1-many history.
 
 model GaVehicleTax {
-  id          String             @id @default(cuid())
-  assetId     String             @map("asset_id")
-  type        GaVehicleTaxType
-  periodYear  Int                @map("period_year")
-  amount      Decimal?           @db.Decimal(14, 2)
-  paidAt      DateTime?          @map("paid_at")
-  dueDate     DateTime           @map("due_date")
-  status      GaVehicleTaxStatus @default(ACTIVE)
-  documentId  String?            @map("document_id")
-  notes       String?
-  createdById String?            @map("created_by_id")
+  id                String               @id @default(cuid())
+  assetId           String               @map("asset_id")
+  type              GaVehicleTaxType
+  periodYear        Int                  @map("period_year")
+  amount            Decimal?             @db.Decimal(14, 2)
+  paidAt            DateTime?            @map("paid_at")
+  dueDate           DateTime             @map("due_date")
+  status            GaVehicleTaxStatus   @default(ACTIVE)
+  documentId        String?              @map("document_id")
+  notes             String?
+  createdById       String?              @map("created_by_id")
   // Linkage keuangan (diisi Akuntan saat bayar di ERP).
-  paidAmount        Decimal?     @map("paid_amount") @db.Decimal(14, 2)
-  paidById          String?      @map("paid_by_id")
-  journalEntryId    String?      @unique @map("journal_entry_id")
-  purchaseInvoiceId String?      @map("purchase_invoice_id")
-  accountId         String?      @map("account_id")
-  creditAccountId   String?      @map("credit_account_id")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
-  asset       GaAsset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  document    GaDocument?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  request     GaVehicleTaxRequest?
-  journalEntry    JournalEntry?    @relation("GaVehicleTaxJournal", fields: [journalEntryId], references: [id])
-  purchaseInvoice PurchaseInvoice? @relation("GaVehicleTaxInvoice", fields: [purchaseInvoiceId], references: [id])
-  account         Account?         @relation("GaVehicleTaxExpense", fields: [accountId], references: [id])
-  creditAccount   Account?         @relation("GaVehicleTaxCredit", fields: [creditAccountId], references: [id])
+  paidAmount        Decimal?             @map("paid_amount") @db.Decimal(14, 2)
+  paidById          String?              @map("paid_by_id")
+  journalEntryId    String?              @unique @map("journal_entry_id")
+  purchaseInvoiceId String?              @map("purchase_invoice_id")
+  accountId         String?              @map("account_id")
+  creditAccountId   String?              @map("credit_account_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  asset             GaAsset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document          GaDocument?          @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  request           GaVehicleTaxRequest?
+  journalEntry      JournalEntry?        @relation("GaVehicleTaxJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice   PurchaseInvoice?     @relation("GaVehicleTaxInvoice", fields: [purchaseInvoiceId], references: [id])
+  account           Account?             @relation("GaVehicleTaxExpense", fields: [accountId], references: [id])
+  creditAccount     Account?             @relation("GaVehicleTaxCredit", fields: [creditAccountId], references: [id])
 
   @@index([assetId])
   @@index([dueDate, status])
@@ -3329,85 +3329,85 @@ model PaymentRequestType {
 }
 
 model PaymentRequest {
-  id                   String                     @id @default(uuid())
-  number               String                     @unique
-  requesterId          String                     @map("requester_id")
-  requester            User                       @relation("PaymentRequestRequester", fields: [requesterId], references: [id])
+  id                             String                         @id @default(uuid())
+  number                         String                         @unique
+  requesterId                    String                         @map("requester_id")
+  requester                      User                           @relation("PaymentRequestRequester", fields: [requesterId], references: [id])
   // Snapshot atasan saat diajukan (perubahan atasan di user tidak memindah antrian).
-  supervisorId         String?                    @map("supervisor_id")
-  supervisor           User?                      @relation("PaymentRequestSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
-  typeId               String                     @map("type_id")
-  type                 PaymentRequestType         @relation(fields: [typeId], references: [id])
-  costCenterId         String?                    @map("cost_center_id")
-  costCenter           GaCostCenter?              @relation("PaymentRequestCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
-  department           String?
-  payeeKind            String                     @default("EMPLOYEE") @map("payee_kind") // EMPLOYEE | VENDOR
-  partyId              String?                    @map("party_id")
-  party                Party?                     @relation("PaymentRequestParty", fields: [partyId], references: [id], onDelete: SetNull)
-  payeeName            String                     @map("payee_name")
-  bankName             String?                    @map("bank_name")
-  bankAccountNo        String?                    @map("bank_account_no")
-  bankAccountHolder    String?                    @map("bank_account_holder")
-  purpose              String
-  neededBy             DateTime?                  @map("needed_by")
-  currency             String                     @default("IDR")
-  totalAmount          Decimal                    @default(0) @map("total_amount") @db.Decimal(15, 2)
-  status               String                     @default("DRAFT")
+  supervisorId                   String?                        @map("supervisor_id")
+  supervisor                     User?                          @relation("PaymentRequestSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  typeId                         String                         @map("type_id")
+  type                           PaymentRequestType             @relation(fields: [typeId], references: [id])
+  costCenterId                   String?                        @map("cost_center_id")
+  costCenter                     GaCostCenter?                  @relation("PaymentRequestCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
+  department                     String?
+  payeeKind                      String                         @default("EMPLOYEE") @map("payee_kind") // EMPLOYEE | VENDOR
+  partyId                        String?                        @map("party_id")
+  party                          Party?                         @relation("PaymentRequestParty", fields: [partyId], references: [id], onDelete: SetNull)
+  payeeName                      String                         @map("payee_name")
+  bankName                       String?                        @map("bank_name")
+  bankAccountNo                  String?                        @map("bank_account_no")
+  bankAccountHolder              String?                        @map("bank_account_holder")
+  purpose                        String
+  neededBy                       DateTime?                      @map("needed_by")
+  currency                       String                         @default("IDR")
+  totalAmount                    Decimal                        @default(0) @map("total_amount") @db.Decimal(15, 2)
+  status                         String                         @default("DRAFT")
   // Role direktur yang wajib menyetujui (snapshot ApprovalRule saat verifikasi keuangan).
-  directorRole         String?                    @map("director_role")
-  submittedAt          DateTime?                  @map("submitted_at")
-  supervisorApprovedAt DateTime?                  @map("supervisor_approved_at")
-  financeApprovedAt    DateTime?                  @map("finance_approved_at")
-  financeApprovedBy    String?                    @map("finance_approved_by")
-  directorApprovedAt   DateTime?                  @map("director_approved_at")
-  directorApprovedBy   String?                    @map("director_approved_by")
-  approvedAt           DateTime?                  @map("approved_at")
-  rejectedAt           DateTime?                  @map("rejected_at")
-  lastNote             String?                    @map("last_note")
-  cancelledAt          DateTime?                  @map("cancelled_at")
+  directorRole                   String?                        @map("director_role")
+  submittedAt                    DateTime?                      @map("submitted_at")
+  supervisorApprovedAt           DateTime?                      @map("supervisor_approved_at")
+  financeApprovedAt              DateTime?                      @map("finance_approved_at")
+  financeApprovedBy              String?                        @map("finance_approved_by")
+  directorApprovedAt             DateTime?                      @map("director_approved_at")
+  directorApprovedBy             String?                        @map("director_approved_by")
+  approvedAt                     DateTime?                      @map("approved_at")
+  rejectedAt                     DateTime?                      @map("rejected_at")
+  lastNote                       String?                        @map("last_note")
+  cancelledAt                    DateTime?                      @map("cancelled_at")
   // Pembayaran
-  paidAt               DateTime?                  @map("paid_at")
-  paidById             String?                    @map("paid_by")
-  paidBy               User?                      @relation("PaymentRequestPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
-  paymentDate          DateTime?                  @map("payment_date")
-  cashAccountId        String?                    @map("cash_account_id")
-  cashAccount          Account?                   @relation("PaymentRequestCashAccount", fields: [cashAccountId], references: [id], onDelete: SetNull)
-  journalEntryId       String?                    @unique @map("journal_entry_id")
-  journalEntry         JournalEntry?              @relation("PaymentRequestJournal", fields: [journalEntryId], references: [id], onDelete: SetNull)
-  paymentReference     String?                    @map("payment_reference")
+  paidAt                         DateTime?                      @map("paid_at")
+  paidById                       String?                        @map("paid_by")
+  paidBy                         User?                          @relation("PaymentRequestPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  paymentDate                    DateTime?                      @map("payment_date")
+  cashAccountId                  String?                        @map("cash_account_id")
+  cashAccount                    Account?                       @relation("PaymentRequestCashAccount", fields: [cashAccountId], references: [id], onDelete: SetNull)
+  journalEntryId                 String?                        @unique @map("journal_entry_id")
+  journalEntry                   JournalEntry?                  @relation("PaymentRequestJournal", fields: [journalEntryId], references: [id], onDelete: SetNull)
+  paymentReference               String?                        @map("payment_reference")
   // Perjalanan dinas (type.kind = TRAVEL). "Keperluan" perjalanan = purpose.
-  travelDestination    String?                    @map("travel_destination")
-  travelStartDate      DateTime?                  @map("travel_start_date")
-  travelEndDate        DateTime?                  @map("travel_end_date")
-  travelParticipants   String?                    @map("travel_participants")
+  travelDestination              String?                        @map("travel_destination")
+  travelStartDate                DateTime?                      @map("travel_start_date")
+  travelEndDate                  DateTime?                      @map("travel_end_date")
+  travelParticipants             String?                        @map("travel_participants")
   // Settlement of a cash advance / business travel (one per request).
   // settlementStatus: null (bukan uang muka / tidak wajib) | OPEN | SUBMITTED |
   // PENDING_FINANCE | REVISION | SETTLED.
-  settlementStatus     String?                    @map("settlement_status")
-  settledAt            DateTime?                  @map("settled_at")
-  settlementJournalId  String?                    @unique @map("settlement_journal_id")
-  settlementJournal    JournalEntry?              @relation("PaymentRequestSettlementJournal", fields: [settlementJournalId], references: [id], onDelete: SetNull)
-  settlementSupervisorId String?                  @map("settlement_supervisor_id")
-  settlementSupervisor User?                      @relation("PaymentRequestSettlementSupervisor", fields: [settlementSupervisorId], references: [id], onDelete: SetNull)
-  settlementNote       String?                    @map("settlement_note")
-  settlementDeadline   DateTime?                  @map("settlement_deadline")
-  settlementSubmittedAt DateTime?                 @map("settlement_submitted_at")
-  settlementSupervisorApprovedAt DateTime?        @map("settlement_supervisor_approved_at")
-  settlementLastNote   String?                    @map("settlement_last_note")
-  settlementDate       DateTime?                  @map("settlement_date")
-  settlementRealized   Decimal?                   @map("settlement_realized") @db.Decimal(15, 2)
-  settlementCashAccountId String?                 @map("settlement_cash_account_id")
-  settlementCashAccount Account?                  @relation("PaymentRequestSettlementCash", fields: [settlementCashAccountId], references: [id], onDelete: SetNull)
-  settlementReference  String?                    @map("settlement_reference")
+  settlementStatus               String?                        @map("settlement_status")
+  settledAt                      DateTime?                      @map("settled_at")
+  settlementJournalId            String?                        @unique @map("settlement_journal_id")
+  settlementJournal              JournalEntry?                  @relation("PaymentRequestSettlementJournal", fields: [settlementJournalId], references: [id], onDelete: SetNull)
+  settlementSupervisorId         String?                        @map("settlement_supervisor_id")
+  settlementSupervisor           User?                          @relation("PaymentRequestSettlementSupervisor", fields: [settlementSupervisorId], references: [id], onDelete: SetNull)
+  settlementNote                 String?                        @map("settlement_note")
+  settlementDeadline             DateTime?                      @map("settlement_deadline")
+  settlementSubmittedAt          DateTime?                      @map("settlement_submitted_at")
+  settlementSupervisorApprovedAt DateTime?                      @map("settlement_supervisor_approved_at")
+  settlementLastNote             String?                        @map("settlement_last_note")
+  settlementDate                 DateTime?                      @map("settlement_date")
+  settlementRealized             Decimal?                       @map("settlement_realized") @db.Decimal(15, 2)
+  settlementCashAccountId        String?                        @map("settlement_cash_account_id")
+  settlementCashAccount          Account?                       @relation("PaymentRequestSettlementCash", fields: [settlementCashAccountId], references: [id], onDelete: SetNull)
+  settlementReference            String?                        @map("settlement_reference")
   // Document origin (EAM bills etc.).
-  source               String                     @default("MANUAL")
-  sourceRef            String?                    @map("source_ref")
-  lines                PaymentRequestLine[]
-  settlementLines      PaymentRequestSettlementLine[]
-  attachments          PaymentRequestAttachment[]
-  history              PaymentRequestHistory[]
-  createdAt            DateTime                   @default(now()) @map("created_at")
-  updatedAt            DateTime                   @updatedAt @map("updated_at")
+  source                         String                         @default("MANUAL")
+  sourceRef                      String?                        @map("source_ref")
+  lines                          PaymentRequestLine[]
+  settlementLines                PaymentRequestSettlementLine[]
+  attachments                    PaymentRequestAttachment[]
+  history                        PaymentRequestHistory[]
+  createdAt                      DateTime                       @default(now()) @map("created_at")
+  updatedAt                      DateTime                       @updatedAt @map("updated_at")
 
   @@index([requesterId])
   @@index([supervisorId])
@@ -3566,28 +3566,28 @@ model McpNonce {
 /// Sesi panel chat AIRA milik satu user. Entaris adalah sumber kebenaran transkrip
 /// (engine AIRA tidak menyimpan state yang dibutuhkan untuk melanjutkan).
 model ChatSession {
-  id                    String        @id @default(uuid())
-  userId                String        @map("user_id")
-  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title                 String?
+  id                   String        @id @default(uuid())
+  userId               String        @map("user_id")
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                String?
   /// auto | user
-  titleSource           String        @default("auto") @map("title_source")
+  titleSource          String        @default("auto") @map("title_source")
   /// active | archived
-  status                String        @default("active")
+  status               String        @default("active")
   /// ringkasan bergulir untuk giliran lama (diperbarui bertahap)
-  summary               String?
+  summary              String?
   /// pesan terakhir (seq) yang sudah tercakup ringkasan
-  summaryUpToMessageId  String?       @map("summary_up_to_message_id")
-  messageCount          Int           @default(0) @map("message_count")
-  lastMessageAt         DateTime      @default(now()) @map("last_message_at")
+  summaryUpToMessageId String?       @map("summary_up_to_message_id")
+  messageCount         Int           @default(0) @map("message_count")
+  lastMessageAt        DateTime      @default(now()) @map("last_message_at")
   /// terakhir dibuka (lintas perangkat): panel membuka sesi ini lebih dulu
-  lastOpenedAt          DateTime?     @map("last_opened_at")
+  lastOpenedAt         DateTime?     @map("last_opened_at")
   /// giliran yang sedang berjalan (satu per sesi) + waktu mulai (lease)
-  inflightTurnId        String?       @map("inflight_turn_id")
-  inflightSince         DateTime?     @map("inflight_since")
-  createdAt             DateTime      @default(now()) @map("created_at")
-  updatedAt             DateTime      @updatedAt @map("updated_at")
-  messages              ChatMessage[]
+  inflightTurnId       String?       @map("inflight_turn_id")
+  inflightSince        DateTime?     @map("inflight_since")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  messages             ChatMessage[]
 
   @@index([userId, status, lastMessageAt(sort: Desc)])
   @@map("chat_sessions")
@@ -3644,4 +3644,37 @@ model LooseSqlMigration {
   appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
 
   @@map("_loose_sql_migrations")
+}
+
+/// Satu proses pembuatan data uji coba lintas modul (mode uji coba eksklusif).
+model DemoDataBatch {
+  id         String           @id @default(uuid())
+  /// running | done | failed | wiping
+  status     String           @default("running")
+  /// langkah skenario yang sedang/terakhir dijalankan
+  step       String?
+  doneSteps  Int              @default(0) @map("done_steps")
+  totalSteps Int              @default(0) @map("total_steps")
+  error      String?
+  createdBy  String?          @map("created_by")
+  startedAt  DateTime         @default(now()) @map("started_at")
+  finishedAt DateTime?        @map("finished_at")
+  records    DemoDataRecord[]
+
+  @@map("demo_data_batches")
+}
+
+/// Master yang dibuat data uji coba (mitra, item, gudang, aset, ...), dihapus saat data uji coba dihapus.
+model DemoDataRecord {
+  id        String        @id @default(uuid())
+  batchId   String        @map("batch_id")
+  batch     DemoDataBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  /// nama tabel database (mis. "parties")
+  model     String
+  recordId  String        @map("record_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@unique([model, recordId])
+  @@index([batchId])
+  @@map("demo_data_records")
 }
