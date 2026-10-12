@@ -186,6 +186,12 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 - **Code** (variables, functions, comments): English
 - **Git commits**: English (conventional commits)
 
+## Rilis & Versi
+
+- Sumber kebenaran versi = `APP_VERSION` di `client/src/lib/version.ts`. `node scripts/bump-version.js patch|minor|major|X.Y.Z` menyinkronkan `version.ts` + `package.json` + `package-lock.json` (server & client). Teks changelog TETAP ditulis manual: `CHANGELOG.md` (`## [X.Y.Z] - tanggal`), entri `CHANGELOG` di `version.ts`, dan kembarannya di `changelog.en.ts`.
+- `node scripts/bump-version.js --check` (juga job CI `version`) gagal bila ada yang tidak sinkron. `--notes X.Y.Z` mencetak catatan rilis dari CHANGELOG.md.
+- Alur rilis: branch `release/X.Y.Z` -> bump + changelog -> PR -> merge -> `git tag -a vX.Y.Z <commit-merge> && git push origin vX.Y.Z`. Workflow `.github/workflows/release.yml` otomatis memverifikasi tag (harus di main & sama dengan APP_VERSION) lalu menerbitkan GitHub Release dari CHANGELOG.md.
+
 ## Development Commands
 
 ```bash
