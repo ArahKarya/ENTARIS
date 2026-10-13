@@ -13,7 +13,7 @@ RUN npm install -g npm@11
 
 # Client deps (serialized to reduce peak memory on low-RAM hosts)
 COPY client/package.json client/package-lock.json* ./client/
-RUN cd client && npm ci --legacy-peer-deps --no-audit --no-fund --maxsockets=1 --prefer-offline \
+RUN cd client && npm ci --no-audit --no-fund --maxsockets=1 --prefer-offline \
     && test -x node_modules/.bin/tsc
 
 # Server deps
