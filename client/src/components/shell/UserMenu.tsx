@@ -1,5 +1,5 @@
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { Check, ChevronRight, Info, Keyboard, KeyRound, LogOut, Monitor, Moon, Palette, Sun } from 'lucide-react';
+import { Check, ChevronRight, Info, Keyboard, KeyRound, LogOut, Monitor, Moon, Palette, Send, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { LOCALE } from '@/lib/format';
@@ -16,6 +16,8 @@ interface UserMenuProps {
   user: UserMenuUser | null;
   companyName?: string | null;
   onChangePassword: () => void;
+  /** Shown only when the AIRA bot can be used (engine configured, service on). */
+  onLinkTelegram?: () => void;
   onOpenShortcuts: () => void;
   onOpenAbout: () => void;
   onLogout: () => void;
@@ -40,7 +42,7 @@ const itemClass =
 const Separator = () => <Menu.Separator className="-mx-1 my-1 h-px bg-border" />;
 
 /** Avatar menu: identity, password, theme, shortcuts, about, sign out. */
-export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts, onOpenAbout, onLogout }: UserMenuProps) {
+export function UserMenu({ user, companyName, onChangePassword, onLinkTelegram, onOpenShortcuts, onOpenAbout, onLogout }: UserMenuProps) {
   const { t } = useTranslation(['shell', 'common']);
   const { theme, setTheme } = useTheme();
   const name = user?.fullName || user?.username || t('userMenu.fallbackName');
@@ -92,6 +94,13 @@ export function UserMenu({ user, companyName, onChangePassword, onOpenShortcuts,
             <KeyRound aria-hidden />
             {t('userMenu.changePassword')}
           </Menu.Item>
+
+          {onLinkTelegram && (
+            <Menu.Item className={itemClass} onSelect={onLinkTelegram}>
+              <Send aria-hidden />
+              {t('userMenu.linkTelegram')}
+            </Menu.Item>
+          )}
 
           <Menu.Sub>
             <Menu.SubTrigger className={itemClass}>

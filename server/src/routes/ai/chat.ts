@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { type AuthRequest } from '../../middleware/auth';
 import { validateBody } from '../../utils/validate';
-import { handleRouteError } from '../../utils/errors';
+import { BusinessError, handleRouteError } from '../../utils/errors';
 import { getFullPath } from '../../utils/fileStorage';
 import { hasCap } from '../../services/permissionService';
 import { CHAT_ATTACHMENT_MAX_BYTES } from '../../services/chat/attachments';
@@ -28,6 +28,7 @@ import { getChatLimits, getEngineConfig } from '../../services/chat/config';
 import { checkHealth } from '../../services/chat/engineClient';
 import { exportSession } from '../../services/chat/exportSession';
 import { checkTurnRate } from '../../services/chat/rateLimit';
+import { allowLinkRequest, requestLinkCode } from '../../services/chat/telegramLink';
 import {
   attachmentFor,
   createSession,
@@ -80,6 +81,25 @@ router.use(async (_req, res, next) => {
     return next();
   } catch (error) {
     return handleRouteError(res, error, 'chat gate', 'Gagal memeriksa status layanan AIRA.');
+  }
+});
+
+// POST /telegram-link: kode sekali pakai untuk menautkan akun Telegram ke pengguna ini (bot AIRA).
+// Kode dan deep link disamarkan dari audit trail (linkCode, deepLink).
+router.post('/telegram-link', async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, fullName: true, username: true, isActive: true },
+    });
+    if (!user?.isActive) throw new BusinessError('Pengguna tidak aktif.');
+    if (!allowLinkRequest(user.id)) {
+      return sendError(res, 429, 'rate_limited', 'Terlalu banyak permintaan kode penautan. Coba lagi dalam beberapa menit.');
+    }
+    const link = await requestLinkCode(getEngineConfig(), { id: user.id, name: user.fullName || user.username });
+    return res.json(link);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/chat/telegram-link', 'Gagal membuat kode penautan Telegram.');
   }
 });
 

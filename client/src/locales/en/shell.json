@@ -139,7 +139,8 @@
     "theme": "Theme",
     "shortcuts": "Keyboard shortcuts",
     "about": "About Entaris",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "linkTelegram": "Link Telegram"
   },
   "topbar": {
     "openMenu": "Open navigation menu",
@@ -555,5 +556,21 @@
         }
       }
     }
+  },
+  "telegramLink": {
+    "title": "Link Telegram",
+    "description": "Connect your Telegram account to the AIRA bot. Once linked, you can ask AIRA on Telegram with this account's permissions.",
+    "creating": "Creating a code…",
+    "failed": "Failed to create a link code.",
+    "codeLabel": "Link code: {{code}}",
+    "command": "Command",
+    "validUntil": "Single use, valid until {{time}}.",
+    "expired": "This code has expired. Create a new one.",
+    "stepOpenBot": "Press Open Telegram, then Start in the @{{bot}} bot. The account is linked right away.",
+    "stepOpenAnyBot": "Open the AIRA bot in Telegram.",
+    "stepSend": "Or send {{command}} to the bot.",
+    "openTelegram": "Open Telegram",
+    "newCode": "Create a new code",
+    "close": "Close"
   }
 }

@@ -13,6 +13,9 @@ const SECRET_KEYS = new Set([
   'apikey',
   'apitoken',
   'bottoken',
+  // Telegram link code (one-time, 10 minutes) and the deep link that carries it.
+  'linkcode',
+  'deeplink',
 ]);
 
 /**
