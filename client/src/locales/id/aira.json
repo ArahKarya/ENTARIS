@@ -59,7 +59,11 @@
     "typing": "AIRA sedang mengetik…",
     "failed": "Jawaban gagal dibuat.",
     "stopped": "Dihentikan. Teks yang sudah diterima tetap tersimpan.",
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "clarifyLabel": "Pilihan jawaban",
+    "recommended": "disarankan",
+    "clarifyOrType": "Atau ketik jawaban sendiri.",
+    "clarifyType": "Ketik jawabannya di kotak pesan."
   },
   "toolChips": {
     "label": "Langkah AIRA",
@@ -68,14 +72,38 @@
     "running": " (berjalan)"
   },
   "cards": {
-    "cashBookDraft": { "label": "Draft Buku Kas", "cta": "Tinjau draft" },
-    "productionDraft": { "label": "Draft Produksi", "cta": "Buka draft produksi" },
-    "paymentRequestDraft": { "label": "Pengajuan Pembayaran", "cta": "Buka pengajuan" },
-    "purchaseOrderDraft": { "label": "Purchase Order", "cta": "Buka daftar PO" },
-    "quotationDraft": { "label": "Penawaran", "cta": "Buka daftar penawaran" },
-    "salesOrderDraft": { "label": "Sales Order", "cta": "Buka daftar SO" },
-    "approval": { "label": "Menunggu persetujuan", "cta": "Buka Persetujuan" },
-    "link": { "label": "Tautan", "cta": "Buka" }
+    "cashBookDraft": {
+      "label": "Draft Buku Kas",
+      "cta": "Tinjau draft"
+    },
+    "productionDraft": {
+      "label": "Draft Produksi",
+      "cta": "Buka draft produksi"
+    },
+    "paymentRequestDraft": {
+      "label": "Pengajuan Pembayaran",
+      "cta": "Buka pengajuan"
+    },
+    "purchaseOrderDraft": {
+      "label": "Purchase Order",
+      "cta": "Buka daftar PO"
+    },
+    "quotationDraft": {
+      "label": "Penawaran",
+      "cta": "Buka daftar penawaran"
+    },
+    "salesOrderDraft": {
+      "label": "Sales Order",
+      "cta": "Buka daftar SO"
+    },
+    "approval": {
+      "label": "Menunggu persetujuan",
+      "cta": "Buka Persetujuan"
+    },
+    "link": {
+      "label": "Tautan",
+      "cta": "Buka"
+    }
   },
   "sessionList": {
     "loadFailed": "Daftar percakapan tidak bisa dimuat.",

@@ -8,7 +8,7 @@ import { neutralizeUserText } from '../../ai/identityBlock';
 import { attachmentContentPart } from './attachments';
 import { getChatLimits, getEngineConfig, type EngineConfig } from './config';
 import { buildContinuityNote, estimateTokens, toTurnMessages, type ChatLike } from './contextWindow';
-import { completeChat, EngineError, streamChat, type ContentPart, type UpstreamMessage } from './engineClient';
+import { completeChat, EngineError, streamChat, type ClarifyPrompt, type ContentPart, type UpstreamMessage } from './engineClient';
 import { finalizeAssistant, flushAssistant, setSessionTitle } from './messageStore';
 import { releaseTurnLease } from './sessionService';
 import { planWithSummary } from './summaryService';
@@ -140,6 +140,7 @@ export async function runTurn(turn: PreparedTurn, sink: TurnSink, signal: AbortS
     card: (card) => sink.event('card', { ...card }),
   });
 
+  let clarify: ClarifyPrompt | null = null;
   let status: 'ok' | 'error' | 'aborted' = 'ok';
   let errorInfo: { code: string; message: string } | null = null;
   try {
@@ -151,6 +152,9 @@ export async function runTurn(turn: PreparedTurn, sink: TurnSink, signal: AbortS
         buffer += ev.text;
         sink.event('delta', { text: ev.text });
         if (Date.now() - lastFlush >= limits.flushMs) flush();
+      } else if (ev.type === 'clarify') {
+        clarify = ev.prompt;
+        sink.event('clarify', { ...ev.prompt });
       } else if (ev.model) {
         model = ev.model;
       }
@@ -171,7 +175,7 @@ export async function runTurn(turn: PreparedTurn, sink: TurnSink, signal: AbortS
   await flushChain;
   await watcher.stop().catch((err) => logger.warn({ err }, 'Penutupan pemantau tool gagal'));
   const duration = Date.now() - started;
-  const parts = { tools: watcher.calls(), cards: watcher.cards() };
+  const parts = { tools: watcher.calls(), cards: watcher.cards(), ...(clarify && status === 'ok' ? { clarify } : {}) };
   try {
     await finalizeAssistant({ messageId, sessionId, content: buffer, status, error: errorInfo?.message ?? null, durationMs: duration, model, parts });
     if (status === 'ok') await maybeTitle(turn, sink);

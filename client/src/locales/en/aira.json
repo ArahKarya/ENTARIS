@@ -59,7 +59,11 @@
     "typing": "AIRA is typing…",
     "failed": "The answer could not be generated.",
     "stopped": "Stopped. Text already received is kept.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "clarifyLabel": "Answer choices",
+    "recommended": "recommended",
+    "clarifyOrType": "Or type your own answer.",
+    "clarifyType": "Type your answer in the message box."
   },
   "toolChips": {
     "label": "AIRA steps",
@@ -68,14 +72,38 @@
     "running": " (running)"
   },
   "cards": {
-    "cashBookDraft": { "label": "Cash book draft", "cta": "Review draft" },
-    "productionDraft": { "label": "Production draft", "cta": "Open production draft" },
-    "paymentRequestDraft": { "label": "Payment Request", "cta": "Open request" },
-    "purchaseOrderDraft": { "label": "Purchase Order", "cta": "Open PO list" },
-    "quotationDraft": { "label": "Quotation", "cta": "Open quotation list" },
-    "salesOrderDraft": { "label": "Sales Order", "cta": "Open SO list" },
-    "approval": { "label": "Awaiting approval", "cta": "Open Approvals" },
-    "link": { "label": "Link", "cta": "Open" }
+    "cashBookDraft": {
+      "label": "Cash book draft",
+      "cta": "Review draft"
+    },
+    "productionDraft": {
+      "label": "Production draft",
+      "cta": "Open production draft"
+    },
+    "paymentRequestDraft": {
+      "label": "Payment Request",
+      "cta": "Open request"
+    },
+    "purchaseOrderDraft": {
+      "label": "Purchase Order",
+      "cta": "Open PO list"
+    },
+    "quotationDraft": {
+      "label": "Quotation",
+      "cta": "Open quotation list"
+    },
+    "salesOrderDraft": {
+      "label": "Sales Order",
+      "cta": "Open SO list"
+    },
+    "approval": {
+      "label": "Awaiting approval",
+      "cta": "Open Approvals"
+    },
+    "link": {
+      "label": "Link",
+      "cta": "Open"
+    }
   },
   "sessionList": {
     "loadFailed": "The conversation list could not be loaded.",

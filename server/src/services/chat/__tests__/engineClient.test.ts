@@ -75,3 +75,34 @@ describe('completeChat / checkHealth', () => {
     expect(await checkHealth(cfg({ baseUrl: null }))).toMatchObject({ configured: false, online: false, reason: 'not_configured' });
   });
 });
+
+describe('aira.clarify events', () => {
+  it('passes a sane question and choices through, and drops garbage', async () => {
+    const { parseClarify } = await import('../engineClient');
+    expect(parseClarify(JSON.stringify({ question: ' Periode? ', choices: ['A', 'A', ' ', 'B', 'C', 'D', 'E'] }))).toEqual({
+      question: 'Periode?',
+      choices: ['A', 'B', 'C', 'D'],
+    });
+    expect(parseClarify(JSON.stringify({ question: 'x'.repeat(500), choices: 'nope' }))?.question).toHaveLength(300);
+    expect(parseClarify(JSON.stringify({ choices: ['A'] }))).toBeNull();
+    expect(parseClarify('not json')).toBeNull();
+  });
+});
+
+describe('streamChat with a clarify event', () => {
+  it('yields the question between the text and done', async () => {
+    const { getEngineConfig } = await import('../config');
+    const cfg = getEngineConfig({ AIRA_ENGINE_URL: 'http://engine:8642', AIRA_ENGINE_KEY: 'k'.repeat(40) });
+    const sse = [
+      'data: {"choices":[{"delta":{"content":"Periode?"}}]}',
+      'event: aira.clarify\ndata: {"question":"Periode?","choices":["Oktober","Kuartal 3"]}',
+      'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}',
+      'data: [DONE]',
+    ].join('\n\n') + '\n\n';
+    const fetchImpl = async () => new Response(sse, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    const events: EngineStreamEvent[] = [];
+    for await (const ev of streamChat({ messages: [], user: 'u1' }, cfg, fetchImpl as unknown as typeof fetch)) events.push(ev);
+    expect(events.map((e) => e.type)).toEqual(['delta', 'clarify', 'done']);
+    expect(events[1]).toEqual({ type: 'clarify', prompt: { question: 'Periode?', choices: ['Oktober', 'Kuartal 3'] } });
+  });
+});
