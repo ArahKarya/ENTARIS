@@ -7,7 +7,12 @@ import { fetchMessages } from './chatApi';
 import { StreamHttpError, streamTurn } from './sse';
 import type { CardPart, ChatMessageDto, StreamEvent, ToolChip, ViewMessage } from './types';
 
-const toView = (m: ChatMessageDto): ViewMessage => ({ ...m, tools: m.parts?.tools ?? [], cards: m.parts?.cards ?? [] });
+const toView = (m: ChatMessageDto): ViewMessage => ({
+  ...m,
+  tools: m.parts?.tools ?? [],
+  cards: m.parts?.cards ?? [],
+  clarify: m.parts?.clarify ?? null,
+});
 
 let tempSeq = 0;
 const tempId = (p: string): string => `tmp-${p}-${Date.now()}-${tempSeq++}`;
@@ -39,10 +44,12 @@ function applyEvent(prev: ViewMessage[], assistantId: string, e: StreamEvent): V
       const card: CardPart = e.data;
       return patch((m) => ({ ...m, cards: [...m.cards, card] }));
     }
+    case 'clarify':
+      return patch((m) => ({ ...m, clarify: e.data }));
     case 'done':
       return patch((m) => ({ ...m, status: 'ok', durationMs: e.data.duration_ms }));
     case 'error':
-      return patch((m) => ({ ...m, status: 'error', error: e.data.message }));
+      return patch((m) => ({ ...m, status: 'error', error: e.data.message, clarify: null }));
     default:
       return prev;
   }

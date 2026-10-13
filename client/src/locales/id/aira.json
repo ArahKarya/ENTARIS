@@ -51,6 +51,10 @@
     "hint": "Enter untuk kirim · Shift+Enter untuk baris baru · Esc untuk menghentikan jawaban"
   },
   "message": {
+    "clarifyLabel": "Pilihan jawaban",
+    "recommended": "disarankan",
+    "clarifyOrType": "Atau ketik jawaban sendiri.",
+    "clarifyType": "Ketik jawabannya di kotak pesan.",
     "copied": "Tersalin",
     "copyAnswer": "Salin jawaban",
     "attachment": "Lampiran {{name}}",

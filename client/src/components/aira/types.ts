@@ -59,13 +59,20 @@ export interface ChatMessageDto {
   durationMs?: number | null;
   createdAt?: string;
   attachments: AttachmentDto[];
-  parts?: { tools?: ToolChip[]; cards?: CardPart[] } | null;
+  parts?: { tools?: ToolChip[]; cards?: CardPart[]; clarify?: ClarifyPart } | null;
+}
+
+/** Pertanyaan balik AIRA: pilihan ditampilkan sebagai tombol selama ini pesan terakhir. */
+export interface ClarifyPart {
+  question: string;
+  choices: string[];
 }
 
 /** Pesan di layar: DTO server + status lokal saat streaming. */
 export interface ViewMessage extends ChatMessageDto {
   tools: ToolChip[];
   cards: CardPart[];
+  clarify?: ClarifyPart | null;
   /** attachment yang baru dipilih (belum ada id server) */
   localAttachment?: { name: string; size: number; previewUrl?: string };
 }
@@ -96,6 +103,7 @@ export type StreamEvent =
   | { event: 'delta'; data: { text: string } }
   | { event: 'tool'; data: ToolChip }
   | { event: 'card'; data: CardPart }
+  | { event: 'clarify'; data: ClarifyPart }
   | { event: 'title'; data: { title: string } }
   | { event: 'done'; data: { message_id: string; duration_ms: number } }
   | { event: 'error'; data: { message: string; code: string; message_id?: string } };

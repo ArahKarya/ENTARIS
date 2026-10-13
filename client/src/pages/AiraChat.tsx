@@ -98,6 +98,13 @@ export function AiraChat() {
     if (outcome.error) toast.error(outcome.error.message);
   }, [conv, file, input]);
 
+  // Pilihan untuk pertanyaan balik AIRA dikirim sebagai pesan biasa; teks di kotak ketik tetap utuh.
+  const choose = useCallback(async (choice: string) => {
+    stickRef.current = true;
+    const outcome = await conv.send(choice, null);
+    if (outcome.error) toast.error(outcome.error.message);
+  }, [conv]);
+
   const retry = useCallback(async (userMessageId: string) => {
     stickRef.current = true;
     const outcome = await conv.retry(userMessageId);
@@ -204,6 +211,7 @@ export function AiraChat() {
               canRetry={i === lastAssistant && !conv.busy}
               retryTargetId={m.role === 'assistant' ? retryTarget(conv.messages, i) : undefined}
               onRetry={(id) => void retry(id)}
+              onChoose={i === conv.messages.length - 1 && m.clarify && !conv.busy ? (c) => void choose(c) : undefined}
             />
           ))}
         </div>

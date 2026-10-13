@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { CardPartView } from './CardParts';
+import { ClarifyChoices } from './ClarifyChoices';
 import { Markdown } from './Markdown';
 import { ToolChips } from './ToolChips';
 import { attachmentUrl } from './chatApi';
@@ -21,6 +22,8 @@ interface MessageItemProps {
   onRetry: (userMessageId: string) => void;
   /** id pesan pengguna yang memicu jawaban ini (untuk Coba lagi) */
   retryTargetId?: string;
+  /** pertanyaan balik AIRA yang masih terbuka: kirim pilihan sebagai pesan berikutnya */
+  onChoose?: (choice: string) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -81,7 +84,7 @@ function UserBubble({ message }: { message: ViewMessage }) {
   );
 }
 
-export function MessageItem({ message, canRetry, onRetry, retryTargetId }: MessageItemProps) {
+export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoose }: MessageItemProps) {
   const { t } = useTranslation('aira');
   if (message.role === 'user') {
     return (
@@ -115,6 +118,7 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId }: Messa
           </div>
         )}
         {message.cards.map((c, i) => <CardPartView key={`${c.href}-${i}`} card={c} />)}
+        {message.status === 'ok' && message.clarify && <ClarifyChoices clarify={message.clarify} onChoose={onChoose} />}
         {(failed || aborted) && (
           <div
             role={failed ? 'alert' : 'status'}

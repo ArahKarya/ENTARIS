@@ -51,6 +51,10 @@
     "hint": "Enter to send · Shift+Enter for a new line · Esc to stop the answer"
   },
   "message": {
+    "clarifyLabel": "Answer choices",
+    "recommended": "recommended",
+    "clarifyOrType": "Or type your own answer.",
+    "clarifyType": "Type your answer in the message box.",
     "copied": "Copied",
     "copyAnswer": "Copy answer",
     "attachment": "Attachment {{name}}",

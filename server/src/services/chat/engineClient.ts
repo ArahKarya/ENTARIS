@@ -43,7 +43,38 @@ export interface EngineRequest {
   signal?: AbortSignal;
 }
 
-export type EngineStreamEvent = { type: 'delta'; text: string } | { type: 'done'; finishReason: string | null; model: string | null };
+/** Pertanyaan balik dari AIRA (tool clarify): giliran berakhir, pilihan ditampilkan sebagai tombol. */
+export interface ClarifyPrompt {
+  question: string;
+  choices: string[];
+}
+
+export type EngineStreamEvent =
+  | { type: 'delta'; text: string }
+  | { type: 'clarify'; prompt: ClarifyPrompt }
+  | { type: 'done'; finishReason: string | null; model: string | null };
+
+const MAX_CLARIFY_QUESTION = 300;
+const MAX_CLARIFY_CHOICES = 4;
+const MAX_CLARIFY_CHOICE = 60;
+
+/** Bentuk aman dari event `aira.clarify` (teks dibatasi, maksimal 4 pilihan); null bila tidak sah. */
+export function parseClarify(data: string): ClarifyPrompt | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(data);
+  } catch {
+    return null;
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  const { question, choices } = raw as { question?: unknown; choices?: unknown };
+  if (typeof question !== 'string' || !question.trim()) return null;
+  const list = Array.isArray(choices) ? choices.filter((c): c is string => typeof c === 'string' && !!c.trim()) : [];
+  return {
+    question: question.trim().slice(0, MAX_CLARIFY_QUESTION),
+    choices: [...new Set(list.map((c) => c.trim().slice(0, MAX_CLARIFY_CHOICE)))].slice(0, MAX_CLARIFY_CHOICES),
+  };
+}
 
 type FetchLike = typeof fetch;
 
@@ -164,7 +195,12 @@ export async function* streamChat(req: EngineRequest, cfg: EngineConfig = getEng
         while ((idx = buf.indexOf('\n\n')) >= 0) {
           const { event, data } = parseSseBlock(buf.slice(0, idx));
           buf = buf.slice(idx + 2);
-          if (event !== 'message' || !data) continue; // event kustom engine (progres tool, status) diabaikan
+          if (event === 'aira.clarify') {
+            const prompt = parseClarify(data);
+            if (prompt) yield { type: 'clarify', prompt };
+            continue;
+          }
+          if (event !== 'message' || !data) continue; // event kustom engine lain (progres tool, status) diabaikan
           if (data === '[DONE]') {
             yield { type: 'done', finishReason: finish, model };
             return;
