@@ -106,4 +106,11 @@ export const AIRA_MESSAGES: MessageDictionary = {
   "Sesi ini masih memproses pesan sebelumnya (mungkin dari tab atau perangkat lain). Tunggu sampai selesai.": "This session is still processing a previous message (possibly from another tab or device). Wait until it finishes.",
   "Terjadi kesalahan saat memproses pesan. Coba lagi.": "An error occurred while processing the message. Try again.",
   "Engine AIRA tidak mengirim jawaban. Coba lagi.": "The AIRA engine did not send an answer. Try again.",
+  "AIRA Engine belum dikonfigurasi: isi AIRA_ENGINE_URL, AIRA_ENGINE_KEY, dan AIRA_ENGINE_TURN_SECRET di server.":
+    "AIRA Engine is not configured: set AIRA_ENGINE_URL, AIRA_ENGINE_KEY and AIRA_ENGINE_TURN_SECRET on the server.",
+  "AIRA Engine tidak dapat dihubungi. Coba lagi sebentar.": "AIRA Engine cannot be reached. Try again shortly.",
+  "Bot Telegram AIRA belum aktif. Hubungi administrator.": "The AIRA Telegram bot is not active. Contact your administrator.",
+  "AIRA Engine menolak permintaan kode penautan. Hubungi administrator.": "AIRA Engine refused the link code request. Contact your administrator.",
+  "Terlalu banyak permintaan kode penautan. Coba lagi dalam beberapa menit.": "Too many link code requests. Try again in a few minutes.",
+  "Gagal membuat kode penautan Telegram.": "Failed to create the Telegram link code.",
 };

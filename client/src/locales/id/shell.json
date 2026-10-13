@@ -139,7 +139,8 @@
     "theme": "Tema",
     "shortcuts": "Pintasan Keyboard",
     "about": "Tentang Entaris",
-    "logout": "Keluar"
+    "logout": "Keluar",
+    "linkTelegram": "Tautkan Telegram"
   },
   "topbar": {
     "openMenu": "Buka menu navigasi",
@@ -555,5 +556,22 @@
         }
       }
     }
+  },
+  "telegramLink": {
+    "title": "Tautkan Telegram",
+    "description": "Hubungkan akun Telegram Anda ke bot AIRA. Setelah tertaut, Anda bisa bertanya ke AIRA lewat Telegram dengan hak akses akun ini.",
+    "creating": "Membuat kode…",
+    "failed": "Gagal membuat kode penautan.",
+    "codeLabel": "Kode penautan: {{code}}",
+    "command": "Perintah",
+    "validUntil": "Sekali pakai, berlaku sampai {{time}}.",
+    "expired": "Kode sudah kedaluwarsa. Buat kode baru.",
+    "stepOpenBot": "Tekan Buka Telegram, lalu Start di bot @{{bot}}.",
+    "stepOpenAnyBot": "Buka bot AIRA di Telegram dan kirim {{command}}.",
+    "openTelegram": "Buka Telegram",
+    "newCode": "Buat kode baru",
+    "close": "Tutup",
+    "stepSendAlt": "Atau kirim {{command}} ke bot.",
+    "stepConfirm": "Bot menampilkan nama akun Entaris Anda. Kirim /ya untuk menautkan."
   }
 }

@@ -8,6 +8,9 @@ import { useReturnFocus } from '../hooks/useReturnFocus';
 import { CommandPalette } from '../components/CommandPalette';
 import { ShortcutHelp } from '../components/ShortcutHelp';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import { TelegramLinkDialog } from '../components/aira/TelegramLinkDialog';
+import { chatKeys, fetchHealth } from '../components/aira/chatApi';
+import { useQuery } from '@tanstack/react-query';
 import OnboardingWizard from '../components/OnboardingWizard';
 import { useCompanySettings } from '../contexts/CompanySettingsContext';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '../components/ui/sheet';
@@ -29,6 +32,16 @@ export const MainLayout = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isTelegramLinkOpen, setIsTelegramLinkOpen] = useState(false);
+  // Same query as the chat page; the menu item only appears when the bot could be used.
+  const airaHealth = useQuery({
+    queryKey: chatKeys.health,
+    queryFn: fetchHealth,
+    retry: false,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const airaAvailable = !!airaHealth.data?.configured && airaHealth.data.agenticEnabled !== false;
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   // OnboardingWizard gates itself (admin + server onboardedAt); the legacy
   // localStorage flag only short-circuits the mount.
@@ -112,6 +125,7 @@ export const MainLayout = () => {
               user={user}
               companyName={companyName}
               onChangePassword={() => setIsPasswordModalOpen(true)}
+              onLinkTelegram={airaAvailable ? () => setIsTelegramLinkOpen(true) : undefined}
               onOpenShortcuts={() => setIsShortcutHelpOpen(true)}
               onOpenAbout={() => setIsAboutOpen(true)}
               onLogout={handleLogout}
@@ -136,6 +150,7 @@ export const MainLayout = () => {
 
       {/* Change Password Modal */}
       <ChangePasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
+      <TelegramLinkDialog isOpen={isTelegramLinkOpen} onClose={() => setIsTelegramLinkOpen(false)} />
 
       {/* About (version + credits live here, not in the chrome) */}
       <AboutDialog open={isAboutOpen} onOpenChange={setIsAboutOpen} />
