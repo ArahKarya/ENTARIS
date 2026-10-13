@@ -57,6 +57,7 @@ export const PURCHASING_MESSAGES: MessageDictionary = {
   "Supplier STT berbeda dengan supplier yang ditetapkan di PO. PO ini khusus untuk supplier lain.": "The goods receipt supplier differs from the supplier on the purchase order. This purchase order is for another supplier.",
   "Baris STT terhubung ke baris PO, tetapi PO tidak dipilih.": "Goods receipt lines are linked to purchase order lines, but no purchase order is selected.",
   "Ada baris STT yang terhubung ke baris PO lain. Pilih ulang PO agar baris dimuat dari PO tersebut.": "Some goods receipt lines are linked to another purchase order's lines. Select the purchase order again to reload its lines.",
+  "Item '{0}' muncul lebih dari satu kali di PO. Pilih baris PO secara eksplisit (muat ulang baris dari PO).": "Item '{0}' appears more than once on the purchase order. Pick the purchase order line explicitly (reload lines from the PO).",
   "Gudang tidak ditemukan untuk '{0}'.": "Warehouse not found for '{0}'.",
   "Harga satuan untuk '{0}' belum ada (nilai 0). Isi harga di STT, atau tandai STT ini sebagai Barang Titipan Customer bila barang bukan milik perusahaan.": "No unit price for '{0}' (value 0). Enter the price on the goods receipt, or mark it as Customer Consignment if the goods are not company-owned.",
   "Status invoice tidak dikenal.": "Unknown invoice status.",
