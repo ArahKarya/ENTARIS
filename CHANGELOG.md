@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-10-13
+
+Perbaikan STT yang tertaut ke PO: qty diterima di PO sekarang ikut bertambah, dan image Docker bisa dibangun dari awal lagi.
+
+### Diperbaiki
+- STT yang memilih PO tetapi barisnya tidak membawa tautan ke baris PO tidak lagi membuat **qty diterima PO tetap 0 tanpa pesan error**. Server kini mencocokkan otomatis baris STT ke baris PO dengan item inventori yang sama (bila hanya satu kandidat); bila item muncul lebih dari sekali di PO, STT ditolak dengan pesan jelas. Form STT memakai pencocokan yang sama untuk baris manual atau hasil edit.
+- Build image Docker dari main tidak lagi gagal di `tsc -b` klien (`--legacy-peer-deps` dihapus dari install klien).
+
+### Migrasi deploy
+- Tidak ada migrasi atau env baru.
+- Data lama: STT yang sudah terlanjur tidak tertaut tidak dikoreksi otomatis. Cek dengan: STT Submitted yang `purchase_order_id`-nya terisi tetapi `goods_receipt_items.purchase_order_item_id` kosong, lalu isi tautan dan `qty_received` item PO (backup dulu).
+
 ## [4.1.1] - 2026-10-13
 
 Perbaikan setelah 4.1.0: Reset Data tidak lagi membuat posting gagal sampai server di-restart, dan akun yang dibutuhkan EAM serta produksi ikut dibuat ulang.

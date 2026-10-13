@@ -2,7 +2,7 @@
   "name": "client",
   "private": true,
   "license": "UNLICENSED",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
