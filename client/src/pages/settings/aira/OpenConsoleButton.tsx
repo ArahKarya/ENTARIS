@@ -11,6 +11,15 @@ interface ConsoleLink {
   expiresAt: number;
 }
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Membuka konsol pengaturan engine AIRA sebagai pengguna ini (tiket sekali pakai, ~60 detik).
  * Tab dibuka lebih dulu (sinkron dengan klik) agar tidak diblokir popup blocker, lalu diarahkan
@@ -27,6 +36,11 @@ export function OpenConsoleButton() {
     if (tab) tab.opener = null;
     open.mutate(undefined, {
       onSuccess: (link) => {
+        if (!isHttpUrl(link.consoleUrl)) {
+          tab?.close();
+          toast.error(t('mcp.engine.consoleFailed'));
+          return;
+        }
         const url = `${link.consoleUrl}/sso#t=${encodeURIComponent(link.token)}`;
         if (tab) tab.location.href = url;
         else window.location.assign(url);

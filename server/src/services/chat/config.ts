@@ -30,11 +30,13 @@ function consoleUrlFrom(raw: string | undefined, baseUrl: string | null): string
   if (!value) return null;
   try {
     const url = new URL(value);
+    // Only a plain http(s) address: the client appends `/sso#t=<ticket>` to it.
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (url.search || url.hash || url.username || url.password) return null;
+    return `${url.origin}${url.pathname}`.replace(/\/+$/, '');
   } catch {
     return null;
   }
-  return value.replace(/\/+$/, '');
 }
 
 export function getEngineConfig(env: NodeJS.ProcessEnv = process.env): EngineConfig {

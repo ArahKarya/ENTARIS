@@ -10,6 +10,7 @@
 import { createHmac, randomBytes } from 'node:crypto';
 
 export const CONSOLE_TICKET_TTL_SEC = 60;
+const MAX_NAME_CHARS = 100;
 const KEY_LABEL = 'aira-console-ticket-v1';
 
 export interface ConsoleTicketPayload {
@@ -28,7 +29,14 @@ export function signConsoleTicket(
   nowSec: number = Math.floor(Date.now() / 1000),
   jti: string = randomBytes(16).toString('hex'),
 ): { ticket: string; expiresAt: number } {
-  const payload: ConsoleTicketPayload = { v: 2, aud: 'console', uid, name, jti, exp: nowSec + CONSOLE_TICKET_TTL_SEC };
+  const payload: ConsoleTicketPayload = {
+    v: 2,
+    aud: 'console',
+    uid,
+    name: name.slice(0, MAX_NAME_CHARS),
+    jti,
+    exp: nowSec + CONSOLE_TICKET_TTL_SEC,
+  };
   const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const key = createHmac('sha256', turnSecret).update(KEY_LABEL).digest();
   return { ticket: `${b64}.${createHmac('sha256', key).update(b64).digest('hex')}`, expiresAt: payload.exp };

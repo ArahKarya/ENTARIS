@@ -25,6 +25,12 @@ describe('consoleTicket', () => {
     expect(verifyTurnTicket(SECRET, signTurnTicket(SECRET, 'u1', 'r'))).not.toBeNull();
   });
 
+  it('keeps the name short', () => {
+    const { ticket } = signConsoleTicket(SECRET, 'u1', 'x'.repeat(500), 1_700_000_000);
+    const payload = JSON.parse(Buffer.from(ticket.split('.')[0]!, 'base64url').toString('utf8')) as { name: string };
+    expect(payload.name).toHaveLength(100);
+  });
+
   it('uses a fresh jti for every ticket', () => {
     const a = signConsoleTicket(SECRET, 'u1', 'Admin', 1_700_000_000).ticket;
     const b = signConsoleTicket(SECRET, 'u1', 'Admin', 1_700_000_000).ticket;
@@ -38,5 +44,8 @@ describe('consoleUrl', () => {
     expect(getEngineConfig({ AIRA_CONSOLE_URL: 'https://aira.contoh.com/admin/' }).consoleUrl).toBe('https://aira.contoh.com/admin');
     expect(getEngineConfig({ AIRA_CONSOLE_URL: 'javascript:alert(1)' }).consoleUrl).toBeNull();
     expect(getEngineConfig({}).consoleUrl).toBeNull();
+    for (const bad of ['https://x/admin?a=1', 'https://x/admin#frag', 'https://user:pw@x/admin', 'ftp://x/admin']) {
+      expect(getEngineConfig({ AIRA_CONSOLE_URL: bad }).consoleUrl).toBeNull();
+    }
   });
 });

@@ -46,4 +46,12 @@ describe('OpenConsoleButton', () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('Konsol engine belum dikonfigurasi.'));
     expect(tab.close).toHaveBeenCalled();
   });
+
+  it('never navigates to a non-http console address', async () => {
+    post.mockResolvedValue({ data: { consoleUrl: 'javascript:alert(1)', token: 't', expiresAt: 1 } });
+    renderButton();
+    fireEvent.click(screen.getByRole('button', { name: /konsol engine/i }));
+    await waitFor(() => expect(tab.close).toHaveBeenCalled());
+    expect(tab.location.href).toBe('about:blank');
+  });
 });
