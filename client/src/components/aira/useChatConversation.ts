@@ -49,7 +49,7 @@ function applyEvent(prev: ViewMessage[], assistantId: string, e: StreamEvent): V
     case 'done':
       return patch((m) => ({ ...m, status: 'ok', durationMs: e.data.duration_ms }));
     case 'error':
-      return patch((m) => ({ ...m, status: 'error', error: e.data.message }));
+      return patch((m) => ({ ...m, status: 'error', error: e.data.message, clarify: null }));
     default:
       return prev;
   }

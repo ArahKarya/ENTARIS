@@ -118,7 +118,7 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoos
           </div>
         )}
         {message.cards.map((c, i) => <CardPartView key={`${c.href}-${i}`} card={c} />)}
-        {!streaming && message.clarify && <ClarifyChoices clarify={message.clarify} onChoose={onChoose} />}
+        {message.status === 'ok' && message.clarify && <ClarifyChoices clarify={message.clarify} onChoose={onChoose} />}
         {(failed || aborted) && (
           <div
             role={failed ? 'alert' : 'status'}
