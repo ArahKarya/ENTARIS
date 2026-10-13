@@ -5,7 +5,7 @@ import type { EngineConfig } from '../config';
 
 let agent: MockAgent;
 const cfg = (over: Partial<EngineConfig> = {}): EngineConfig => ({
-  baseUrl: agent.url, apiKey: 'mock-key', model: 'aira', timeoutMs: 3_000, turnSecret: null, turnInMessage: true, acceptPdf: false, ...over,
+  baseUrl: agent.url, apiKey: 'mock-key', model: 'aira', timeoutMs: 3_000, turnSecret: null, turnInMessage: true, acceptPdf: false, consoleUrl: null, ...over,
 });
 
 beforeAll(async () => {

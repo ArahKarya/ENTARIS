@@ -12,6 +12,8 @@ import { BusinessError, handleRouteError } from '../../utils/errors';
 import { localDayRange } from '../../utils/listQuery';
 import { listTools } from '../../ai/registry';
 import { DEFAULT_RATE_LIMIT_PER_MIN } from '../../mcp/constants';
+import { getEngineConfig } from '../../services/chat/config';
+import { signConsoleTicket } from '../../services/chat/consoleTicket';
 import {
   assertRegisteredActor,
   createMcpToken,
@@ -167,6 +169,29 @@ router.post('/tokens/:id/rotate-secret', async (req, res) => {
     return res.json({ ...r.record, signingSecret: r.signingSecret });
   } catch (error) {
     return handleRouteError(res, error, 'POST /ai/mcp/tokens/:id/rotate-secret', 'Gagal memutar signing secret.');
+  }
+});
+
+// Konsol pengaturan engine AIRA: tiket sekali pakai untuk masuk sebagai pengguna ini.
+// Tiket dikirim di field `token` (disamarkan oleh audit trail); URL lengkap dirakit klien.
+
+router.post('/console', async (req: AuthRequest, res) => {
+  try {
+    const engine = getEngineConfig();
+    if (!engine.turnSecret || !engine.consoleUrl) {
+      throw new BusinessError(
+        'Konsol engine belum dikonfigurasi: isi AIRA_ENGINE_TURN_SECRET dan AIRA_ENGINE_URL (atau AIRA_CONSOLE_URL) di server.',
+      );
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, fullName: true, username: true, isActive: true },
+    });
+    if (!user?.isActive) throw new BusinessError('Pengguna tidak aktif.');
+    const { ticket, expiresAt } = signConsoleTicket(engine.turnSecret, user.id, user.fullName || user.username);
+    return res.json({ consoleUrl: engine.consoleUrl, token: ticket, expiresAt });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/mcp/console', 'Gagal membuat tautan konsol engine.');
   }
 });
 
