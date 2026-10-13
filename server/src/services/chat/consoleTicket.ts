@@ -1,4 +1,4 @@
-// Tiket konsol engine AIRA: masuk ke konsol pengaturan engine sebagai pengguna Entaris yang sedang
+// Tiket konsol AIRA Engine: masuk ke konsol pengaturan engine sebagai pengguna Entaris yang sedang
 // login (hanya pemegang rbac.manage). Sekali pakai (jti), berlaku CONSOLE_TICKET_TTL_SEC.
 //
 //   tiket = base64url(JSON {v:2, aud:'console', uid, name, jti, exp}) + '.' + hex(HMAC(K, <base64url persis>))

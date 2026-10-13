@@ -180,7 +180,7 @@ router.post('/console', async (req: AuthRequest, res) => {
     const engine = getEngineConfig();
     if (!engine.turnSecret || !engine.consoleUrl) {
       throw new BusinessError(
-        'Konsol engine belum dikonfigurasi: isi AIRA_ENGINE_TURN_SECRET dan AIRA_ENGINE_URL (atau AIRA_CONSOLE_URL) di server.',
+        'AIRA Engine belum dikonfigurasi: isi AIRA_ENGINE_TURN_SECRET dan AIRA_ENGINE_URL (atau AIRA_CONSOLE_URL) di server.',
       );
     }
     const user = await prisma.user.findUnique({
@@ -191,7 +191,7 @@ router.post('/console', async (req: AuthRequest, res) => {
     const { ticket, expiresAt } = signConsoleTicket(engine.turnSecret, user.id, user.fullName || user.username);
     return res.json({ consoleUrl: engine.consoleUrl, token: ticket, expiresAt });
   } catch (error) {
-    return handleRouteError(res, error, 'POST /ai/mcp/console', 'Gagal membuat tautan konsol engine.');
+    return handleRouteError(res, error, 'POST /ai/mcp/console', 'Gagal membuat tautan AIRA Engine.');
   }
 });
 

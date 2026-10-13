@@ -7,7 +7,7 @@ import { OpenConsoleButton } from './OpenConsoleButton';
 /**
  * Baris status engine AIRA. Alamat & kunci engine diatur lewat ENV server
  * (AIRA_ENGINE_URL / AIRA_ENGINE_KEY), bukan di UI ini; pengaturan engine sendiri ada di
- * konsol engine (tombol "Buka konsol engine").
+ * AIRA Engine (tombol "Buka AIRA Engine").
  */
 export function EngineStatusLine() {
   const { t } = useTranslation('aira');
