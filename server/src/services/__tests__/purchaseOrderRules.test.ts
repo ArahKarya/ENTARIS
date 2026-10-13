@@ -5,6 +5,7 @@ import {
   checkPurchaseOrderEditable,
   derivePurchaseOrderReceiptStatus,
   remainingQty,
+  resolvePoItemLinks,
 } from '../purchaseOrderRules';
 
 const open = { status: 'Submitted', closedAt: null };
@@ -83,5 +84,35 @@ describe('checkPurchaseOrderClosable', () => {
     expect(checkPurchaseOrderClosable({ ...partial, status: 'Cancelled' }, 'alasan ok').ok).toBe(false);
     expect(checkPurchaseOrderClosable({ ...partial, closedAt: new Date() }, 'alasan ok').ok).toBe(false);
     expect(checkPurchaseOrderClosable({ ...open, items: [line(10, 10)] }, 'alasan ok').ok).toBe(false);
+  });
+});
+
+describe('resolvePoItemLinks', () => {
+  const err = (l: { itemName?: string | null }) => new Error(`ambigu ${l.itemName}`);
+  const poItems = [
+    { id: 'poi-1', inventoryItemId: 'inv-sekam' },
+    { id: 'poi-2', inventoryItemId: 'inv-solar' },
+  ];
+
+  it('links an unlinked line to the single PO line with the same inventory item', () => {
+    expect(resolvePoItemLinks([{ inventoryItemId: 'inv-sekam' }], poItems, err)).toEqual(['poi-1']);
+  });
+
+  it('keeps an explicit link untouched', () => {
+    expect(resolvePoItemLinks([{ inventoryItemId: 'inv-sekam', purchaseOrderItemId: 'poi-2' }], poItems, err)).toEqual(['poi-2']);
+  });
+
+  it('leaves lines outside the PO unlinked', () => {
+    expect(resolvePoItemLinks([{ inventoryItemId: 'inv-lain' }], poItems, err)).toEqual([null]);
+  });
+
+  it('rejects when the PO has the same item on two lines', () => {
+    const dup = [...poItems, { id: 'poi-3', inventoryItemId: 'inv-sekam' }];
+    expect(() => resolvePoItemLinks([{ inventoryItemId: 'inv-sekam', itemName: 'Sekam' }], dup, err)).toThrow('ambigu Sekam');
+  });
+
+  it('handles several STT lines of one item (9 trucks) each linking to the same PO line', () => {
+    const r = resolvePoItemLinks(Array.from({ length: 3 }, () => ({ inventoryItemId: 'inv-sekam' })), poItems, err);
+    expect(r).toEqual(['poi-1', 'poi-1', 'poi-1']);
   });
 });

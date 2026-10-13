@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { checkPurchaseOrderReceivable } from './purchaseOrderLifecycle';
+import { resolvePoItemLinks } from './purchaseOrderRules';
 import { BusinessError } from '../utils/errors';
 import { generateDocumentNumber } from '../utils/documentNumber';
 import { getOpenFiscalYear } from '../utils/fiscalYear';
@@ -76,6 +77,23 @@ export async function submitGoodsReceiptInTx(
         'Supplier STT berbeda dengan supplier yang ditetapkan di PO. PO ini khusus untuk supplier lain.',
       );
     }
+  }
+
+  // PO set but a line has no PO-line link → auto-match by inventory item (unique candidate only).
+  // Without this the header links to the PO yet qtyReceived never moves (silent).
+  if (body.purchaseOrderId) {
+    const poItems = await tx.purchaseOrderItem.findMany({
+      where: { purchaseOrderId: body.purchaseOrderId },
+      select: { id: true, inventoryItemId: true },
+    });
+    const resolved = resolvePoItemLinks(body.items, poItems, (l) =>
+      new BusinessError(
+        `Item '${l.itemName}' muncul lebih dari satu kali di PO. Pilih baris PO secara eksplisit (muat ulang baris dari PO).`,
+      ),
+    );
+    body.items.forEach((l, i) => {
+      l.purchaseOrderItemId = resolved[i];
+    });
   }
 
   // Each PO-line link must belong to the PO this STT points at; otherwise the
