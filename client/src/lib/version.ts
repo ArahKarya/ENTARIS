@@ -4,7 +4,7 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.1.1';
+export const APP_VERSION = '4.1.2';
 export const APP_BUILD_DATE = '2026-10-13';
 export const APP_NAME = 'Entaris';
 
@@ -25,6 +25,15 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.1.2',
+    date: '2026-10-13',
+    title: 'Perbaikan Tautan STT ke PO',
+    changes: [
+      'STT yang memilih PO kini otomatis menautkan barisnya ke baris PO dengan item yang sama, sehingga qty diterima PO ikut bertambah; item ganda di PO ditolak dengan pesan jelas',
+      'Build image Docker dari awal tidak lagi gagal di tahap build klien',
+    ],
+  },
   {
     version: '4.1.1',
     date: '2026-10-13',

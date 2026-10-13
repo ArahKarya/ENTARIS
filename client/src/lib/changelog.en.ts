@@ -8,6 +8,13 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.1.2': {
+    title: 'Goods Receipt to PO Link Fix',
+    changes: [
+      'A goods receipt that selects a PO now automatically links its lines to the PO lines with the same item, so the PO received quantity increases; duplicate items on a PO are rejected with a clear message',
+      'Building the Docker image from scratch no longer fails at the client build step',
+    ],
+  },
   '4.1.1': {
     title: 'Reset Data Fixes',
     changes: [
