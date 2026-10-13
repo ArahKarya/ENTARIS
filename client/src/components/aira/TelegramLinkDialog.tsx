@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ExternalLink, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -58,7 +58,11 @@ function LinkBody({ onClose }: { onClose: () => void }) {
     mutationFn: async () => (await api.post<TelegramLink>('/ai/chat/telegram-link')).data,
   });
   const { mutate } = create;
+  const asked = useRef(false);
   useEffect(() => {
+    // Once per opening (StrictMode runs effects twice in development; each call issues a code).
+    if (asked.current) return;
+    asked.current = true;
     mutate();
   }, [mutate]);
 
@@ -84,12 +88,10 @@ function LinkBody({ onClose }: { onClose: () => void }) {
         {link && (
           <>
             <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted px-4 py-3">
-              <span
-                className={`font-mono text-2xl font-semibold tracking-[0.2em] ${expired ? 'text-muted-foreground line-through' : 'text-foreground'}`}
-                aria-label={t('telegramLink.codeLabel', { code: link.linkCode.split('').join(' ') })}
-              >
-                {link.linkCode}
-              </span>
+              <p className={`font-mono text-2xl font-semibold tracking-[0.2em] ${expired ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                <span aria-hidden>{link.linkCode}</span>
+                <span className="sr-only">{t('telegramLink.codeLabel', { code: link.linkCode.split('').join(' ') })}</span>
+              </p>
               {!expired && <CopyButton value={command} what={t('telegramLink.command')} size="icon-sm" />}
             </div>
             <p className={`text-xs ${expired ? 'text-danger-text' : 'text-muted-foreground'}`}>
@@ -97,8 +99,16 @@ function LinkBody({ onClose }: { onClose: () => void }) {
             </p>
             {!expired && (
               <ol className="list-decimal space-y-1.5 pl-5 text-sm text-foreground">
-                <li>{link.bot ? t('telegramLink.stepOpenBot', { bot: link.bot }) : t('telegramLink.stepOpenAnyBot')}</li>
-                <li>{t('telegramLink.stepSend', { command })}</li>
+                <li>
+                  {link.deepLink && link.bot ? (
+                    <>
+                      {t('telegramLink.stepOpenBot', { bot: link.bot })} {t('telegramLink.stepSendAlt', { command })}
+                    </>
+                  ) : (
+                    t('telegramLink.stepOpenAnyBot', { command })
+                  )}
+                </li>
+                <li>{t('telegramLink.stepConfirm')}</li>
               </ol>
             )}
           </>

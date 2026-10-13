@@ -566,11 +566,12 @@
     "command": "Perintah",
     "validUntil": "Sekali pakai, berlaku sampai {{time}}.",
     "expired": "Kode sudah kedaluwarsa. Buat kode baru.",
-    "stepOpenBot": "Tekan Buka Telegram, lalu Start di bot @{{bot}}. Akun langsung tertaut.",
-    "stepOpenAnyBot": "Buka bot AIRA di Telegram.",
-    "stepSend": "Atau kirim {{command}} ke bot.",
+    "stepOpenBot": "Tekan Buka Telegram, lalu Start di bot @{{bot}}.",
+    "stepOpenAnyBot": "Buka bot AIRA di Telegram dan kirim {{command}}.",
     "openTelegram": "Buka Telegram",
     "newCode": "Buat kode baru",
-    "close": "Tutup"
+    "close": "Tutup",
+    "stepSendAlt": "Atau kirim {{command}} ke bot.",
+    "stepConfirm": "Bot menampilkan nama akun Entaris Anda. Kirim /ya untuk menautkan."
   }
 }

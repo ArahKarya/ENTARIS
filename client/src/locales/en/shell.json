@@ -566,11 +566,12 @@
     "command": "Command",
     "validUntil": "Single use, valid until {{time}}.",
     "expired": "This code has expired. Create a new one.",
-    "stepOpenBot": "Press Open Telegram, then Start in the @{{bot}} bot. The account is linked right away.",
-    "stepOpenAnyBot": "Open the AIRA bot in Telegram.",
-    "stepSend": "Or send {{command}} to the bot.",
+    "stepOpenBot": "Press Open Telegram, then Start in the @{{bot}} bot.",
+    "stepOpenAnyBot": "Open the AIRA bot in Telegram and send {{command}}.",
     "openTelegram": "Open Telegram",
     "newCode": "Create a new code",
-    "close": "Close"
+    "close": "Close",
+    "stepSendAlt": "Or send {{command}} to the bot.",
+    "stepConfirm": "The bot shows your Entaris account name. Send /ya to link it."
   }
 }

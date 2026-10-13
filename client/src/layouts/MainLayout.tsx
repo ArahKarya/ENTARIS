@@ -34,7 +34,13 @@ export const MainLayout = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isTelegramLinkOpen, setIsTelegramLinkOpen] = useState(false);
   // Same query as the chat page; the menu item only appears when the bot could be used.
-  const airaHealth = useQuery({ queryKey: chatKeys.health, queryFn: fetchHealth, retry: false, staleTime: 60_000 });
+  const airaHealth = useQuery({
+    queryKey: chatKeys.health,
+    queryFn: fetchHealth,
+    retry: false,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
   const airaAvailable = !!airaHealth.data?.configured && airaHealth.data.agenticEnabled !== false;
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   // OnboardingWizard gates itself (admin + server onboardedAt); the legacy

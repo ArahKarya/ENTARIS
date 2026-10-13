@@ -30,7 +30,9 @@ describe('TelegramLinkDialog', () => {
     });
     renderDialog();
     expect(await screen.findByText('ABCD-EFGH')).toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1);
     expect(post).toHaveBeenCalledWith('/ai/chat/telegram-link');
+    expect(screen.getByText(/\/ya/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /buka telegram/i })).toHaveAttribute('href', 'https://t.me/airates_bot?start=link-ABCDEFGH');
     expect(screen.getByText(/\/link ABCD-EFGH/)).toBeInTheDocument();
     expect(screen.getByText(/@airates_bot/)).toBeInTheDocument();
