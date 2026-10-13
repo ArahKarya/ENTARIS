@@ -66,10 +66,10 @@ export const AIRA_MESSAGES: MessageDictionary = {
   "Gagal mengubah token MCP.": "Failed to update the MCP token.",
   "Gagal mencabut token MCP.": "Failed to revoke the MCP token.",
   "Gagal memutar signing secret.": "Failed to rotate the signing secret.",
-  "Konsol engine belum dikonfigurasi: isi AIRA_ENGINE_TURN_SECRET dan AIRA_ENGINE_URL (atau AIRA_CONSOLE_URL) di server.":
-    "The engine console is not configured: set AIRA_ENGINE_TURN_SECRET and AIRA_ENGINE_URL (or AIRA_CONSOLE_URL) on the server.",
+  "AIRA Engine belum dikonfigurasi: isi AIRA_ENGINE_TURN_SECRET dan AIRA_ENGINE_URL (atau AIRA_CONSOLE_URL) di server.":
+    "AIRA Engine is not configured: set AIRA_ENGINE_TURN_SECRET and AIRA_ENGINE_URL (or AIRA_CONSOLE_URL) on the server.",
   "Pengguna tidak aktif.": "User is inactive.",
-  "Gagal membuat tautan konsol engine.": "Failed to create the engine console link.",
+  "Gagal membuat tautan AIRA Engine.": "Failed to create the AIRA Engine link.",
   "Parameter tidak valid.": "Invalid parameters.",
   "Gagal mengambil riwayat panggilan.": "Failed to load call history.",
   "Kata kunci minimal 2 karakter.": "Keyword must be at least 2 characters.",

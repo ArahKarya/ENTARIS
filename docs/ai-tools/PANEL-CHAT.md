@@ -119,10 +119,10 @@ Hasil tool MCP yang membuat draft atau mengantre persetujuan menyertakan `struct
 - Lampiran: batas 10 MB, JPG/PNG/WebP (PDF opsional), jenis ditentukan dari magic byte, penyimpanan privat, unduhan hanya pemilik.
 - Indeks: FTS `simple` (GIN) selalu; trigram `pg_trgm` bila ekstensi tersedia (migrasi mencobanya dan lanjut tanpa bila tidak). Tanpa trigram pencarian substring tetap jalan, hanya lebih lambat pada volume sangat besar.
 
-## Konsol engine (masuk dari Entaris)
+## AIRA Engine (masuk dari Entaris)
 
-Pengaturan engine (model, Telegram, laporan terjadwal, secrets) ada di konsol engine sendiri, bukan di
-Entaris. Admin (`rbac.manage`) membukanya lewat **Pengaturan → AIRA (MCP) → Buka konsol engine**:
+Pengaturan engine (model, Telegram, laporan terjadwal, secrets) ada di AIRA Engine sendiri, bukan di
+Entaris. Admin (`rbac.manage`) membukanya lewat **Pengaturan → AIRA (MCP) → Buka AIRA Engine**:
 
 1. Klien memanggil `POST /api/ai/mcp/console`. Server menandatangani tiket sekali pakai yang berlaku 60 detik:
    ```

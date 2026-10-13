@@ -32,7 +32,7 @@ describe('OpenConsoleButton', () => {
   it('opens the tab on click and sends it to the console with the ticket in the fragment', async () => {
     post.mockResolvedValue({ data: { consoleUrl: 'http://127.0.0.1:8642/admin', token: 'abc.def', expiresAt: 1 } });
     renderButton();
-    fireEvent.click(screen.getByRole('button', { name: /konsol engine/i }));
+    fireEvent.click(screen.getByRole('button', { name: /buka aira engine/i }));
     expect(window.open).toHaveBeenCalledWith('about:blank', '_blank');
     expect(tab.opener).toBeNull();
     await waitFor(() => expect(tab.location.href).toBe('http://127.0.0.1:8642/admin/sso#t=abc.def'));
@@ -40,17 +40,17 @@ describe('OpenConsoleButton', () => {
   });
 
   it('closes the tab and shows the server message when the console is not configured', async () => {
-    post.mockRejectedValue({ response: { data: { error: 'Konsol engine belum dikonfigurasi.' } } });
+    post.mockRejectedValue({ response: { data: { error: 'AIRA Engine belum dikonfigurasi.' } } });
     renderButton();
-    fireEvent.click(screen.getByRole('button', { name: /konsol engine/i }));
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Konsol engine belum dikonfigurasi.'));
+    fireEvent.click(screen.getByRole('button', { name: /buka aira engine/i }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('AIRA Engine belum dikonfigurasi.'));
     expect(tab.close).toHaveBeenCalled();
   });
 
   it('never navigates to a non-http console address', async () => {
     post.mockResolvedValue({ data: { consoleUrl: 'javascript:alert(1)', token: 't', expiresAt: 1 } });
     renderButton();
-    fireEvent.click(screen.getByRole('button', { name: /konsol engine/i }));
+    fireEvent.click(screen.getByRole('button', { name: /buka aira engine/i }));
     await waitFor(() => expect(tab.close).toHaveBeenCalled());
     expect(tab.location.href).toBe('about:blank');
   });
