@@ -138,7 +138,9 @@
       "connectedLatency": "Terhubung · {{latency}} ms",
       "offline": "Offline",
       "title": "Engine AIRA (panel chat)",
-      "description": "Alamat dan kunci engine diatur lewat variabel lingkungan server (AIRA_ENGINE_URL, AIRA_ENGINE_KEY)."
+      "description": "Alamat dan kunci engine diatur lewat variabel lingkungan server (AIRA_ENGINE_URL, AIRA_ENGINE_KEY). Pengaturan engine (model, Telegram, laporan terjadwal) ada di konsol engine.",
+      "openConsole": "Buka konsol engine",
+      "consoleFailed": "Gagal membuka konsol engine."
     },
     "calls": {
       "title": "Riwayat panggilan",

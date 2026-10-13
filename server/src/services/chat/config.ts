@@ -13,11 +13,30 @@ export interface EngineConfig {
   turnInMessage: boolean;
   /** Teruskan PDF sebagai bagian `file` OpenAI (default: tolak, engine hanya membaca gambar). */
   acceptPdf: boolean;
+  /**
+   * Alamat konsol pengaturan engine yang dibuka BROWSER admin (AIRA_CONSOLE_URL), mis.
+   * https://aira.contoh.com/admin. Bawaan: `${baseUrl}/admin` (cocok bila engine terjangkau browser).
+   */
+  consoleUrl: string | null;
 }
 
 function intEnv(env: NodeJS.ProcessEnv, key: string, fallback: number, min: number, max: number): number {
   const n = Number(env[key]);
   return Number.isFinite(n) && n >= min && n <= max ? Math.floor(n) : fallback;
+}
+
+function consoleUrlFrom(raw: string | undefined, baseUrl: string | null): string | null {
+  const value = raw?.trim() ? raw.trim() : baseUrl ? `${baseUrl}/admin` : null;
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    // Only a plain http(s) address: the client appends `/sso#t=<ticket>` to it.
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (url.search || url.hash || url.username || url.password) return null;
+    return `${url.origin}${url.pathname}`.replace(/\/+$/, '');
+  } catch {
+    return null;
+  }
 }
 
 export function getEngineConfig(env: NodeJS.ProcessEnv = process.env): EngineConfig {
@@ -31,6 +50,7 @@ export function getEngineConfig(env: NodeJS.ProcessEnv = process.env): EngineCon
     turnSecret: env.AIRA_ENGINE_TURN_SECRET?.trim() || null,
     turnInMessage: env.AIRA_ENGINE_TURN_IN_MESSAGE !== 'false',
     acceptPdf: env.AIRA_ENGINE_ACCEPT_PDF === 'true',
+    consoleUrl: consoleUrlFrom(env.AIRA_CONSOLE_URL, baseUrl),
   };
 }
 

@@ -138,7 +138,9 @@
       "connectedLatency": "Connected · {{latency}} ms",
       "offline": "Offline",
       "title": "AIRA engine (chat panel)",
-      "description": "The engine address and key are set through server environment variables (AIRA_ENGINE_URL, AIRA_ENGINE_KEY)."
+      "description": "The engine address and key are set through server environment variables (AIRA_ENGINE_URL, AIRA_ENGINE_KEY). Engine settings (model, Telegram, scheduled reports) live in the engine console.",
+      "openConsole": "Open engine console",
+      "consoleFailed": "Could not open the engine console."
     },
     "calls": {
       "title": "Call history",

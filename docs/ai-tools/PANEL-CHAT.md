@@ -19,6 +19,7 @@ Status: **tahap 3 diimplementasikan**. Panel chat (`/aira`) tidak lagi memakai l
 | `AIRA_ENGINE_TURN_SECRET` | rahasia bersama (>= 32 karakter) untuk tiket giliran | kosong = tiket tidak dibuat |
 | `AIRA_ENGINE_TURN_IN_MESSAGE` | `false` = tiket tidak disisipkan di pesan pengguna | `true` |
 | `AIRA_ENGINE_ACCEPT_PDF` | `true` = PDF diteruskan sebagai bagian `file` | `false` (PDF ditolak jelas) |
+| `AIRA_CONSOLE_URL` | alamat konsol pengaturan engine yang dibuka **browser** admin (mis. `https://aira.contoh.com/admin`) | `{AIRA_ENGINE_URL}/admin` |
 | `AIRA_CHAT_WINDOW_TOKENS` | anggaran jendela konteks (token, perkiraan karakter/4) | 6000 |
 | `AIRA_CHAT_HARD_WINDOW_TOKENS` | batas keras bila peringkasan gagal | 3x anggaran |
 | `AIRA_CHAT_MAX_INPUT_CHARS` | panjang maksimum satu pesan | 8000 |
@@ -117,3 +118,21 @@ Hasil tool MCP yang membuat draft atau mengantre persetujuan menyertakan `struct
 - Konten `system`/`developer`/`tool` dari browser dibuang; teks pengguna dirender sebagai teks (Markdown aman, tanpa HTML mentah).
 - Lampiran: batas 10 MB, JPG/PNG/WebP (PDF opsional), jenis ditentukan dari magic byte, penyimpanan privat, unduhan hanya pemilik.
 - Indeks: FTS `simple` (GIN) selalu; trigram `pg_trgm` bila ekstensi tersedia (migrasi mencobanya dan lanjut tanpa bila tidak). Tanpa trigram pencarian substring tetap jalan, hanya lebih lambat pada volume sangat besar.
+
+## Konsol engine (masuk dari Entaris)
+
+Pengaturan engine (model, Telegram, laporan terjadwal, secrets) ada di konsol engine sendiri, bukan di
+Entaris. Admin (`rbac.manage`) membukanya lewat **Pengaturan → AIRA (MCP) → Buka konsol engine**:
+
+1. Klien memanggil `POST /api/ai/mcp/console`. Server menandatangani tiket sekali pakai yang berlaku 60 detik:
+   ```
+   tiket = base64url(JSON {v:2, aud:"console", uid, name, jti, exp})
+           + "." + hex(HMAC-SHA256(K, <string base64url persis>))
+   K     = HMAC-SHA256(AIRA_ENGINE_TURN_SECRET, "aira-console-ticket-v1")
+   ```
+   Kunci turunan dan `v`/`aud` yang berbeda membuat tiket konsol dan tiket giliran tidak bisa saling dipakai.
+2. Tiket dikembalikan di field `token` (disamarkan oleh audit trail) bersama `consoleUrl`; klien membuka
+   `{consoleUrl}/sso#t=<tiket>`. Tiket ada di fragmen URL sehingga tidak tercatat di log server mana pun.
+3. Engine memverifikasi tiket (sekali pakai per `jti`) lalu membuat sesinya sendiri atas nama pengguna itu.
+
+Butuh `AIRA_ENGINE_TURN_SECRET` dan `AIRA_ENGINE_URL` (atau `AIRA_CONSOLE_URL`). Tombol hanya tampil saat engine terhubung.
