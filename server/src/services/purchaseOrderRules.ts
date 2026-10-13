@@ -93,3 +93,35 @@ export function checkPurchaseOrderClosable(po: CloseCheckInput, reason: unknown)
   }
   return { ok: true };
 }
+
+export interface PoItemRef {
+  id: string;
+  inventoryItemId: string | null;
+  itemName?: string | null;
+}
+
+export interface ReceiptLineRef {
+  inventoryItemId: string;
+  itemName?: string | null;
+  purchaseOrderItemId?: string | null;
+}
+
+/**
+ * Lines of an STT that point at a PO but carry no PO-line link: match each one
+ * to the PO line with the same inventoryItemId. Exactly one candidate → link it;
+ * none → leave unlinked (extra item outside the PO); several → throw (ambiguous).
+ * Returns the PO-item id (or null) per input line, same order.
+ */
+export function resolvePoItemLinks(
+  lines: ReceiptLineRef[],
+  poItems: PoItemRef[],
+  onAmbiguous: (line: ReceiptLineRef) => Error,
+): Array<string | null> {
+  return lines.map((line) => {
+    if (line.purchaseOrderItemId) return line.purchaseOrderItemId;
+    const candidates = poItems.filter((pi) => pi.inventoryItemId && pi.inventoryItemId === line.inventoryItemId);
+    if (candidates.length === 1) return candidates[0].id;
+    if (candidates.length > 1) throw onAmbiguous(line);
+    return null;
+  });
+}

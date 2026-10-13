@@ -118,6 +118,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
   const [error, setError] = useState('');
   const [loadingPO, setLoadingPO] = useState(false);
   // PO lines waiting for the user to confirm replacing lines they already typed.
+  const [poItemRefs, setPoItemRefs] = useState<Array<{ id: string; inventoryItemId: string | null }>>(
+    () => (initialPurchaseOrder?.items ?? []).map((i) => ({ id: i.id, inventoryItemId: i.inventoryItemId ?? null })),
+  );
   const [pendingPOLines, setPendingPOLines] = useState<{ poNumber: string; lines: GRItem[] } | null>(null);
 
   /**
@@ -126,7 +129,10 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
    */
   const handlePickPO = async (id: string) => {
     setPurchaseOrderId(id);
-    if (!id) return;
+    if (!id) {
+      setPoItemRefs([]);
+      return;
+    }
     setLoadingPO(true);
     try {
       const { data: po } = await api.get(`/purchase-orders/${id}`);
@@ -136,6 +142,7 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         warehouseId: po.warehouseId ?? null,
         items: po.items ?? [],
       };
+      setPoItemRefs(source.items.map((i) => ({ id: i.id, inventoryItemId: i.inventoryItemId ?? null })));
       const lines = itemsFromPO(source);
       if (!lines.some((l) => l.purchaseOrderItemId)) {
         toast.info(t('receiptForm.toastFullyReceived', { number: po.poNumber }));
@@ -269,10 +276,17 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         lockedUnitCost: 0,
         description: it.description.trim() || null,
         // Only keep the PO-line link while the STT still points at the PO the line came from.
+        // Manual/edited lines without a link: match the PO line with the same inventory item
+        // (unique candidate only; ambiguous → leave null, backend rejects with a clear message).
         purchaseOrderItemId:
-          it.purchaseOrderItemId && !isCustomerOwned && purchaseOrderId && it.sourcePurchaseOrderId === purchaseOrderId
-            ? it.purchaseOrderItemId
-            : null,
+          isCustomerOwned || !purchaseOrderId
+            ? null
+            : it.purchaseOrderItemId && it.sourcePurchaseOrderId === purchaseOrderId
+              ? it.purchaseOrderItemId
+              : (() => {
+                  const c = poItemRefs.filter((r) => r.inventoryItemId && r.inventoryItemId === it.inventoryItemId);
+                  return c.length === 1 ? c[0].id : null;
+                })(),
       })),
     });
   };
