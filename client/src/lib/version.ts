@@ -4,8 +4,8 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.1.2';
-export const APP_BUILD_DATE = '2026-10-13';
+export const APP_VERSION = '4.1.3';
+export const APP_BUILD_DATE = '2026-10-14';
 export const APP_NAME = 'Entaris';
 
 export interface ChangelogEntry {
@@ -25,6 +25,15 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.1.3',
+    date: '2026-10-14',
+    title: 'Lampiran Pengajuan Pembayaran via AIRA',
+    changes: [
+      'AIRA kini bisa melampirkan berkas (JPG, PNG, WebP, PDF) ke Pengajuan Pembayaran lewat tool baru payreq_attachment_add, sehingga draf jenis yang wajib lampiran bisa di-submit; berkas diambil dari lampiran panel chat atau dikirim langsung sebagai base64 untuk berkas kecil',
+      'Aturan lampiran di antarmuka web tidak berubah (maks. 10 lampiran, 5 MB, jenis diperiksa dari isi berkas)',
+    ],
+  },
   {
     version: '4.1.2',
     date: '2026-10-13',

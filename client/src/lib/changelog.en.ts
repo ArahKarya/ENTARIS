@@ -8,6 +8,13 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.1.3': {
+    title: 'Payment Request Attachments via AIRA',
+    changes: [
+      'AIRA can now attach files (JPG, PNG, WebP, PDF) to a Payment Request through the new payreq_attachment_add tool, so drafts of types that require an attachment can be submitted; the file comes from the chat panel attachment or is sent directly as base64 for small files',
+      'Attachment rules in the web interface are unchanged (max. 10 attachments, 5 MB, file type checked from the content)',
+    ],
+  },
   '4.1.2': {
     title: 'Goods Receipt to PO Link Fix',
     changes: [
