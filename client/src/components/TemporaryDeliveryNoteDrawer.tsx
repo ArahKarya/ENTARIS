@@ -86,7 +86,6 @@ const TemporaryDeliveryNoteDrawer: React.FC<Props> = ({ noteId, onClose }) => {
   const pdfDoc = note ? (
     <DeliveryOrderPDF
       title={t('temporaryDeliveryNoteDrawer.pdf.title')}
-      footnote={t('temporaryDeliveryNoteDrawer.pdf.footnote')}
       doNumber={note.number}
       date={note.date}
       status={note.status}
