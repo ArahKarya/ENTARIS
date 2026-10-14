@@ -5,7 +5,7 @@ export type CtaSpec = { label: string; href: string; arrow?: boolean };
 
 type CtaLinkProps = { cta: CtaSpec; variant: "primary" | "ghost"; size: "lg" | "xl" };
 
-/** Button-styled link: in-page `#anchors` stay plain anchors, everything else is a client-side Link. */
+/** Button-styled link: in-page `#anchors` stay plain anchors, external URLs open in a new tab, everything else is a client-side Link. */
 export function CtaLink({ cta, variant, size }: CtaLinkProps) {
   const className = `btn btn--${variant} btn--${size}`;
   const content = (
@@ -14,6 +14,13 @@ export function CtaLink({ cta, variant, size }: CtaLinkProps) {
       {cta.arrow ? <TablerIcon name="arrow-right" dataIcon="arrow-right" paths={ARROW_RIGHT_PATHS} style={BUTTON_ICON_STYLE} /> : null}
     </>
   );
+  if (cta.href.startsWith("http")) {
+    return (
+      <a href={cta.href} className={className} target="_blank" rel="noopener noreferrer">
+        {content}
+      </a>
+    );
+  }
   return cta.href.startsWith("#") ? (
     <a href={cta.href} className={className}>
       {content}

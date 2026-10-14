@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Icon } from "./HomeIcons";
 import { AiraMark } from "@/components/site/AiraLogo";
-import { DEMO_HREF } from "@/components/site/siteConfig";
+import { CP_MESSAGE_FOR_MODULE, whatsappHref } from "@/components/site/siteConfig";
 import type { FeaturedModule } from "./FeaturedModules";
 
 type ModuleDetailModalProps = {
@@ -187,10 +186,16 @@ export function ModuleDetailModal({ module, onClose }: ModuleDetailModalProps) {
 
         {/* Footer */}
         <div className="module-modal-footer">
-          <Link href={DEMO_HREF} className="module-modal-cta" onClick={onClose}>
-            <span>Minta demo modul ini</span>
+          <a
+            href={whatsappHref(CP_MESSAGE_FOR_MODULE(module.name))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="module-modal-cta"
+            onClick={onClose}
+          >
+            <span>Tanya CP tentang modul ini</span>
             <Icon name="arrowRight" style={{ width: 16, height: 16 }} />
-          </Link>
+          </a>
           <button type="button" className="module-modal-dismiss" onClick={onClose}>
             Tutup
           </button>

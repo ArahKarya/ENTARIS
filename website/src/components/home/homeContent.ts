@@ -142,60 +142,18 @@ export const CATEGORIES: readonly ModuleCategory[] = [
   },
 ];
 
-/* -- Why Entaris (README "Kenapa Entaris") ----------------------------------------------------- */
+/* -- Who Entaris fits ------------------------------------------------------------------------- */
 
-export const WHY_ROWS: readonly { readonly problem: string; readonly solution: string }[] = [
-  {
-    problem: "Pekerjaan rutin menyita waktu tim",
-    solution:
-      "ERP biasa menunggu diisi; Entaris ikut bekerja. AIRA mengerjakan analisis laporan, menyusun draf invoice, draf produksi, atau draf buku kas dari foto nota. Tim Anda tinggal meninjau dan menyetujui.",
-  },
-  {
-    problem: "Pasang lama & ribet",
-    solution:
-      "Entaris dipasang di server Anda dan langsung siap pakai: bagan akun, tahun fiskal, dan akun sistem disiapkan otomatis sejak pertama dijalankan.",
-  },
-  {
-    problem: "Angka tidak konsisten",
-    solution:
-      "Pembukuan double-entry penuh. Invoice, pembayaran, jurnal, produksi, dan stok otomatis tercatat di buku besar dan selalu seimbang sesuai standar PSAK.",
-  },
-  {
-    problem: "Sistem kaku, susah berkembang",
-    solution:
-      "Dari UKM beberapa pengguna hingga pabrik dengan puluhan pengguna, BOM, konversi produksi, rendemen, HPP real-time, dan multi-gudang. Fitur tinggal diaktifkan, modul custom mudah ditambahkan, dan AIRA otomatis mengenali alur baru tanpa perlu melatih AI dari nol.",
-  },
-  {
-    problem: "Data dipegang vendor SaaS pihak ketiga",
-    solution:
-      "Entaris berjalan di server perusahaan Anda sendiri, di kantor atau di cloud pilihan Anda. Aplikasi, data, dan cadangannya milik Anda, jadi Anda tidak terikat pada satu vendor.",
-  },
-  {
-    problem: "Software akuntansi tidak cocok regulasi Indonesia",
-    solution:
-      "Antarmuka Bahasa Indonesia, PPN per-item, format nomor dokumen resmi Indonesia, neraca dan laba rugi sesuai PSAK yang siap diaudit dan bisa ditelusuri sampai dokumen asal, serta ekspor PDF/Excel siap cetak.",
-  },
-  {
-    problem: "Data banyak, keputusan lambat",
-    solution:
-      "AIRA menjawab pertanyaan dan menganalisis data riil (laba rugi, arus kas, rasio, umur piutang, stok lambat bergerak, HPP) dalam bahasa sehari-hari. Angka diambil langsung dari buku besar, bukan dikarang model.",
-  },
-  {
-    problem: "Proses bisnis unik butuh alur khusus",
-    solution:
-      "Entaris didesain modular dan fleksibel. Anda atau tim developer internal dapat membuat modul custom sendiri, dan modul itu otomatis masuk ke katalog tugas AIRA sehingga AIRA bisa langsung membantu alur barunya.",
-  },
-  {
-    problem: "Harus selalu di depan laptop atau meja kantor",
-    solution:
-      "Entaris bisa dipasang seperti aplikasi di desktop dan ponsel, dengan dukungan offline terbatas. Lewat WhatsApp atau Telegram, Anda bisa mengirim foto nota untuk dijadikan draf buku kas, menanyakan stok atau piutang, dan menyetujui transaksi dari ponsel.",
-  },
-];
-
-export const FIT_ITEMS: readonly { readonly title: string; readonly body: string }[] = [
-  { title: "Perusahaan yang ingin dibantu AI", body: "Yang ingin sistemnya ikut mengerjakan analisis dan draf dokumen, dan ingin pindah data lewat chat dengan AIRA." },
-  { title: "UKM & Toko Retail", body: "Yang ingin lepas dari kerumitan file Excel pribadi atau buku tulis manual." },
-  { title: "Distribusi & Trading", body: "Banyak pemasok, ribuan pembeli, puluhan faktur belum lunas, dan pencocokan PO, penerimaan, serta faktur." },
-  { title: "Manufaktur & Pabrik", body: "Pangan, penggilingan padi, pupuk, dan industri olahan yang membutuhkan BOM, kalkulasi rendemen, dan HPP real-time." },
-  { title: "Kantor Akuntan & Konsultan", body: "Pembukuan multi-klien di server mandiri dengan kedaulatan data penuh." },
+/** Business types shown on the home page. All rest on modules that exist today; each links to WhatsApp. */
+export const BUSINESS_TYPES: readonly string[] = [
+  "Manufaktur kecil dan menengah",
+  "Pengolahan makanan dan hasil pertanian",
+  "Penggilingan dan pabrik beras",
+  "Pabrik pelet, pakan, dan produk turunan pertanian",
+  "UMKM produksi dan kuliner",
+  "Toko dan ritel",
+  "Distributor dan grosir",
+  "Perdagangan umum",
+  "Bengkel dan usaha dengan banyak mesin",
+  "Jasa dan kantor akuntan",
 ];

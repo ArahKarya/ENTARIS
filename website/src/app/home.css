@@ -1,4 +1,4 @@
-/* Entaris home page: module catalog, "Kenapa Entaris" and "Cocok untuk" sections. */
+/* Entaris home page and /modul: featured modules, module catalog and "Cocok untuk" section. */
 @layer entaris {
   /* -- Shared section head ------------------------------------------------------------------ */
   .erp-root .home-section-head {
@@ -253,6 +253,49 @@
     }
   }
 
+  /* -- Tautan ke katalog lengkap di bawah modul pilihan --------------------------------------- */
+  .erp-root .home-all-modules {
+    margin: 0;
+    padding: 1.5rem var(--tacet-section-pad-x, 1.5rem) 0;
+  }
+
+  .erp-root .home-all-modules__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .erp-root .home-all-modules__link:hover {
+    border-color: var(--entaris-focus);
+    color: var(--entaris-focus);
+  }
+
+  .erp-root .home-all-modules__link:focus-visible {
+    outline: 3px solid var(--entaris-focus);
+    outline-offset: 2px;
+  }
+
+  /* -- Harga dan Misi (ringkas) ---------------------------------------------------------------- */
+  .erp-root .home-pricing {
+    border-top: 1px solid var(--border);
+  }
+
+  .erp-root .home-pricing .home-section-lead {
+    max-width: 62ch;
+  }
+
+  .erp-root .home-pricing__action {
+    margin: 1.5rem 0 0;
+  }
+
   /* -- Cocok untuk -------------------------------------------------------------------------- */
   .erp-root .home-fit {
     border-top: 1px solid var(--border);
@@ -261,67 +304,81 @@
 
   .erp-root .home-fit__grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin: 0 var(--tacet-section-pad-x, 1.5rem) clamp(3rem, 6vw, 5rem);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin: 0 var(--tacet-section-pad-x, 1.5rem);
     padding: 0;
     border-top: 1px solid var(--border);
     border-left: 1px solid var(--border);
     list-style: none;
   }
 
-  .erp-root .home-fit__item {
+  .erp-root .home-fit__cell {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: clamp(1.25rem, 2vw, 1.75rem);
     border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
 
-  .erp-root .home-fit__num {
-    color: var(--org-on-light, var(--entaris-blue-dark));
-    font-family: var(--font-mono);
-    font-size: var(--text-label, 0.6875rem);
-    font-weight: 700;
-    letter-spacing: var(--tracking-label, 0.18em);
-  }
-
-  .erp-root .home-fit__title {
+  .erp-root .home-fit__link {
     display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin: 0;
+    align-items: flex-end;
+    width: 100%;
+    min-height: 7rem;
+    padding: clamp(1rem, 1.6vw, 1.5rem);
     color: var(--foreground);
     font-family: var(--font-heading);
-    font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+    font-size: clamp(1.0625rem, 1.4vw, 1.1875rem);
     font-weight: 900;
-    line-height: 1.1;
+    line-height: 1.15;
+    text-decoration: none;
+    overflow-wrap: anywhere;
   }
 
-  .erp-root .home-fit__icon {
-    width: 1.1em;
-    height: 1.1em;
-    flex: none;
-    color: var(--org-on-light, var(--entaris-blue-dark));
+  .erp-root .home-fit__link:hover {
+    background: var(--background);
+    color: var(--entaris-focus);
   }
 
-  .erp-root .home-fit__body {
+  .erp-root .home-fit__link:focus-visible {
+    position: relative;
+    outline: 3px solid var(--entaris-focus);
+    outline-offset: -3px;
+  }
+
+  .erp-root .home-fit__other {
     margin: 0;
+    padding: 1.25rem var(--tacet-section-pad-x, 1.5rem) clamp(3rem, 6vw, 5rem);
     color: var(--text-m);
     font-family: var(--font-body);
     font-size: 0.9375rem;
-    line-height: 1.55;
   }
 
-  @media (max-width: 63.99rem) {
+  .erp-root .home-fit__other a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  @media (max-width: 79.99rem) {
+    .erp-root .home-fit__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 47.99rem) {
     .erp-root .home-fit__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  @media (max-width: 35.99rem) {
+  @media (max-width: 29.99rem) {
     .erp-root .home-fit__grid {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .erp-root .home-fit__link {
+      min-height: 4.5rem;
     }
   }
 }
