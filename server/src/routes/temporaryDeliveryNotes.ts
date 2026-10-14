@@ -103,7 +103,7 @@ router.get('/linkable', async (req, res) => {
     const partyId = (req.query.partyId as string) || '';
     if (!partyId) return res.json([]);
     const rows = await prisma.$queryRaw<any[]>`
-      SELECT t.id, t.number, t.date, t.nomor_mobil AS "nomorMobil",
+      SELECT t.id, t.number, t.date, t.nomor_mobil AS "nomorMobil", t.driver_name AS "driverName", t.recipient_name AS "recipientName",
              (SELECT json_agg(json_build_object('itemName', i.item_name, 'quantity', i.quantity::float8, 'unit', i.unit, 'inventoryItemId', i.inventory_item_id) ORDER BY i.created_at)
                 FROM temporary_delivery_note_items i WHERE i.temporary_delivery_note_id = t.id) AS items
       FROM temporary_delivery_notes t WHERE t.party_id = ${partyId} AND t.status = 'Open' ORDER BY t.date, t.number`;

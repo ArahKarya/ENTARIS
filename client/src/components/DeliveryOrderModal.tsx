@@ -27,6 +27,8 @@ import { OptionSelect } from '@/components/sales-a/OptionSelect';
 import { WarehouseSelect } from '@/components/sales-a/WarehouseSelect';
 import { cap } from '@/lib/permissions';
 
+import { addNoteRows, fillIfEmpty, removeNoteRows, rowsFromNote, type SjsLinkable } from '@/lib/sjsPrefill';
+
 const UNITS = ['Kg', 'Ton', 'Sak', 'Liter', 'Pcs', 'Box', 'Unit', 'Set', 'Meter'];
 
 interface DOItem {
@@ -40,6 +42,8 @@ interface DOItem {
   // Diisi saat baris ditarik dari SO → submit lewat endpoint generate-do
   // (otomatis kurangi SO + update status). Kosong = baris manual/standalone.
   salesOrderItemId?: string;
+  // Diisi saat baris datang dari Surat Jalan Sementara yang dicentang (ditarik lagi saat centang dilepas).
+  fromNoteId?: string;
 }
 
 const defaultItem = (): DOItem => ({
@@ -126,7 +130,24 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
 
   // Surat Jalan Sementara Terbuka milik pelanggan terpilih (hanya saat DO baru)
   // Ganti pelanggan → pilihan SJS sebelumnya tidak berlaku lagi
-  React.useEffect(() => { setTempNoteIds([]); }, [partyId]);
+  React.useEffect(() => {
+    setTempNoteIds([]);
+    setItems((prev) => (prev.some((r) => r.fromNoteId) ? removeNoteRows(prev, null, defaultItem) : prev));
+  }, [partyId]);
+
+  // Centang SJS → barisnya masuk form DO + header yang masih kosong terisi; lepas centang → baris ditarik lagi.
+  // Saat DO ditarik dari SO, baris DO ditentukan SO sehingga hanya header yang diisi.
+  const toggleNote = (n: SjsLinkable, checked: boolean) => {
+    setTempNoteIds((ids) => (checked ? [...ids, n.id] : ids.filter((x) => x !== n.id)));
+    if (checked) {
+      setNomorMobil((v) => fillIfEmpty(v, n.nomorMobil ? String(n.nomorMobil).toUpperCase() : null));
+      setDriverName((v) => fillIfEmpty(v, n.driverName));
+      setRecipientName((v) => fillIfEmpty(v, n.recipientName));
+      if (!salesOrderId) setItems((prev) => addNoteRows(prev, rowsFromNote(n, () => crypto.randomUUID())));
+    } else if (!salesOrderId) {
+      setItems((prev) => removeNoteRows(prev, n.id, defaultItem));
+    }
+  };
 
   const { data: linkableNotes } = useQuery({
     queryKey: ['temporary-delivery-notes-linkable', partyId],
@@ -473,7 +494,7 @@ const DeliveryOrderModal: React.FC<Props> = ({ onClose, editDO }) => {
                         id={`tnote-${n.id}`}
                         className="mt-1"
                         checked={tempNoteIds.includes(n.id)}
-                        onCheckedChange={(checked) => setTempNoteIds((ids) => (checked === true ? [...ids, n.id] : ids.filter((x) => x !== n.id)))}
+                        onCheckedChange={(checked) => toggleNote(n, checked === true)}
                       />
                       <span>
                         <span className="font-mono text-xs">{n.number}</span>
