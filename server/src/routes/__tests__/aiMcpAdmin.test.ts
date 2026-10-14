@@ -134,8 +134,8 @@ describe('admin REST /api/ai/mcp', () => {
     m.aiToolConfig.findMany.mockResolvedValue([{ toolName: 'coa_list' }]);
     const s = (await (await send('GET', '/status')).json()) as any;
     expect(s).toMatchObject({ enabled: true, secretKeySource: 'MCP_SECRET_KEY', tokens: { active: 1, total: 2 }, calls24h: { total: 5, allowed: 4, queued: 1 } });
-    expect(s.tools.total).toBe(474);
-    expect(s.tools.enabled).toBe(473);
+    expect(s.tools.total).toBe(475);
+    expect(s.tools.enabled).toBe(474);
   });
 });
 
