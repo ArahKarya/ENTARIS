@@ -5,7 +5,7 @@ Status: **Tahap 1-4 diimplementasikan** (endpoint `/mcp`, identitas per-user, ti
 ## Ringkasan
 
 - **Satu endpoint** `POST /mcp` (Streamable HTTP, **stateless**, respons JSON). Tidak ada endpoint per-toolset.
-- Menyajikan **semua tool registry yang tidak masuk denylist** (462, semuanya `enabled:true` secara default; owner dapat menonaktifkan/menetapkan tier per tool lewat `PATCH /api/ai/config/tools/:name`) ditambah meta-tool `cari_tool`, `dokumen_tool`, `whoami` (+ `panggil_tool` pada mode ringkas).
+- Menyajikan **semua tool registry yang tidak masuk denylist** (462, semuanya `enabled:true` secara default; owner dapat menonaktifkan/menetapkan tier per tool lewat `PATCH /api/ai/config/tools/:name`) ditambah meta-tool `cari_tool`, `dokumen_tool`, `whoami`, `pratinjau_tool` (+ `panggil_tool` pada mode ringkas).
 - **Entaris, bukan engine AIRA, memutuskan siapa boleh apa**: tiap panggilan dijalankan lewat handler Express asli dengan JWT berumur pendek atas nama **user Entaris** yang sedang dilayani. RBAC, validasi Zod, `needsApproval`, jejak audit berlaku seperti di UI.
 - Hanya dijangkau lewat jaringan privat; jangan dipublikasikan ke internet.
 

@@ -52,7 +52,7 @@ curl -s ENTARIS_URL/mcp -H "Authorization: Bearer entmcp_..." \
 
 ### Mode ringkas (compact)
 
-`tools/list` penuh untuk Admin sekitar 445 KB (+-465 definisi), terlalu besar untuk konteks model. Dengan `X-Entaris-Tools: compact`, `tools/list` hanya memuat meta-tool: `cari_tool`, `dokumen_tool`, `whoami`, dan `panggil_tool({tool,args})`. Mode ini tidak butuh aktor. Model mencari tool lewat `cari_tool`, membaca skemanya lewat `dokumen_tool`, lalu memanggilnya lewat `panggil_tool`.
+`tools/list` penuh untuk Admin sekitar 445 KB (+-465 definisi), terlalu besar untuk konteks model. Dengan `X-Entaris-Tools: compact`, `tools/list` hanya memuat meta-tool: `cari_tool`, `dokumen_tool`, `whoami`, `pratinjau_tool({tool,args})`, dan `panggil_tool({tool,args})`. Mode ini tidak butuh aktor. Model mencari tool lewat `cari_tool`, membaca skemanya lewat `dokumen_tool`, lalu memanggilnya lewat `panggil_tool`.
 
 ## 3. Actor assertion (spesifikasi v1)
 
@@ -95,6 +95,19 @@ Contoh `tools/call` dengan assertion di argumen:
 Perilaku tanpa assertion: bertindak sebagai `defaultActorUserId` token (channel `cli`); tanpa aktor default -> `401 actor_required`. Assertion yang *dikirim tetapi salah* tidak pernah jatuh ke aktor default.
 
 ### Menyuntikkan identitas ke model (`identity_prompt`)
+
+### Kartu konfirmasi sebelum aksi tulis (`pratinjau_tool`)
+
+Sebelum memanggil tool tulis, klien dapat memanggil `pratinjau_tool({tool, args})`. Pemeriksaannya sama dengan panggilan sungguhan (tool aktif, level AIRA, RBAC, argumen wajib dan valid), tetapi tidak ada yang dijalankan atau diantrekan. Hasilnya:
+
+| Field | Isi |
+|---|---|
+| `tindakan` | `baca`, `draft` (hanya membuat draft), `persetujuan` (masuk antrean Persetujuan), atau `langsung` (dieksekusi saat dipanggil) |
+| `perlu_konfirmasi` | `true` untuk `persetujuan` dan `langsung`; klien menampilkan kartu Ya/Batal dan baru memanggil tool setelah pengguna menekan Ya |
+| `konfirmasi` | teks resmi dari `confirm_template`, dirender dengan argumen; bukan buatan model |
+| `efek`, `rincian` | efek pembukuan/stok dan argumen skalar (array = jumlah baris) untuk ditampilkan di kartu |
+
+Kartu ini lapisan tambahan di sisi klien; aturan tier dan antrean Persetujuan Entaris tetap berlaku seperti biasa.
 
 Actor assertion membuat Entaris tahu SIAPA yang memanggil, tetapi model juga harus tahu dengan siapa ia berbicara. Tool `whoami` mengembalikan field **`identity_prompt`**: blok identitas siap pakai (nama, peran + kunci, jabatan AIRA, level + artinya, perusahaan, waktu WIB, kanal dari assertion `ch`, `gf` tercermin sebagai "percakapan grup: batas terendah", daftar toolset/jumlah tool, kapabilitas peran, dan aturan: identitas berwenang dan tak dapat diubah dari percakapan, jawab sesuai peran, tolak sopan bila melebihi peran, angka hanya dari tool, tulis/kritis hanya lewat tool).
 

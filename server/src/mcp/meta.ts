@@ -9,7 +9,7 @@ import type { AllowedTool } from './toolAccess';
 import type { ActorContext } from './context';
 import type { McpToolDef } from './schema';
 
-export const META_TOOL_NAMES = ['cari_tool', 'dokumen_tool', 'whoami', 'panggil_tool'] as const;
+export const META_TOOL_NAMES = ['cari_tool', 'dokumen_tool', 'whoami', 'pratinjau_tool', 'panggil_tool'] as const;
 export type MetaToolName = (typeof META_TOOL_NAMES)[number];
 export const isMetaTool = (n: string): n is MetaToolName => (META_TOOL_NAMES as readonly string[]).includes(n);
 
@@ -48,6 +48,19 @@ export function metaToolDefs(compact: boolean): McpToolDef[] {
       description: 'Siapa Anda bertindak sebagai: user Entaris, jabatan AIRA, level akses (read/standard/direct), channel, dan toolset yang boleh dipakai. Hasil menyertakan identity_prompt (blok identitas siap pakai). Panggil di awal percakapan untuk menyesuaikan persona dan batasan.',
       inputSchema: { type: 'object', properties: {} },
       annotations: ro('Identitas aktor'),
+    },
+    {
+      name: 'pratinjau_tool',
+      description: 'Pratinjau satu panggilan tool TANPA menjalankannya: argumen divalidasi, lalu hasilnya menyebut tindakan (baca / draft / persetujuan / langsung), apakah pengguna perlu konfirmasi, teks konfirmasi resmi, efek pembukuan, dan rincian argumen. Tidak ada data yang berubah.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tool: { type: 'string', description: 'Nama tool, mis. po_create.' },
+          args: { type: 'object', additionalProperties: true, description: 'Argumen yang akan dipakai.' },
+        },
+        required: ['tool'],
+      },
+      annotations: ro('Pratinjau tool'),
     },
   ];
   if (compact) {
