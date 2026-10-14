@@ -72,14 +72,38 @@
     "running": " (berjalan)"
   },
   "cards": {
-    "cashBookDraft": { "label": "Draft Buku Kas", "cta": "Tinjau draft" },
-    "productionDraft": { "label": "Draft Produksi", "cta": "Buka draft produksi" },
-    "paymentRequestDraft": { "label": "Pengajuan Pembayaran", "cta": "Buka pengajuan" },
-    "purchaseOrderDraft": { "label": "Purchase Order", "cta": "Buka daftar PO" },
-    "quotationDraft": { "label": "Penawaran", "cta": "Buka daftar penawaran" },
-    "salesOrderDraft": { "label": "Sales Order", "cta": "Buka daftar SO" },
-    "approval": { "label": "Menunggu persetujuan", "cta": "Buka Persetujuan" },
-    "link": { "label": "Tautan", "cta": "Buka" }
+    "cashBookDraft": {
+      "label": "Draft Buku Kas",
+      "cta": "Tinjau draft"
+    },
+    "productionDraft": {
+      "label": "Draft Produksi",
+      "cta": "Buka draft produksi"
+    },
+    "paymentRequestDraft": {
+      "label": "Pengajuan Pembayaran",
+      "cta": "Buka pengajuan"
+    },
+    "purchaseOrderDraft": {
+      "label": "Purchase Order",
+      "cta": "Buka daftar PO"
+    },
+    "quotationDraft": {
+      "label": "Penawaran",
+      "cta": "Buka daftar penawaran"
+    },
+    "salesOrderDraft": {
+      "label": "Sales Order",
+      "cta": "Buka daftar SO"
+    },
+    "approval": {
+      "label": "Menunggu persetujuan",
+      "cta": "Buka Persetujuan"
+    },
+    "link": {
+      "label": "Tautan",
+      "cta": "Buka"
+    }
   },
   "sessionList": {
     "loadFailed": "Daftar percakapan tidak bisa dimuat.",
@@ -264,5 +288,16 @@
       "revokeDescription": "Token tidak dapat dipakai lagi dan pencabutan tidak dapat dibatalkan. Buat token baru bila engine AIRA masih perlu terhubung.",
       "revokeConfirm": "Cabut token"
     }
+  },
+  "confirm": {
+    "label": "Konfirmasi aksi",
+    "queued": "Setelah Anda setuju, permintaan diajukan ke menu Persetujuan.",
+    "direct": "Setelah Anda setuju, aksi langsung dijalankan.",
+    "yes": "Ya, lanjutkan",
+    "no": "Batal",
+    "answeredYes": "Anda menyetujui aksi ini.",
+    "answeredNo": "Anda membatalkan aksi ini.",
+    "expired": "Kartu ini kedaluwarsa. Minta AIRA mengulang bila masih perlu.",
+    "notLast": "Kartu ini sudah tidak aktif."
   }
 }

@@ -5,13 +5,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import i18n from '@/i18n';
 import { fetchMessages } from './chatApi';
 import { StreamHttpError, streamTurn } from './sse';
-import type { CardPart, ChatMessageDto, StreamEvent, ToolChip, ViewMessage } from './types';
+import type { CardPart, ChatMessageDto, ConfirmChoice, StreamEvent, ToolChip, ViewMessage } from './types';
 
 const toView = (m: ChatMessageDto): ViewMessage => ({
   ...m,
   tools: m.parts?.tools ?? [],
   cards: m.parts?.cards ?? [],
   clarify: m.parts?.clarify ?? null,
+  confirm: m.parts?.confirm ?? null,
 });
 
 let tempSeq = 0;
@@ -46,10 +47,12 @@ function applyEvent(prev: ViewMessage[], assistantId: string, e: StreamEvent): V
     }
     case 'clarify':
       return patch((m) => ({ ...m, clarify: e.data }));
+    case 'confirm':
+      return patch((m) => ({ ...m, confirm: e.data }));
     case 'done':
       return patch((m) => ({ ...m, status: 'ok', durationMs: e.data.duration_ms }));
     case 'error':
-      return patch((m) => ({ ...m, status: 'error', error: e.data.message, clarify: null }));
+      return patch((m) => ({ ...m, status: 'error', error: e.data.message, clarify: null, confirm: null }));
     default:
       return prev;
   }
@@ -115,7 +118,11 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
   }, []);
 
   const run = useCallback(
-    async (req: { input: string; file?: File; retryMessageId?: string }, userId: string | null, assistantId: string): Promise<SendOutcome> => {
+    async (
+      req: { input: string; file?: File; retryMessageId?: string; confirm?: { id: string; choice: ConfirmChoice } },
+      userId: string | null,
+      assistantId: string,
+    ): Promise<SendOutcome> => {
       const ctl = new AbortController();
       abortRef.current = ctl;
       setBusy(true);
@@ -124,7 +131,8 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
       let finalStatus: 'ok' | 'error' | 'aborted' = 'aborted';
       let engineError = false;
       try {
-        for await (const e of streamTurn({ input: req.input, file: req.file, sessionId: sid ?? undefined, retryMessageId: req.retryMessageId }, ctl.signal)) {
+        const request = { input: req.input, file: req.file, sessionId: sid ?? undefined, retryMessageId: req.retryMessageId, confirm: req.confirm };
+        for await (const e of streamTurn(request, ctl.signal)) {
           if (e.event === 'session') {
             sid = e.data.session_id;
             if (sessionRef.current !== sid) {
@@ -192,7 +200,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
   );
 
   const send = useCallback(
-    (input: string, file: File | null): Promise<SendOutcome> => {
+    (input: string, file: File | null, confirm?: { id: string; choice: ConfirmChoice }): Promise<SendOutcome> => {
       const text = input.trim();
       const userTmp = tempId('u');
       const botTmp = tempId('a');
@@ -201,8 +209,13 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
         localAttachment: file ? { name: file.name, size: file.size, previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined } : undefined,
       };
       const bot: ViewMessage = { id: botTmp, role: 'assistant', content: '', status: 'streaming', attachments: [], tools: [], cards: [] };
-      setMessages((prev) => [...prev, user, bot]);
-      return run({ input: text, file: file ?? undefined }, userTmp, botTmp);
+      // Kartu yang dijawab tidak boleh ditekan lagi, bahkan sebelum server menandainya.
+      setMessages((prev) => [
+        ...prev.map((m) => (confirm && m.confirm?.id === confirm.id ? { ...m, confirm: { ...m.confirm, answered: confirm.choice } } : m)),
+        user,
+        bot,
+      ]);
+      return run({ input: text, file: file ?? undefined, confirm }, userTmp, botTmp);
     },
     [run],
   );

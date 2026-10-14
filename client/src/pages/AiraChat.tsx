@@ -21,7 +21,7 @@ import { readLastSession, writeLastSession } from '@/components/aira/sessionGrou
 import { useChatConversation } from '@/components/aira/useChatConversation';
 import { useIsDesktop } from '@/components/aira/useIsDesktop';
 import { useSessionList } from '@/components/aira/useSessionList';
-import type { ViewMessage } from '@/components/aira/types';
+import type { ConfirmChoice, ViewMessage } from '@/components/aira/types';
 
 /** Pesan pengguna yang memicu jawaban `assistantIndex` (untuk "Coba lagi"). */
 function retryTarget(messages: ViewMessage[], assistantIndex: number): string | undefined {
@@ -104,6 +104,13 @@ export function AiraChat() {
     const outcome = await conv.send(choice, null);
     if (outcome.error) toast.error(outcome.error.message);
   }, [conv]);
+
+  // Jawaban kartu konfirmasi: tampil sebagai pesan pengguna biasa, pilihannya ikut ke engine.
+  const confirmCard = useCallback(async (id: string, choice: ConfirmChoice) => {
+    stickRef.current = true;
+    const outcome = await conv.send(t(choice === 'ya' ? 'confirm.yes' : 'confirm.no'), null, { id, choice });
+    if (outcome.error) toast.error(outcome.error.message);
+  }, [conv, t]);
 
   const retry = useCallback(async (userMessageId: string) => {
     stickRef.current = true;
@@ -212,6 +219,7 @@ export function AiraChat() {
               retryTargetId={m.role === 'assistant' ? retryTarget(conv.messages, i) : undefined}
               onRetry={(id) => void retry(id)}
               onChoose={i === conv.messages.length - 1 && m.clarify && !conv.busy ? (c) => void choose(c) : undefined}
+              onConfirm={i === conv.messages.length - 1 && m.confirm && !conv.busy ? (id, c) => void confirmCard(id, c) : undefined}
             />
           ))}
         </div>

@@ -10,10 +10,11 @@ import { SimpleTooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { CardPartView } from './CardParts';
 import { ClarifyChoices } from './ClarifyChoices';
+import { ConfirmCard } from './ConfirmCard';
 import { Markdown } from './Markdown';
 import { ToolChips } from './ToolChips';
 import { attachmentUrl } from './chatApi';
-import type { ViewMessage } from './types';
+import type { ConfirmChoice, ViewMessage } from './types';
 
 interface MessageItemProps {
   message: ViewMessage;
@@ -24,6 +25,7 @@ interface MessageItemProps {
   retryTargetId?: string;
   /** pertanyaan balik AIRA yang masih terbuka: kirim pilihan sebagai pesan berikutnya */
   onChoose?: (choice: string) => void;
+  onConfirm?: (id: string, choice: ConfirmChoice) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -84,7 +86,7 @@ function UserBubble({ message }: { message: ViewMessage }) {
   );
 }
 
-export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoose }: MessageItemProps) {
+export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoose, onConfirm }: MessageItemProps) {
   const { t } = useTranslation('aira');
   if (message.role === 'user') {
     return (
@@ -99,6 +101,7 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoos
   const streaming = message.status === 'streaming';
   const failed = message.status === 'error';
   const aborted = message.status === 'aborted';
+  const confirm = message.confirm;
   return (
     <article aria-label={t('message.airaReply')} aria-busy={streaming} className="flex justify-start gap-2.5 sm:gap-3">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card">
@@ -119,6 +122,7 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoos
         )}
         {message.cards.map((c, i) => <CardPartView key={`${c.href}-${i}`} card={c} />)}
         {message.status === 'ok' && message.clarify && <ClarifyChoices clarify={message.clarify} onChoose={onChoose} />}
+        {message.status === 'ok' && confirm && <ConfirmCard confirm={confirm} onAnswer={onConfirm && ((choice) => onConfirm(confirm.id, choice))} />}
         {(failed || aborted) && (
           <div
             role={failed ? 'alert' : 'status'}

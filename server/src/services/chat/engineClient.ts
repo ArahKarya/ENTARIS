@@ -2,6 +2,7 @@
 // Bearer key). Hanya engine-netral: tidak ada kontrak khusus produk. Basis URL & key dari ENV.
 
 import { getEngineConfig, isEngineConfigured, type EngineConfig } from './config';
+import { parseConfirm, type ConfirmPrompt } from './confirmCard';
 
 export type EngineErrorCode =
   | 'engine_not_configured'
@@ -52,6 +53,7 @@ export interface ClarifyPrompt {
 export type EngineStreamEvent =
   | { type: 'delta'; text: string }
   | { type: 'clarify'; prompt: ClarifyPrompt }
+  | { type: 'confirm'; card: ConfirmPrompt }
   | { type: 'done'; finishReason: string | null; model: string | null };
 
 const MAX_CLARIFY_QUESTION = 300;
@@ -198,6 +200,11 @@ export async function* streamChat(req: EngineRequest, cfg: EngineConfig = getEng
           if (event === 'aira.clarify') {
             const prompt = parseClarify(data);
             if (prompt) yield { type: 'clarify', prompt };
+            continue;
+          }
+          if (event === 'aira.confirm') {
+            const card = parseConfirm(data);
+            if (card) yield { type: 'confirm', card };
             continue;
           }
           if (event !== 'message' || !data) continue; // event kustom engine lain (progres tool, status) diabaikan

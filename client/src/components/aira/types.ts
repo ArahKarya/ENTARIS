@@ -59,7 +59,7 @@ export interface ChatMessageDto {
   durationMs?: number | null;
   createdAt?: string;
   attachments: AttachmentDto[];
-  parts?: { tools?: ToolChip[]; cards?: CardPart[]; clarify?: ClarifyPart } | null;
+  parts?: { tools?: ToolChip[]; cards?: CardPart[]; clarify?: ClarifyPart; confirm?: ConfirmPart } | null;
 }
 
 /** Pertanyaan balik AIRA: pilihan ditampilkan sebagai tombol selama ini pesan terakhir. */
@@ -68,11 +68,27 @@ export interface ClarifyPart {
   choices: string[];
 }
 
+/** Kartu konfirmasi aksi tulis dari AIRA: aksi baru dijalankan setelah pengguna menekan Ya. */
+export interface ConfirmPart {
+  id: string;
+  tool: string;
+  /** persetujuan | langsung */
+  tindakan: string;
+  konfirmasi: string;
+  efek: string;
+  rincian: Array<{ label: string; value: string }>;
+  expiresAt: string;
+  answered?: ConfirmChoice;
+}
+
+export type ConfirmChoice = 'ya' | 'batal';
+
 /** Pesan di layar: DTO server + status lokal saat streaming. */
 export interface ViewMessage extends ChatMessageDto {
   tools: ToolChip[];
   cards: CardPart[];
   clarify?: ClarifyPart | null;
+  confirm?: ConfirmPart | null;
   /** attachment yang baru dipilih (belum ada id server) */
   localAttachment?: { name: string; size: number; previewUrl?: string };
 }
@@ -104,6 +120,7 @@ export type StreamEvent =
   | { event: 'tool'; data: ToolChip }
   | { event: 'card'; data: CardPart }
   | { event: 'clarify'; data: ClarifyPart }
+  | { event: 'confirm'; data: ConfirmPart }
   | { event: 'title'; data: { title: string } }
   | { event: 'done'; data: { message_id: string; duration_ms: number } }
   | { event: 'error'; data: { message: string; code: string; message_id?: string } };

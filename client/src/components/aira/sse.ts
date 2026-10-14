@@ -1,7 +1,7 @@
 // Pembaca SSE untuk POST /api/ai/chat/stream (fetch + ReadableStream; EventSource tak bisa POST).
 
 import i18n from '@/i18n';
-import type { StreamEvent } from './types';
+import type { StreamEvent, ConfirmChoice } from './types';
 
 export class StreamHttpError extends Error {
   readonly status: number;
@@ -48,6 +48,8 @@ export interface StreamRequest {
   sessionId?: string;
   retryMessageId?: string;
   file?: File;
+  /** jawaban atas kartu konfirmasi AIRA */
+  confirm?: { id: string; choice: ConfirmChoice };
 }
 
 /** Mulai giliran; melempar StreamHttpError untuk penolakan JSON (400/403/404/409/429). */
@@ -65,7 +67,12 @@ export async function* streamTurn(req: StreamRequest, signal: AbortSignal): Asyn
     init = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: req.input, session_id: req.sessionId, retry_message_id: req.retryMessageId }),
+      body: JSON.stringify({
+        input: req.input,
+        session_id: req.sessionId,
+        retry_message_id: req.retryMessageId,
+        ...(req.confirm ? { konfirmasi_id: req.confirm.id, konfirmasi_pilihan: req.confirm.choice } : {}),
+      }),
     };
   }
   const res = await fetch('/api/ai/chat/stream', {
