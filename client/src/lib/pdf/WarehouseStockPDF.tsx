@@ -42,7 +42,7 @@ const S = StyleSheet.create({
 
   emptyText: { fontSize: 8, fontStyle: 'italic', color: C.faint, paddingVertical: 6, paddingHorizontal: 6 },
 
-  catHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, paddingHorizontal: 6, backgroundColor: C.primaryLt, borderBottomWidth: 0.5, borderBottomColor: C.border },
+  catHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: C.border },
   catHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.mid, letterSpacing: 0.3 },
   catSubtotal: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.dark },
 

@@ -29,13 +29,13 @@ const S = StyleSheet.create({
   divider: { height: 1.5, backgroundColor: C.primary, marginBottom: 14, marginTop: 8 },
 
   // Section header
-  sectionHeader: { backgroundColor: C.primaryLt, borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 5, paddingHorizontal: 8, marginBottom: 0 },
+  sectionHeader: { borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 5, paddingHorizontal: 8, marginBottom: 0 },
   sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
 
   // Data rows
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
-  rowGroup: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.primaryLt },
+  rowGroup: { flexDirection: 'row', paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowTotal: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.primary },
   rowGrandTotal: { flexDirection: 'row', borderTopWidth: 1.5, borderTopColor: C.primary, paddingVertical: 7, paddingHorizontal: 8, marginTop: 4 },
 

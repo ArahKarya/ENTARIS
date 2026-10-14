@@ -17,7 +17,7 @@ const S = StyleSheet.create({
   reportPeriod: { fontSize: 7.5, color: C.muted, textAlign: 'right', marginTop: 2 },
   reportDate: { fontSize: 7, color: C.faint, textAlign: 'right', marginTop: 1 },
   divider: { height: 1.5, backgroundColor: C.primary, marginBottom: 10, marginTop: 6 },
-  sectionHeader: { backgroundColor: C.primaryLt, borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 4, paddingHorizontal: 8, marginTop: 8, marginBottom: 0 },
+  sectionHeader: { borderLeftWidth: 3, borderLeftColor: C.primary, paddingVertical: 4, paddingHorizontal: 8, marginTop: 8, marginBottom: 0 },
   sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.primary, letterSpacing: 0.5 },
   thRow: { flexDirection: 'row', backgroundColor: C.bgLight, paddingVertical: 3.5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   th: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.muted },
