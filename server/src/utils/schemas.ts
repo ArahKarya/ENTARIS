@@ -1020,6 +1020,19 @@ export const PaymentRequestInputSchema = z.object({
   lines: z.array(PaymentRequestLineSchema).max(100, 'Maksimal 100 baris rincian.'),
 });
 
+// Lampiran via JSON untuk tool MCP: isi berkas base64 ATAU rujukan lampiran panel chat (tanpa keduanya: lampiran chat terbaru).
+// Batas body MCP 256 KB; base64 ~33% lebih besar, jadi berkas > ~180 KB wajib lewat jalur chat.
+export const PaymentRequestAttachmentJsonSchema = z
+  .object({
+    fileName: z.string().trim().min(1).max(255).optional(),
+    contentBase64: z.string().min(8, 'contentBase64 kosong.').optional(),
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']).optional(),
+    chatAttachmentId: z.string().min(1).max(100).optional(),
+    scope: z.enum(['request', 'settlement']).optional(),
+  })
+  .refine((b) => !(b.contentBase64 && b.chatAttachmentId), { message: 'Pilih salah satu: contentBase64 atau chatAttachmentId.' })
+  .refine((b) => !b.contentBase64 || !!b.fileName, { message: 'fileName wajib bila contentBase64 diisi.' });
+
 // Pertanggungjawaban uang muka / perjalanan dinas (settlement)
 export const PaymentRequestSettlementLineSchema = z.object({
   description: z.string().trim().min(1, 'Uraian realisasi wajib diisi.').max(500),
