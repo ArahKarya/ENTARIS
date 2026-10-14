@@ -23,11 +23,17 @@ import {
   ATTACHMENT_MIME,
   contentDisposition,
   deleteAttachment,
-  detectMimeFromMagicBytes,
   getFullPath,
-  saveAttachment,
 } from '../utils/fileStorage';
 import {
+  PR_MAX_FILE_SIZE,
+  addPaymentRequestAttachments,
+  fileFromBase64,
+  fileFromChat,
+  type AttachmentScope,
+} from '../services/paymentRequestAttachments';
+import {
+  PaymentRequestAttachmentJsonSchema,
   PaymentRequestDecisionSchema,
   PaymentRequestInputSchema,
   PaymentRequestPaySchema,
@@ -99,11 +105,9 @@ const router = Router();
 // Tagihan EAM (finance only) — registered before the '/:id' routes.
 router.use('/eam', eamRoutes);
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // same limits as /api/attachments
-const MAX_FILES_PER_REQUEST = 10;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_FILE_SIZE, files: 5 },
+  limits: { fileSize: PR_MAX_FILE_SIZE, files: 5 },
   fileFilter: (_req, file, cb) => {
     if (ATTACHMENT_MIME.includes(file.mimetype)) cb(null, true);
     else cb(new BusinessError(`Tipe file tidak didukung: ${file.mimetype}. Hanya JPG, PNG, WebP, dan PDF.`));
@@ -581,38 +585,34 @@ router.post('/:id/attachments', uploadFiles, async (req: AuthRequest, res) => {
     const editable = scope === 'SETTLEMENT' ? checkSettlementEditable(pr, ctx.id) : checkEditable(pr, ctx.id);
     if (!editable.ok) return res.status(400).json({ error: editable.error });
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
-    if (files.length === 0) return res.status(400).json({ error: 'Tidak ada file yang diupload.' });
-    const existing = await prisma.paymentRequestAttachment.count({ where: { paymentRequestId: id, scope } });
-    if (existing + files.length > MAX_FILES_PER_REQUEST) {
-      return res.status(400).json({ error: `Maksimal ${MAX_FILES_PER_REQUEST} lampiran per pengajuan.` });
-    }
-    for (const f of files) {
-      const detected = detectMimeFromMagicBytes(f.buffer);
-      if (!detected || detected !== f.mimetype) {
-        return res.status(400).json({ error: `File "${f.originalname}" tidak dikenali sebagai JPG/PNG/WebP/PDF.` });
-      }
-    }
-    const created = [];
-    for (const f of files) {
-      const saved = await saveAttachment(f.buffer, f.originalname, f.mimetype);
-      created.push(
-        await prisma.paymentRequestAttachment.create({
-          data: {
-            paymentRequestId: id,
-            fileName: f.originalname.slice(0, 255),
-            storedName: saved.storedName,
-            mimeType: saved.mimeType,
-            fileSize: saved.fileSize,
-            filePath: saved.filePath,
-            uploadedBy: ctx.id,
-            scope,
-          },
-        }),
-      );
-    }
+    const created = await addPaymentRequestAttachments(id, scope, ctx.id, files);
     return res.status(201).json(created);
   } catch (error) {
     return fail(res, error, 'POST /payment-requests/:id/attachments', 'Gagal mengupload lampiran.');
+  }
+});
+
+// Jalur JSON untuk tool MCP/AIRA (multipart tidak bisa lewat tool). Dua mode, aturan validasi sama dengan jalur UI:
+//  - contentBase64 (+fileName): berkas kecil dibawa di argumen (batas body MCP 256 KB ≈ 180 KB berkas);
+//  - chatAttachmentId, atau tanpa keduanya: salin lampiran dari panel chat Entaris milik pengguna yang sama.
+router.post('/:id/attachments/json', async (req: AuthRequest, res) => {
+  try {
+    const body = validateBody(PaymentRequestAttachmentJsonSchema, req.body, res);
+    if (!body) return;
+    const ctx = await viewerOf(req);
+    const id = req.params.id as string;
+    const pr = await visibleRequest(id, ctx);
+    const scope: AttachmentScope = body.scope === 'settlement' ? 'SETTLEMENT' : 'REQUEST';
+    const editable = scope === 'SETTLEMENT' ? checkSettlementEditable(pr, ctx.id) : checkEditable(pr, ctx.id);
+    if (!editable.ok) return res.status(400).json({ error: editable.error });
+    const file = body.contentBase64
+      ? fileFromBase64(body.fileName ?? 'lampiran', body.contentBase64, body.mimeType)
+      : await fileFromChat(ctx.id, { chatAttachmentId: body.chatAttachmentId, ref: req.user!.mcpRef });
+    if (body.fileName && !body.contentBase64) file.originalname = body.fileName;
+    const created = await addPaymentRequestAttachments(id, scope, ctx.id, [file]);
+    return res.status(201).json(created);
+  } catch (error) {
+    return fail(res, error, 'POST /payment-requests/:id/attachments/json', 'Gagal melampirkan berkas.');
   }
 });
 

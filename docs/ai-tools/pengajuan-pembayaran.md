@@ -2,7 +2,7 @@
 
 > Dibangkitkan otomatis dari `server/src/ai/aira-tool-router.json` — jangan edit manual. Panduan alur: `docs/ai-tools/_guides/`.
 
-Endpoint MCP target: `/mcp/pengajuan-pembayaran` · 31 tool (read 9, write 10, critical 12)
+Endpoint MCP target: `/mcp/pengajuan-pembayaran` · 32 tool (read 9, write 11, critical 12)
 
 ## Tujuan
 
@@ -115,6 +115,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 | [`eambill_summary`](#eambill_summary) | read | - | `GET /api/payment-requests/eam/summary` |
 | [`payreq_advances_summary`](#payreq_advances_summary) | read | - | `GET /api/payment-requests/advances/summary` |
 | [`payreq_approve`](#payreq_approve) | critical | tidak | `POST /api/payment-requests/:id/approve` |
+| [`payreq_attachment_add`](#payreq_attachment_add) | write | tidak | `POST /api/payment-requests/:id/attachments/json` |
 | [`payreq_attachment_delete`](#payreq_attachment_delete) | write | tidak | `DELETE /api/payment-requests/:id/attachments/:attId` |
 | [`payreq_cancel`](#payreq_cancel) | critical | tidak | `POST /api/payment-requests/:id/cancel` |
 | [`payreq_cancel_payment`](#payreq_cancel_payment) | critical | tidak | `POST /api/payment-requests/:id/cancel-payment` |
@@ -458,9 +459,71 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 
 **Tool terkait:** [`payreq_reject`](#payreq_reject), [`payreq_return`](#payreq_return), [`payreq_set_accounts`](#payreq_set_accounts), [`payreq_pay`](#payreq_pay)
 
+### payreq_attachment_add
+
+**Ringkasan:** Melampirkan SATU berkas (JPG/PNG/WebP/PDF, maks. 5 MB) ke pengajuan yang masih editable (DRAFT/REVISION; scope=settlement untuk pertanggungjawaban). Dua cara: (1) tanpa contentBase64 → salin lampiran dari panel chat Entaris pengguna ini (default: lampiran pada pesan chat saat ini, atau pilih dengan chatAttachmentId); (2) contentBase64+fileName → isi berkas dibawa langsung (batas body MCP 256 KB ≈ 180 KB berkas; berkas lebih besar wajib lewat cara 1). Jenis berkas ditentukan dari isi, bukan nama. Jenis pengajuan yang mewajibkan lampiran (requiresAttachment) baru bisa di-submit setelah ini.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** tidak (efek langsung)
+- **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
+- **Catatan akses:** Pengaju, hanya saat pengajuan (atau pertanggungjawaban bila scope=settlement) masih bisa diedit. Lampiran chat harus milik pengguna yang sama.
+- **Handler:** `POST /api/payment-requests/:id/attachments/json` (src/routes/paymentRequests.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID pengajuan (UUID). |
+| `fileName` | body | `string` | tidak | Nama berkas (wajib bila contentBase64 diisi; opsional untuk mengganti nama lampiran chat). |
+| `contentBase64` | body | `string` | tidak | Isi berkas base64 (tanpa/dengan prefix data:). Maks. ±180 KB karena batas body MCP; kosongkan untuk memakai lampiran panel chat. |
+| `mimeType` | body | `string` | tidak | Petunjuk jenis (image/jpeg, image/png, image/webp, application/pdf); ditolak bila tak cocok dengan isi berkas. |
+| `chatAttachmentId` | body | `string` | tidak | ID lampiran panel chat milik pengguna ini. Kosong → lampiran pada pesan chat yang sedang berjalan. |
+| `scope` | body | `string` | tidak | 'request' (default, bukti pengajuan) atau 'settlement' (bukti pertanggungjawaban). |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "payreq_attachment_add",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Lampirkan berkas {fileName} ke pengajuan <id>?"
+}
+```
+
+**Isi hasil:** Metadata lampiran yang tersimpan (id, fileName, mimeType, fileSize, scope).
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok; berkas tersimpan sebagai lampiran pengajuan.
+
+**Teks konfirmasi:** Lampirkan berkas {fileName} ke pengajuan {id}?
+
+**Error umum**
+
+- 400: Tidak ada lampiran pada pesan chat ini
+- 400: Maksimal 10 lampiran per pengajuan
+- 400: File tidak dikenali sebagai JPG/PNG/WebP/PDF
+- 400: Ukuran file maksimal 5 MB
+- 400: pengajuan tidak bisa diedit
+- 413: body MCP > 256 KB (pakai lampiran chat)
+
+**Tool terkait:** [`payreq_get`](#payreq_get), [`payreq_submit`](#payreq_submit), [`payreq_attachment_delete`](#payreq_attachment_delete)
+
 ### payreq_attachment_delete
 
-**Ringkasan:** Menghapus satu lampiran (nota/kuitansi) dari pengajuan yang masih editable. Hanya metadata/berkas lampiran; unggah dan unduh berkas tidak tersedia sebagai tool.
+**Ringkasan:** Menghapus satu lampiran (nota/kuitansi) dari pengajuan yang masih editable. Hanya metadata/berkas lampiran. Untuk menambah lampiran gunakan payreq_attachment_add; unduh berkas tidak tersedia sebagai tool.
 
 - **Risk / tier:** `write` / Draft/Approve
 - **Draft-capable:** tidak (efek langsung)
@@ -1433,7 +1496,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 
 ### payreq_settlement_submit
 
-**Ringkasan:** Pengaju mengajukan pertanggungjawaban: settlementStatus → SUBMITTED (menunggu atasan) atau langsung PENDING_FINANCE bila tidak ada atasan aktif. Butuh minimal satu baris realisasi dengan total > 0.
+**Ringkasan:** Pengaju mengajukan pertanggungjawaban: settlementStatus → SUBMITTED (menunggu atasan) atau langsung PENDING_FINANCE bila tidak ada atasan aktif. Butuh minimal satu baris realisasi dengan total > 0. Jenis yang mewajibkan lampiran (requiresAttachment) ditolak sebelum ada lampiran: lampirkan dulu dengan payreq_attachment_add.
 
 - **Risk / tier:** `write` / Draft/Approve
 - **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
@@ -1477,7 +1540,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 
 **Teks konfirmasi:** Ajukan pertanggungjawaban uang muka {id} ke persetujuan?
 
-**Tool terkait:** [`payreq_settlement_save`](#payreq_settlement_save), [`payreq_settlement_approve`](#payreq_settlement_approve)
+**Tool terkait:** [`payreq_attachment_add`](#payreq_attachment_add), [`payreq_settlement_approve`](#payreq_settlement_approve), [`payreq_settlement_save`](#payreq_settlement_save)
 
 ### payreq_submit
 

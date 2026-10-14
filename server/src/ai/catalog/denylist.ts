@@ -142,7 +142,7 @@ export const DENY_RULES: DenyRule[] = [
     id: 'file-payment-request',
     category: 'file-biner',
     exact: ['POST /api/payment-requests/:id/attachments', 'GET /api/payment-requests/attachments/:attId'],
-    reason: 'Unggah lampiran (multipart) dan unduh lampiran (sendFile) Pengajuan Pembayaran. Metadata lampiran tersedia di payreq_get.',
+    reason: 'Unggah multipart dan unduh (sendFile) lampiran Pengajuan Pembayaran. Unggah lewat tool memakai rute JSON terpisah (payreq_attachment_add). Metadata lampiran tersedia di payreq_get.',
   },
   {
     id: 'report-export-binary',

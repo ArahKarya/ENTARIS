@@ -1369,11 +1369,103 @@
       ]
     },
     {
+      "name": "payreq_attachment_add",
+      "group": "Bank & Kas",
+      "toolset": "pengajuan-pembayaran",
+      "module": "payment_request",
+      "desc": "Melampirkan SATU berkas (JPG/PNG/WebP/PDF, maks. 5 MB) ke pengajuan yang masih editable (DRAFT/REVISION; scope=settlement untuk pertanggungjawaban). Dua cara: (1) tanpa contentBase64 → salin lampiran dari panel chat Entaris pengguna ini (default: lampiran pada pesan chat saat ini, atau pilih dengan chatAttachmentId); (2) contentBase64+fileName → isi berkas dibawa langsung (batas body MCP 256 KB ≈ 180 KB berkas; berkas lebih besar wajib lewat cara 1). Jenis berkas ditentukan dari isi, bukan nama. Jenis pengajuan yang mewajibkan lampiran (requiresAttachment) baru bisa di-submit setelah ini.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string",
+        "fileName": "string",
+        "contentBase64": "string",
+        "mimeType": "string",
+        "chatAttachmentId": "string",
+        "scope": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID pengajuan (UUID)."
+        },
+        {
+          "name": "fileName",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Nama berkas (wajib bila contentBase64 diisi; opsional untuk mengganti nama lampiran chat)."
+        },
+        {
+          "name": "contentBase64",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Isi berkas base64 (tanpa/dengan prefix data:). Maks. ±180 KB karena batas body MCP; kosongkan untuk memakai lampiran panel chat."
+        },
+        {
+          "name": "mimeType",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Petunjuk jenis (image/jpeg, image/png, image/webp, application/pdf); ditolak bila tak cocok dengan isi berkas."
+        },
+        {
+          "name": "chatAttachmentId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID lampiran panel chat milik pengguna ini. Kosong → lampiran pada pesan chat yang sedang berjalan."
+        },
+        {
+          "name": "scope",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "'request' (default, bukti pengajuan) atau 'settlement' (bukti pertanggungjawaban)."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "Metadata lampiran yang tersimpan (id, fileName, mimeType, fileSize, scope).",
+      "handler": "POST /api/payment-requests/:id/attachments/json",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 1,
+      "draftCapable": false,
+      "postingEffect": "Tidak ada efek GL/stok; berkas tersimpan sebagai lampiran pengajuan.",
+      "confirm_template": "Lampirkan berkas {fileName} ke pengajuan {id}?",
+      "accessNote": "Pengaju, hanya saat pengajuan (atau pertanggungjawaban bila scope=settlement) masih bisa diedit. Lampiran chat harus milik pengguna yang sama.",
+      "related": [
+        "payreq_get",
+        "payreq_submit",
+        "payreq_attachment_delete"
+      ],
+      "errors": [
+        "400: Tidak ada lampiran pada pesan chat ini",
+        "400: Maksimal 10 lampiran per pengajuan",
+        "400: File tidak dikenali sebagai JPG/PNG/WebP/PDF",
+        "400: Ukuran file maksimal 5 MB",
+        "400: pengajuan tidak bisa diedit",
+        "413: body MCP > 256 KB (pakai lampiran chat)"
+      ]
+    },
+    {
       "name": "payreq_attachment_delete",
       "group": "Bank & Kas",
       "toolset": "pengajuan-pembayaran",
       "module": "payment_request",
-      "desc": "Menghapus satu lampiran (nota/kuitansi) dari pengajuan yang masih editable. Hanya metadata/berkas lampiran; unggah dan unduh berkas tidak tersedia sebagai tool.",
+      "desc": "Menghapus satu lampiran (nota/kuitansi) dari pengajuan yang masih editable. Hanya metadata/berkas lampiran. Untuk menambah lampiran gunakan payreq_attachment_add; unduh berkas tidak tersedia sebagai tool.",
       "risk": "write",
       "roles": [
         "Admin",
@@ -22733,7 +22825,7 @@
       "group": "Bank & Kas",
       "toolset": "pengajuan-pembayaran",
       "module": "payment_request",
-      "desc": "Pengaju mengajukan pertanggungjawaban: settlementStatus → SUBMITTED (menunggu atasan) atau langsung PENDING_FINANCE bila tidak ada atasan aktif. Butuh minimal satu baris realisasi dengan total > 0.",
+      "desc": "Pengaju mengajukan pertanggungjawaban: settlementStatus → SUBMITTED (menunggu atasan) atau langsung PENDING_FINANCE bila tidak ada atasan aktif. Butuh minimal satu baris realisasi dengan total > 0. Jenis yang mewajibkan lampiran (requiresAttachment) ditolak sebelum ada lampiran: lampirkan dulu dengan payreq_attachment_add.",
       "risk": "write",
       "roles": [
         "Admin",
@@ -22767,8 +22859,9 @@
       "confirm_template": "Ajukan pertanggungjawaban uang muka {id} ke persetujuan?",
       "accessNote": "Hanya pengaju.",
       "related": [
-        "payreq_settlement_save",
-        "payreq_settlement_approve"
+        "payreq_attachment_add",
+        "payreq_settlement_approve",
+        "payreq_settlement_save"
       ]
     },
     {
