@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-10-14
+
+AIRA bisa melampirkan berkas ke Pengajuan Pembayaran, sehingga draf jenis wajib-lampiran bisa di-submit.
+
+### Ditambahkan
+- Tool MCP `payreq_attachment_add` dan rute `POST /api/payment-requests/:id/attachments/json`: melampirkan satu berkas ke pengajuan yang masih bisa diedit (scope `request` atau `settlement`). Berkas berasal dari lampiran panel chat Entaris milik pengguna yang sama (id lampiran, atau lampiran pada giliran chat yang sedang berjalan) atau dikirim sebagai base64 untuk berkas kecil (batas body MCP 256 KB). Draft-capable: melampirkan ke draf sendiri tidak masuk antrean persetujuan.
+
+### Diubah
+- Validasi lampiran (jumlah, ukuran, jenis dari magic byte) dipindah ke `services/paymentRequestAttachments.ts` dan dipakai bersama jalur unggah antarmuka web; perilaku antarmuka tidak berubah.
+
+### Catatan upgrade
+Tidak ada migrasi dan tidak ada variabel env baru.
+
 ## [4.1.2] - 2026-10-13
 
 Perbaikan STT yang tertaut ke PO: qty diterima di PO sekarang ikut bertambah, dan image Docker bisa dibangun dari awal lagi.
