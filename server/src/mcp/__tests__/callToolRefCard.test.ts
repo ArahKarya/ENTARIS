@@ -90,6 +90,17 @@ describe('watchTurn', () => {
     expect(w.calls().map((c) => c.name)).toEqual(['coa_list', 'kas_buat_draft_dari_baris']);
   });
 
+  it('hides the confirmation preview from the chips', async () => {
+    const seen: string[] = [];
+    m.findMany.mockResolvedValue([{ id: 'log-9', tool: 'pratinjau_tool', decision: 'allowed', card: null }]);
+    const w = watchTurn('s8:t8', { tool: (e) => seen.push(e.name), card: () => undefined }, 10_000);
+    m.recordCall.mockResolvedValue('log-8');
+    await handleToolCall(ctx('s8:t8'), 'pratinjau_tool', { tool: 'coa_list', args: {} });
+    await w.stop();
+    expect(seen).toEqual([]);
+    expect(w.calls()).toEqual([]);
+  });
+
   it('labels: meta tools and registry-derived Indonesian text', () => {
     expect(toolLabel('whoami')).toMatch(/identitas/);
     expect(toolLabel('coa_list')).toMatch(/…$/);

@@ -67,6 +67,9 @@ export interface TurnWatcher {
 
 const POLL_MS = 1_000;
 
+/** Pemeriksaan internal agen (pratinjau sebelum kartu konfirmasi): tidak ditampilkan sebagai chip. */
+const HIDDEN_TOOLS: ReadonlySet<string> = new Set(['pratinjau_tool']);
+
 export function watchTurn(ref: string, sink: ToolSink, pollMs: number = POLL_MS): TurnWatcher {
   const seen = new Set<string>();
   const calls: CollectedCall[] = [];
@@ -77,6 +80,7 @@ export function watchTurn(ref: string, sink: ToolSink, pollMs: number = POLL_MS)
     const key = e.callId ?? `anon-${anon++}`;
     if (seen.has(key)) return;
     seen.add(key);
+    if (HIDDEN_TOOLS.has(e.tool)) return;
     const state = endState(e.decision);
     const label = toolLabel(e.tool);
     calls.push({ name: e.tool, state, label });
@@ -90,7 +94,9 @@ export function watchTurn(ref: string, sink: ToolSink, pollMs: number = POLL_MS)
 
   const off = onCall((e: CallEvent) => {
     if (e.ref !== ref) return;
-    if (e.phase === 'start') sink.tool({ name: e.tool, label: toolLabel(e.tool), state: 'start' });
+    if (e.phase === 'start') {
+      if (!HIDDEN_TOOLS.has(e.tool)) sink.tool({ name: e.tool, label: toolLabel(e.tool), state: 'start' });
+    }
     else finish(e);
   });
 
