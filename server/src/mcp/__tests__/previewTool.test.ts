@@ -19,7 +19,7 @@ vi.mock('../callLog', async () => ({ ...(await vi.importActual<typeof import('..
 import { handleToolCall, type CallContext } from '../callTool';
 import { metaToolDefs } from '../meta';
 import { DRAFT_ONLY_TOOLS } from '../preview';
-import registry from '../../ai/aira-tool-router.json';
+import { getTool } from '../../ai/registry';
 
 const ctx = (airaTier = 'standard'): CallContext => ({
   token: { id: 't1', name: 'aira-dev' } as never,
@@ -81,9 +81,8 @@ describe('pratinjau_tool', () => {
   });
 
   it('every draft-only tool is a non-delete write in the registry', () => {
-    const tools = (Array.isArray(registry) ? registry : (registry as { tools: unknown[] }).tools) as Array<{ name: string; risk: string; handler: string }>;
     for (const name of DRAFT_ONLY_TOOLS) {
-      const tool = tools.find((t) => t.name === name);
+      const tool = getTool(name);
       expect(tool, name).toBeDefined();
       expect(tool?.risk, name).toBe('write');
       expect(tool?.handler.startsWith('DELETE'), name).toBe(false);
