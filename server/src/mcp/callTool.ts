@@ -174,7 +174,7 @@ async function checkDomainCall(
 async function previewDomainTool(ctx: CallContext, rawArgs: Record<string, unknown>): Promise<Outcome> {
   const name = typeof rawArgs.tool === 'string' ? rawArgs.tool : '';
   if (!name || isMetaTool(name)) {
-    return { result: errorResult(name ? `'${name}' bukan tool domain.` : 'Argumen tool wajib diisi.'), decision: 'denied' };
+    return { result: errorResult(name ? `'${name}' bukan tool domain.` : 'Argumen tool wajib diisi.'), decision: 'denied', error: 'bad_preview_target' };
   }
   const checked = await checkDomainCall(ctx, name, isPlainObject(rawArgs.args) ? rawArgs.args : {});
   if (!checked.ok) return checked.outcome;

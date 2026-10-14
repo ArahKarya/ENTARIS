@@ -18,6 +18,8 @@ vi.mock('../callLog', async () => ({ ...(await vi.importActual<typeof import('..
 
 import { handleToolCall, type CallContext } from '../callTool';
 import { metaToolDefs } from '../meta';
+import { DRAFT_ONLY_TOOLS } from '../preview';
+import registry from '../../ai/aira-tool-router.json';
 
 const ctx = (airaTier = 'standard'): CallContext => ({
   token: { id: 't1', name: 'aira-dev' } as never,
@@ -65,6 +67,29 @@ describe('pratinjau_tool', () => {
     expect(sc(read)).toMatchObject({ tindakan: 'baca', perlu_konfirmasi: false });
   });
 
+  it('deletes, posts and critical draft-capable tools still need a card', async () => {
+    const del = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'po_delete', args: { id: 'po-1' } });
+    expect(sc(del)).toMatchObject({ tindakan: 'langsung', perlu_konfirmasi: true });
+    const post = await handleToolCall(ctx('direct'), 'pratinjau_tool', { tool: 'prod_draft_post', args: { id: 'd-1' } });
+    expect(sc(post)).toMatchObject({ perlu_konfirmasi: true });
+  });
+
+  it('a group chat lowers direct to the approval queue', async () => {
+    const group = { ...ctx('direct'), actor: { ...ctx('direct').actor, groupFloor: true } } as CallContext;
+    const r = await handleToolCall(group, 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: 'DKB-1' } });
+    expect(sc(r)).toMatchObject({ tindakan: 'persetujuan', perlu_konfirmasi: true });
+  });
+
+  it('every draft-only tool is a non-delete write in the registry', () => {
+    const tools = (Array.isArray(registry) ? registry : (registry as { tools: unknown[] }).tools) as Array<{ name: string; risk: string; handler: string }>;
+    for (const name of DRAFT_ONLY_TOOLS) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool, name).toBeDefined();
+      expect(tool?.risk, name).toBe('write');
+      expect(tool?.handler.startsWith('DELETE'), name).toBe(false);
+    }
+  });
+
   it('refuses what the real call would refuse', async () => {
     const missing = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'kas_draft_posting', args: {} });
     expect(missing.isError).toBe(true);
@@ -74,5 +99,8 @@ describe('pratinjau_tool', () => {
     expect(meta.isError).toBe(true);
     const viaWrapper = await handleToolCall(ctx(), 'panggil_tool', { tool: 'pratinjau_tool', args: {} });
     expect(viaWrapper.isError).toBe(true);
+    expect(m.callHandler).not.toHaveBeenCalled();
+    expect(m.queueToolCall).not.toHaveBeenCalled();
+    expect(m.recordCall.mock.calls.map((c) => c[0].risk)).toEqual(['read', 'read', 'read', 'read']);
   });
 });

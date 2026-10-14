@@ -103,7 +103,7 @@ Sebelum memanggil tool tulis, klien dapat memanggil `pratinjau_tool({tool, args}
 | Field | Isi |
 |---|---|
 | `tindakan` | `baca`, `draft` (hanya membuat draft), `persetujuan` (masuk antrean Persetujuan), atau `langsung` (dieksekusi saat dipanggil) |
-| `perlu_konfirmasi` | `true` untuk `persetujuan` dan `langsung`; klien menampilkan kartu Ya/Batal dan baru memanggil tool setelah pengguna menekan Ya |
+| `perlu_konfirmasi` | `true` untuk `persetujuan` dan `langsung` (hanya tool di daftar draft murni `DRAFT_ONLY_TOOLS` yang berstatus `draft`); klien menampilkan kartu Ya/Batal dan baru memanggil tool setelah pengguna menekan Ya |
 | `konfirmasi` | teks resmi dari `confirm_template`, dirender dengan argumen; bukan buatan model |
 | `efek`, `rincian` | efek pembukuan/stok dan argumen skalar (array = jumlah baris) untuk ditampilkan di kartu |
 

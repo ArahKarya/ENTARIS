@@ -1,6 +1,8 @@
-// Pratinjau satu panggilan tool domain TANPA menjalankannya: dipakai agen untuk menampilkan kartu
-// konfirmasi ("Ajukan PO ...? Ya/Batal") sebelum panggilan sungguhan. Teks kartu berasal dari
-// confirm_template registry, bukan dari model, jadi model tidak bisa menyamarkan isi aksinya.
+// Pratinjau satu panggilan tool domain TANPA menjalankannya: dipakai klien agen untuk menampilkan
+// kartu konfirmasi ("Ajukan PO ...? Ya/Batal") sebelum panggilan sungguhan. Teks kartu berasal dari
+// confirm_template registry, bukan dari model. Kartu ditegakkan oleh klien (klien yang memanggil
+// pratinjau lalu tool dengan argumen yang sama); pemeriksaan di sini sama dengan panggilan sungguhan
+// sebatas tier, RBAC dan argumen, bukan aturan bisnis handler (periode tutup, data tidak ada).
 
 import type { ToolDef, ToolParam } from '../ai/types';
 import { renderConfirm } from './queue';
@@ -8,6 +10,19 @@ import type { ToolDecision } from './policy';
 
 const MAX_FACTS = 8;
 const MAX_VALUE_CHARS = 80;
+
+/**
+ * Tool tulis yang HANYA membuat/mengubah dokumen draft (tanpa GL/stok/WAC, belum diajukan): tidak
+ * perlu kartu. Daftar eksplisit, bukan turunan `draftCapable` (flag itu juga dipasang pada hapus,
+ * submit dan posting). Tool baru otomatis butuh kartu sampai ditambahkan di sini.
+ */
+export const DRAFT_ONLY_TOOLS: ReadonlySet<string> = new Set([
+  'kas_buat_draft_dari_baris', 'kas_draft_tambah_baris', 'kas_draft_ubah_baris', 'kas_draft_ubah_header',
+  'prod_draft_create', 'prod_draft_update',
+  'po_create', 'po_update', 'so_create', 'so_update', 'quot_create', 'quot_update', 'inq_create', 'inq_update',
+  'gmr_create', 'gmr_create_from_wo', 'gmr_update',
+  'payreq_create', 'payreq_update', 'payreq_settlement_save', 'payreq_attachment_add',
+]);
 
 export type PreviewAction = 'baca' | 'draft' | 'persetujuan' | 'langsung';
 
@@ -25,10 +40,10 @@ export interface ToolPreview {
   rincian: Array<{ label: string; value: string }>;
 }
 
-function action(tool: Pick<ToolDef, 'risk' | 'draftCapable'>, decision: Exclude<ToolDecision, 'deny'>): PreviewAction {
+function action(tool: Pick<ToolDef, 'name' | 'risk'>, decision: Exclude<ToolDecision, 'deny'>): PreviewAction {
   if (tool.risk === 'read') return 'baca';
   if (decision === 'queue') return 'persetujuan';
-  return tool.draftCapable ? 'draft' : 'langsung';
+  return tool.risk === 'write' && DRAFT_ONLY_TOOLS.has(tool.name) ? 'draft' : 'langsung';
 }
 
 function display(value: unknown): string | undefined {
@@ -39,10 +54,11 @@ function display(value: unknown): string | undefined {
   return text.length > MAX_VALUE_CHARS ? `${text.slice(0, MAX_VALUE_CHARS - 1)}…` : text;
 }
 
-/** Argumen skalar (dan jumlah baris array) dalam urutan parameter terdokumentasi. */
+/** Argumen skalar (dan jumlah baris array) dalam urutan parameter terdokumentasi; argumen yang
+ *  tidak dikenal tool (diabaikan saat dipanggil) tidak ditampilkan. */
 function facts(params: ToolParam[] | undefined, args: Record<string, unknown>): ToolPreview['rincian'] {
   const known = (params ?? []).map((p) => p.name);
-  const order = [...known.filter((n) => n in args), ...Object.keys(args).filter((n) => !known.includes(n))];
+  const order = known.length ? known.filter((n) => n in args) : Object.keys(args);
   const out: ToolPreview['rincian'] = [];
   for (const name of order) {
     const value = display(args[name]);
@@ -60,7 +76,7 @@ export function buildPreview(tool: ToolDef, decision: Exclude<ToolDecision, 'den
     judul: tool.desc,
     risk: tool.risk,
     tindakan,
-    // Draft tidak berefek GL/stok dan ditinjau manusia saat posting: tanpa kartu.
+    // Draft murni tidak berefek GL/stok dan ditinjau manusia saat diajukan: tanpa kartu.
     perlu_konfirmasi: tindakan === 'persetujuan' || tindakan === 'langsung',
     konfirmasi: renderConfirm(tool.confirm_template, args) || `Jalankan ${tool.name}?`,
     ...(tool.postingEffect ? { efek: tool.postingEffect } : {}),
