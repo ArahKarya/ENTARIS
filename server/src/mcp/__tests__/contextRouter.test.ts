@@ -176,7 +176,7 @@ describe('POST /mcp (HTTP gates)', () => {
   it('compact mode lists only the meta tools (+ panggil_tool)', async () => {
     const r = await post(LIST, { ...assertion(), 'x-entaris-tools': 'compact' });
     const names = ((await r.json()) as any).result.tools.map((t: any) => t.name);
-    expect(names).toEqual(['cari_tool', 'dokumen_tool', 'whoami', 'panggil_tool']);
+    expect(names).toEqual(['cari_tool', 'dokumen_tool', 'whoami', 'pratinjau_tool', 'panggil_tool']);
   });
 
   it('oversized body -> 413 JSON-RPC error; invalid JSON -> 400; GET/DELETE -> 405; health is open', async () => {
@@ -193,7 +193,7 @@ describe('POST /mcp (HTTP gates)', () => {
   it('compact tools/list needs no actor (static meta tools only); full list still does', async () => {
     const compact = await post(LIST, { 'x-entaris-tools': 'compact' });
     expect(compact.status).toBe(200);
-    expect(((await compact.json()) as any).result.tools.map((t: any) => t.name)).toEqual(['cari_tool', 'dokumen_tool', 'whoami', 'panggil_tool']);
+    expect(((await compact.json()) as any).result.tools.map((t: any) => t.name)).toEqual(['cari_tool', 'dokumen_tool', 'whoami', 'pratinjau_tool', 'panggil_tool']);
     expect((await post(LIST)).status).toBe(401);
   });
 

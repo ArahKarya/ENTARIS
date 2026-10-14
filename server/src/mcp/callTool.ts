@@ -13,9 +13,10 @@ import type { ActorContext } from './context';
 import { callHandler, ArgsError, missingRequired, validateArgs } from './execute';
 import { cariTool, dokumenTool, isMetaTool, whoami, type MetaResult } from './meta';
 import { effectiveUserTier } from './policy';
+import { buildPreview } from './preview';
 import { queueToolCall } from './queue';
 import { formatHandlerResult, type AgentResult } from './resultFormat';
-import { allowedToolsFor, decideCall, loadActiveTools } from './toolAccess';
+import { allowedToolsFor, decideCall, loadActiveTools, type CallVerdict, type ToolEntry } from './toolAccess';
 
 export interface CallContext {
   token: McpToken;
@@ -71,6 +72,9 @@ export async function handleToolCall(ctx: CallContext, name: string, rawArgs: un
         risk = r.risk;
         idemKey = r.idemKey;
       }
+    } else if (name === 'pratinjau_tool') {
+      // Dicatat atas nama pratinjau_tool (risk read): tidak ada yang dijalankan.
+      out = await previewDomainTool(ctx, args);
     } else if (isMetaTool(name)) {
       out = { result: await runMeta(ctx, name, args), decision: 'allowed' };
     } else {
@@ -121,15 +125,23 @@ async function runMeta(ctx: CallContext, name: string, args: Record<string, unkn
   return fromMeta(whoami(ctx.actor, ctx.token.name, allowed, identity?.text));
 }
 
-async function runDomainTool(
+interface CheckedCall {
+  entry: ToolEntry;
+  verdict: Exclude<CallVerdict, { decision: 'deny' }>;
+  args: Record<string, unknown>;
+  idempotencyKey: unknown;
+}
+
+/** Tool aktif, tier + RBAC, argumen wajib dan valid: sama untuk panggilan dan pratinjau. */
+async function checkDomainCall(
   ctx: CallContext,
   name: string,
   rawArgs: Record<string, unknown>,
-): Promise<{ outcome: Outcome; risk: string; idemKey?: string }> {
-  const started = Date.now();
+): Promise<{ ok: true; call: CheckedCall } | { ok: false; risk: string; outcome: Outcome }> {
   const entry = (await loadActiveTools()).find((e) => e.tool.name === name);
   if (!entry) {
     return {
+      ok: false,
       risk: 'read',
       outcome: { result: errorResult(`Tool '${name}' tidak tersedia (tidak terdaftar, dinonaktifkan, atau termasuk denylist). Gunakan cari_tool.`), decision: 'denied', error: 'tool_not_available' },
     };
@@ -140,22 +152,46 @@ async function runDomainTool(
     const msg = verdict.reason === 'tier'
       ? `Level akses AIRA Anda (${effectiveUserTier(ctx.actor.airaTier, ctx.actor.groupFloor)}) hanya mengizinkan tool baca. Tool '${name}' bersifat ${tool.risk}.`
       : `Akses ditolak: peran ${ctx.actor.role} tidak memiliki izin untuk '${name}' (modul ${tool.module}).`;
-    return { risk: tool.risk, outcome: { result: errorResult(msg), decision: 'denied', error: verdict.reason } };
+    return { ok: false, risk: tool.risk, outcome: { result: errorResult(msg), decision: 'denied', error: verdict.reason } };
   }
 
   const { idempotencyKey, ...args } = rawArgs;
   if (idempotencyKey !== undefined && (typeof idempotencyKey !== 'string' || idempotencyKey.length < 1 || idempotencyKey.length > 100)) {
-    return { risk: tool.risk, outcome: { result: errorResult('idempotencyKey harus teks 1-100 karakter.'), decision: 'error', httpStatus: 400, error: 'bad_idempotency_key' } };
+    return { ok: false, risk: tool.risk, outcome: { result: errorResult('idempotencyKey harus teks 1-100 karakter.'), decision: 'error', httpStatus: 400, error: 'bad_idempotency_key' } };
   }
   const missing = missingRequired(tool, args);
   if (missing.length) {
-    return { risk: tool.risk, outcome: { result: errorResult(`Argumen wajib belum diisi: ${missing.join(', ')}. Lihat dokumen_tool(name="${name}").`), decision: 'error', httpStatus: 400, error: 'missing_args' } };
+    return { ok: false, risk: tool.risk, outcome: { result: errorResult(`Argumen wajib belum diisi: ${missing.join(', ')}. Lihat dokumen_tool(name="${name}").`), decision: 'error', httpStatus: 400, error: 'missing_args' } };
   }
 
   const invalid = validateArgs(tool, args);
   if (invalid.length) {
-    return { risk: tool.risk, outcome: { result: errorResult(`Argumen tidak valid: ${invalid.join('; ')}.`), decision: 'error', httpStatus: 400, error: 'invalid_args' } };
+    return { ok: false, risk: tool.risk, outcome: { result: errorResult(`Argumen tidak valid: ${invalid.join('; ')}.`), decision: 'error', httpStatus: 400, error: 'invalid_args' } };
   }
+  return { ok: true, call: { entry, verdict, args, idempotencyKey } };
+}
+
+async function previewDomainTool(ctx: CallContext, rawArgs: Record<string, unknown>): Promise<Outcome> {
+  const name = typeof rawArgs.tool === 'string' ? rawArgs.tool : '';
+  if (!name || isMetaTool(name)) {
+    return { result: errorResult(name ? `'${name}' bukan tool domain.` : 'Argumen tool wajib diisi.'), decision: 'denied', error: 'bad_preview_target' };
+  }
+  const checked = await checkDomainCall(ctx, name, isPlainObject(rawArgs.args) ? rawArgs.args : {});
+  if (!checked.ok) return checked.outcome;
+  const { entry, verdict, args } = checked.call;
+  const structured = buildPreview(entry.tool, verdict.decision, args) as unknown as Record<string, unknown>;
+  return { result: { isError: false, structured, text: JSON.stringify(structured) }, decision: 'allowed' };
+}
+
+async function runDomainTool(
+  ctx: CallContext,
+  name: string,
+  rawArgs: Record<string, unknown>,
+): Promise<{ outcome: Outcome; risk: string; idemKey?: string }> {
+  const started = Date.now();
+  const checked = await checkDomainCall(ctx, name, rawArgs);
+  if (!checked.ok) return { risk: checked.risk, outcome: checked.outcome };
+  const { entry: { tool }, verdict, args, idempotencyKey } = checked.call;
 
   const baseLog = {
     tokenId: ctx.token.id,

@@ -94,7 +94,7 @@ describe('inputSchemaFor / toMcpTool (real registry)', () => {
   });
 
   it('meta tool list: compact adds panggil_tool', () => {
-    expect(metaToolDefs(false).map((d) => d.name)).toEqual(['cari_tool', 'dokumen_tool', 'whoami']);
+    expect(metaToolDefs(false).map((d) => d.name)).toEqual(['cari_tool', 'dokumen_tool', 'whoami', 'pratinjau_tool']);
     expect(metaToolDefs(true).map((d) => d.name)).toContain('panggil_tool');
   });
 });

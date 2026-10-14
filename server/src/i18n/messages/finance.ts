@@ -305,4 +305,17 @@ export const FINANCE_MESSAGES: MessageDictionary = {
   "Tahun fiskal tidak ditemukan atau sudah ditutup untuk tanggal ini.": "Fiscal year not found or already closed for this date.",
   "Ada {0} kesalahan pada baris: {1}{2}": "There are {0} row errors: {1}{2}",
   "Posting dibatalkan: {0} baris bermasalah.": "Posting cancelled: {0} rows have problems.",
+  "File \"{0}\" kosong.": "File \"{0}\" is empty.",
+  "Ukuran file maksimal 5 MB.": "The file size limit is 5 MB.",
+  "contentBase64 bukan base64 yang valid.": "contentBase64 is not valid base64.",
+  "mimeType \"{0}\" tidak cocok dengan isi berkas (terdeteksi {1}).": "mimeType \"{0}\" does not match the file contents (detected {1}).",
+  "Lampiran chat tidak ditemukan.": "Chat attachment not found.",
+  "Tidak ada konteks chat. Sertakan chatAttachmentId atau kirim berkas lewat panel chat Entaris.":
+    "No chat context. Include chatAttachmentId or send the file through the Entaris chat panel.",
+  "Tidak ada lampiran pada pesan chat ini. Kirim berkas (JPG/PNG/WebP/PDF) di panel chat terlebih dahulu.":
+    "This chat message has no attachment. Send a file (JPG/PNG/WebP/PDF) in the chat panel first.",
+  "Berkas lampiran chat sudah tidak tersedia.": "The chat attachment file is no longer available.",
+  "contentBase64 kosong.": "contentBase64 is empty.",
+  "Pilih salah satu: contentBase64 atau chatAttachmentId.": "Choose one: contentBase64 or chatAttachmentId.",
+  "fileName wajib bila contentBase64 diisi.": "fileName is required when contentBase64 is set.",
 };
