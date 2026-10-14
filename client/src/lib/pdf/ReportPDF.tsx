@@ -36,8 +36,8 @@ const S = StyleSheet.create({
   row: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   rowAlt: { backgroundColor: C.bgLight },
   rowGroup: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.primaryLt },
-  rowTotal: { flexDirection: 'row', backgroundColor: C.primaryLt, paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.primary },
-  rowGrandTotal: { flexDirection: 'row', backgroundColor: C.primaryLt, borderTopWidth: 1, borderTopColor: C.primary, paddingVertical: 7, paddingHorizontal: 8, marginTop: 4 },
+  rowTotal: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.primary },
+  rowGrandTotal: { flexDirection: 'row', borderTopWidth: 1.5, borderTopColor: C.primary, paddingVertical: 7, paddingHorizontal: 8, marginTop: 4 },
 
   colLabel:    { flex: 1, fontSize: 8, color: C.mid },
   colLabelBold: { flex: 1, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
