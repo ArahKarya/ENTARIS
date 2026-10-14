@@ -3,6 +3,7 @@
 // tool & kartu dari panggilan MCP ber-ref, lalu finalkan ok/aborted/error.
 
 import { logger } from '../../lib/logger';
+import type { ConfirmPrompt } from './confirmCard';
 import { prisma } from '../../lib/prisma';
 import { neutralizeUserText } from '../../ai/identityBlock';
 import { attachmentContentPart } from './attachments';
@@ -103,7 +104,12 @@ export function actorEnvelope(turn: PreparedTurn, cfg: EngineConfig): { headers:
       'x-entaris-ref': turn.ref,
       ...(ticket ? { 'x-entaris-turn': ticket } : {}),
     },
-    metadata: { uid, ch: 'panel', ref: turn.ref, ...(ticket ? { turn: ticket } : {}) },
+    metadata: {
+      uid, ch: 'panel', ref: turn.ref,
+      ...(ticket ? { turn: ticket } : {}),
+      // Jawaban kartu konfirmasi giliran sebelumnya; engine hanya mempercayainya bersama tiket.
+      ...(turn.confirm ? { konfirmasi: { id: turn.confirm.id, pilihan: turn.confirm.choice } } : {}),
+    },
   };
 }
 
@@ -141,6 +147,7 @@ export async function runTurn(turn: PreparedTurn, sink: TurnSink, signal: AbortS
   });
 
   let clarify: ClarifyPrompt | null = null;
+  let confirm: ConfirmPrompt | null = null;
   let status: 'ok' | 'error' | 'aborted' = 'ok';
   let errorInfo: { code: string; message: string } | null = null;
   try {
@@ -155,6 +162,9 @@ export async function runTurn(turn: PreparedTurn, sink: TurnSink, signal: AbortS
       } else if (ev.type === 'clarify') {
         clarify = ev.prompt;
         sink.event('clarify', { ...ev.prompt });
+      } else if (ev.type === 'confirm') {
+        confirm = ev.card;
+        sink.event('confirm', { ...ev.card });
       } else if (ev.model) {
         model = ev.model;
       }
@@ -175,7 +185,12 @@ export async function runTurn(turn: PreparedTurn, sink: TurnSink, signal: AbortS
   await flushChain;
   await watcher.stop().catch((err) => logger.warn({ err }, 'Penutupan pemantau tool gagal'));
   const duration = Date.now() - started;
-  const parts = { tools: watcher.calls(), cards: watcher.cards(), ...(clarify && status === 'ok' ? { clarify } : {}) };
+  const parts = {
+    tools: watcher.calls(),
+    cards: watcher.cards(),
+    ...(clarify && status === 'ok' ? { clarify } : {}),
+    ...(confirm && status === 'ok' ? { confirm } : {}),
+  };
   try {
     await finalizeAssistant({ messageId, sessionId, content: buffer, status, error: errorInfo?.message ?? null, durationMs: duration, model, parts });
     if (status === 'ok') await maybeTitle(turn, sink);

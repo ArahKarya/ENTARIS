@@ -113,4 +113,5 @@ export const AIRA_MESSAGES: MessageDictionary = {
   "AIRA Engine menolak permintaan kode penautan. Hubungi administrator.": "AIRA Engine refused the link code request. Contact your administrator.",
   "Terlalu banyak permintaan kode penautan. Coba lagi dalam beberapa menit.": "Too many link code requests. Try again in a few minutes.",
   "Gagal membuat kode penautan Telegram.": "Failed to create the Telegram link code.",
+  "Kartu konfirmasi ini sudah tidak berlaku. Minta AIRA mengulang permintaannya.": "This confirmation card is no longer valid. Ask AIRA to repeat the request.",
 };

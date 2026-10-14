@@ -264,5 +264,17 @@
       "revokeDescription": "The token can no longer be used and revocation cannot be undone. Create a new token if the AIRA engine still needs to connect.",
       "revokeConfirm": "Revoke token"
     }
+  },
+  "confirm": {
+    "label": "Action confirmation",
+    "queued": "Once you agree, the request goes to the Approvals menu.",
+    "direct": "Once you agree, the action runs right away.",
+    "effect": "Effect",
+    "yes": "Yes, continue",
+    "no": "Cancel",
+    "answeredYes": "You approved this action.",
+    "answeredNo": "You cancelled this action.",
+    "expired": "This card has expired. Ask AIRA again if you still need it.",
+    "notLast": "This card is no longer active."
   }
 }

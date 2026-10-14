@@ -145,6 +145,7 @@ JV asli tetap apa adanya, stockMovement tetap ref ke PurchaseInvoice.
 - Durabilitas: pesan pengguna disimpan SEBELUM agen dipanggil; teks asisten di-flush bertahap dan difinalkan ok/aborted/error; satu giliran per sesi (lease DB, 409). Konteks agen = identitas + ringkasan inkremental + pesan terbaru dalam anggaran token; ringkasan gagal tidak pernah membuang pesan diam-diam.
 - Tes: unit (`services/chat/__tests__`, `ai/__tests__/identityBlock`, `mcp/__tests__/cards|callToolRefCard`), integrasi DB (`__tests__/integration/chat*.integration.test.ts`, perlu `DATABASE_URL`) dengan agen tiruan reusable `src/__tests__/helpers/mockAgent.ts` (dapat memanggil `/mcp` dengan assertion bertanda tangan).
 - Klien: `pages/AiraChat.tsx` + `components/aira/*` (daftar sesi, pesan + Markdown aman, kartu generik `CardParts`, composer, banner offline).
+- **Kartu konfirmasi aksi tulis**: event engine `aira.confirm` → `parts.confirm` + tombol Ya/Batal (`ConfirmCard`); jawaban lewat `konfirmasi_id`/`konfirmasi_pilihan` di `/stream`, diklaim sekali per sesi (`services/chat/confirmCard.ts`) lalu diteruskan ke engine sebagai `metadata.konfirmasi`. Detail: `docs/ai-tools/PANEL-CHAT.md`.
 
 ## Buku Kas dari Nota (Draft Buku Kas)
 

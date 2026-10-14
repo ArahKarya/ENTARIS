@@ -107,6 +107,12 @@ Event SSE: `session {session_id,title}`, `turn {turn_id,message_id,user_message_
 
 Hasil tool MCP yang membuat draft atau mengantre persetujuan menyertakan `structuredContent.card` (aditif): `{kind, title, summary?, href, status?, entityId?, facts?}` dengan `kind` salah satu `cash_book_draft`, `production_draft`, `payment_request_draft`, `purchase_order_draft`, `quotation_draft`, `sales_order_draft`, `approval`. Kartu disimpan di `mcp_call_logs.card` dan dialirkan ke panel (bus in-process saat baris log ditulis; cadangan polling 1 detik).
 
+## Kartu konfirmasi aksi tulis (`aira.confirm`)
+
+Sebelum aksi tulis yang perlu konfirmasi (lihat `pratinjau_tool`: tindakan `persetujuan` atau `langsung`), engine mengakhiri giliran dengan teks kartu dan event SSE `aira.confirm` `{id, tool, tindakan, konfirmasi, efek, rincian, expires_at}`. Server menyaring bentuknya (`services/chat/confirmCard.ts`), meneruskannya ke klien sebagai event `confirm`, dan menyimpannya di `parts.confirm` pesan asisten. Klien (`components/aira/ConfirmCard.tsx`) menampilkan tombol Ya/Batal selama kartu itu pesan terakhir, belum dijawab dan belum kedaluwarsa.
+
+Jawaban dikirim sebagai pesan biasa ke `POST /api/ai/chat/stream` dengan `konfirmasi_id` + `konfirmasi_pilihan` (`ya`/`batal`). Di bawah lease giliran, server memastikan kartu ada di pesan asisten terakhir sesi ini (status ok), belum dijawab dan belum kedaluwarsa, lalu menandainya `answered` (409 `confirm_invalid` bila tidak). Bila giliran jawaban itu gagal, kartu tidak bisa dijawab lagi; "Coba lagi" mengirim ulang permintaan dan AIRA menampilkan kartu baru. Pilihan diteruskan ke engine sebagai `metadata.konfirmasi {id, pilihan}` bersama tiket giliran; engine yang menjalankan aksi persis seperti di kartu, sekali, atas nama pemilik kartu. Antrean Persetujuan Entaris tetap berlaku sesudahnya.
+
 ## Tool memori obrolan (toolset `obrolan`)
 
 `chat_cari_riwayat` (pencarian teks penuh `simple` + substring atas pesan milik aktor) dan `chat_ambil_sesi` (pesan satu sesi milik aktor, berpaging). Hanya baca; hanya sesi milik aktor (uid dari assertion), sesi orang lain dijawab "tidak ditemukan". Handler: `/api/chat-history/*` (tanpa izin modul; semua pengguna login).

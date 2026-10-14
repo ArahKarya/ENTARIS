@@ -243,6 +243,9 @@ const StreamSchema = z.object({
   input: z.string().default(''),
   session_id: z.string().min(1).max(64).optional(),
   retry_message_id: z.string().min(1).max(64).optional(),
+  // Jawaban kartu konfirmasi AIRA (datar, supaya juga bisa lewat multipart).
+  konfirmasi_id: z.string().min(1).max(64).optional(),
+  konfirmasi_pilihan: z.enum(['ya', 'batal']).optional(),
 });
 
 function sendError(res: Response, status: number, code: string, message: string): Response {
@@ -268,6 +271,7 @@ router.post('/stream', upload.single('file'), async (req: AuthRequest, res) => {
       sessionId: body.session_id,
       input: body.input,
       retryMessageId: body.retry_message_id,
+      ...(body.konfirmasi_id && body.konfirmasi_pilihan ? { confirm: { id: body.konfirmasi_id, choice: body.konfirmasi_pilihan } } : {}),
       file: req.file ? { buffer: req.file.buffer, originalname: req.file.originalname, mimetype: req.file.mimetype } : undefined,
     });
   } catch (error) {

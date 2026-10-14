@@ -3,6 +3,7 @@
 // penyimpanan pesan pengguna (durabilitas: tersimpan sebelum agen dipanggil).
 
 import { randomUUID } from 'node:crypto';
+import { claimConfirmCard, type ConfirmChoice } from './confirmCard';
 import type { ChatMessage, ChatSession } from '@prisma/client';
 import { logger } from '../../lib/logger';
 import { buildIdentityBlock, IdentityError, type BuiltIdentityBlock } from '../../ai/identityBlock';
@@ -30,6 +31,8 @@ export interface TurnParams {
   file?: IncomingFile;
   /** ulangi giliran terakhir (pesan pengguna dengan id ini) tanpa menggandakan pesan */
   retryMessageId?: string;
+  /** jawaban atas kartu konfirmasi AIRA di sesi ini */
+  confirm?: { id: string; choice: ConfirmChoice };
 }
 
 export interface PreparedTurn {
@@ -44,6 +47,7 @@ export interface PreparedTurn {
   userText: string;
   identity: BuiltIdentityBlock;
   attachment?: SavedAttachment;
+  confirm?: { id: string; choice: ConfirmChoice };
 }
 
 const ATTACHMENT_ONLY_PREFIX = 'Lampiran: ';
@@ -103,6 +107,9 @@ export async function prepareTurn(p: TurnParams): Promise<PreparedTurn> {
 
     leased = await acquireTurnLease(session.id, p.userId, turnId);
     if (!leased) throw new TurnHttpError(409, 'turn_in_progress', 'Sesi ini masih memproses pesan sebelumnya (mungkin dari tab atau perangkat lain). Tunggu sampai selesai.');
+    if (p.confirm && (p.retryMessageId || !(await claimConfirmCard(session.id, p.confirm.id, p.confirm.choice)))) {
+      throw new TurnHttpError(409, 'confirm_invalid', 'Kartu konfirmasi ini sudah tidak berlaku. Minta AIRA mengulang permintaannya.');
+    }
 
     let userMessage: ChatMessage;
     let userText: string;
@@ -126,7 +133,10 @@ export async function prepareTurn(p: TurnParams): Promise<PreparedTurn> {
     }
     const assistantMessage = await createAssistantPlaceholder(session.id, turnId, getEngineConfig().model);
     const fresh = (await getOwnedSession(p.userId, session.id)) ?? session;
-    return { session: fresh, sessionCreated, turnId, ref: `${session.id}:${turnId}`, userMessage, assistantMessage, userText, identity, attachment };
+    return {
+      session: fresh, sessionCreated, turnId, ref: `${session.id}:${turnId}`, userMessage, assistantMessage, userText, identity, attachment,
+      ...(p.confirm ? { confirm: p.confirm } : {}),
+    };
   } catch (err) {
     if (leased && session) await releaseTurnLease(session.id, turnId).catch(() => undefined);
     if (!(err instanceof TurnHttpError)) logger.error({ err, userId: p.userId }, 'Persiapan giliran chat gagal');

@@ -264,5 +264,17 @@
       "revokeDescription": "Token tidak dapat dipakai lagi dan pencabutan tidak dapat dibatalkan. Buat token baru bila engine AIRA masih perlu terhubung.",
       "revokeConfirm": "Cabut token"
     }
+  },
+  "confirm": {
+    "label": "Konfirmasi aksi",
+    "queued": "Setelah Anda setuju, permintaan diajukan ke menu Persetujuan.",
+    "direct": "Setelah Anda setuju, aksi langsung dijalankan.",
+    "effect": "Efek",
+    "yes": "Ya, lanjutkan",
+    "no": "Batal",
+    "answeredYes": "Anda menyetujui aksi ini.",
+    "answeredNo": "Anda membatalkan aksi ini.",
+    "expired": "Kartu ini kedaluwarsa. Minta AIRA mengulang bila masih perlu.",
+    "notLast": "Kartu ini sudah tidak aktif."
   }
 }
