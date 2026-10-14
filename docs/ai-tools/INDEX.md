@@ -316,7 +316,7 @@ Total **475** tool (read 219 · write 151 · critical 105); semuanya aktif secar
 | [`pay_record`](kas-bank.md#pay_record) | kas-bank | critical | tidak | Admin, Accountant | `POST /api/payments` |
 | [`payreq_advances_summary`](pengajuan-pembayaran.md#payreq_advances_summary) | pengajuan-pembayaran | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/payment-requests/advances/summary` |
 | [`payreq_approve`](pengajuan-pembayaran.md#payreq_approve) | pengajuan-pembayaran | critical | tidak | Admin, Accountant, StaffProduksi, Viewer | `POST /api/payment-requests/:id/approve` |
-| [`payreq_attachment_add`](pengajuan-pembayaran.md#payreq_attachment_add) | pengajuan-pembayaran | write | tidak | Admin, Accountant, StaffProduksi, Viewer | `POST /api/payment-requests/:id/attachments/json` |
+| [`payreq_attachment_add`](pengajuan-pembayaran.md#payreq_attachment_add) | pengajuan-pembayaran | write | ya | Admin, Accountant, StaffProduksi, Viewer | `POST /api/payment-requests/:id/attachments/json` |
 | [`payreq_attachment_delete`](pengajuan-pembayaran.md#payreq_attachment_delete) | pengajuan-pembayaran | write | tidak | Admin, Accountant, StaffProduksi, Viewer | `DELETE /api/payment-requests/:id/attachments/:attId` |
 | [`payreq_cancel`](pengajuan-pembayaran.md#payreq_cancel) | pengajuan-pembayaran | critical | tidak | Admin, Accountant, StaffProduksi, Viewer | `POST /api/payment-requests/:id/cancel` |
 | [`payreq_cancel_payment`](pengajuan-pembayaran.md#payreq_cancel_payment) | pengajuan-pembayaran | critical | tidak | Admin, Accountant | `POST /api/payment-requests/:id/cancel-payment` |

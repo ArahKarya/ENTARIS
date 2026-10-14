@@ -1442,7 +1442,7 @@
       "enabled": true,
       "level": 2,
       "phase": 1,
-      "draftCapable": false,
+      "draftCapable": true,
       "postingEffect": "Tidak ada efek GL/stok; berkas tersimpan sebagai lampiran pengajuan.",
       "confirm_template": "Lampirkan berkas {fileName} ke pengajuan {id}?",
       "accessNote": "Pengaju, hanya saat pengajuan (atau pertanggungjawaban bila scope=settlement) masih bisa diedit. Lampiran chat harus milik pengguna yang sama.",

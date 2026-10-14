@@ -115,7 +115,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 | [`eambill_summary`](#eambill_summary) | read | - | `GET /api/payment-requests/eam/summary` |
 | [`payreq_advances_summary`](#payreq_advances_summary) | read | - | `GET /api/payment-requests/advances/summary` |
 | [`payreq_approve`](#payreq_approve) | critical | tidak | `POST /api/payment-requests/:id/approve` |
-| [`payreq_attachment_add`](#payreq_attachment_add) | write | tidak | `POST /api/payment-requests/:id/attachments/json` |
+| [`payreq_attachment_add`](#payreq_attachment_add) | write | ya | `POST /api/payment-requests/:id/attachments/json` |
 | [`payreq_attachment_delete`](#payreq_attachment_delete) | write | tidak | `DELETE /api/payment-requests/:id/attachments/:attId` |
 | [`payreq_cancel`](#payreq_cancel) | critical | tidak | `POST /api/payment-requests/:id/cancel` |
 | [`payreq_cancel_payment`](#payreq_cancel_payment) | critical | tidak | `POST /api/payment-requests/:id/cancel-payment` |
@@ -464,7 +464,7 @@ Aturan penting: seluruh jurnal satu transaksi seimbang dan diposting satu jurnal
 **Ringkasan:** Melampirkan SATU berkas (JPG/PNG/WebP/PDF, maks. 5 MB) ke pengajuan yang masih editable (DRAFT/REVISION; scope=settlement untuk pertanggungjawaban). Dua cara: (1) tanpa contentBase64 → salin lampiran dari panel chat Entaris pengguna ini (default: lampiran pada pesan chat saat ini, atau pilih dengan chatAttachmentId); (2) contentBase64+fileName → isi berkas dibawa langsung (batas body MCP 256 KB ≈ 180 KB berkas; berkas lebih besar wajib lewat cara 1). Jenis berkas ditentukan dari isi, bukan nama. Jenis pengajuan yang mewajibkan lampiran (requiresAttachment) baru bisa di-submit setelah ini.
 
 - **Risk / tier:** `write` / Draft/Approve
-- **Draft-capable:** tidak (efek langsung)
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
 - **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `payment_request` / `edit`)
 - **Catatan akses:** Pengaju, hanya saat pengajuan (atau pertanggungjawaban bila scope=settlement) masih bisa diedit. Lampiran chat harus milik pengguna yang sama.
 - **Handler:** `POST /api/payment-requests/:id/attachments/json` (src/routes/paymentRequests.ts)
