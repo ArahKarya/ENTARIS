@@ -75,7 +75,7 @@ const S = StyleSheet.create({
   summaryLabel: { fontSize: 8, color: C.mid },
   summaryValue: { fontSize: 8, fontFamily: 'Helvetica', textAlign: 'right', flex: 1 },
   summaryTotalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 },
-  summaryTotal: { width: 260, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.primaryLt, borderTopWidth: 1, borderTopColor: C.primary, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 3 },
+  summaryTotal: { width: 260, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1.5, borderTopColor: C.primary, paddingHorizontal: 6, paddingVertical: 6 },
   summaryTotalLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary },
   summaryTotalValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.primary, textAlign: 'right', flex: 1 },
 
@@ -202,8 +202,8 @@ function statusStyle(status: string) {
   if (status === 'Paid') return { bg: C.greenLt, text: C.greenDk };
   if (status === 'PartiallyPaid') return { bg: BADGE.yellowLt, text: BADGE.yellowDk };
   if (status === 'Overdue') return { bg: C.redLt, text: C.redDk };
-  if (status === 'Cancelled') return { bg: C.primaryLt, text: C.muted };
-  return { bg: C.primaryLt, text: C.mid }; // Submitted / Draft
+  if (status === 'Cancelled') return { bg: C.bgLight, text: C.muted };
+  return { bg: C.bgLight, text: C.mid }; // Submitted / Draft
 }
 
 const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
