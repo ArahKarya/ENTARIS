@@ -534,8 +534,7 @@
       "link": "Gagal menautkan."
     },
     "pdf": {
-      "title": "SURAT JALAN SEMENTARA",
-      "footnote": "Dokumen sementara, bukan dokumen resmi penagihan. Akan ditautkan ke surat jalan resmi."
+      "title": "SURAT JALAN"
     },
     "docType": "Surat Jalan Sementara",
     "description": "Dokumen sementara: tanpa stok, tanpa jurnal",

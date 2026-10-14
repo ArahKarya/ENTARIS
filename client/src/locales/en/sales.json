@@ -534,8 +534,7 @@
       "link": "Could not link."
     },
     "pdf": {
-      "title": "TEMPORARY DELIVERY NOTE",
-      "footnote": "Temporary document, not an official billing document. It will be linked to an official delivery order."
+      "title": "DELIVERY NOTE"
     },
     "docType": "Temporary delivery note",
     "description": "Temporary document: no stock, no journal",

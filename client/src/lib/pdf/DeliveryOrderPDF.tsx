@@ -1,8 +1,8 @@
 import React from 'react';
-import { Document, Page, View, Text } from '@react-pdf/renderer';
-import { PdfFooter, PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSignatureBlock } from './kit';
+import { Document, Page, View } from '@react-pdf/renderer';
+import { PdfHeader, PdfMetaField, PdfMetaRow, PdfPartyBlock, PdfSignatureBlock } from './kit';
 import { NcrItemsTable, NcrNotes, type NcrItem } from './ncrParts';
-import { FOOTER_SPACE, F, NCR_PAGE } from './theme';
+import { NCR_PAGE } from './theme';
 import { pdfDate, pdfT } from './pdfFormat';
 
 export interface DeliveryOrderPDFItem {
@@ -16,8 +16,6 @@ export interface DeliveryOrderPDFItem {
 export interface DeliveryOrderPDFProps {
   /** Document title (defaults to the translated delivery order title). Used by the temporary delivery note. */
   title?: string;
-  /** Catatan kaki di bawah tanda tangan (mis. dokumen sementara). */
-  footnote?: string;
   doNumber: string;
   date: string;
   status: string;
@@ -41,15 +39,17 @@ export interface DeliveryOrderPDFProps {
   };
 }
 
+// Dicetak di formulir karbon/printer matrix: TANPA footer & "Halaman x dari y" (posisi absolut di dasar A4
+// jatuh ke halaman ke-2/3 pada kertas continuous-form yang lebih pendek).
 const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
-  title: titleProp, footnote, doNumber, date, poRef, soNumber, customer, nomorMobil, driverName, recipientName, notes, items, company,
+  title: titleProp, doNumber, date, poRef, soNumber, customer, nomorMobil, driverName, recipientName, notes, items, company,
 }) => {
   const t = pdfT();
   const title = titleProp ?? t('deliveryOrder.title');
   return (
     <Document title={`${title} ${doNumber}`} author={company.name}>
-      <Page size="A4" style={{ ...NCR_PAGE, paddingBottom: FOOTER_SPACE }} wrap>
-        <PdfHeader company={company} title={title} number={doNumber} tone="mono" pageMeta />
+      <Page size="A4" style={NCR_PAGE} wrap>
+        <PdfHeader company={company} title={title} number={doNumber} tone="mono" />
 
         <PdfMetaRow gap={16}>
           <View style={{ flex: 1 }}>
@@ -78,11 +78,7 @@ const DeliveryOrderPDF: React.FC<DeliveryOrderPDFProps> = ({
           ]}
         />
 
-        {footnote ? (
-          <Text style={{ fontSize: 8, marginTop: 14, textAlign: 'center', fontFamily: F.bold }}>{footnote}</Text>
-        ) : null}
 
-        <PdfFooter tone="mono" company={company.name} docRef={doNumber} />
       </Page>
     </Document>
   );
