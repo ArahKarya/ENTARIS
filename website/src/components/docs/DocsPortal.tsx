@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DOC_COLLECTIONS, type DocArticle, type DocCollection } from "./docsData";
 import { resolveDocsSelection } from "./docsSelection";
-import { WHATSAPP_DISPLAY, WHATSAPP_NUMBER, DEMO_HREF } from "@/components/site/siteConfig";
+import { CP_HREF, CP_LABEL, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "@/components/site/siteConfig";
 import { EntarisLogo } from "@/components/site/EntarisLogo";
 
 // --- SVG Icons Helper ---
@@ -388,9 +388,9 @@ export function DocsPortal() {
               <DocIcon name="external-link" className="doc-header__link-icon" />
             </Link>
           </nav>
-          <Link href={DEMO_HREF} className="doc-header__cta-btn">
-            Minta Demo
-          </Link>
+          <a href={CP_HREF} target="_blank" rel="noopener noreferrer" className="doc-header__cta-btn">
+            {CP_LABEL}
+          </a>
         </div>
       </header>
 
@@ -810,9 +810,6 @@ export function DocsPortal() {
                   >
                     Konsultasi via WhatsApp
                   </a>
-                  <Link href={DEMO_HREF} className="doc-btn doc-btn--outline">
-                    Jadwalkan Live Demo
-                  </Link>
                 </div>
               </div>
             </article>

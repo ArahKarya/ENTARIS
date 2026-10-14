@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { EntarisLogo } from "./EntarisLogo";
 import { AiraMark } from "./AiraLogo";
-import { DEMO_HREF, NAV_ITEMS } from "./siteConfig";
+import { CP_HREF, CP_LABEL, NAV_ITEMS } from "./siteConfig";
 
 /*
  * Floating top bar in the ERP•AI style: centred rounded bar over a soft wash that gains a surface
@@ -62,9 +62,9 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
             ))}
           </ul>
           <div className="ent-nav__actions">
-            <Link className="ent-btn ent-btn--solid ent-nav__cta" href={DEMO_HREF}>
-              Minta demo
-            </Link>
+            <a className="ent-btn ent-btn--solid ent-nav__cta" href={CP_HREF} target="_blank" rel="noopener noreferrer">
+              {CP_LABEL}
+            </a>
             <button
               ref={toggleRef}
               type="button"
@@ -97,9 +97,9 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
             </li>
           ))}
         </ul>
-        <Link className="ent-btn ent-btn--solid ent-mobile__cta" href={DEMO_HREF} onClick={() => setMenuOpen(false)}>
-          Minta demo
-        </Link>
+        <a className="ent-btn ent-btn--solid ent-mobile__cta" href={CP_HREF} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)}>
+          {CP_LABEL}
+        </a>
       </div>
       {!home && <div className="ent-nav-spacer" aria-hidden="true" />}
     </>

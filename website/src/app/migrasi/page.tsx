@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site/SiteShell";
-import { DEMO_HREF } from "@/components/site/siteConfig";
+import { CP_HREF, CP_LABEL } from "@/components/site/siteConfig";
 import { InfoMatrix } from "@/components/pages/InfoMatrix";
 import { RecordSection } from "@/components/pages/RecordSection";
 import { PageCta } from "@/components/pages/PageCta";
@@ -78,7 +78,7 @@ export default function Page() {
             eyebrow={{ name: "Migrasi", context: "Cukup chat dengan AIRA" }}
             lines={["Pindah ke Entaris", "cukup dengan ngobrol."]}
             lead="Ceritakan bisnis Anda ke AIRA dan kirim data yang sudah ada. AIRA mengerjakan setup awal, migrasi data, penyusunan buku besar, dan perapian data, lalu menunggu persetujuan Anda."
-            primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
+            primary={{ label: CP_LABEL, href: CP_HREF, arrow: true }}
           />
         }
       >
@@ -117,7 +117,7 @@ export default function Page() {
         <PageCta
           lines={["Siap pindah?", "Mulai dengan satu chat."]}
           text="Lihat langsung bagaimana AIRA menyiapkan Entaris dari data bisnis Anda."
-          primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
+          primary={{ label: CP_LABEL, href: CP_HREF, arrow: true }}
         />
       </PageFrame>
     </SiteShell>

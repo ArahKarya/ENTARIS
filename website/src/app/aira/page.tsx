@@ -6,7 +6,7 @@ import "./aira.css";
 export const metadata: Metadata = {
   title: "AIRA, agen AI di dalam Entaris",
   description:
-    "AIRA (Artificial Intelligence Reasoning Agent) ikut bekerja di atas data transaksi real-time ENTARIS melalui protokol MCP: menjawab pertanyaan, menganalisis laporan, menyusun draf dokumen bisnis, dan memproses foto nota dengan gerbang persetujuan aman.",
+    "AIRA ikut bekerja di atas data transaksi Entaris: menjawab pertanyaan, menganalisis laporan, menyusun draf dokumen, dan membaca foto nota. Setiap perubahan pembukuan menunggu persetujuan Anda.",
 };
 
 export default function Page() {

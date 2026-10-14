@@ -5,9 +5,10 @@ const nextConfig: NextConfig = {
   agentRules: false,
   async redirects() {
     return [
-      { source: "/keamanan", destination: "/#keamanan-data", permanent: true },
-      { source: "/self-hosted", destination: "/#keamanan-data", permanent: true },
+      { source: "/keamanan", destination: "/aira#keamanan", permanent: true },
+      { source: "/self-hosted", destination: "/aira#keamanan", permanent: true },
       { source: "/dokumentasi", destination: "/docs", permanent: true },
+      { source: "/minta-demo", destination: "/", permanent: false },
     ];
   },
 };

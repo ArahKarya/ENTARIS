@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useErpRoot } from "@/components/erp/shared/ErpRoot";
 import { EntarisLogo } from "./EntarisLogo";
-import { COMPANY, CONTACT_EMAIL, DEMO_HREF, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
+import { COMPANY, CONTACT_EMAIL, CP_HREF, CP_LABEL, FOOTER_PAGES, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
 
 const MODULE_LINKS = [
-  { href: "/#modul-penjualan", label: "Penjualan" },
-  { href: "/#modul-pembelian", label: "Pembelian" },
-  { href: "/#modul-inventori", label: "Inventori" },
-  { href: "/#modul-produksi", label: "Produksi" },
-  { href: "/#modul-keuangan", label: "Keuangan" },
-  { href: "/#modul-aset", label: "Aset (EAM)" },
+  { href: "/modul#modul-penjualan", label: "Penjualan" },
+  { href: "/modul#modul-pembelian", label: "Pembelian" },
+  { href: "/modul#modul-inventori", label: "Inventori" },
+  { href: "/modul#modul-produksi", label: "Produksi" },
+  { href: "/modul#modul-keuangan", label: "Keuangan" },
+  { href: "/modul#modul-aset", label: "Aset (EAM)" },
 ] as const;
 
 export function SiteFooter() {
@@ -28,15 +28,15 @@ export function SiteFooter() {
             <p className="ent-footer__summary">
               Sistem yang ikut bertumbuh dengan bisnis Anda. Dibangun dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang ikut bekerja di atas data transaksi Anda. Berjalan di server Anda sendiri, jadi datanya milik Anda.
             </p>
-            <Link className="ent-btn ent-btn--light" href={DEMO_HREF}>
-              Minta demo &amp; lisensi
-            </Link>
+            <a className="ent-btn ent-btn--light" href={CP_HREF} target="_blank" rel="noopener noreferrer">
+              {CP_LABEL}
+            </a>
           </div>
           <nav className="ent-footer__cols" aria-label="Navigasi footer">
             <div className="ent-footer__col">
-              <p className="ent-footer__heading">Kapabilitas</p>
+              <p className="ent-footer__heading">Jelajahi</p>
               <ul>
-                {NAV_ITEMS.map((item) => (
+                {[...NAV_ITEMS, ...FOOTER_PAGES].map((item) => (
                   <li key={item.href}>
                     <Link href={item.href}>{item.label}</Link>
                   </li>

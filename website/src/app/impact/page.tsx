@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site/SiteShell";
-import { DEMO_HREF } from "@/components/site/siteConfig";
+import { CP_HREF, CP_LABEL } from "@/components/site/siteConfig";
 import { InfoMatrix } from "@/components/pages/InfoMatrix";
 import { PageCta } from "@/components/pages/PageCta";
 import { PageFrame } from "@/components/pages/PageFrame";
@@ -42,7 +42,7 @@ export default function Page() {
                 ? "Contoh cara Entaris dipakai di UKM, distributor, pabrik, dan kantor akuntan. Cerita pengguna asli menyusul setelah mereka mengizinkan."
                 : "Entaris berjalan di UKM, distributor, pabrik, dan kantor akuntan. Lihat bagaimana mereka memakainya dan apa kata mereka."
             }
-            primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
+            primary={{ label: CP_LABEL, href: CP_HREF, arrow: true }}
           />
         }
       >
@@ -60,7 +60,7 @@ export default function Page() {
         <PageCta
           lines={["Bisnis Anda", "berikutnya?"]}
           text="Ceritakan cara kerja bisnis Anda; kami tunjukkan Entaris berjalan di data yang mirip."
-          primary={{ label: "Minta demo", href: DEMO_HREF, arrow: true }}
+          primary={{ label: CP_LABEL, href: CP_HREF, arrow: true }}
         />
       </PageFrame>
     </SiteShell>
