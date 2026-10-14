@@ -34,12 +34,12 @@ describe('parseConfirm', () => {
 });
 
 describe('claimConfirmCard', () => {
-  const stored = { id: 'msg-1', parts: { tools: [], confirm: { ...parseConfirm(JSON.stringify(event)) } } };
+  const stored = { id: 'msg-1', status: 'ok', parts: { tools: [], confirm: { ...parseConfirm(JSON.stringify(event)) } } };
 
   it('marks an open card of this session as answered, once', async () => {
     m.findFirst.mockResolvedValueOnce(stored);
     expect(await claimConfirmCard('s1', ID, 'ya', NOW)).toBe(true);
-    expect(m.findFirst.mock.calls[0][0].where).toMatchObject({ sessionId: 's1', role: 'assistant' });
+    expect(m.findFirst.mock.calls[0][0]).toMatchObject({ where: { sessionId: 's1', role: 'assistant' }, orderBy: { seq: 'desc' } });
     expect(m.update.mock.calls[0][0].data.parts.confirm.answered).toBe('ya');
     m.findFirst.mockResolvedValueOnce({ ...stored, parts: { confirm: { ...stored.parts.confirm, answered: 'ya' } } });
     expect(await claimConfirmCard('s1', ID, 'batal', NOW)).toBe(false);
@@ -51,6 +51,10 @@ describe('claimConfirmCard', () => {
     m.findFirst.mockResolvedValueOnce(stored);
     expect(await claimConfirmCard('s1', ID, 'ya', new Date('2026-10-14T06:00:00Z'))).toBe(false);
     expect(await claimConfirmCard('s1', 'bad id!', 'ya', NOW)).toBe(false);
+    m.findFirst.mockResolvedValueOnce({ ...stored, status: 'error' });
+    expect(await claimConfirmCard('s1', ID, 'ya', NOW)).toBe(false); // the latest message failed
+    m.findFirst.mockResolvedValueOnce({ ...stored, parts: { confirm: { ...stored.parts.confirm, id: 'aaaaaaaa-0000-4000-8000-000000000000' } } });
+    expect(await claimConfirmCard('s1', ID, 'ya', NOW)).toBe(false); // not the latest card
     expect(m.update).not.toHaveBeenCalled();
   });
 });

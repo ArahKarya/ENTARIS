@@ -72,38 +72,14 @@
     "running": " (running)"
   },
   "cards": {
-    "cashBookDraft": {
-      "label": "Cash book draft",
-      "cta": "Review draft"
-    },
-    "productionDraft": {
-      "label": "Production draft",
-      "cta": "Open production draft"
-    },
-    "paymentRequestDraft": {
-      "label": "Payment Request",
-      "cta": "Open request"
-    },
-    "purchaseOrderDraft": {
-      "label": "Purchase Order",
-      "cta": "Open PO list"
-    },
-    "quotationDraft": {
-      "label": "Quotation",
-      "cta": "Open quotation list"
-    },
-    "salesOrderDraft": {
-      "label": "Sales Order",
-      "cta": "Open SO list"
-    },
-    "approval": {
-      "label": "Awaiting approval",
-      "cta": "Open Approvals"
-    },
-    "link": {
-      "label": "Link",
-      "cta": "Open"
-    }
+    "cashBookDraft": { "label": "Cash book draft", "cta": "Review draft" },
+    "productionDraft": { "label": "Production draft", "cta": "Open production draft" },
+    "paymentRequestDraft": { "label": "Payment Request", "cta": "Open request" },
+    "purchaseOrderDraft": { "label": "Purchase Order", "cta": "Open PO list" },
+    "quotationDraft": { "label": "Quotation", "cta": "Open quotation list" },
+    "salesOrderDraft": { "label": "Sales Order", "cta": "Open SO list" },
+    "approval": { "label": "Awaiting approval", "cta": "Open Approvals" },
+    "link": { "label": "Link", "cta": "Open" }
   },
   "sessionList": {
     "loadFailed": "The conversation list could not be loaded.",
@@ -293,6 +269,7 @@
     "label": "Action confirmation",
     "queued": "Once you agree, the request goes to the Approvals menu.",
     "direct": "Once you agree, the action runs right away.",
+    "effect": "Effect",
     "yes": "Yes, continue",
     "no": "Cancel",
     "answeredYes": "You approved this action.",

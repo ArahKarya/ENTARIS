@@ -10,7 +10,8 @@ interface Props {
   now?: Date;
 }
 
-/** Tombol Ya/Batal untuk kartu konfirmasi aksi tulis; isi kartu sudah tampil sebagai teks pesan. */
+/** Kartu konfirmasi aksi tulis: teks resmi dari Entaris (bukan kata-kata model) + tombol Ya/Batal.
+ *  Semua isi dirender sebagai teks biasa. */
 export function ConfirmCard({ confirm, onAnswer, now = new Date() }: Props) {
   const { t } = useTranslation('aira');
   const expired = new Date(confirm.expiresAt) <= now;
@@ -20,6 +21,18 @@ export function ConfirmCard({ confirm, onAnswer, now = new Date() }: Props) {
   else if (!onAnswer) state = t('confirm.notLast');
   return (
     <div role="group" aria-label={t('confirm.label')} className="w-fit max-w-full space-y-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
+      <p className="font-medium text-card-foreground">{confirm.konfirmasi}</p>
+      {confirm.rincian.length > 0 && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+          {confirm.rincian.map((f) => (
+            <div key={f.label} className="contents">
+              <dt className="text-muted-foreground">{f.label}</dt>
+              <dd className="min-w-0 break-words tabular-nums">{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {confirm.efek && <p className="text-xs text-muted-foreground">{t('confirm.effect')}: {confirm.efek}</p>}
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
         {t(confirm.tindakan === 'persetujuan' ? 'confirm.queued' : 'confirm.direct')}

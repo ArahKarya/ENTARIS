@@ -62,22 +62,24 @@ export function parseConfirm(data: string): ConfirmPrompt | null {
 }
 
 /**
- * Tandai kartu `id` di sesi ini sebagai dijawab. Dipanggil di bawah lease giliran sesi (satu giliran
- * per sesi), jadi baca-lalu-tulis di sini tidak berlomba. false = tidak ada, sudah dijawab, atau
- * kedaluwarsa.
+ * Tandai kartu `id` sebagai dijawab. Hanya kartu pada pesan asisten TERAKHIR sesi ini (status ok),
+ * belum dijawab dan belum kedaluwarsa. Dipanggil di bawah lease giliran sesi (satu giliran per
+ * sesi), jadi baca-lalu-tulis di sini tidak berlomba.
  */
 export async function claimConfirmCard(sessionId: string, id: string, choice: ConfirmChoice, now = new Date()): Promise<boolean> {
   if (!ID_RE.test(id)) return false;
   const message = await prisma.chatMessage.findFirst({
-    where: { sessionId, role: 'assistant', parts: { path: ['confirm', 'id'], equals: id } },
-    select: { id: true, parts: true },
+    where: { sessionId, role: 'assistant' },
+    orderBy: { seq: 'desc' },
+    select: { id: true, parts: true, status: true },
   });
   const parts = (message?.parts ?? null) as { confirm?: ConfirmPrompt } | null;
   const card = parts?.confirm;
-  if (!message || !card || card.answered || new Date(card.expiresAt) <= now) return false;
+  if (!message || message.status !== 'ok' || !card || card.id !== id || card.answered || new Date(card.expiresAt) <= now) return false;
   await prisma.chatMessage.update({
     where: { id: message.id },
     data: { parts: { ...parts, confirm: { ...card, answered: choice } } as Prisma.InputJsonValue },
   });
   return true;
 }
+

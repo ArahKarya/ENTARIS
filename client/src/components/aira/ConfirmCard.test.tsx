@@ -9,8 +9,8 @@ const card: ConfirmPart = {
   tool: 'po_submit',
   tindakan: 'persetujuan',
   konfirmasi: 'Ajukan PO-1?',
-  efek: '',
-  rincian: [],
+  efek: 'Tidak ada efek GL.',
+  rincian: [{ label: 'id', value: '<b>PO-1</b>' }],
   expiresAt: '2026-10-14T05:15:00Z',
 };
 
@@ -19,6 +19,9 @@ describe('ConfirmCard', () => {
     const onAnswer = vi.fn();
     render(<ConfirmCard confirm={card} onAnswer={onAnswer} now={NOW} />);
     expect(screen.getByText(/menu Persetujuan/)).toBeInTheDocument();
+    expect(screen.getByText('Ajukan PO-1?')).toBeInTheDocument();
+    expect(screen.getByText('<b>PO-1</b>')).toBeInTheDocument(); // plain text, never HTML
+    expect(screen.getByText(/Tidak ada efek GL/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
     expect(onAnswer.mock.calls).toEqual([['ya'], ['batal']]);
