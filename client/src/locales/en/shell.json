@@ -294,7 +294,7 @@
     "version": "Version",
     "releaseDate": "Release date",
     "developer": "Developer",
-    "credits": "Made by {{maker}}. © {{year}}, all rights reserved."
+    "credits": "Made by {{maker}}. © {{year}}. Free software (AGPL-3.0)."
   },
   "versionWatcher": {
     "title": "A new version of the app is available",

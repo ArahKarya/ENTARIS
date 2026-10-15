@@ -63,7 +63,48 @@ jobs:
       - run: npx prisma generate
       - run: npm run lint
       - run: npx tsc --noEmit
-      # Unit tests only; integration tests (npm run test:integration) need Postgres and are not part of CI yet.
+      # Unit tests only; integration tests run in the `integration` job below.
       - run: npm test
       # Katalog tool AIRA/MCP: drift guard (route <-> registry, docs/ai-tools mutakhir).
       - run: npm run ai-tools:check
+
+  integration:
+    name: Server integration (Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      # Test-only secret; the harness signs its own tokens with it.
+      JWT_SECRET: ci-integration-jwt-secret-0123456789abcdef
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      # Same order as docker-app-entrypoint.sh: migrations, loose SQL, then the seed.
+      - run: npx prisma migrate deploy
+      - run: node prisma/apply-loose-sql.mjs
+      - run: npm run seed
+      # Chat isolation (IDOR, admin), confirmation cards, posting and stock flows against a real DB.
+      - run: npm run test:integration

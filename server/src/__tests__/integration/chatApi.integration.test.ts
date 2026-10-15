@@ -53,6 +53,19 @@ d('panel chat: sesi, kepemilikan, pencarian', () => {
     expect(still.session.title).not.toBe('dibajak');
   });
 
+  it('an admin is not an exception: no list, read, search, export or stream into another user\'s session', async () => {
+    const admin = await h.createUser('Admin', { airaTier: 'direct', fullName: 'Adi Admin' });
+    const list = (await (await h.api(admin, 'GET', '/api/ai/chat/sessions?q=KEMBANG')).json()) as { total: number };
+    expect(list.total).toBe(0);
+    expect((await h.api(admin, 'GET', `/api/ai/chat/sessions/${sessionA}/messages`)).status).toBe(404);
+    expect((await h.api(admin, 'GET', `/api/ai/chat/sessions/${sessionA}/export`)).status).toBe(404);
+    expect((await h.api(admin, 'DELETE', `/api/ai/chat/sessions/${sessionA}`)).status).toBe(404);
+    expect((await h.stream(admin, { input: 'intip', session_id: sessionA })).status).toBe(404);
+    const found = await callMcpTool({ baseUrl: h.base, token: h.mcp.token, signingSecret: h.mcp.signingSecret, claims: { uid: admin.id, ch: 'panel' }, name: 'chat_cari_riwayat', args: { q: 'KEMBANG-77' } });
+    expect((found.structured?.data as { data: unknown[] }).data).toHaveLength(0);
+    expect(((await (await h.api(a, 'GET', `/api/ai/chat/sessions/${sessionA}/messages`)).json()) as { data: unknown[] }).data.length).toBe(2);
+  });
+
   it('message history: ascending, cursor paging, never exposes the identity block or actor snapshot', async () => {
     const res = (await (await h.api(a, 'GET', `/api/ai/chat/sessions/${sessionA}/messages?limit=1`)).json()) as { data: Array<Record<string, unknown>>; hasMore: boolean };
     expect(res.data).toHaveLength(1);

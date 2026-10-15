@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['**/*.integration.test.ts'],
+    globalSetup: ['src/__tests__/integration/globalSetup.ts'],
     // Integration tests share global setup (default warehouse, admin user);
     // running them serially avoids surprises from concurrent fixtures.
     fileParallelism: false,

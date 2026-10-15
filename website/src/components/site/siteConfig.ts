@@ -43,3 +43,6 @@ export const COMPANY = {
   short: "Arah",
   website: "https://arahkarya.com",
 } as const;
+
+/** Tautan donasi sukarela (Trakteer/Saweria/GitHub Sponsors/QRIS). Isi lewat env saat build; kosong = tombol disembunyikan. */
+export const DONATE_URL = process.env.NEXT_PUBLIC_DONATE_URL || "";

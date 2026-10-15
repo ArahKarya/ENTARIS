@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ConfirmCard } from './ConfirmCard';
 import type { ConfirmPart } from './types';
 
@@ -13,6 +13,10 @@ const card: ConfirmPart = {
   rincian: [{ label: 'id', value: '<b>PO-1</b>' }],
   expiresAt: '2026-10-14T05:15:00Z',
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('ConfirmCard', () => {
   it('sends ya or batal and says where the request goes', () => {
@@ -35,5 +39,15 @@ describe('ConfirmCard', () => {
     expect(screen.getByText(/kedaluwarsa/)).toBeInTheDocument();
     rerender(<ConfirmCard confirm={card} now={NOW} />);
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('turns into "expired" on its own when the deadline passes while it is on screen', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-14T05:14:50Z'));
+    render(<ConfirmCard confirm={card} onAnswer={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(11_000); });
+    expect(screen.queryByRole('button', { name: 'Ya, lanjutkan' })).toBeNull();
+    expect(screen.getByText(/kedaluwarsa/i)).toBeInTheDocument();
   });
 });

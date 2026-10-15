@@ -294,7 +294,7 @@
     "version": "Versi",
     "releaseDate": "Tanggal rilis",
     "developer": "Pengembang",
-    "credits": "Dibuat oleh {{maker}}. © {{year}}, hak cipta dilindungi."
+    "credits": "Dibuat oleh {{maker}}. © {{year}}. Perangkat lunak bebas (AGPL-3.0)."
   },
   "versionWatcher": {
     "title": "Versi aplikasi terbaru tersedia",

@@ -3,7 +3,7 @@
 // penyimpanan pesan pengguna (durabilitas: tersimpan sebelum agen dipanggil).
 
 import { randomUUID } from 'node:crypto';
-import { claimConfirmCard, type ConfirmChoice } from './confirmCard';
+import { claimConfirmCard, storedAnswer, type ConfirmChoice } from './confirmCard';
 import type { ChatMessage, ChatSession } from '@prisma/client';
 import { logger } from '../../lib/logger';
 import { buildIdentityBlock, IdentityError, type BuiltIdentityBlock } from '../../ai/identityBlock';
@@ -114,6 +114,7 @@ export async function prepareTurn(p: TurnParams): Promise<PreparedTurn> {
     let userMessage: ChatMessage;
     let userText: string;
     let attachment = saved;
+    let confirm = p.confirm;
     if (p.retryMessageId) {
       const message = await loadRetry(session, p.retryMessageId);
       userMessage = message;
@@ -121,6 +122,9 @@ export async function prepareTurn(p: TurnParams): Promise<PreparedTurn> {
       const a = message.attachments[0];
       attachment = a ? { fileName: a.fileName, mimeType: a.mimeType, size: a.size, filePath: a.filePath } : undefined;
       await updateSnapshot(message.id, identity.snapshot);
+      // Mengulang jawaban kartu: pilihan yang sama dikirim lagi. Kartu di sini sudah tertandai dijawab;
+      // engine yang memastikan aksinya tidak berjalan dua kali.
+      confirm = storedAnswer(message.parts) ?? undefined;
     } else {
       userText = text;
       userMessage = await createUserMessage({
@@ -129,13 +133,14 @@ export async function prepareTurn(p: TurnParams): Promise<PreparedTurn> {
         content: text || `${ATTACHMENT_ONLY_PREFIX}${saved?.fileName ?? 'berkas'}`,
         snapshot: identity.snapshot,
         attachment: saved,
+        ...(p.confirm ? { answer: p.confirm } : {}),
       });
     }
     const assistantMessage = await createAssistantPlaceholder(session.id, turnId, getEngineConfig().model);
     const fresh = (await getOwnedSession(p.userId, session.id)) ?? session;
     return {
       session: fresh, sessionCreated, turnId, ref: `${session.id}:${turnId}`, userMessage, assistantMessage, userText, identity, attachment,
-      ...(p.confirm ? { confirm: p.confirm } : {}),
+      ...(confirm ? { confirm } : {}),
     };
   } catch (err) {
     if (leased && session) await releaseTurnLease(session.id, turnId).catch(() => undefined);

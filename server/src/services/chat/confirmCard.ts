@@ -61,6 +61,13 @@ export function parseConfirm(data: string): ConfirmPrompt | null {
   };
 }
 
+/** Jawaban kartu yang tersimpan di pesan pengguna (lihat createUserMessage); null bila tidak ada. */
+export function storedAnswer(parts: unknown): { id: string; choice: ConfirmChoice } | null {
+  const answer = (parts as { answer?: { id?: unknown; choice?: unknown } } | null)?.answer;
+  if (!answer || typeof answer.id !== 'string' || !ID_RE.test(answer.id)) return null;
+  return answer.choice === 'ya' || answer.choice === 'batal' ? { id: answer.id, choice: answer.choice } : null;
+}
+
 /**
  * Tandai kartu `id` sebagai dijawab. Hanya kartu pada pesan asisten TERAKHIR sesi ini (status ok),
  * belum dijawab dan belum kedaluwarsa. Dipanggil di bawah lease giliran sesi (satu giliran per
