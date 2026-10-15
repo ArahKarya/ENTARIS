@@ -67,14 +67,14 @@ export function purchaseInvoiceBody(ctx: DemoContext, date: Date, partyKey: stri
   };
 }
 
-async function billSupplier(ctx: DemoContext, state: PurchaseState, date: Date, partyKey: string, sttLines: Line[], rateFor: (line: Line) => number) {
+export async function billSupplier(ctx: DemoContext, state: PurchaseState, date: Date, partyKey: string, sttLines: Line[], rateFor: (line: Line) => number) {
   const { data } = await ctx.api.post<{ id: string; grandTotal: string }>(ctx.admin, '/purchase/invoices', purchaseInvoiceBody(ctx, date, partyKey, sttLines, rateFor));
   const inv = { id: data.id, partyKey, total: num(data.grandTotal) };
   state.invoices.push(inv);
   return inv;
 }
 
-function payLater(ctx: DemoContext, w: number, inv: () => { partyKey: string; total: number } | undefined): void {
+export function payLater(ctx: DemoContext, w: number, inv: () => { partyKey: string; total: number } | undefined): void {
   if (w >= 2) return;
   ctx.schedule(windowDate(ctx, w + 1, 1), 'Pelunasan Supplier', async () => {
     const i = inv();
@@ -90,7 +90,7 @@ function payLater(ctx: DemoContext, w: number, inv: () => { partyKey: string; to
   });
 }
 
-const priceByItem = (ctx: DemoContext, prices: Record<string, number>) => (l: Line) =>
+export const priceByItem = (ctx: DemoContext, prices: Record<string, number>) => (l: Line) =>
   prices[Object.entries(ctx.items).find(([, i]) => i.id === l.inventoryItemId)?.[0] ?? ''] ?? 0;
 
 export function schedulePurchasing(ctx: DemoContext, state: PurchaseState): void {

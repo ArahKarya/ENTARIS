@@ -9,14 +9,14 @@ import { ITEM_WAREHOUSE } from './setup';
 import { withItems, type Line } from './purchasing';
 import { addDays, num, windowDate, ymd, type DemoContext } from '../context';
 
-type Want = { key: string; qty: number };
+export type Want = { key: string; qty: number };
 
 export interface SalesState {
   invoices: Array<{ id: string; partyKey: string; total: number; window: number }>;
 }
 
 /** Customers that never pay in the demo, so aging shows overdue receivables. */
-const SLOW_PAYERS = new Set(['koperasi']);
+const SLOW_PAYERS = new Set(['koperasi', 'miniMart']);
 
 const keyOfItem = (ctx: DemoContext, id: string | null) => Object.entries(ctx.items).find(([, i]) => i.id === id)?.[0] ?? '';
 
@@ -27,7 +27,7 @@ function soLines(ctx: DemoContext, wants: Want[]) {
   });
 }
 
-async function createSalesOrder(ctx: DemoContext, date: Date, partyKey: string, wants: Want[], quotationId?: string) {
+export async function createSalesOrder(ctx: DemoContext, date: Date, partyKey: string, wants: Want[], quotationId?: string) {
   const { data } = await ctx.api.post<{ id: string; items?: Line[] }>(ctx.admin, '/sales-orders', {
     date: ymd(date),
     partyId: ctx.parties[partyKey],
@@ -39,7 +39,7 @@ async function createSalesOrder(ctx: DemoContext, date: Date, partyKey: string, 
   return { id: data.id, lines: await withItems(ctx, '/sales-orders', data) };
 }
 
-async function deliverFromOrder(ctx: DemoContext, date: Date, so: { id: string; lines: Line[] }, share: number, temporaryNoteIds: string[] = []) {
+export async function deliverFromOrder(ctx: DemoContext, date: Date, so: { id: string; lines: Line[] }, share: number, temporaryNoteIds: string[] = []) {
   const { data } = await ctx.api.post<{ id: string; items?: Line[] }>(ctx.admin, `/sales-orders/${so.id}/generate-do`, {
     date: ymd(date),
     nomorMobil: 'B 9456 DMO',
@@ -55,7 +55,7 @@ async function deliverFromOrder(ctx: DemoContext, date: Date, so: { id: string; 
   return withItems(ctx, '/delivery-orders', data);
 }
 
-async function deliverDirect(ctx: DemoContext, date: Date, partyKey: string, wants: Want[]) {
+export async function deliverDirect(ctx: DemoContext, date: Date, partyKey: string, wants: Want[]) {
   const { data } = await ctx.api.post<{ id: string; items?: Line[] }>(ctx.admin, '/delivery-orders', {
     date: ymd(date),
     partyId: ctx.parties[partyKey],
@@ -72,7 +72,7 @@ async function deliverDirect(ctx: DemoContext, date: Date, partyKey: string, wan
   return withItems(ctx, '/delivery-orders', data);
 }
 
-async function invoiceDelivery(ctx: DemoContext, state: SalesState, w: number, date: Date, partyKey: string, doLines: Line[]) {
+export async function invoiceDelivery(ctx: DemoContext, state: SalesState, w: number, date: Date, partyKey: string, doLines: Line[]) {
   const { data } = await ctx.api.post<{ id: string; grandTotal: string }>(ctx.admin, '/sales/invoices', {
     date: ymd(date),
     dueDate: ymd(addDays(date, 30)),
@@ -91,7 +91,7 @@ async function invoiceDelivery(ctx: DemoContext, state: SalesState, w: number, d
   return inv;
 }
 
-function collectLater(ctx: DemoContext, w: number, partyKey: string, inv: () => { total: number } | undefined, day = 5): void {
+export function collectLater(ctx: DemoContext, w: number, partyKey: string, inv: () => { total: number } | undefined, day = 5): void {
   if (w >= 2 || SLOW_PAYERS.has(partyKey)) return;
   ctx.schedule(windowDate(ctx, w + 1, day), 'Penerimaan pembayaran', async () => {
     const i = inv();
