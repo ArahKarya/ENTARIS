@@ -89,8 +89,11 @@ function UserBubble({ message }: { message: ViewMessage }) {
 
 export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoose, onConfirm }: MessageItemProps) {
   const { t } = useTranslation('aira');
-  // Awal giliran ini; dibawa ke penghitung supaya tidak mulai dari nol saat label berganti.
-  const [startedAt] = useState(() => Date.now());
+  // Awal giliran: waktu dibuatnya pesan jawaban (dari server, atau saat dikirim), supaya penghitung
+  // tidak mulai dari nol saat panel dibuka ulang atau id pesan berganti; waktu pasang sebagai cadangan.
+  const [mountedAt] = useState(() => Date.now());
+  const created = message.createdAt ? Date.parse(message.createdAt) : Number.NaN;
+  const startedAt = Number.isFinite(created) ? Math.min(created, mountedAt) : mountedAt;
   if (message.role === 'user') {
     return (
       <article aria-label={t('message.yourMessage')} className="flex justify-end gap-2.5 sm:gap-3">
