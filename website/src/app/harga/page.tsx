@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site/SiteShell";
-import { CP_HREF, CP_LABEL } from "@/components/site/siteConfig";
+import { CP_HREF, CP_LABEL, DONATE_URL } from "@/components/site/siteConfig";
 import { InfoMatrix } from "@/components/pages/InfoMatrix";
 import { PageCta } from "@/components/pages/PageCta";
 import { PageFrame } from "@/components/pages/PageFrame";
@@ -13,24 +13,23 @@ import { formatRateDate, getUsdIdrRate } from "@/lib/exchangeRate";
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
-  title: "Harga dan Misi: bayar semampunya, 30% untuk sosial",
+  title: "Misi dan Dukungan: perangkat lunak terbuka dan gratis",
   description:
-    "Entaris dibayar semampunya tiap bulan tanpa batas minimum. AIRA gratis bila memakai AI Anda sendiri. 30% dari yang kami terima disalurkan untuk sosial.",
+    "Entaris adalah perangkat lunak terbuka (AGPL-3.0) untuk kemajuan UMKM, bangsa, dan negara. Gratis dipakai, dengan dukungan sukarela. AIRA gratis bila memakai AI Anda sendiri.",
 };
 
 const ENTARIS_ENTRIES = [
-  { term: "Cara membayar", detail: "Per bulan, sebesar yang menurut Anda pantas." },
-  { term: "Batas minimum", detail: "Tidak ada." },
-  { term: "Sampai kapan", detail: "Selama aplikasi masih bermanfaat bagi usaha Anda." },
+  { term: "Biaya lisensi", detail: "Tidak ada. Siapa pun boleh memakai, mempelajari, dan mengubah Entaris." },
+  { term: "Lisensi", detail: "AGPL-3.0. Kode sumber terbuka; perubahan yang dijalankan sebagai layanan bagi orang lain wajib ikut dibuka." },
   { term: "Tanpa AIRA", detail: "Entaris sudah lengkap tanpa AIRA. AIRA adalah fitur tambahan, bukan syarat." },
+  { term: "Butuh bantuan pasang", detail: "Pemasangan, migrasi data, hosting terkelola, dan dukungan dapat diminta lewat CP." },
 ] as const;
 
 const MISSION_ENTRIES = [
-  { term: "Dari Entaris", detail: "30% dari pendapatan bersih, dihitung sebelum dipotong biaya platform, bank, dan pajak (jika ada)." },
-  { term: "Dari AIRA", detail: "30% dari laba bersih pemakaian AIRA, yaitu pendapatan AIRA dikurangi biaya API layanan dan pajak." },
-  { term: "Disalurkan ke", detail: "Lembaga resmi penyalur zakat dan donasi, atau yayasan lokal di sekitar kami." },
-  { term: "Untuk", detail: "Bantuan bencana alam, bantuan langsung, dan fakir miskin." },
-  { term: "Laporan", detail: "Ringkasan bulanan untuk semua pengguna terdaftar." },
+  { term: "Misi", detail: "Perangkat lunak terbuka untuk kemajuan UMKM, bangsa, dan negara." },
+  { term: "Dukungan sukarela", detail: "Berapa pun nilainya, dipakai untuk pengembangan, pengujian, dan dokumentasi. Tidak ada kewajiban dan tidak ada fitur yang dikunci." },
+  { term: "Cara lain membantu", detail: "Laporkan masalah, kirim perbaikan kode, tulis dokumentasi atau terjemahan, dan ceritakan Entaris ke sesama pelaku usaha." },
+  { term: "Merek", detail: "Kode terbuka, tetapi nama dan logo Entaris, AIRA, dan Arah tetap milik PT Arah Karya Sinergi." },
 ] as const;
 
 export default async function Page() {
@@ -56,10 +55,10 @@ export default async function Page() {
       <PageFrame
         hero={
           <PageHero
-            eyebrow={{ name: "Harga dan Misi" }}
-            lines={["Bayar semampunya,", "tanpa batas minimum."]}
-            lead="Entaris dibuat agar UMKM dan pemilik usaha bisa mengelola perusahaan tanpa ribet dan tanpa biaya besar. Tidak ada tarif tetap. Sebagian dari yang kami terima disalurkan untuk sosial."
-            primary={{ label: CP_LABEL, href: CP_HREF, arrow: true }}
+            eyebrow={{ name: "Misi dan Dukungan" }}
+            lines={["Terbuka untuk semua,", "gratis dipakai."]}
+            lead="Entaris dibuat agar UMKM dan pemilik usaha bisa mengelola perusahaan tanpa ribet dan tanpa biaya lisensi. Kodenya terbuka, dan dukungan Anda bersifat sukarela."
+            primary={DONATE_URL ? { label: "Dukung Entaris", href: DONATE_URL, arrow: true } : { label: CP_LABEL, href: CP_HREF, arrow: true }}
             compact
           />
         }
@@ -67,8 +66,8 @@ export default async function Page() {
         <RecordSection
           id="entaris"
           kicker="Entaris"
-          title="Bayar semampunya, tiap bulan."
-          text="Anda menentukan sendiri jumlahnya. Kami percaya aplikasi yang benar-benar membantu usaha akan dibayar dengan wajar."
+          title="Gratis, dan akan tetap gratis."
+          text="Tidak ada paket berbayar yang mengunci fitur. Yang berbayar hanya layanan yang kami kerjakan untuk Anda, bila Anda memintanya."
           entries={ENTARIS_ENTRIES}
         />
         <InfoMatrix
@@ -84,10 +83,10 @@ export default async function Page() {
         />
         <RecordSection
           id="misi"
-          kicker="Misi sosial"
-          title="30% untuk sesama."
-          text="Entaris dibuat untuk membantu. Karena itu sebagian dari yang kami terima kami salurkan untuk bantuan sosial."
-          cta={{ label: "Lihat laporan donasi", href: "/laporan-donasi" }}
+          kicker="Misi"
+          title="Untuk UMKM, bangsa, dan negara."
+          text="Entaris dibuat untuk membantu. Bila bermanfaat bagi usaha Anda, dukungan sukarela membuat pengembangannya terus berjalan."
+          cta={DONATE_URL ? { label: "Dukung Entaris", href: DONATE_URL, arrow: true } : undefined}
           entries={MISSION_ENTRIES}
         />
         <PageCta
