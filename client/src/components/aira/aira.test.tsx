@@ -144,6 +144,19 @@ describe('loading state', () => {
     rerender(<MemoryRouter><MessageItem message={{ ...running, content: 'Ada 3 invoice.' }} canRetry={false} onRetry={vi.fn()} /></MemoryRouter>);
     expect(screen.queryByRole('status')).toBeNull();
   });
+  it('counts from when the answer was created, so reopening the panel mid-turn does not restart it', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-15T10:00:42Z'));
+    try {
+      wrap(<MessageItem message={msg({ status: 'streaming', content: '', createdAt: '2026-10-15T10:00:00Z' })} canRetry={false} onRetry={vi.fn()} />);
+      expect(screen.getByRole('status')).toHaveTextContent('42.0s');
+      // a server clock ahead of this one never shows a negative or future start
+      wrap(<MessageItem message={msg({ id: 'later', status: 'streaming', content: '', createdAt: '2026-10-15T10:05:00Z' })} canRetry={false} onRetry={vi.fn()} />);
+      expect(screen.getAllByRole('status')[1]).toHaveTextContent('0.0s');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('formats the timer in seconds then minutes', () => {
     expect(formatElapsed(3200)).toBe('3.2s');
     expect(formatElapsed(75_400)).toBe('1m 15.4s');

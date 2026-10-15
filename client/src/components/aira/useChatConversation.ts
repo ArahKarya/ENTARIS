@@ -208,7 +208,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
         id: userTmp, role: 'user', content: text || (file ? `Lampiran: ${file.name}` : ''), status: 'ok', attachments: [], tools: [], cards: [],
         localAttachment: file ? { name: file.name, size: file.size, previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined } : undefined,
       };
-      const bot: ViewMessage = { id: botTmp, role: 'assistant', content: '', status: 'streaming', attachments: [], tools: [], cards: [] };
+      const bot: ViewMessage = { id: botTmp, role: 'assistant', content: '', status: 'streaming', attachments: [], tools: [], cards: [], createdAt: new Date().toISOString() };
       // Kartu yang dijawab tidak boleh ditekan lagi, bahkan sebelum server menandainya.
       setMessages((prev) => [
         ...prev.map((m) => (confirm && m.confirm?.id === confirm.id ? { ...m, confirm: { ...m.confirm, answered: confirm.choice } } : m)),
@@ -226,7 +226,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.id === userMessageId);
         const keep = idx >= 0 ? prev.slice(0, idx + 1) : prev;
-        return [...keep, { id: botTmp, role: 'assistant', content: '', status: 'streaming', attachments: [], tools: [], cards: [] }];
+        return [...keep, { id: botTmp, role: 'assistant', content: '', status: 'streaming', attachments: [], tools: [], cards: [], createdAt: new Date().toISOString() }];
       });
       return run({ input: '', retryMessageId: userMessageId }, null, botTmp);
     },
