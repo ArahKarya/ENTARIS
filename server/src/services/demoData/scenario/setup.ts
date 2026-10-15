@@ -70,9 +70,17 @@ const PARTIES = [
   { key: 'mitraNiaga', name: 'PT Mitra Niaga Sentosa', partyType: 'Customer', phone: '081200000104', address: 'Kawasan Pergudangan Blok C3' },
   { key: 'koperasi', name: 'Koperasi Karya Usaha', partyType: 'Customer', phone: '081200000105', address: 'Jl. Koperasi 3' },
   { key: 'warungSari', name: 'Warung Makan Bu Sari', partyType: 'Customer', phone: '081200000106', address: 'Jl. Melati 21' },
+  { key: 'grosirMaju', name: 'Toko Grosir Maju Jaya', partyType: 'Customer', phone: '081200000107', address: 'Jl. Pasar Induk 5' },
+  { key: 'rmPadang', name: 'RM Padang Sederhana Rasa', partyType: 'Customer', phone: '081200000108', address: 'Jl. Merdeka 77' },
+  { key: 'pesantren', name: 'Pesantren Al-Hikmah', partyType: 'Customer', phone: '081200000109', address: 'Desa Karanganyar' },
+  { key: 'kateringBoga', name: 'Katering Nusantara Boga', partyType: 'Customer', phone: '081200000110', address: 'Jl. Kenanga 14' },
+  { key: 'miniMart', name: 'Minimarket Segar Mart', partyType: 'Customer', phone: '081200000111', address: 'Jl. Raya Barat 102' },
+  { key: 'bumiPangan', name: 'CV Bumi Pangan Niaga', partyType: 'Customer', phone: '081200000112', address: 'Kawasan Niaga Blok A2' },
   { key: 'gabahLestari', name: 'UD Gabah Lestari', partyType: 'Supplier', phone: '081200000201', address: 'Desa Sukamaju' },
   { key: 'kelompokTani', name: 'Kelompok Tani Subur Makmur', partyType: 'Supplier', phone: '081200000202', address: 'Desa Mekarsari' },
   { key: 'minyakPrima', name: 'PT Nabati Prima Distribusi', partyType: 'Supplier', phone: '081200000203', address: 'Jl. Industri 7' },
+  { key: 'taniMakmur', name: 'UD Tani Makmur', partyType: 'Supplier', phone: '081200000205', address: 'Desa Karyamulya' },
+  { key: 'grosirPangan', name: 'PT Sumber Pangan Grosir', partyType: 'Supplier', phone: '081200000206', address: 'Jl. Industri 31' },
   { key: 'kemasPlast', name: 'CV Kemas Plastindo', partyType: 'Supplier', phone: '081200000204', address: 'Jl. Industri 19' },
 ] as const;
 
@@ -83,6 +91,9 @@ const ITEMS: Array<Omit<DemoItem, 'id'> & { key: string; category: string; wareh
   { key: 'dedak', code: 'DEMO-DDK', name: 'Dedak', unit: 'Kg', category: 'Produk Samping', cost: 2500, sellPrice: 4000, warehouse: 'plant', opening: 2000 },
   { key: 'karung', code: 'DEMO-KRG-25', name: 'Karung Beras 25 kg', unit: 'Pcs', category: 'Kemasan', cost: 2200, sellPrice: 0, warehouse: 'plant', opening: 1500 },
   { key: 'minyak', code: 'DEMO-MNY-2L', name: 'Minyak Goreng 2 L', unit: 'Pcs', category: 'Barang Dagang', cost: 31000, sellPrice: 38000, warehouse: 'distribution', opening: 400 },
+  { key: 'tepung', code: 'DEMO-TPG-1KG', name: 'Tepung Terigu 1 kg', unit: 'Pcs', category: 'Barang Dagang', cost: 11500, sellPrice: 14000, warehouse: 'distribution', opening: 500 },
+  { key: 'kopi', code: 'DEMO-KPI-200', name: 'Kopi Bubuk 200 g', unit: 'Pcs', category: 'Barang Dagang', cost: 14000, sellPrice: 18500, warehouse: 'distribution', opening: 400 },
+  { key: 'mie', code: 'DEMO-MIE-DUS', name: 'Mie Instan (dus)', unit: 'Dus', category: 'Barang Dagang', cost: 98000, sellPrice: 115000, warehouse: 'distribution', opening: 100 },
   { key: 'gula', code: 'DEMO-GLA-1KG', name: 'Gula Pasir 1 kg', unit: 'Pcs', category: 'Barang Dagang', cost: 15500, sellPrice: 19000, warehouse: 'distribution', opening: 600 },
 ];
 

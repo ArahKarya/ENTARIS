@@ -11,6 +11,7 @@ import { createMasters, ensureFiscalYears, postOpeningBalances, resolveAccounts 
 import { schedulePurchasing, type PurchaseState } from './scenario/purchasing';
 import { scheduleSales, type SalesState } from './scenario/sales';
 import { scheduleSalesExtras } from './scenario/salesExtras';
+import { scheduleExtraVolume } from './scenario/extraVolume';
 import { scheduleFinance } from './scenario/finance';
 import { scheduleProduction } from './scenario/production';
 import { scheduleBackOffice } from './scenario/backOffice';
@@ -109,6 +110,7 @@ export async function runBatch(batchId: string, admin: DemoActor, api: DemoApi):
     schedulePurchasing(ctx, purchases);
     scheduleSales(ctx, sales);
     scheduleSalesExtras(ctx, sales);
+    scheduleExtraVolume(ctx, purchases, sales);
     scheduleFinance(ctx, purchases);
     scheduleProduction(ctx);
     schedulePaymentRequests(ctx, scheduleBackOffice(ctx));
@@ -122,7 +124,7 @@ export async function runBatch(batchId: string, admin: DemoActor, api: DemoApi):
       await ev.run();
       done++;
     }
-    await prisma.demoDataBatch.update({ where: { id: batchId }, data: { status: 'done', step: null, doneSteps: done, finishedAt: new Date() } });
+    await prisma.demoDataBatch.update({ where: { id: batchId }, data: { status: 'done', step: null, error: null, doneSteps: done, finishedAt: new Date() } });
     logger.info({ batchId, steps: done }, 'Demo data generated');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
