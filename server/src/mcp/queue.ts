@@ -10,6 +10,7 @@ import { approvalsLink } from '../services/approvalGate';
 import { notifyAdmins } from '../services/notificationService';
 import { redactSecrets } from '../utils/redact';
 import { callHandler, type HandlerResult } from './execute';
+import { displayArgs } from './docLabels';
 import { formatHandlerResult } from './resultFormat';
 import { AI_TOOL_DOC_PREFIX, isAiToolDocumentType } from './constants';
 
@@ -58,7 +59,7 @@ export interface QueueInput {
 }
 
 export async function queueToolCall(input: QueueInput): Promise<{ approvalId: string; confirm: string }> {
-  const confirm = renderConfirm(input.tool.confirm_template, input.args);
+  const confirm = renderConfirm(input.tool.confirm_template, await displayArgs(input.tool.handler, input.args));
   const payload: QueuedToolPayload = {
     tool: input.tool.name,
     args: input.args,

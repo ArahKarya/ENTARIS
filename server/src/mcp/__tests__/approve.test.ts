@@ -6,6 +6,7 @@ const m = vi.hoisted(() => {
     db: {
       approvalRequest: { updateMany: vi.fn(), update: vi.fn().mockResolvedValue({}), create: vi.fn(), findUnique: vi.fn() },
       user: { findUnique: vi.fn() },
+      purchaseOrder: { findUnique: vi.fn() },
     },
     callHandler: vi.fn(),
     notifyUsers: vi.fn().mockResolvedValue(1),
@@ -48,6 +49,22 @@ describe('queueToolCall', () => {
     expect(data).toMatchObject({ documentType: 'ai_tool:payreq_pay', status: 'Pending', requestedBy: 'u1', amount: 150000 });
     expect(data.payload).toMatchObject({ tool: 'payreq_pay', handler: 'POST /api/payment-requests/:id/pay', via: 'mcp', tokenName: 'aira-dev', channel: 'whatsapp', actor: { userId: 'u1' }, args: { id: 'pr-1' } });
     expect(m.notifyAdmins).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval_pending', excludeUserId: 'u1' }));
+  });
+
+  it('shows the document number in the approval note but keeps the UUID in the stored args', async () => {
+    const id = '0a3f1c2e-1111-4222-8333-444455556666';
+    m.db.purchaseOrder.findUnique.mockResolvedValue({ poNumber: 'PO-202610-0001' });
+    m.db.approvalRequest.create.mockResolvedValue({ id: 'apr-10' });
+    const r = await queueToolCall({
+      tool: { name: 'po_submit', handler: 'POST /api/purchase-orders/:id/submit', risk: 'write', confirm_template: 'Ajukan PO {id}?' },
+      args: { id },
+      actor: { id: 'u1', fullName: 'Budi', role: 'Accountant', airaJabatan: null },
+      tokenName: 'aira-dev', channel: null,
+    });
+    expect(r.confirm).toBe('Ajukan PO PO-202610-0001?');
+    const data = m.db.approvalRequest.create.mock.calls[0][0].data;
+    expect(data.notes).toBe('Ajukan PO PO-202610-0001?');
+    expect(data.payload).toMatchObject({ confirm: 'Ajukan PO PO-202610-0001?', args: { id } });
   });
 
   it('renderConfirm leaves unknown placeholders and never prints objects', () => {
