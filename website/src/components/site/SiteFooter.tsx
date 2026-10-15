@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useErpRoot } from "@/components/erp/shared/ErpRoot";
 import { EntarisLogo } from "./EntarisLogo";
-import { COMPANY, CONTACT_EMAIL, CP_HREF, CP_LABEL, FOOTER_PAGES, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
+import { COMPANY, CONTACT_EMAIL, CP_HREF, DONATE_URL, CP_LABEL, FOOTER_PAGES, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
 
 const MODULE_LINKS = [
   { href: "/modul#modul-penjualan", label: "Penjualan" },
@@ -26,11 +26,16 @@ export function SiteFooter() {
             <EntarisLogo negative />
             <p className="ent-footer__tagline">Enterprise Agentic Reasoning Integrated System</p>
             <p className="ent-footer__summary">
-              Sistem yang ikut bertumbuh dengan bisnis Anda. Dibangun dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang ikut bekerja di atas data transaksi Anda. Berjalan di server Anda sendiri, jadi datanya milik Anda.
+              Sistem yang ikut bertumbuh dengan bisnis Anda. Dibangun dengan pembukuan otomatis sebagai fondasi dan agen AI AIRA yang ikut bekerja di atas data transaksi Anda. Perangkat lunak terbuka (AGPL-3.0) untuk kemajuan UMKM, bangsa, dan negara. Berjalan di server Anda sendiri, jadi datanya milik Anda.
             </p>
             <a className="ent-btn ent-btn--light" href={CP_HREF} target="_blank" rel="noopener noreferrer">
               {CP_LABEL}
             </a>
+            {DONATE_URL ? (
+              <a className="ent-btn ent-btn--light" href={DONATE_URL} target="_blank" rel="noopener noreferrer">
+                Dukung Entaris
+              </a>
+            ) : null}
           </div>
           <nav className="ent-footer__cols" aria-label="Navigasi footer">
             <div className="ent-footer__col">
@@ -75,7 +80,7 @@ export function SiteFooter() {
         </div>
         <div className="ent-footer__bottom">
           <p>
-            © {year} {COMPANY.name}. Hak cipta dilindungi.
+            © {year} {COMPANY.name}. Perangkat lunak bebas, lisensi AGPL-3.0.
           </p>
           <div className="ent-footer__theme" role="radiogroup" aria-label="Tema tampilan">
             {(["light", "dark"] as const).map((t) => (
