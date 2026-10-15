@@ -179,7 +179,7 @@ async function previewDomainTool(ctx: CallContext, rawArgs: Record<string, unkno
   const checked = await checkDomainCall(ctx, name, isPlainObject(rawArgs.args) ? rawArgs.args : {});
   if (!checked.ok) return checked.outcome;
   const { entry, verdict, args } = checked.call;
-  const structured = buildPreview(entry.tool, verdict.decision, args) as unknown as Record<string, unknown>;
+  const structured = (await buildPreview(entry.tool, verdict.decision, args)) as unknown as Record<string, unknown>;
   return { result: { isError: false, structured, text: JSON.stringify(structured) }, decision: 'allowed' };
 }
 

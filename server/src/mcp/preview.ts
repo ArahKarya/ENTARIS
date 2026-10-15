@@ -6,6 +6,7 @@
 
 import type { ToolDef, ToolParam } from '../ai/types';
 import { renderConfirm } from './queue';
+import { displayArgs } from './docLabels';
 import type { ToolDecision } from './policy';
 
 const MAX_FACTS = 8;
@@ -68,8 +69,10 @@ function facts(params: ToolParam[] | undefined, args: Record<string, unknown>): 
   return out;
 }
 
-export function buildPreview(tool: ToolDef, decision: Exclude<ToolDecision, 'deny'>, args: Record<string, unknown>): ToolPreview {
+export async function buildPreview(tool: ToolDef, decision: Exclude<ToolDecision, 'deny'>, rawArgs: Record<string, unknown>): Promise<ToolPreview> {
   const tindakan = action(tool, decision);
+  // Kartu menyebut nomor dokumen / nama, bukan UUID; argumen asli tidak diubah.
+  const args = await displayArgs(tool.handler, rawArgs);
   return {
     ok: true,
     tool: tool.name,
