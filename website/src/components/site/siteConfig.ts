@@ -34,7 +34,7 @@ export const CP_MESSAGE_FOR_BUSINESS = (businessType: string): string =>
 export const CP_MESSAGE_FOR_MODULE = (moduleName: string): string => `Halo, saya tertarik dengan modul ${moduleName} di Entaris dan ingin tahu lebih lanjut.`;
 
 export const ENTARIS_FULL = "Enterprise Agentic Reasoning Integrated System";
-export const AIRA_FULL = "Artificial Intelligence Reasoning Agent";
+export const AIRA_FULL = "AI Reasoning Agent";
 export const TAGLINE_MAIN = "Sistem yang ikut bertumbuh dengan bisnis kamu";
 export const TAGLINE_SECONDARY = "ERP biasa menunggu diisi; Entaris ikut bekerja.";
 
