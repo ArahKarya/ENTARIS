@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const m = vi.hoisted(() => ({ findFirst: vi.fn(), update: vi.fn() }));
 vi.mock('../../../lib/prisma', () => ({ prisma: { chatMessage: { findFirst: m.findFirst, update: m.update } } }));
 
-import { claimConfirmCard, parseConfirm } from '../confirmCard';
+import { claimConfirmCard, parseConfirm, storedAnswer } from '../confirmCard';
 
 const ID = '0f8b6c1e-2d3a-4b5c-8d9e-0a1b2c3d4e5f';
 const event = {
@@ -56,5 +56,18 @@ describe('claimConfirmCard', () => {
     m.findFirst.mockResolvedValueOnce({ ...stored, parts: { confirm: { ...stored.parts.confirm, id: 'aaaaaaaa-0000-4000-8000-000000000000' } } });
     expect(await claimConfirmCard('s1', ID, 'ya', NOW)).toBe(false); // not the latest card
     expect(m.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('storedAnswer', () => {
+  const id = '0a3f1c2e-1111-4222-8333-444455556666';
+  it('reads the answer a user message carries', () => {
+    expect(storedAnswer({ answer: { id, choice: 'ya' } })).toEqual({ id, choice: 'ya' });
+    expect(storedAnswer({ answer: { id, choice: 'batal' } })).toEqual({ id, choice: 'batal' });
+  });
+  it('ignores anything else', () => {
+    for (const parts of [null, undefined, {}, { answer: null }, { answer: { id: 'x y', choice: 'ya' } }, { answer: { id, choice: 'mungkin' } }, { answer: { id: 5, choice: 'ya' } }]) {
+      expect(storedAnswer(parts)).toBeNull();
+    }
   });
 });

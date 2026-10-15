@@ -30,6 +30,8 @@ export interface MockBehavior {
   completion?: string | null;
   /** tunda sebelum respons mulai */
   startDelayMs?: number;
+  /** kartu konfirmasi (event `aira.confirm`) yang dikirim setelah teks; giliran berakhir di situ */
+  confirm?: Record<string, unknown>;
 }
 
 export interface RecordedRequest {
@@ -154,6 +156,7 @@ export async function startMockAgent(opts: MockAgentOptions = {}): Promise<MockA
       if (b.chunkDelayMs) await sleep(b.chunkDelayMs);
     }
     if (b.hangAfterChunks) return; // koneksi dibiarkan terbuka sampai klien memutus
+    if (b.confirm) res.write(`event: aira.confirm\ndata: ${JSON.stringify(b.confirm)}\n\n`);
     res.write(`data: ${chunkJson(null, 'stop')}\n\n`);
     res.write('data: [DONE]\n\n');
     res.end();

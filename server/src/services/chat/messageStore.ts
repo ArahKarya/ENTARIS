@@ -26,6 +26,8 @@ export interface CreateUserMessage {
   content: string;
   snapshot: ActorSnapshot;
   attachment?: SavedAttachment;
+  /** jawaban kartu konfirmasi yang dibawa pesan ini; disimpan agar "Coba lagi" mengirimnya lagi */
+  answer?: { id: string; choice: 'ya' | 'batal' };
 }
 
 export async function createUserMessage(input: CreateUserMessage): Promise<ChatMessage> {
@@ -37,6 +39,7 @@ export async function createUserMessage(input: CreateUserMessage): Promise<ChatM
       content: input.content,
       status: 'ok',
       actorSnapshot: input.snapshot as unknown as Prisma.InputJsonValue,
+      ...(input.answer ? { parts: { answer: input.answer } as Prisma.InputJsonValue } : {}),
       ...(input.attachment
         ? { attachments: { create: { fileName: input.attachment.fileName, mimeType: input.attachment.mimeType, size: input.attachment.size, filePath: input.attachment.filePath } } }
         : {}),
