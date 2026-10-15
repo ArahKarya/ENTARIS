@@ -1,4 +1,4 @@
-import { CP_HREF, CP_LABEL } from "@/components/site/siteConfig";
+import { DEMO_HREF, DEMO_LABEL } from "@/components/site/siteConfig";
 import { AiraWindow } from "../mock/AiraWindow";
 import { AiraEyebrow } from "./AiraEyebrow";
 import { AiraIcon } from "./AiraIcon";
@@ -21,8 +21,8 @@ export function AiraHero() {
             laporan, dan mengerjakan tugas sampai jadi draf, juga dari ponsel Anda. Setiap perubahan pembukuan tetap menunggu persetujuan manusia.
           </p>
           <div className="aira-hero__actions">
-            <a href={CP_HREF} target="_blank" rel="noopener noreferrer" className="ent-btn ent-btn--solid aira-hero__btn">
-              {CP_LABEL}
+            <a href={DEMO_HREF} target="_blank" rel="noopener noreferrer" className="ent-btn ent-btn--solid aira-hero__btn">
+              {DEMO_LABEL}
             </a>
             <a href="#cara-kerja" className="ent-btn ent-btn--ghost aira-hero__btn">
               Lihat cara kerjanya

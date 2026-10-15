@@ -23,6 +23,8 @@ export const WHATSAPP_NUMBER = "6282282747444";
 export const WHATSAPP_DISPLAY = "0822-8274-7444";
 
 /** Every contact button opens WhatsApp to the contact person (CP) with a ready-made first message. */
+export const DEMO_LABEL = "Coba Demo";
+export const DEMO_HREF = "https://entaris-demo.arahkarya.com";
 export const CP_LABEL = "Hubungi CP";
 export const CP_MESSAGE = "Halo, saya tertarik dengan Entaris dan ingin tahu lebih lanjut.";
 export const whatsappHref = (message: string): string => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;

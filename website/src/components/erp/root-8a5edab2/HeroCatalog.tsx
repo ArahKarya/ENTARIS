@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { CP_HREF, CP_LABEL } from "@/components/site/siteConfig";
+import { CP_HREF, CP_LABEL, DEMO_HREF, DEMO_LABEL } from "@/components/site/siteConfig";
 import { Icon } from "@/components/home/HomeIcons";
 import { AiraMark } from "@/components/site/AiraLogo";
 import { AGENT_PANEL, HUMAN_PANEL } from "@/components/home/homeContent";
@@ -98,13 +98,16 @@ export function HeroCatalog() {
               <p className={descriptionClass(human)}>{human.sub}</p>
             </div>
             <div className="hero-catalog__cta-row hero-catalog__cta-row--human">
-              <a href={CP_HREF} target="_blank" rel="noopener noreferrer" className="hero-catalog__cta hero-catalog__cta--primary">
-                <span>{CP_LABEL}</span>
+              <a href={DEMO_HREF} target="_blank" rel="noopener noreferrer" className="hero-catalog__cta hero-catalog__cta--primary">
+                <span>{DEMO_LABEL}</span>
                 <Icon name="arrowRight" style={ARROW_STYLE} />
               </a>
               <Link href="/modul" className="hero-catalog__cta hero-catalog__cta--ghost">
                 <span>Jelajahi modul</span>
               </Link>
+              <a href={CP_HREF} target="_blank" rel="noopener noreferrer" className="hero-catalog__cta hero-catalog__cta--ghost">
+                <span>{CP_LABEL}</span>
+              </a>
             </div>
             <HeroFlowDiagram
               kind="human"
