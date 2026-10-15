@@ -2,7 +2,7 @@
 // status galat/dihentikan dengan "Coba lagi", salin).
 
 import { useState } from 'react';
-import { AlertTriangle, Check, Copy, FileText, Loader2, OctagonX, RotateCcw, User } from 'lucide-react';
+import { AlertTriangle, Check, Copy, FileText, OctagonX, RotateCcw, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AiraIcon } from '@/components/shell/AiraIcon';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { CardPartView } from './CardParts';
 import { ClarifyChoices } from './ClarifyChoices';
 import { ConfirmCard } from './ConfirmCard';
+import { LoadingState } from './LoadingState';
 import { Markdown } from './Markdown';
 import { ToolChips } from './ToolChips';
 import { attachmentUrl } from './chatApi';
@@ -88,6 +89,8 @@ function UserBubble({ message }: { message: ViewMessage }) {
 
 export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoose, onConfirm }: MessageItemProps) {
   const { t } = useTranslation('aira');
+  // Awal giliran ini; dibawa ke penghitung supaya tidak mulai dari nol saat label berganti.
+  const [startedAt] = useState(() => Date.now());
   if (message.role === 'user') {
     return (
       <article aria-label={t('message.yourMessage')} className="flex justify-end gap-2.5 sm:gap-3">
@@ -114,11 +117,11 @@ export function MessageItem({ message, canRetry, onRetry, retryTargetId, onChoos
             <Markdown text={message.content} />
           </div>
         )}
-        {streaming && !message.content && message.tools.length === 0 && (
-          <div className="inline-flex rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5">
-            <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
-            <span className="sr-only">{t('message.typing')}</span>
-          </div>
+        {streaming && !message.content && (
+          <LoadingState
+            label={[...message.tools].reverse().find((c) => c.state === 'start')?.label || t('message.working')}
+            since={startedAt}
+          />
         )}
         {message.cards.map((c, i) => <CardPartView key={`${c.href}-${i}`} card={c} />)}
         {message.status === 'ok' && message.clarify && <ClarifyChoices clarify={message.clarify} onChoose={onChoose} />}

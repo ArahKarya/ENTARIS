@@ -402,7 +402,7 @@
   /* Motion levels (DESIGN.md "Gerak"), set on <html data-motion> by theme-init.js and
      MotionContext. 'smooth' and 'lively' keep the CSS as written; 'lively' adds JS
      effects (KPI count-up, chart animation). Loading spinners keep spinning. */
-  :root[data-motion='none'] *:not(.animate-spin),
+  :root[data-motion='none'] *:not(.animate-spin):not(.aira-pixel),
   :root[data-motion='none'] *::before,
   :root[data-motion='none'] *::after {
     animation-duration: 0.01ms !important;
@@ -428,6 +428,58 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* Penanda "AIRA sedang bekerja" (components/aira/LoadingState.tsx) */
+@keyframes pixel-on {
+  0%,
+  60%,
+  100% {
+    opacity: 0.15;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+/* Sel grid = penanda aktivitas seperti .animate-spin: tetap bergerak di mode gerak "none" dan
+   "minimal", diam hanya bila sistem meminta reduced motion. Kilau label hanya hiasan: diam di
+   kedua mode itu. */
+.aira-pixel {
+  opacity: 0.15;
+  animation: pixel-on 650ms ease-in-out var(--pixel-delay, 0ms) infinite;
+}
+.aira-shimmer {
+  color: var(--muted-foreground);
+  background-image: linear-gradient(90deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 1.4s linear infinite;
+}
+@supports not (background-clip: text) {
+  .aira-shimmer {
+    -webkit-text-fill-color: currentColor;
+  }
+}
+@media (forced-colors: active) {
+  .aira-shimmer {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+:root[data-motion='none'] .aira-shimmer,
+:root[data-motion='minimal'] .aira-shimmer {
+  animation: none;
+}
+@keyframes shimmer-text {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
   }
 }
 
