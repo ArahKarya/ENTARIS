@@ -60,7 +60,7 @@
     "attachment": "Attachment {{name}}",
     "yourMessage": "Your message",
     "airaReply": "AIRA reply",
-    "typing": "AIRA is typing…",
+    "working": "AIRA is working",
     "failed": "The answer could not be generated.",
     "stopped": "Stopped. Text already received is kept.",
     "retry": "Try again"

@@ -60,7 +60,7 @@
     "attachment": "Lampiran {{name}}",
     "yourMessage": "Pesan Anda",
     "airaReply": "Balasan AIRA",
-    "typing": "AIRA sedang mengetik…",
+    "working": "AIRA sedang memproses",
     "failed": "Jawaban gagal dibuat.",
     "stopped": "Dihentikan. Teks yang sudah diterima tetap tersimpan.",
     "retry": "Coba lagi"

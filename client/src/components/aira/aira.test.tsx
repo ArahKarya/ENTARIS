@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Markdown } from './Markdown';
 import { parseBlocks, safeHref } from './markdownParse';
@@ -9,6 +9,8 @@ import { CardPartView } from './CardParts';
 import { ToolChips } from './ToolChips';
 import { collapseChips } from './chipUtils';
 import { MessageItem } from './MessageItem';
+import { formatElapsed } from './formatElapsed';
+import { LoadingState } from './LoadingState';
 import { Composer } from './Composer';
 import { SessionList } from './SessionList';
 import { EmptyChat } from './EmptyChat';
@@ -125,6 +127,43 @@ describe('MessageItem', () => {
     wrap(<MessageItem message={msg({ status: 'streaming', content: 'sedang' })} canRetry={false} onRetry={vi.fn()} />);
     expect(screen.getByRole('article', { name: 'Balasan AIRA' })).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByRole('button', { name: 'Salin jawaban' })).toBeNull();
+  });
+});
+
+describe('loading state', () => {
+  it('shows a status with the generic label and a timer while AIRA has nothing to show yet', () => {
+    wrap(<MessageItem message={msg({ status: 'streaming', content: '' })} canRetry={false} onRetry={vi.fn()} />);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('AIRA sedang memproses');
+    expect(status).toHaveTextContent(/\d+\.\ds/);
+  });
+  it('uses the label of the tool that is running, and disappears once text arrives', () => {
+    const running = msg({ status: 'streaming', content: '', tools: [{ name: 'a', label: 'Mengambil piutang jatuh tempo', state: 'start' }] });
+    const { rerender } = wrap(<MessageItem message={running} canRetry={false} onRetry={vi.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Mengambil piutang jatuh tempo');
+    rerender(<MemoryRouter><MessageItem message={{ ...running, content: 'Ada 3 invoice.' }} canRetry={false} onRetry={vi.fn()} /></MemoryRouter>);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+  it('formats the timer in seconds then minutes', () => {
+    expect(formatElapsed(3200)).toBe('3.2s');
+    expect(formatElapsed(75_400)).toBe('1m 15.4s');
+    expect(formatElapsed(-5)).toBe('0.0s');
+  });
+});
+
+describe('loading state timer', () => {
+  it('counts up from the given start, keeps counting when the label changes, and stops on unmount', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const { rerender, unmount } = render(<LoadingState label="Mencari" since={9_000} />);
+    expect(screen.getByRole('status')).toHaveTextContent('1.0s');
+    act(() => { vi.advanceTimersByTime(1000); });
+    rerender(<LoadingState label="Mengambil piutang" since={9_000} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Mengambil piutang');
+    expect(screen.getByRole('status')).toHaveTextContent('2.0s');
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
   });
 });
 
