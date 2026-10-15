@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Lisensi
+**Diubah**:
+- Lisensi berganti dari **proprietary** menjadi **GNU AGPL-3.0-only**. `LICENSE` berisi teks resmi AGPL-3.0, badge dan bagian Lisensi README diperbarui, `package.json` server/client ditandai `"license": "AGPL-3.0-only"`. Merek Entaris/AIRA/Arah tetap milik PT Arah Karya Sinergi (`TRADEMARK.md`).
+**Ditambah**: `CONTRIBUTING.md` (DCO), `SECURITY.md`, `CODE_OF_CONDUCT.md`, `TRADEMARK.md`.
+
 ## [4.1.3] - 2026-10-14
 
 AIRA bisa melampirkan berkas ke Pengajuan Pembayaran, sehingga draf jenis wajib-lampiran bisa di-submit.

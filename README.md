@@ -10,8 +10,10 @@ ERP untuk penjualan, pembelian, inventori, produksi, dan keuangan dalam satu sis
 
 <sub><b>ENT</b>erprise · <b>A</b>gentic · <b>R</b>easoning · <b>I</b>ntegrated · <b>S</b>ystem</sub>
 
-[![License](https://img.shields.io/badge/License-Proprietary-1B2B48?style=flat-square)](./LICENSE)
-[![Contact](https://img.shields.io/badge/Lisensi%20%26%20demo-solutions%40arahkarya.com-3D8BE0?style=flat-square)](mailto:solutions@arahkarya.com)
+**Misi:** Entaris dibuat sebagai perangkat lunak terbuka untuk kemajuan UMKM, bangsa, dan negara. Siapa pun boleh memakainya tanpa biaya lisensi. Bila Entaris bermanfaat bagi usaha Anda, dukungan sukarela membantu pengembangan berkelanjutan: lihat bagian [Dukung Entaris](#dukung-entaris).
+
+[![License](https://img.shields.io/badge/License-AGPL--3.0-1B2B48?style=flat-square)](./LICENSE)
+[![Contact](https://img.shields.io/badge/Dukungan%20%26%20demo-solutions%40arahkarya.com-3D8BE0?style=flat-square)](mailto:solutions@arahkarya.com)
 
 </div>
 
@@ -527,11 +529,20 @@ Di luar cakupan: HRD dan payroll, yang ditangani aplikasi HRIS terpisah.
 - AI: AIRA sebagai klien server MCP Entaris (`/mcp`), engine terpisah dari aplikasi
 - Deploy: Docker Compose (2 container: `app` dan `db`)
 
+## Dukung Entaris
+
+Entaris gratis dan akan tetap gratis. Dukungan sukarela, berapa pun nilainya, dipakai untuk pengembangan, pengujian, dan dokumentasi. Tautan donasi ada di footer situs dan di [`FUNDING.md`](./FUNDING.md). Dukungan juga bisa berupa laporan bug, perbaikan kode, terjemahan, atau cerita pemakaian.
+
 ## Lisensi
 
-Proprietary. © 2026 PT Arah Karya Sinergi. Seluruh hak dilindungi.
+Entaris adalah perangkat lunak bebas dengan lisensi [GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0). © 2026 PT Arah Karya Sinergi.
 
-Entaris hanya boleh digunakan, disalin, atau dimodifikasi berdasarkan perjanjian lisensi tertulis dengan PT Arah Karya Sinergi. Lihat [`LICENSE`](./LICENSE). Untuk lisensi, harga, dan demo: solutions@arahkarya.com.
+- Anda boleh memakai, menyalin, memodifikasi, dan menjalankan Entaris di server sendiri, termasuk untuk keperluan bisnis, tanpa biaya lisensi.
+- Bila Anda memodifikasi Entaris lalu menyediakannya sebagai layanan lewat jaringan (SaaS), Anda wajib menyediakan kode sumber hasil modifikasi itu kepada penggunanya (pasal 13 AGPL).
+- Nama dan logo **Entaris**, **AIRA**, dan **Arah** adalah merek PT Arah Karya Sinergi dan tidak termasuk dalam lisensi kode. Lihat [`TRADEMARK.md`](./TRADEMARK.md).
+- Perlu pemakaian tanpa kewajiban AGPL, implementasi, hosting terkelola, atau dukungan? Hubungi solutions@arahkarya.com.
+
+Kontribusi kode diterima dengan persetujuan DCO, lihat [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---
 
