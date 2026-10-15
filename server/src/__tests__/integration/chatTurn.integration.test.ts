@@ -152,6 +152,44 @@ d('panel chat: giliran & agen', () => {
     expect((await h.stream(staff, { session_id: session, retry_message_id: userMsg.id })).status).toBe(409);
   });
 
+  it('retrying a failed answer to a confirmation card sends the same choice again; a plain retry sends none', async () => {
+    const { prisma } = await import('../../lib/prisma');
+    const cardId = '0a3f1c2e-1111-4222-8333-444455556666';
+    const card = {
+      id: cardId, tool: 'po_submit', tindakan: 'persetujuan', konfirmasi: 'Ajukan PO-202610-0001?', efek: '',
+      rincian: [{ label: 'id', value: 'PO-202610-0001' }], expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+    };
+    h.agent.setBehavior(() => ({ chunks: ['Perlu konfirmasi Anda.'], confirm: card }));
+    const asked = await h.stream(staff, { input: 'ajukan PO itu' });
+    const session = sid(asked.events);
+    expect(names(asked.events)).toContain('confirm');
+
+    h.agent.setBehavior(() => ({ status: 500 }));
+    const failed = await h.stream(staff, { session_id: session, input: 'Ya, lanjutkan', konfirmasi_id: cardId, konfirmasi_pilihan: 'ya' });
+    expect(names(failed.events)).toContain('error');
+    const rows = await prisma.chatMessage.findMany({ where: { sessionId: session }, orderBy: { seq: 'asc' } });
+    const answer = rows[2];
+    expect(answer.parts).toEqual({ answer: { id: cardId, choice: 'ya' } });
+    // the card is already answered: pressing it again is refused, only a retry can resend the choice
+    expect((await h.stream(staff, { session_id: session, input: 'Ya', konfirmasi_id: cardId, konfirmasi_pilihan: 'ya' })).status).toBe(409);
+
+    h.agent.setBehavior(() => ({ chunks: ['PO diajukan.'] }));
+    const before = h.agent.requests.length;
+    const retry = await h.stream(staff, { session_id: session, retry_message_id: answer.id });
+    expect(names(retry.events)).toContain('done');
+    const sent = h.agent.requests.slice(before).find((r) => r.body.stream === true);
+    expect(sent?.body.metadata?.konfirmasi).toEqual({ id: cardId, pilihan: 'ya' });
+
+    h.agent.setBehavior(() => ({ status: 500 }));
+    const plain = await h.stream(staff, { session_id: session, input: 'ringkas' });
+    const plainMsg = (await prisma.chatMessage.findMany({ where: { sessionId: session, role: 'user' }, orderBy: { seq: 'desc' }, take: 1 }))[0];
+    expect(names(plain.events)).toContain('error');
+    h.agent.setBehavior(() => ({ chunks: ['Ringkasan.'] }));
+    const mark = h.agent.requests.length;
+    await h.stream(staff, { session_id: session, retry_message_id: plainMsg.id });
+    expect(h.agent.requests.slice(mark).find((r) => r.body.stream === true)?.body.metadata?.konfirmasi).toBeUndefined();
+  });
+
   it('engine unreachable: error event with Indonesian message, user text and placeholder error persisted', async () => {
     const prev = process.env.AIRA_ENGINE_URL;
     process.env.AIRA_ENGINE_URL = 'http://127.0.0.1:1';
