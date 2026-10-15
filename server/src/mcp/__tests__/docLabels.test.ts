@@ -13,9 +13,9 @@ const m = vi.hoisted(() => {
 vi.mock('../../lib/prisma', () => ({ prisma: m.db }));
 
 import { Prisma } from '@prisma/client';
-import { displayArgs, LABEL_SOURCES } from '../docLabels';
+import { displayArgs, idIsSubRecord, LABEL_SOURCES, resourceOf, sourceFor } from '../docLabels';
 import { buildPreview } from '../preview';
-import { getTool } from '../../ai/registry';
+import { getTool, listTools } from '../../ai/registry';
 
 const PO_ID = '0a3f1c2e-1111-4222-8333-444455556666';
 const PARTY_ID = '1b4f2d3e-2222-4333-9444-555566667777';
@@ -104,5 +104,64 @@ describe('label hygiene', () => {
         expect(model!.fields.find((f) => f.name === field)?.type, `${source.model}.${field}`).toBe('String');
       }
     }
+  });
+});
+
+describe('cuid ids (GA)', () => {
+  it('GA records use cuid ids and are labelled too', async () => {
+    const gaAsset = vi.fn().mockResolvedValue({ code: 'KND-PST-0001', name: 'Truk Engkel Hino Dutro' });
+    (m.db as Record<string, unknown>).gaAsset = { findUnique: gaAsset };
+    const out = await displayArgs('PUT /api/ga/vehicle/assets/:id', { id: 'cmv5hp0u9002frxvdxzhgvvmq' });
+    expect(out.id).toBe('KND-PST-0001 Truk Engkel Hino Dutro');
+    expect((await displayArgs('PUT /api/ga/vehicle/assets/:id', { id: 'bukan-cuid' })).id).toBe('bukan-cuid');
+  });
+});
+
+describe('sub-records', () => {
+  it('does not label the parent id when the route changes a sub-record or ignores its id', async () => {
+    const gaAsset = vi.fn().mockResolvedValue({ code: 'KND-1', name: 'Truk' });
+    (m.db as Record<string, unknown>).gaAsset = { findUnique: gaAsset };
+    const id = 'cmv5hp0u9002frxvdxzhgvvmq';
+    expect((await displayArgs('DELETE /api/ga/vehicle/assets/:id/insurance/:iid', { id })).id).toBe(id);
+    expect((await displayArgs('POST /api/fixed-assets/:id/depreciate', { id: PO_ID })).id).toBe(PO_ID);
+    expect((await displayArgs('PUT /api/ga/vehicle/assets/:id', { id })).id).toBe('KND-1 Truk');
+    expect(idIsSubRecord('PATCH /api/reconciliation/:id/match')).toBe(false);
+  });
+});
+
+describe('coverage', () => {
+  it('nested paths resolve: sales and purchase invoices, GA assets', async () => {
+    expect(resourceOf('POST /api/sales/invoices/:id/cancel')).toBe('sales/invoices');
+    expect(sourceFor('sales/invoices', 'id')?.model).toBe('salesInvoice');
+    expect(sourceFor('purchase/invoices', 'id')?.model).toBe('purchaseInvoice');
+    expect(sourceFor(resourceOf('PUT /api/ga/vehicle/assets/:id'), 'id')?.model).toBe('gaAsset');
+    expect(resourceOf('POST /api/payment-requests/eam/:kind/:id/pay')).toBeUndefined();
+  });
+
+  it('every write tool with an id gets a label, except the ones listed here on purpose', () => {
+    const tools = listTools();
+    const unlabelled = new Set<string>();
+    for (const t of tools) {
+      if (t.risk === 'read' || !(t.params ?? []).some((p) => p.name === 'id')) continue;
+      if (idIsSubRecord(t.handler)) continue; // sub-rekaman: sengaja tanpa label induk
+      const resource = resourceOf(t.handler);
+      if (!sourceFor(resource, 'id')) unlabelled.add(resource ?? t.handler);
+    }
+    // Tanpa nomor/nama yang berarti, diakses lewat SQL mentah, atau id milik sub-entitas. Tool baru
+    // dengan id lain membuat tes ini gagal: petakan di docLabels.ts atau tambahkan di sini.
+    expect([...unlabelled].sort()).toEqual([
+      'POST /api/payment-requests/eam/:kind/:id/cancel',
+      'POST /api/payment-requests/eam/:kind/:id/pay',
+      'approvals/rules',
+      'customer-deposits/apply',
+      'ga/maintenance/schedules',
+      'ga/vehicle/service-requests',
+      'ga/vehicle/tax-requests',
+      'notifications',
+      'project-guarantees/settlements',
+      'reconciliation',
+      'temporary-delivery-notes',
+      'vendor-deposits/apply',
+    ]);
   });
 });
