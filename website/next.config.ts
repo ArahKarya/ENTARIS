@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       { source: "/self-hosted", destination: "/aira#keamanan", permanent: true },
       { source: "/dokumentasi", destination: "/docs", permanent: true },
       { source: "/minta-demo", destination: "/", permanent: false },
+      { source: "/home", destination: "/", permanent: true },
+      { source: "/home/:path*", destination: "/:path*", permanent: true },
     ];
   },
 };

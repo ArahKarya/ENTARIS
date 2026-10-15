@@ -169,7 +169,7 @@ TELEGRAM_BOT_USERNAME=entaris_notif_bot`,
                   ["PORT", "Ya", "3001", "Port publik yang diexpose oleh container web."],
                   ["JWT_SECRET", "WAJIB", "-", "Kunci enkripsi rahasia token JWT sesi login pengguna."],
                   ["ALLOWED_ORIGINS", "Ya", "http://localhost:3001", "Daftar domain/URL yang diizinkan melakukan request CORS."],
-                  ["SEED_ADMIN_PASSWORD", "Tidak", "Adminentaris123!dsw", "Password kustom untuk akun admin saat seed pertama kali dijalankan."],
+                  ["SEED_ADMIN_PASSWORD", "Tidak", "-", "Password kustom untuk akun admin saat seed pertama kali dijalankan."],
                   ["TELEGRAM_BOT_TOKEN", "Tidak", "-", "Token bot Telegram untuk notifikasi approval dan jatuh tempo."]
                 ]
               },
@@ -193,18 +193,18 @@ TELEGRAM_BOT_USERNAME=entaris_notif_bot`,
             {
               heading: "Akun Pengguna Bawaan (Demo / Seed)",
               table: {
-                headers: ["Username / Email", "Password Default", "Peran (Role)", "Cakupan Hak Akses"],
+                headers: ["Username / Email", "Peran (Role)", "Cakupan Hak Akses"],
                 rows: [
-                  ["admin@entaris.demo", "Adminentaris123!dsw", "Admin", "Super-Admin penuh: akses semua modul, pengaturan pengguna, dan hak akses."],
-                  ["staff@entaris.demo", "Admin123!", "Accountant", "Modul akuntansi, faktur penjualan & pembelian, kas/bank, rekonsiliasi, dan laporan PSAK."],
-                  ["produksi@entaris.demo", "Admin123!", "StaffProduksi", "Modul penerimaan barang (STT), gudang, formula BOM, dan perintah kerja produksi."],
-                  ["viewer@entaris.demo", "Admin123!", "Viewer", "Hanya baca (read-only): dapat melihat dashboard dan laporan tanpa hak edit/posting."]
+                  ["admin@entaris.demo", "Admin", "Super-Admin penuh: akses semua modul, pengaturan pengguna, dan hak akses."],
+                  ["staff@entaris.demo", "Accountant", "Modul akuntansi, faktur penjualan & pembelian, kas/bank, rekonsiliasi, dan laporan PSAK."],
+                  ["produksi@entaris.demo", "StaffProduksi", "Modul penerimaan barang (STT), gudang, formula BOM, dan perintah kerja produksi."],
+                  ["viewer@entaris.demo", "Viewer", "Hanya baca (read-only): dapat melihat dashboard dan laporan tanpa hak edit/posting."]
                 ]
               },
               callout: {
                 type: "tip",
                 title: "Tips Input Form Login",
-                message: "Kolom login menerima alamat email lengkap maupun nama pendek sebelum tanda @ (misalnya cukup ketik 'admin' dan password)."
+                message: "Kolom login menerima alamat email lengkap maupun nama pendek sebelum tanda @ (misalnya cukup ketik 'admin'). Password awal ditetapkan saat instalasi; untuk akun demo, minta ke tim lewat Hubungi CP."
               }
             },
             {
