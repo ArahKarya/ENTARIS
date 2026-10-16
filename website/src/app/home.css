@@ -2477,3 +2477,142 @@
     color: #cbd5e1;
   }
 }
+
+/* Mobile: grid hero harus boleh menyusut selebar layar (kolom implisit auto melebarkan panel hingga ~460px dan memotong judul, tombol, dan diagram). */
+@layer entaris {
+  @media (max-width: 64rem) {
+    .erp-root .hero-catalog__panel-inner,
+    .erp-root .hero-catalog__story {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .erp-root .hero-catalog__panel-inner > *,
+    .erp-root .hero-catalog__story > * {
+      min-width: 0;
+    }
+    .erp-root .hero-catalog__cta-row {
+      flex-wrap: wrap;
+    }
+    .erp-root .hero-catalog__bottom-ribbon {
+      height: auto;
+      min-height: 2.85rem;
+      padding-block: 0.6rem;
+      white-space: normal;
+      justify-content: flex-start;
+    }
+    .erp-root .hero-catalog__bottom-ribbon span {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      min-width: 0;
+    }
+    /* Diagram alur 5 langkah: daftar vertikal di mobile supaya label terbaca penuh. */
+    .erp-root .hero-flow__steps {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.25rem;
+    }
+    .erp-root .hero-flow__step button {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: left;
+      padding: 0.4rem 0.5rem;
+    }
+    .erp-root .hero-flow__step svg {
+      flex: none;
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+    .erp-root .hero-flow__step strong {
+      margin-top: 0;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      font-size: 0.8125rem;
+    }
+    .erp-root .hero-flow__detail {
+      font-size: 0.68rem;
+    }
+    .erp-root .hero-flow__connection {
+      display: none;
+    }
+  }
+}
+
+/* Video ringkasan: poster 16:9, player dimuat setelah diklik. */
+@layer entaris {
+  .erp-root .home-video {
+    border-top: 1px solid var(--border);
+  }
+
+  .erp-root .home-video__frame {
+    position: relative;
+    width: min(100% - 2 * var(--tacet-section-pad-x, 1.5rem), 64rem);
+    margin: 0 var(--tacet-section-pad-x, 1.5rem);
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: #0b1220;
+  }
+
+  .erp-root .home-video:not(:has(.home-section-head)) .home-video__frame {
+    margin-top: 1.5rem;
+  }
+
+  .erp-root .home-video:last-child .home-video__frame,
+  .erp-root .home-video .home-video__frame {
+    margin-bottom: clamp(3rem, 6vw, 5rem);
+  }
+
+  .erp-root .home-video__poster,
+  .erp-root .home-video__player {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .erp-root .home-video__poster {
+    display: block;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+  }
+
+  .erp-root .home-video__poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease, filter 0.3s ease;
+  }
+
+  .erp-root .home-video__poster:hover img {
+    transform: scale(1.02);
+    filter: brightness(0.85);
+  }
+
+  .erp-root .home-video__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: var(--org, #3d8be0);
+    color: #fff;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  .erp-root .home-video__play svg {
+    margin-left: 3px;
+  }
+
+  .erp-root .home-video__poster:focus-visible {
+    outline: 3px solid var(--org, #3d8be0);
+    outline-offset: -3px;
+  }
+}

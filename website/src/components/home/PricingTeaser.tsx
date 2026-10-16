@@ -6,17 +6,16 @@ export function PricingTeaser() {
   return (
     <section id="harga-misi" className="home-pricing" aria-labelledby="harga-misi-heading">
       <div className="home-section-head">
-        <SectionEyebrow name="Harga dan Misi" context="Tanpa tarif tetap" />
+        <SectionEyebrow name="Misi dan Dukungan" context="Perangkat lunak terbuka" />
         <h2 id="harga-misi-heading" className="home-section-title">
-          Bayar semampunya, 30% untuk sosial
+          Terbuka untuk semua, gratis dipakai
         </h2>
         <p className="home-section-lead">
-          Entaris dibayar tiap bulan sebesar yang menurut Anda pantas, tanpa batas minimum. AIRA gratis bila memakai AI
-          Anda sendiri. Sebagian dari yang kami terima disalurkan untuk bantuan sosial dan dilaporkan setiap bulan.
+          Entaris berlisensi AGPL-3.0 untuk kemajuan UMKM, bangsa, dan negara. Tidak ada biaya lisensi; dukungan Anda bersifat sukarela. AIRA gratis bila memakai AI Anda sendiri.
         </p>
         <p className="home-pricing__action">
           <Link href="/harga" className="home-all-modules__link">
-            Baca Harga dan Misi
+            Baca Misi dan Dukungan
           </Link>
         </p>
       </div>

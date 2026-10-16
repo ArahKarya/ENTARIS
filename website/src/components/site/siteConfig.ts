@@ -5,7 +5,7 @@ export type NavItem = { href: string; label: string; description: string };
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/modul", label: "Modul", description: "Semua modul Entaris dalam satu buku besar" },
   { href: "/aira", label: "AIRA", description: "Agen AI yang ikut bekerja di atas data Anda" },
-  { href: "/harga", label: "Harga dan Misi", description: "Bayar semampunya, dan 30% untuk sosial" },
+  { href: "/harga", label: "Misi", description: "Perangkat lunak terbuka, gratis, dengan dukungan sukarela" },
   { href: "/docs", label: "Dokumentasi", description: "Panduan setup dari awal dan fungsi tiap modul ERP" },
 ];
 
@@ -13,7 +13,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
 export const FOOTER_PAGES: readonly NavItem[] = [
   { href: "/migrasi", label: "Migrasi", description: "Pindah ke Entaris cukup lewat chat dengan AIRA" },
   { href: "/integrasi", label: "Integrasi", description: "Terhubung dengan bank, pajak, dan aplikasi yang sudah Anda pakai" },
-  { href: "/laporan-donasi", label: "Laporan Donasi", description: "Ke mana 30% itu pergi, dilaporkan tiap bulan" },
 ];
 
 export const CONTACT_EMAIL = "yayangsn@arahkarya.com";
@@ -23,6 +22,10 @@ export const WHATSAPP_NUMBER = "6282282747444";
 export const WHATSAPP_DISPLAY = "0822-8274-7444";
 
 /** Every contact button opens WhatsApp to the contact person (CP) with a ready-made first message. */
+export const DEMO_LABEL = "Coba Demo";
+/** The demo button opens the page listing demo accounts; the app itself lives on the demo host. */
+export const DEMO_HREF = "/demo";
+export const DEMO_APP_URL = "https://entaris-demo.arahkarya.com";
 export const CP_LABEL = "Hubungi CP";
 export const CP_MESSAGE = "Halo, saya tertarik dengan Entaris dan ingin tahu lebih lanjut.";
 export const whatsappHref = (message: string): string => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
