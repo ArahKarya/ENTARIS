@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DEMO_HREF, DEMO_LABEL } from "@/components/site/siteConfig";
 import { AiraWindow } from "../mock/AiraWindow";
 import { AiraEyebrow } from "./AiraEyebrow";
@@ -21,9 +22,9 @@ export function AiraHero() {
             laporan, dan mengerjakan tugas sampai jadi draf, juga dari ponsel Anda. Setiap perubahan pembukuan tetap menunggu persetujuan manusia.
           </p>
           <div className="aira-hero__actions">
-            <a href={DEMO_HREF} target="_blank" rel="noopener noreferrer" className="ent-btn ent-btn--solid aira-hero__btn">
+            <Link href={DEMO_HREF} className="ent-btn ent-btn--solid aira-hero__btn">
               {DEMO_LABEL}
-            </a>
+            </Link>
             <a href="#cara-kerja" className="ent-btn ent-btn--ghost aira-hero__btn">
               Lihat cara kerjanya
               <AiraIcon name="arrow-down" className="aira-hero__btn-icon" />

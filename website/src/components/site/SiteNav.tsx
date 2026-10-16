@@ -62,9 +62,9 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
             ))}
           </ul>
           <div className="ent-nav__actions">
-            <a className="ent-btn ent-btn--solid ent-nav__cta" href={DEMO_HREF} target="_blank" rel="noopener noreferrer">
+            <Link className="ent-btn ent-btn--solid ent-nav__cta" href={DEMO_HREF}>
               {DEMO_LABEL}
-            </a>
+            </Link>
             <button
               ref={toggleRef}
               type="button"
@@ -97,9 +97,9 @@ export function SiteNav({ home = false }: { home?: boolean } = {}) {
             </li>
           ))}
         </ul>
-        <a className="ent-btn ent-btn--solid ent-mobile__cta" href={DEMO_HREF} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)}>
+        <Link className="ent-btn ent-btn--solid ent-mobile__cta" href={DEMO_HREF} onClick={() => setMenuOpen(false)}>
           {DEMO_LABEL}
-        </a>
+        </Link>
       </div>
       {!home && <div className="ent-nav-spacer" aria-hidden="true" />}
     </>
