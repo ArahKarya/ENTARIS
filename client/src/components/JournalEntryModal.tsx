@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
@@ -8,7 +8,7 @@ import { RupiahField } from './purchase-cash/RupiahField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { OptionPicker, type PickerOption } from '@/components/purchase-cash/OptionPicker';
 import { DateInput, Field } from '@/components/shared';
 import { FormError, PinnedBody, PinnedFooter, PinnedHeader, pinnedDialogClass } from '@/components/overlays/dialog-parts';
 
@@ -78,6 +78,11 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   const totalCredit = items.reduce((sum, item) => sum + (Number(item.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
+  const accountOptions: PickerOption[] = useMemo(
+    () => (accounts ?? []).map((acc: Account) => ({ value: acc.id, label: `${acc.accountNumber} - ${acc.name}` })),
+    [accounts],
+  );
+
   const addItem = () => setItems([...items, { id: crypto.randomUUID(), accountId: '', partyId: null, debit: 0, credit: 0, description: '' }]);
   const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
   const updateItem = (index: number, field: keyof JournalItem, value: any) => {
@@ -140,22 +145,14 @@ const JournalEntryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   {items.map((item, index) => (
                     <tr key={item.id}>
                       <td className="px-3 py-2">
-                        <Select
-                          value={item.accountId || '__none'}
-                          onValueChange={(v) => updateItem(index, 'accountId', v === '__none' ? '' : v)}
-                        >
-                          <SelectTrigger aria-label={t('journalEntryModal.row.account', { n: index + 1 })}>
-                            <SelectValue placeholder={t('journalEntryModal.chooseAccount')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none">{t('journalEntryModal.chooseAccount')}</SelectItem>
-                            {accounts?.map((acc: Account) => (
-                              <SelectItem key={acc.id} value={acc.id}>
-                                {acc.accountNumber} - {acc.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <OptionPicker
+                          value={item.accountId}
+                          onChange={(v) => updateItem(index, 'accountId', v)}
+                          options={accountOptions}
+                          searchable
+                          placeholder={t('journalEntryModal.chooseAccount')}
+                          aria-label={t('journalEntryModal.row.account', { n: index + 1 })}
+                        />
                       </td>
                       <td className="px-3 py-2">
                         <Input
