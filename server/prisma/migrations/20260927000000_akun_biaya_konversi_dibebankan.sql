@@ -2,7 +2,7 @@
 -- Lawan (kredit) biaya konversi tarif estimasi yang dikapitalisasi ke persediaan
 -- output produksi (PSAK 14). Sebelumnya menumpang 5.1 HPP Beras ("HPP konversi
 -- produksi") sehingga HPP penjualan bercampur biaya produksi. Sisa selisih di luar
--- biaya konversi (mis. NRV produk samping beras titipan BULOG) tetap di 5.1.
+-- biaya konversi (mis. NRV produk samping beras titipan pihak ketiga) tetap di 5.1.
 -- Idempotent: aman dijalankan berulang.
 
 INSERT INTO accounts (
