@@ -16,9 +16,9 @@
 # ============================================================================
 
 # Lock project name explicitly so renaming the folder doesn't break the
-# existing volumes/network/container names. Project = aplikasi-keuangan-pmd
+# existing volumes/network/container names. Project = entaris
 # regardless of working directory.
-name: aplikasi-keuangan-pmd
+name: entaris
 
 services:
   # ── Database ──────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ services:
       - "127.0.0.1:5435:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-keuangan}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keuangan_secret_2026}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}
       POSTGRES_DB: ${POSTGRES_DB:-keuangan_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -46,7 +46,7 @@ services:
     ports:
       - "127.0.0.1:${PORT:-3001}:3001"
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-keuangan}:${POSTGRES_PASSWORD:-keuangan_secret_2026}@db:5432/${POSTGRES_DB:-keuangan_db}?schema=public"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-keuangan}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}@db:5432/${POSTGRES_DB:-keuangan_db}?schema=public"
       PORT: "3001"
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET wajib diisi di .env}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:5173}"
