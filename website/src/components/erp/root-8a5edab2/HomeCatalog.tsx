@@ -6,6 +6,7 @@ import { PageCta } from "@/components/pages/PageCta";
 import { CP_HREF, CP_LABEL } from "@/components/site/siteConfig";
 import { useErpObserver } from "@/components/erp/shared/useErpObserver";
 import { BusinessTypesSection } from "@/components/home/BusinessTypes";
+import { VideoShowcase } from "@/components/home/VideoShowcase";
 import { PricingTeaser } from "@/components/home/PricingTeaser";
 import { FeaturedModules } from "@/components/home/FeaturedModules";
 import type { FeaturedModule } from "@/components/home/FeaturedModules";
@@ -20,6 +21,8 @@ export function HomeCatalog() {
 
   return (
     <main ref={mainRef} id="main-content" className="flex-1 main--full-bleed tacet-home-page">
+      <VideoShowcase />
+
       <FeaturedModules onSelectModule={setSelectedModule} />
 
       <p className="home-all-modules">
