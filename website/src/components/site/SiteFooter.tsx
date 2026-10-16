@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useErpRoot } from "@/components/erp/shared/ErpRoot";
 import { EntarisLogo } from "./EntarisLogo";
-import { COMPANY, CONTACT_EMAIL, CP_HREF, DONATE_URL, CP_LABEL, FOOTER_PAGES, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
+import { COMPANY, CONTACT_EMAIL, CP_HREF, DONATE_URL, GITHUB_LABEL, GITHUB_URL, CP_LABEL, FOOTER_PAGES, NAV_ITEMS, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "./siteConfig";
 
 const MODULE_LINKS = [
   { href: "/modul#modul-penjualan", label: "Penjualan" },
@@ -30,6 +30,9 @@ export function SiteFooter() {
             </p>
             <a className="ent-btn ent-btn--light" href={CP_HREF} target="_blank" rel="noopener noreferrer">
               {CP_LABEL}
+            </a>
+            <a className="ent-btn ent-btn--light" href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+              {GITHUB_LABEL}
             </a>
             {DONATE_URL ? (
               <a className="ent-btn ent-btn--light" href={DONATE_URL} target="_blank" rel="noopener noreferrer">

@@ -2681,3 +2681,95 @@
     text-underline-offset: 4px;
   }
 }
+
+/* Kartu repositori GitHub: statis, tanpa widget pihak ketiga. */
+@layer entaris {
+  .erp-root .github-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.25rem;
+    margin: 1.75rem var(--tacet-section-pad-x, 1.5rem) 0;
+    max-width: 52rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface, transparent);
+    color: var(--foreground);
+    text-decoration: none;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .erp-root .github-card:hover {
+    border-color: var(--org, #3d8be0);
+    transform: translateY(-2px);
+  }
+
+  .erp-root .github-card:focus-visible {
+    outline: 3px solid var(--org, #3d8be0);
+    outline-offset: 3px;
+  }
+
+  .erp-root .github-card__mark {
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: var(--foreground);
+    color: var(--background, #fff);
+  }
+
+  .erp-root .github-card__body {
+    display: grid;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  .erp-root .github-card__repo {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .erp-root .github-card__desc {
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  .erp-root .github-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .erp-root .github-card__badge {
+    padding: 0.125rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .erp-root .github-card__cta {
+    font-family: var(--font-body);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 40rem) {
+    .erp-root .github-card {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .erp-root .github-card__cta {
+      grid-column: 1 / -1;
+    }
+  }
+}

@@ -46,4 +46,7 @@ export const COMPANY = {
 } as const;
 
 /** Tautan donasi sukarela (Trakteer/Saweria/GitHub Sponsors/QRIS). Isi lewat env saat build; kosong = tombol disembunyikan. */
+export const GITHUB_URL = "https://github.com/ArahKarya/ENTARIS";
+export const GITHUB_LABEL = "Lihat di GitHub";
+export const LICENSE_LABEL = "AGPL-3.0";
 export const DONATE_URL = process.env.NEXT_PUBLIC_DONATE_URL || "";
