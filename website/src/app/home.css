@@ -2538,30 +2538,35 @@
   }
 }
 
-/* Video ringkasan: poster 16:9, player dimuat setelah diklik. */
+/* Video ringkasan: poster 16:9 di kiri, ringkasan dan aksi di kanan; bertumpuk di layar sempit. */
 @layer entaris {
   .erp-root .home-video {
     border-top: 1px solid var(--border);
   }
 
+  .erp-root .home-video__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin: 0 var(--tacet-section-pad-x, 1.5rem) clamp(3rem, 6vw, 5rem);
+  }
+
+  @media (min-width: 64rem) {
+    .erp-root .home-video__layout {
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+      gap: clamp(1.5rem, 3vw, 3rem);
+      align-items: center;
+    }
+  }
+
   .erp-root .home-video__frame {
     position: relative;
-    width: min(100% - 2 * var(--tacet-section-pad-x, 1.5rem), 64rem);
-    margin: 0 var(--tacet-section-pad-x, 1.5rem);
+    width: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     background: #0b1220;
-  }
-
-  .erp-root .home-video:not(:has(.home-section-head)) .home-video__frame {
-    margin-top: 1.5rem;
-  }
-
-  .erp-root .home-video:last-child .home-video__frame,
-  .erp-root .home-video .home-video__frame {
-    margin-bottom: clamp(3rem, 6vw, 5rem);
   }
 
   .erp-root .home-video__poster,
@@ -2614,5 +2619,65 @@
   .erp-root .home-video__poster:focus-visible {
     outline: 3px solid var(--org, #3d8be0);
     outline-offset: -3px;
+  }
+
+  .erp-root .home-video__aside {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  .erp-root .home-video__meta {
+    margin: 0;
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .erp-root .home-video__points {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .erp-root .home-video__points li {
+    display: grid;
+    gap: 0.25rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--org, #3d8be0);
+  }
+
+  .erp-root .home-video__points strong {
+    color: var(--foreground);
+    font-family: var(--font-heading);
+    font-size: 1.0625rem;
+    font-weight: 800;
+  }
+
+  .erp-root .home-video__points span {
+    color: var(--text-m);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  .erp-root .home-video__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+  }
+
+  .erp-root .home-video__link {
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 }
