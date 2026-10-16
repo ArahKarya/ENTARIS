@@ -323,7 +323,8 @@
     "searchPlaceholder": "Search draft number, notes",
     "statusFilter": "Draft status",
     "summaryLine": "Input {{input}} → Output {{output}}",
-    "tableLabel": "Production run drafts"
+    "tableLabel": "Production run drafts",
+    "postNow": "Post draft {{number}}"
   },
   "productionProcessesTab": {
     "actions": {
@@ -426,10 +427,15 @@
       "resubmitFailed": "Could not resubmit.",
       "resubmitted": "Request updated and resent for approval.",
       "saveDraftFailed": "Could not save the production draft.",
-      "updated": "Production run updated."
+      "updated": "Production run updated.",
+      "posted": "Draft {{number}} posted as {{run}}.",
+      "postedPending": "Draft {{number}} saved and sent for approval. Stock and journals are created after approval.",
+      "draftSavedPostFailed": "Draft {{number}} saved, but posting failed.",
+      "postAfterSaveNoId": "Draft {{number}} saved, but could not be posted directly. Post it from the draft list."
     },
     "warehouse": "Warehouse",
-    "warehousePlaceholder": "Select production warehouse…"
+    "warehousePlaceholder": "Select production warehouse…",
+    "saveAndPost": "Save & post"
   },
   "productionRunsTab": {
     "actions": {

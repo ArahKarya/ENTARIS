@@ -131,16 +131,30 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
       {
         id: 'actions',
         header: () => <span className="sr-only">{t('productionDraftsTab.columns.actions')}</span>,
-        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        meta: { align: 'right', headerClassName: 'w-32', cellClassName: 'w-32 py-0' },
         cell: ({ row }) => {
           const d = row.original;
           const editable = d.status === 'Draft' && canEdit && canManage(d);
           return (
+            <div className="flex items-center justify-end gap-1">
+              {editable && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPost(d);
+                  }}
+                  aria-label={t('productionDraftsTab.postNow', { number: d.draftNumber })}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  {t('productionDraftsTab.actions.post')}
+                </Button>
+              )}
             <RowActions
               label={t('productionDraftsTab.actionsFor', { number: d.draftNumber })}
               actions={[
                 { label: t('productionDraftsTab.actions.edit'), icon: Pencil, hidden: !editable, onSelect: () => onEdit(d) },
-                { label: t('productionDraftsTab.actions.post'), icon: Send, hidden: !editable, onSelect: () => onPost(d) },
                 {
                   label: t('productionDraftsTab.actions.viewRun'),
                   icon: Eye,
@@ -150,6 +164,7 @@ export function ProductionDraftsTab({ canEdit, canManage, onCreate, onEdit, onPo
                 { label: t('productionDraftsTab.actions.delete'), icon: Trash2, tone: 'danger', hidden: !editable, onSelect: () => onDelete(d) },
               ]}
             />
+            </div>
           );
         },
       },

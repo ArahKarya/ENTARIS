@@ -842,7 +842,9 @@
         "title": "No vehicles yet",
         "description": "Register assets in the Vehicle category under Assets to see them here.",
         "action": "Open asset list"
-      }
+      },
+      "logServiceShort": "Log service",
+      "logServiceFor": "Log service for {{name}}"
     },
     "period": {
       "groupLabel": "Report period",
