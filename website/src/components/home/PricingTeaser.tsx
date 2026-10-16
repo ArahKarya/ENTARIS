@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GithubCard } from "./GithubCard";
 import { SectionEyebrow } from "./SectionEyebrow";
 
 /** #harga-misi: the pricing and mission in two sentences, linking to the full page. */
@@ -19,6 +20,7 @@ export function PricingTeaser() {
           </Link>
         </p>
       </div>
+      <GithubCard className="home-pricing__github" />
     </section>
   );
 }

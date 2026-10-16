@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site/SiteShell";
+import { GithubCard } from "@/components/home/GithubCard";
 import { CP_HREF, CP_LABEL, DONATE_URL } from "@/components/site/siteConfig";
 import { InfoMatrix } from "@/components/pages/InfoMatrix";
 import { PageCta } from "@/components/pages/PageCta";
@@ -89,6 +90,7 @@ export default async function Page() {
           cta={DONATE_URL ? { label: "Dukung Entaris", href: DONATE_URL, arrow: true } : undefined}
           entries={MISSION_ENTRIES}
         />
+        <GithubCard />
         <PageCta
           lines={["Mau tahu apakah", "Entaris cocok?"]}
           text="Ceritakan usaha Anda lewat WhatsApp. CP akan menjawab sesuai kebutuhan Anda."
