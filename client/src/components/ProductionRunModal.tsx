@@ -447,7 +447,7 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
     .filter(({ c }) => c.costSide === 'OutputSide');
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, postAfterSave = false) => {
     e.preventDefault();
     setErrors([]);
 
@@ -565,7 +565,29 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
       queryClient.invalidateQueries({ queryKey: ['approval-pending'] });
-      if (draftSaved) {
+      if (draftSaved && postAfterSave) {
+        const draftId = draft?.id ?? (draftSaved.draft as { id?: string } | undefined)?.id;
+        const number = draftSaved.draft?.draftNumber ?? draft?.draftNumber ?? '';
+        if (!draftId) {
+          toast.warning(t('productionRunModal.toast.postAfterSaveNoId', { number }));
+        } else {
+          try {
+            const posted = await api.post(`${DRAFTS_ENDPOINT}/${draftId}/post`);
+            queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+            queryClient.invalidateQueries({ queryKey: ['approval-pending'] });
+            toast.success(
+              posted.data?.pendingApproval
+                ? t('productionRunModal.toast.postedPending', { number })
+                : t('productionRunModal.toast.posted', { number, run: posted.data?.runNumber ?? '' }),
+            );
+          } catch (postErr) {
+            // Draft sudah tersimpan; hanya posting yang gagal. Jangan hilangkan perubahan user.
+            toast.error(
+              `${t('productionRunModal.toast.draftSavedPostFailed', { number })} ${(postErr as { response?: { data?: { error?: string } } }).response?.data?.error ?? ''}`.trim(),
+            );
+          }
+        }
+      } else if (draftSaved) {
         toast.success(t('productionRunModal.toast.draftSaved', { number: draftSaved.draft?.draftNumber ?? '' }));
         for (const w of draftSaved.warnings ?? []) toast.warning(w);
       } else if (editPending) {
@@ -775,6 +797,16 @@ export function ProductionRunModal({ isOpen, onClose, items, editRun, prefillPay
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
               {t('productionRunModal.cancel')}
             </Button>
+            {!editRun && !resubmitRequestId && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+              >
+                {t('productionRunModal.saveAndPost')}
+              </Button>
+            )}
             <Button type="submit" loading={isSubmitting} className="min-w-[120px]">
               {isSubmitting ? t('productionRunModal.saving') : editRun ? t('productionRunModal.saveChanges') : resubmitRequestId ? t('productionRunModal.resubmit') : t('productionRunModal.saveDraft')}
             </Button>

@@ -842,7 +842,9 @@
         "title": "Belum ada kendaraan",
         "description": "Daftarkan aset dengan kategori Kendaraan di menu Aset agar muncul di sini.",
         "action": "Buka daftar aset"
-      }
+      },
+      "logServiceShort": "Catat servis",
+      "logServiceFor": "Catat servis {{name}}"
     },
     "period": {
       "groupLabel": "Periode laporan",

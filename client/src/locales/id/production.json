@@ -323,7 +323,8 @@
     "searchPlaceholder": "Cari nomor draft, catatan",
     "statusFilter": "Status draft",
     "summaryLine": "Input {{input}} → Output {{output}}",
-    "tableLabel": "Daftar draft proses produksi"
+    "tableLabel": "Daftar draft proses produksi",
+    "postNow": "Posting draft {{number}}"
   },
   "productionProcessesTab": {
     "actions": {
@@ -426,10 +427,15 @@
       "resubmitFailed": "Gagal mengajukan ulang.",
       "resubmitted": "Pengajuan diperbarui & dikirim ulang untuk persetujuan.",
       "saveDraftFailed": "Gagal menyimpan draft produksi.",
-      "updated": "Proses produksi diperbarui."
+      "updated": "Proses produksi diperbarui.",
+      "posted": "Draft {{number}} diposting sebagai {{run}}.",
+      "postedPending": "Draft {{number}} tersimpan dan dikirim untuk persetujuan. Stok dan jurnal terbentuk setelah disetujui.",
+      "draftSavedPostFailed": "Draft {{number}} tersimpan, tetapi gagal diposting.",
+      "postAfterSaveNoId": "Draft {{number}} tersimpan, tetapi tidak bisa langsung diposting. Posting dari daftar draft."
     },
     "warehouse": "Gudang",
-    "warehousePlaceholder": "Pilih gudang produksi…"
+    "warehousePlaceholder": "Pilih gudang produksi…",
+    "saveAndPost": "Simpan & Posting"
   },
   "productionRunsTab": {
     "actions": {

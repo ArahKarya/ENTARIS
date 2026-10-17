@@ -206,21 +206,36 @@ export function FleetListView({ canEdit, onOpen }: FleetListViewProps) {
       {
         id: 'actions',
         header: () => <span className="sr-only">{t('fleet.list.columns.actions')}</span>,
-        meta: { align: 'right', headerClassName: 'w-12', cellClassName: 'w-12 py-0' },
+        meta: { align: 'right', headerClassName: 'w-36', cellClassName: 'w-36 py-0' },
         cell: ({ row }) => {
           const v = row.original;
           return (
+            <div className="flex items-center justify-end gap-1">
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuick({ kind: 'service', row: v });
+                  }}
+                  aria-label={t('fleet.list.logServiceFor', { name: vehicleTitle(v) })}
+                >
+                  <Wrench className="h-3.5 w-3.5" />
+                  {t('fleet.list.logServiceShort')}
+                </Button>
+              )}
             <RowActions
               label={t('fleet.list.actionsFor', { name: vehicleTitle(v) })}
               actions={[
                 { label: t('fleet.list.action.view'), icon: Eye, onSelect: () => onOpen(v.id) },
                 { label: t('fleet.list.action.tax'), icon: FileWarning, onSelect: () => onOpen(v.id, 'pajak') },
                 { label: t('fleet.list.action.costReport'), icon: BarChart3, onSelect: () => onOpen(v.id, 'laporan') },
-                { label: t('fleet.list.action.logService'), icon: Wrench, hidden: !canEdit, onSelect: () => setQuick({ kind: 'service', row: v }) },
                 { label: t('fleet.list.action.logFuel'), icon: Fuel, hidden: !canEdit, onSelect: () => setQuick({ kind: 'fuel', row: v }) },
                 { label: t('fleet.list.action.reportIncident'), icon: TriangleAlert, hidden: !canEdit, onSelect: () => setQuick({ kind: 'incident', row: v }) },
               ]}
             />
+            </div>
           );
         },
       },
