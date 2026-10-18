@@ -16,7 +16,7 @@ type Icon = ComponentType<LucideProps>;
 
 const VENDOR = 'PT Arah Karya Sinergi';
 const VENDOR_DOMAIN = 'arahkarya.com';
-const DEFAULT_SALES_EMAIL = 'solutions@arahkarya.com';
+const DEFAULT_SALES_EMAIL = 'info@arahkarya.com';
 
 /** Sales contact comes from build-time config; the WhatsApp button is hidden when no valid number is set. */
 function readSalesContact(): { email: string; waLink: string | null } {

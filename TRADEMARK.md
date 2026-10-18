@@ -10,4 +10,4 @@ Lisensi AGPL-3.0 mencakup kode sumber. Nama dan logo berikut adalah merek PT Ara
 
 **Perlu izin tertulis:** memakai nama atau logo untuk produk turunan, layanan komersial, atau kesan resmi/didukung oleh PT Arah Karya Sinergi. Fork yang disebarkan sebaiknya memakai nama dan logo berbeda.
 
-Izin dan pertanyaan: solutions@arahkarya.com.
+Izin dan pertanyaan: info@arahkarya.com.
