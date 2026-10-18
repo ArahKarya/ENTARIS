@@ -13,7 +13,7 @@ ERP untuk penjualan, pembelian, inventori, produksi, dan keuangan dalam satu sis
 **Misi:** Entaris dibuat sebagai perangkat lunak terbuka untuk kemajuan UMKM, bangsa, dan negara. Siapa pun boleh memakainya tanpa biaya lisensi. Bila Entaris bermanfaat bagi usaha Anda, dukungan sukarela membantu pengembangan berkelanjutan: lihat bagian [Dukung Entaris](#dukung-entaris).
 
 [![License](https://img.shields.io/badge/License-AGPL--3.0-1B2B48?style=flat-square)](./LICENSE)
-[![Contact](https://img.shields.io/badge/Dukungan%20%26%20demo-solutions%40arahkarya.com-3D8BE0?style=flat-square)](mailto:solutions@arahkarya.com)
+[![Contact](https://img.shields.io/badge/Dukungan%20%26%20demo-info%40arahkarya.com-3D8BE0?style=flat-square)](mailto:info@arahkarya.com)
 
 </div>
 
@@ -540,7 +540,7 @@ Entaris adalah perangkat lunak bebas dengan lisensi [GNU Affero General Public L
 - Anda boleh memakai, menyalin, memodifikasi, dan menjalankan Entaris di server sendiri, termasuk untuk keperluan bisnis, tanpa biaya lisensi.
 - Bila Anda memodifikasi Entaris lalu menyediakannya sebagai layanan lewat jaringan (SaaS), Anda wajib menyediakan kode sumber hasil modifikasi itu kepada penggunanya (pasal 13 AGPL).
 - Nama dan logo **Entaris**, **AIRA**, dan **Arah** adalah merek PT Arah Karya Sinergi dan tidak termasuk dalam lisensi kode. Lihat [`TRADEMARK.md`](./TRADEMARK.md).
-- Perlu pemakaian tanpa kewajiban AGPL, implementasi, hosting terkelola, atau dukungan? Hubungi solutions@arahkarya.com.
+- Perlu pemakaian tanpa kewajiban AGPL, implementasi, hosting terkelola, atau dukungan? Hubungi info@arahkarya.com.
 
 Kontribusi kode diterima dengan persetujuan DCO, lihat [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 

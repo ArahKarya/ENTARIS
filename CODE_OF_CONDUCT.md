@@ -7,4 +7,4 @@ Kami ingin komunitas Entaris ramah bagi semua. Kami mengikuti semangat Contribut
 - Jangan mempublikasikan data pribadi atau data keuangan pihak lain.
 - Pengelola berhak menghapus komentar, menolak kontribusi, atau memblokir akun yang melanggar.
 
-Laporan pelanggaran: solutions@arahkarya.com.
+Laporan pelanggaran: info@arahkarya.com.

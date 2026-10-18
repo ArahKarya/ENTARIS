@@ -3,7 +3,7 @@
 Entaris menangani data keuangan, jadi laporan keamanan kami prioritaskan.
 
 ## Melapor
-Kirim ke **solutions@arahkarya.com** dengan subjek "SECURITY". Sertakan langkah reproduksi, versi, dan dampak. Jangan membuka issue publik untuk celah yang belum diperbaiki.
+Kirim ke **info@arahkarya.com** dengan subjek "SECURITY". Sertakan langkah reproduksi, versi, dan dampak. Jangan membuka issue publik untuk celah yang belum diperbaiki.
 
 ## Yang bisa Anda harapkan
 - Konfirmasi penerimaan dalam beberapa hari kerja.
