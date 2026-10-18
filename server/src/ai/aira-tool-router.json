@@ -11230,7 +11230,7 @@
       "group": "Stok & Produksi",
       "toolset": "laporan",
       "module": "reports",
-      "desc": "Modal per periode untuk produksi: per output utama x gudang, kg & nilai bahan, kg output, rendemen, modal bahan baku murni/kg vs HPP GL/kg. Informasi saja, tidak membuat jurnal. Default bulan berjalan; filter opsional warehouseId.",
+      "desc": "Modal per periode untuk produksi: per output utama x gudang, kg & nilai bahan, kg output, yield, modal bahan baku murni/kg vs HPP GL/kg. Informasi saja, tidak membuat jurnal. Default bulan berjalan; filter opsional warehouseId.",
       "risk": "read",
       "roles": [
         "Admin",

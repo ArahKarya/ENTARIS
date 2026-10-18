@@ -136,7 +136,7 @@ Alurnya tersambung dari pertanyaan calon customer sampai pelunasan invoice.
 - Inventori multi-item dengan *moving average cost* untuk HPP.
 - Mutasi Stok masuk dan keluar manual, dengan posting GL ke persediaan dan HPP.
 - Stock Opname dengan selisih yang diposting sebagai penyesuaian persediaan. Nilai per satuan bisa diinput manual, dan submit tidak terhalang item minus historis yang tidak disentuh.
-- Produksi dengan pola konversi bahan baku menjadi produk jadi dan produk samping (contoh rice mill: gabah menjadi beras, sekam, dan dedak), termasuk rendemen dan HPP. Detail produksi menampilkan modal bahan baku murni (WAC2), tersedia laporan Modal Produksi per Periode, dan jurnal revisi terbaru (`-R1`, `-R2`) ditampilkan di detail.
+- Produksi dengan pola konversi bahan baku menjadi produk jadi dan produk samping (contoh rice mill: gabah menjadi beras, sekam, dan dedak), termasuk yield dan HPP. Detail produksi menampilkan modal bahan baku murni (WAC2), tersedia laporan Modal Produksi per Periode, dan jurnal revisi terbaru (`-R1`, `-R2`) ditampilkan di detail.
 - Biaya konversi produksi dikreditkan ke akun 5.12 Biaya Konversi Dibebankan ke Persediaan, terpisah dari 5.1 HPP, sehingga HPP di laporan hanya memuat barang yang benar-benar terjual.
 - Antrian koreksi HPP (COGS backfill). Saat barang keluar sebelum produksinya tercatat (stok sementara minus), selisih HPP diselesaikan begitu produksi atau pembelian masuk. Membatalkan atau mengubah dokumen pemicu (produksi, invoice pembelian, mutasi manual) membalik penyelesaian itu, termasuk jurnal dan antriannya.
 - Barang titipan pelanggan (misalnya beras maklon) dicatat sebagai stok tanpa jurnal, dan HPP produk jadi tidak ikut memuat bahan titipan.
@@ -504,7 +504,7 @@ npm run lint             # ESLint
 - [x] Penjualan dan piutang: Inquiry, Penawaran, Invoice, pembayaran FIFO, aging, deposit
 - [x] Pembelian dan hutang: Invoice, pembayaran pemasok, aging, pembatalan yang membalik jurnal
 - [x] Bank, kas, dan rekonsiliasi: multi-akun, rekonsiliasi, transfer
-- [x] Stok dan produksi: moving average cost, stock opname, konversi dan rendemen
+- [x] Stok dan produksi: moving average cost, stock opname, konversi dan yield
 - [x] Aset tetap dan penyusutan otomatis
 - [x] Laporan keuangan dengan drill-down dan export PDF/Excel
 - [x] Persetujuan dan notifikasi Telegram (approve/reject dari chat)

@@ -50,7 +50,7 @@ describe('comparison builders', () => {
     const summary = cmp.sections[0].rows;
     expect(summary.find((r) => r.label === 'Total input')).toMatchObject({ before: 1000, after: 1100, changed: true });
     expect(summary.find((r) => r.label === 'Tanggal produksi')?.changed).toBe(false);
-    expect(summary.find((r) => r.label === 'Rendemen produk utama')).toMatchObject({ before: 60, after: 54.55 });
+    expect(summary.find((r) => r.label === 'Yield produk utama')).toMatchObject({ before: 60, after: 54.55 });
     const out = cmp.sections[2].rows;
     expect(out.map((r) => r.changed)).toEqual([false, false]);
     expect(out[1].label).toContain('produk sampingan');
