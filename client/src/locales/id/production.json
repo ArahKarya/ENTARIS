@@ -281,7 +281,7 @@
       "note": "Laporan manajemen: hanya pembelian bahan baku (angka real), tanpa biaya estimasi & produk samping. Tidak diposting ke GL.",
       "perKg": "Modal bahan baku murni / kg",
       "title": "Modal Bahan Baku Murni",
-      "yield": "(rendemen {{value}}%)"
+      "yield": "(yield {{value}}%)"
     },
     "reference": "Referensi:",
     "shiftLabel": "Shift {{shift}}",
@@ -454,7 +454,7 @@
       "number": "Nomor",
       "outputs": "Output",
       "reference": "Referensi",
-      "yield": "Rendemen"
+      "yield": "Yield"
     },
     "empty": {
       "action": "Catat proses produksi",
@@ -463,7 +463,7 @@
     },
     "itemLabel": "proses",
     "kpi": {
-      "avgYield": "Rendemen Rata-rata",
+      "avgYield": "Yield Rata-rata",
       "avgYieldHint": "tertimbang input",
       "byProductHint": "termasuk samping {{value}}",
       "cancelledHint": "{{value}} dibatalkan",

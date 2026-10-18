@@ -23,7 +23,7 @@ Toolset **laporan** berisi laporan keuangan dan operasional yang dihitung server
 | Umur piutang atau hutang per pihak | `rpt_aging` | `type=Customer` atau `Supplier` |
 | Daftar faktur piutang/hutang jatuh tempo | `get_receivable_schedule`, `get_payable_schedule` | - |
 | Margin kotor per item/SKU | `rpt_hpp`, `rpt_profitability_sku` | tanggal |
-| Modal produksi per kg, rendemen | `rpt_production_cost_summary` | tanggal, `warehouseId` |
+| Modal produksi per kg, yield | `rpt_production_cost_summary` | tanggal, `warehouseId` |
 | Aktivitas satu hari (penjualan, pembelian, produksi, kas, stok) | `rpt_daily` | `date` |
 | PO yang belum lengkap diterima | `rpt_po_outstanding` | `partyId`, `warehouseId`, `overdue` |
 | Kinerja pemasok | `rpt_supplier_performance` | `partyId`, tanggal |
@@ -79,7 +79,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 | Buku besar | ledger (`AccountingLedgerEntry`) |
 | Umur piutang/hutang | aging (AR/AP) |
 | HPP / Harga Pokok Penjualan | COGS (akun 5), `average_cost` = WAC |
-| Rendemen | yield (kg output utama / kg bahan) |
+| Yield | `yieldPct` (kg output utama / kg bahan) |
 | Modal per kg | `rawMaterialPerKg` / `glPerKg` |
 | STT / BPB | Goods Receipt (penerimaan barang) |
 | PO outstanding | PO Submitted belum terima penuh |
@@ -578,7 +578,7 @@ Ringkasan angka cepat (kas, piutang, hutang, rasio) ada di toolset **dashboard**
 
 ### rpt_production_cost_summary
 
-**Ringkasan:** Modal per periode untuk produksi: per output utama x gudang, kg & nilai bahan, kg output, rendemen, modal bahan baku murni/kg vs HPP GL/kg. Informasi saja, tidak membuat jurnal. Default bulan berjalan; filter opsional warehouseId.
+**Ringkasan:** Modal per periode untuk produksi: per output utama x gudang, kg & nilai bahan, kg output, yield, modal bahan baku murni/kg vs HPP GL/kg. Informasi saja, tidak membuat jurnal. Default bulan berjalan; filter opsional warehouseId.
 
 - **Risk / tier:** `read` / Auto
 - **Roles & izin:** Admin, Accountant, Viewer (modul `reports` / `view`)

@@ -168,7 +168,7 @@ export function buildProductionEditComparison(before: ProductionBefore, rawBody:
     { label: 'Tanggal produksi', before: before.date, after: aDate, kind: 'text', changed: before.date !== aDate },
     { label: 'Total input', before: bIn, after: aIn, kind: 'number', changed: bIn !== aIn },
     { label: 'Total output (termasuk sampingan)', before: bOut, after: aOut, kind: 'number', changed: bOut !== aOut },
-    { label: 'Rendemen produk utama', before: bYield, after: aYield, kind: 'percent', changed: bYield !== aYield },
+    { label: 'Yield produk utama', before: bYield, after: aYield, kind: 'percent', changed: bYield !== aYield },
     {
       label: 'HPP terhitung (per kg produk utama)', before: before.computedHpp, after: null, kind: 'currency', changed: false,
       note: 'Dihitung ulang oleh sistem saat disetujui.',

@@ -34,7 +34,7 @@
       "poOutstanding": "Sisa Purchase Order yang belum diterima per item, nilai sisa, dan PO terlambat.",
       "supplierPerformance": "Ketepatan kirim, lead time, fill rate, dan selisih harga invoice vs PO per supplier.",
       "hpp": "Analisis Harga Pokok Penjualan per produk, margin, dan profitabilitas.",
-      "productionCostSummary": "Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap rendemen dan produk samping.",
+      "productionCostSummary": "Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap yield dan produk samping.",
       "oee": "Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime."
     }
   },
@@ -515,7 +515,7 @@
       "inputRp": "Nilai Bahan Real",
       "inputPerKg": "Modal Bahan/kg",
       "outputKg": "Output (kg)",
-      "yield": "Rendemen",
+      "yield": "Yield",
       "rawPerKg": "Modal Murni/kg",
       "glPerKg": "HPP GL/kg",
       "diffPerKg": "Selisih/kg",
@@ -530,7 +530,7 @@
       "inputRp": "Nilai Bahan Real (Rp)",
       "inputPerKg": "Modal Bahan/kg",
       "outputKg": "Output (kg)",
-      "yield": "Rendemen (%)",
+      "yield": "Yield (%)",
       "rawPerKg": "Modal Bahan Baku Murni/kg",
       "glPerKg": "HPP GL/kg",
       "diffPerKg": "Selisih GL − Murni/kg",
@@ -556,7 +556,7 @@
       "perKgInput": "{{value}}/kg bahan",
       "raw": "Modal Bahan Baku Murni",
       "perKg": "{{value}}/kg",
-      "yieldHint": "rendemen {{value}}% (campuran)",
+      "yieldHint": "yield {{value}}% (campuran)",
       "gl": "HPP GL",
       "glHint": "selisih <diff/>/kg dari modal murni"
     },

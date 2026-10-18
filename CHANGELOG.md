@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Istilah
+**Diubah**: istilah "Rendemen" di antarmuka, laporan, label pengajuan edit produksi, dan panduan AIRA diganti "Yield" agar netral untuk semua jenis industri pengolahan. Nama field (`yieldPct`) tidak berubah.
+
 ### Lisensi
 **Diubah**:
 - Lisensi berganti dari **proprietary** menjadi **GNU AGPL-3.0-only**. `LICENSE` berisi teks resmi AGPL-3.0, badge dan bagian Lisensi README diperbarui, `package.json` server/client ditandai `"license": "AGPL-3.0-only"`. Merek Entaris/AIRA/Arah tetap milik PT Arah Karya Sinergi (`TRADEMARK.md`).

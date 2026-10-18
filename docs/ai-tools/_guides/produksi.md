@@ -86,7 +86,7 @@ Edit run (`prod_run_update`): efek lama dibalik (stok, WAC output dihitung ulang
 | Hasil utama / output utama | lineType `Output`, `isByProduct=false` (mis. PK, Beras) |
 | Produk samping | `isByProduct=true` (bekatul, broken, menir, sekam, reject) - wajib punya NRV |
 | NRV (nilai realisasi bersih) | `unitPrice` produk samping |
-| Rendemen / yield | `yieldPct` = output utama / input x 100 |
+| Yield | `yieldPct` = output utama / input x 100 |
 | HPP terbebani / loaded HPP | `computedHpp` per kg output utama (+ `hppOverride`) |
 | Biaya konversi | `ProductionRunCost` dari `ProductionCostStandard` (InputSide/OutputSide; basis InputQty/OutputQty/Fixed) |
 | Akun 5.12 | Biaya Konversi Dibebankan ke Persediaan |

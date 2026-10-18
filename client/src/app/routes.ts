@@ -238,7 +238,7 @@ export const ROUTES: readonly RouteEntry[] = [
       ['/reports/ledger-book', 'nav.reportLedgerBook', ['ledger', 'buku besar', 'mutasi akun']],
       ['/reports/hpp', 'nav.reportCogs', ['hpp', 'harga pokok', 'cogs']],
       ['/reports/profitability-per-sku', 'nav.reportProfitabilitySku', ['profitability', 'margin', 'sku']],
-      ['/reports/production-cost-summary', 'nav.reportProductionCost', ['biaya produksi', 'rendemen', 'production cost']],
+      ['/reports/production-cost-summary', 'nav.reportProductionCost', ['biaya produksi', 'yield', 'production cost']],
       ['/reports/oee', 'nav.reportOee', ['oee', 'efektivitas mesin', 'downtime']],
       ['/reports/payable-schedule', 'nav.reportPayableSchedule', ['jadwal hutang', 'payable']],
       ['/reports/receivable-schedule', 'nav.reportReceivableSchedule', ['receivable', 'penagihan']],
