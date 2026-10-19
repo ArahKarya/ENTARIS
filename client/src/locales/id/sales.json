@@ -1,0 +1,1722 @@
+{
+  "invoiceAttachmentsSection": {
+    "title": "Dokumen Pendukung ({{count}})",
+    "addFile": "Tambah File",
+    "empty": "Belum ada lampiran.",
+    "remove": "Hapus lampiran {{name}}",
+    "fromPayments": "Dari Pembayaran ({{count}})",
+    "paymentNote": "Lampiran ini milik pembayaran terkait. Kelola dari menu Kas & Bank."
+  },
+  "invoiceDetailDrawer": {
+    "toast": {
+      "cancelled": "Invoice dibatalkan.",
+      "cancelFailed": "Gagal membatalkan invoice.",
+      "depositAppCancelled": "Alokasi uang muka dibatalkan.",
+      "depositAppCancelFailed": "Gagal membatalkan alokasi uang muka.",
+      "updated": "Invoice diperbarui.",
+      "updateFailed": "Gagal memperbarui invoice.",
+      "sentForApproval": "Perubahan dikirim untuk persetujuan.",
+      "priceRevised": "Harga invoice direvisi. Jurnal selisih sudah diposting.",
+      "reviseFailed": "Gagal merevisi harga invoice.",
+      "noPriceChanged": "Tidak ada harga yang diubah.",
+      "reasonTooShort": "Alasan revisi minimal 10 karakter.",
+      "attachmentUploaded": "Lampiran diunggah.",
+      "attachmentUploadFailed": "Gagal upload lampiran.",
+      "attachmentDeleted": "Lampiran dihapus.",
+      "attachmentDeleteFailed": "Gagal hapus lampiran.",
+      "mergedReady": "PDF + lampiran siap diunduh.",
+      "mergeFailed": "Gagal menggabungkan PDF."
+    },
+    "party": {
+      "customer": "Customer",
+      "supplier": "Supplier"
+    },
+    "loading": "Memuat…",
+    "salesInvoice": "Invoice Penjualan",
+    "purchaseInvoice": "Invoice Pembelian",
+    "pendingRevise": "Revisi harga invoice",
+    "loadingInvoice": "Memuat invoice…",
+    "notFound": "Invoice tidak ditemukan.",
+    "depositBalance": {
+      "customer": "Saldo Uang Muka Customer",
+      "supplier": "Saldo Uang Muka Supplier"
+    },
+    "noDepositBalance": {
+      "customer": "Customer belum punya saldo uang muka",
+      "supplier": "Supplier belum punya saldo uang muka"
+    },
+    "useDeposit": "Gunakan Uang Muka",
+    "zeroBalance": "(saldo 0)",
+    "notes": "Catatan",
+    "notesAria": "Catatan invoice",
+    "notesPlaceholder": "Catatan invoice...",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "save": "Simpan",
+    "noNotes": "Tidak ada catatan",
+    "cancelInvoiceTitle": "Batalkan invoice",
+    "cancelInvoice": "Batalkan Invoice",
+    "editTitle": "Edit catatan & jatuh tempo",
+    "edit": "Edit",
+    "editFullTitle": "Batalkan dan buat ulang invoice ini",
+    "editFull": "Edit Lengkap",
+    "awaitingApproval": "Menunggu persetujuan",
+    "revisePriceTitle": "Revisi harga dari supplier (selisih diposting otomatis)",
+    "revisePrice": "Revisi Harga",
+    "mergedPdfTitle_one": "Unduh PDF invoice + {{count}} lampiran ({{invoiceCount}} invoice, {{paymentCount}} pembayaran) dalam 1 file",
+    "mergedPdfTitle_other": "Unduh PDF invoice + {{count}} lampiran ({{invoiceCount}} invoice, {{paymentCount}} pembayaran) dalam 1 file",
+    "downloadPdfPlus": "Unduh PDF +{{count}}",
+    "downloadPdf": "Unduh PDF",
+    "confirmCancel": {
+      "title": "Batalkan Invoice",
+      "description": "Yakin ingin membatalkan invoice ini? Semua jurnal, stok, dan saldo terkait akan dibalik. Invoice yang sudah ada pembayaran atau alokasi uang muka harus dibatalkan terlebih dahulu.",
+      "confirm": "Batalkan Invoice"
+    },
+    "confirmCancelDeposit": {
+      "title": "Batalkan Alokasi Uang Muka",
+      "description": "Yakin ingin membatalkan alokasi uang muka ini? Saldo deposit akan dikembalikan dan outstanding invoice akan bertambah kembali.",
+      "confirm": "Batalkan Alokasi"
+    }
+  },
+  "invoiceDOPicker": {
+    "fromDO": "Dari Surat Jalan",
+    "fromDOHint": "(Surat Jalan sudah dikirim sebelumnya)",
+    "empty": "Tidak ada surat jalan terbuka untuk customer ini.",
+    "selectAria": "Pilih surat jalan {{number}}",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} item",
+    "collapse": "Tutup",
+    "expand": "Lihat detail"
+  },
+  "invoiceInfoGrid": {
+    "taxId": "NPWP: {{value}}",
+    "title": "Informasi Invoice",
+    "dueDate": "Jatuh Tempo",
+    "terms": "Termin",
+    "date": "Tanggal",
+    "customerRefNo": "No. Ref. PO / Penawaran",
+    "createdBy": "Dibuat oleh"
+  },
+  "invoiceLineRow": {
+    "descriptionAria": "Keterangan baris {{n}}",
+    "descriptionPlaceholder": "Keterangan baris (opsional)...",
+    "itemTypeAria": "Jenis item baris {{n}}",
+    "product": "Barang",
+    "service": "Jasa",
+    "productAria": "Barang baris {{n}}",
+    "productPlaceholder": "Pilih dari Stok Gudang",
+    "manualProductAria": "Nama barang manual baris {{n}}",
+    "manualProductPlaceholder": "Atau ketik nama barang manual...",
+    "warehouseAria": "Gudang sumber baris {{n}}",
+    "batchLabel": "Batch (opsional, default WAC)",
+    "batchAria": "Batch baris {{n}}",
+    "serviceAria": "Layanan baris {{n}}",
+    "servicePlaceholder": "Pilih Layanan",
+    "manualServiceAria": "Nama jasa manual baris {{n}}",
+    "manualServicePlaceholder": "Atau ketik nama jasa manual...",
+    "qtyAria": "Qty baris {{n}}",
+    "unitAria": "Satuan baris {{n}}",
+    "rateAria": "Harga satuan baris {{n}}",
+    "discountAria": "Diskon persen baris {{n}}",
+    "vatAria": "PPN persen baris {{n}}",
+    "pphAria": "PPh persen baris {{n}}",
+    "removeAria": "Hapus baris {{n}}"
+  },
+  "invoicePaymentTimeline": {
+    "title": "Riwayat Pembayaran ({{count}})",
+    "deposit": "Uang Muka",
+    "cashBank": "Tunai/Bank",
+    "cancelledTag": "(Dibatalkan)",
+    "cancelledOn": "dibatalkan {{date}}",
+    "cancelAllocationAria": "Batalkan alokasi uang muka {{label}}",
+    "cancelAllocation": "Batalkan alokasi uang muka"
+  },
+  "invoiceRevisePriceDialog": {
+    "title": "Revisi Harga Invoice",
+    "explainer": "Selisih harga diposting otomatis: porsi barang yang <strong>masih di stok</strong> menyesuaikan nilai Persediaan + harga rata-rata; porsi yang <strong>sudah keluar</strong> (produksi/jual) masuk akun <strong>5.11 Selisih Harga Pembelian</strong>. Hutang ke supplier ikut disesuaikan.",
+    "oldRate": "Lama: {{value}}",
+    "newRateAria": "Harga baru {{name}}",
+    "newRatePlaceholder": "harga baru",
+    "reason": "Alasan revisi (min 10 karakter)",
+    "reasonPlaceholder": "contoh: Supplier koreksi harga gabah dari Rp 5.000 → 5.200 sesuai kesepakatan akhir",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "save": "Simpan Revisi"
+  },
+  "salesInvoiceModal": {
+    "defaultDeductionLabel": "Potongan",
+    "defaultExtraChargeLabel": "Biaya Lain",
+    "errors": {
+      "saveFailed": "Gagal menyimpan invoice.",
+      "unsupportedType": "{{name}}: tipe file tidak didukung (JPG/PNG/WebP/PDF).",
+      "tooLarge": "{{name}}: ukuran melebihi 5 MB."
+    },
+    "title": "Invoice Penjualan Baru",
+    "description": "Draft • belum disimpan",
+    "billTo": "Tagihkan Kepada",
+    "customerPlaceholder": "Pilih / cari customer",
+    "customerAria": "Pilih customer",
+    "wapuNotice": "Customer ini Wajib Pungut. PPN dipungut sendiri oleh customer ke kas negara. Semua baris item akan otomatis PPN 0%.",
+    "invoiceDate": "Tanggal Invoice",
+    "dueDate": "Jatuh Tempo",
+    "paymentTerms": "Termin Pembayaran",
+    "customerRefNo": "No. Referensi PO / Penawaran (opsional)",
+    "customerRefNoHint": "Akan dicetak di invoice sebagai referensi pembeli. PPN & PPh diatur per baris item.",
+    "customerRefNoPlaceholder": "mis. PO-2026-001 atau QO-202604-0012",
+    "fromDONotice": "Item ditarik dari Surat Jalan terpilih. Stok tidak akan dikurangi lagi saat invoice dikirim. COGS pakai biaya per unit yang dikunci di Surat Jalan.",
+    "itemsTitle": "Daftar Barang / Jasa",
+    "addRow": "Tambah Baris",
+    "itemsTableLabel": "Daftar barang dan jasa invoice",
+    "columns": {
+      "itemName": "Nama Barang / Jasa",
+      "qty": "Qty",
+      "unit": "Satuan",
+      "unitPrice": "Harga Satuan",
+      "discountPct": "Diskon %",
+      "vatPct": "PPN %",
+      "pphPct": "PPh %",
+      "amount": "Jumlah",
+      "actions": "Aksi"
+    },
+    "notesLabel": "Catatan untuk Customer",
+    "notesPlaceholder": "Misal: Terima kasih atas kepercayaan Anda. Pembayaran via transfer ke rekening BCA...",
+    "totalQty": "Total Qty",
+    "subtotal": "Subtotal",
+    "vatPerItem": "PPN (per item)",
+    "pphPerItem": "PPh (per item)",
+    "deductionLabelAria": "Label potongan",
+    "deductionLabelPlaceholder": "Label potongan...",
+    "deductionValueAria": "Nilai potongan",
+    "extraChargeLabelAria": "Label biaya lain",
+    "extraChargeLabelPlaceholder": "Label biaya lain...",
+    "extraChargeValueAria": "Nilai biaya lain",
+    "total": "Total",
+    "orphan": {
+      "title": "Item inventori harus via Surat Jalan",
+      "body": "Sejak 20 Mei 2026, stok keluar wajib lewat Surat Jalan (DO). Invoice = tagihan saja. Berikut item yg masih direct-sale di invoice ini:",
+      "notLinked": ": belum link ke Surat Jalan",
+      "solution": "<strong>Solusi:</strong> buat <b>Surat Jalan</b> dulu di menu Penjualan → Surat Jalan, lalu kembali ke sini dan pilih dari daftar <b>Pending Surat Jalan</b> di atas. Atau hapus baris item inventory di sini dan ganti dengan service / akun bebas."
+    },
+    "attachments": {
+      "title": "Dokumen Pendukung",
+      "addFile": "Tambah File",
+      "empty": "Belum ada file. Max {{max}} file, 5 MB/file (JPG/PNG/PDF).",
+      "remove": "Hapus file {{name}}"
+    },
+    "cancel": "Batal",
+    "footer": {
+      "total": "Total: {{amount}}",
+      "orphan": "Item inventori harus via Surat Jalan. Lihat peringatan di atas.",
+      "incomplete": "Lengkapi customer dan minimal 1 item untuk melanjutkan"
+    },
+    "saving": "Menyimpan…",
+    "save": "Simpan Invoice"
+  },
+  "salesInvoicesPage": {
+    "export": {
+      "date": "Tanggal",
+      "documentNumber": "Nomor Dokumen",
+      "customer": "Customer",
+      "phone": "Telepon",
+      "dueDate": "Jatuh Tempo",
+      "itemType": "Jenis Item",
+      "productName": "Nama Produk",
+      "description": "Deskripsi",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitPrice": "Harga Satuan",
+      "discountPct": "Diskon (%)",
+      "vatPct": "PPN (%)",
+      "pphPct": "PPh (%)",
+      "itemSubtotal": "Subtotal Item",
+      "invoiceTotal": "Total Invoice",
+      "paid": "Sudah Dibayar",
+      "outstanding": "Sisa Tagihan",
+      "status": "Status",
+      "notes": "Catatan",
+      "service": "Jasa",
+      "product": "Produk",
+      "overdueStatus": "{{status}} (Jatuh Tempo)",
+      "fileName": "invoice-penjualan-{{stamp}}",
+      "truncated": "Ekspor dibatasi {{count}} invoice pertama. Persempit filter.",
+      "failed": "Gagal mengekspor invoice. Coba lagi."
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "dueDate": "Jatuh Tempo",
+      "overdueSr": "(lewat jatuh tempo)",
+      "items": "Item",
+      "total": "Total",
+      "deductionTitle": "Potongan dari pembayaran (komisi/diskon): {{deduction}}\nNet: {{net}}",
+      "deductionShort": "pot. {{deduction}} · net {{net}}",
+      "outstanding": "Sisa",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "actions": {
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail",
+      "createReturn": "Buat retur"
+    },
+    "title": "Invoice Penjualan",
+    "description": "Kelola invoice penjualan dan piutang customer.",
+    "exportExcel": "Ekspor Excel",
+    "return": "Retur",
+    "create": "Buat Invoice",
+    "kpi": {
+      "sectionLabel": "Ringkasan invoice sesuai filter",
+      "count": "Jumlah Invoice",
+      "countHint": "Nilai {{amount}}",
+      "receivables": "Total Piutang",
+      "paid": "Lunas",
+      "paidHint": "invoice dibayar penuh",
+      "overdue": "Lewat Jatuh Tempo",
+      "overdueHint": "Sisa {{amount}}"
+    },
+    "search": {
+      "label": "Cari invoice",
+      "placeholder": "Cari nomor invoice atau customer"
+    },
+    "table": {
+      "label": "Daftar invoice penjualan",
+      "itemLabel": "invoice"
+    },
+    "empty": {
+      "title": "Belum ada invoice penjualan",
+      "description": "Invoice yang Anda buat akan muncul di sini.",
+      "action": "Buat invoice pertama"
+    }
+  },
+  "deliveryOrderDetailDrawer": {
+    "toast": {
+      "cancelled": "Surat jalan dibatalkan. Stok dikembalikan ke gudang."
+    },
+    "errors": {
+      "cancel": "Gagal membatalkan surat jalan."
+    },
+    "loading": "Memuat…",
+    "docType": "Surat Jalan",
+    "loadingDoc": "Memuat surat jalan…",
+    "notFound": "Surat jalan tidak ditemukan.",
+    "customer": "Customer",
+    "shippingInfo": "Informasi Pengiriman",
+    "fields": {
+      "date": "Tanggal",
+      "customerPo": "No. PO Customer",
+      "soNumber": "No. Sales Order (SO)",
+      "vehicle": "No. Mobil",
+      "driver": "Supir",
+      "recipient": "Penerima",
+      "createdBy": "Dibuat oleh"
+    },
+    "invoicedVia": "Sudah ditagihkan via invoice",
+    "viewInvoice": "Lihat Invoice",
+    "items": {
+      "title_one": "Daftar Barang ({{count}} item)",
+      "title_other": "Daftar Barang ({{count}} item)",
+      "tableLabel": "Daftar barang surat jalan"
+    },
+    "columns": {
+      "code": "Kode",
+      "name": "Nama",
+      "warehouse": "Gudang",
+      "qty": "Qty",
+      "unit": "Satuan"
+    },
+    "notes": "Catatan",
+    "noNotes": "Tidak ada catatan",
+    "attachments": "Lampiran (Bukti Timbang / Foto)",
+    "cancelledNotice": "Surat jalan ini sudah dibatalkan. Stok telah dikembalikan ke gudang. Dokumen disimpan untuk jejak audit.",
+    "cancelTitle": "Hanya Admin yang bisa membatalkan surat jalan",
+    "cancel": "Batalkan",
+    "generating": "Membuat…",
+    "printPdf": "Cetak PDF",
+    "editTitle": "Edit surat jalan (nomor & tanggal dipertahankan)",
+    "edit": "Edit",
+    "createInvoice": "Buat Invoice",
+    "confirmCancel": {
+      "title": "Batalkan Surat Jalan",
+      "description": "Batalkan surat jalan {{number}}? Stok akan dikembalikan ke gudang asal. Tindakan ini tercatat di audit trail.",
+      "confirm": "Ya, Batalkan"
+    }
+  },
+  "deliveryOrderFromInvoiceModal": {
+    "toast": {
+      "created": "Surat Jalan dibuat dan terhubung dengan invoice."
+    },
+    "errors": {
+      "create": "Gagal membuat surat jalan."
+    },
+    "validation": {
+      "date": "Tanggal pengiriman wajib diisi.",
+      "noLines": "Invoice ini tidak punya baris barang fisik untuk dikirim."
+    },
+    "title": "Buat Surat Jalan",
+    "description": "Untuk invoice <mono>{{number}}</mono> ({{customer}})",
+    "stockNotice": "Stok sudah dikurangi sejak invoice di-submit. Surat Jalan ini hanya untuk dokumen pengiriman fisik & cetakan supir, tidak menyentuh stok lagi.",
+    "fields": {
+      "date": "Tanggal Pengiriman",
+      "vehicle": "No. Mobil",
+      "vehiclePlaceholder": "Mis. B 1234 ABC",
+      "driver": "Nama Supir",
+      "driverPlaceholder": "Nama supir",
+      "recipient": "Penerima",
+      "recipientPlaceholder": "Nama penerima",
+      "notes": "Catatan",
+      "notesPlaceholder": "Catatan pengiriman (opsional)"
+    },
+    "items": {
+      "title_one": "Barang dari invoice ({{count}} item)",
+      "title_other": "Barang dari invoice ({{count}} item)",
+      "skipped_one": "({{count}} baris jasa diabaikan)",
+      "skipped_other": "({{count}} baris jasa diabaikan)",
+      "tableLabel": "Barang dari invoice"
+    },
+    "columns": {
+      "itemName": "Nama Barang",
+      "qty": "Qty",
+      "unit": "Satuan"
+    },
+    "cancel": "Batal",
+    "creating": "Membuat…"
+  },
+  "deliveryOrderModal": {
+    "titleEdit": "Edit {{number}}",
+    "titleCreate": "Buat Surat Jalan",
+    "description": "Dokumen pengiriman fisik • stok keluar saat disimpan",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "submit": "Simpan Surat Jalan",
+    "toast": {
+      "allDelivered": "Semua item SO sudah terkirim penuh. Isi qty bila mau kirim lebih.",
+      "pendingApproval": "Surat jalan diajukan dan menunggu persetujuan manajer (stok minus).",
+      "updated": "{{number}} diperbarui. Stok lama dikembalikan, stok baru dikeluarkan.",
+      "created": "Surat jalan dibuat. Stok dikeluarkan dari gudang."
+    },
+    "errors": {
+      "loadSo": "Gagal mengambil detail SO.",
+      "edit": "Gagal mengedit surat jalan.",
+      "save": "Gagal menyimpan surat jalan."
+    },
+    "validation": {
+      "customer": "Pilih customer.",
+      "minItem": "Tambahkan minimal satu item dengan qty > 0.",
+      "warehouse": "Pilih gudang sumber untuk setiap baris barang dari stok.",
+      "reasonMin": "Alasan bypass stok minus wajib diisi (minimal 10 karakter).",
+      "noSoLines": "Tidak ada baris yang ditarik dari SO."
+    },
+    "fields": {
+      "fromSo": "Tarik dari Sales Order (opsional)",
+      "fromSoHint": "Baris diisi dari sisa SO. Surat Jalan akan mengurangi SO & memperbarui statusnya.",
+      "fromSoAria": "Tarik dari Sales Order",
+      "fromSoPlaceholder": "Tanpa SO (kirim bebas)",
+      "customer": "Customer",
+      "customerPlaceholder": "Pilih Customer",
+      "date": "Tanggal",
+      "vehicle": "No. Mobil",
+      "vehiclePlaceholder": "mis. B 1234 ABC",
+      "driver": "Supir",
+      "driverPlaceholder": "Nama supir",
+      "recipient": "Penerima (opsional)",
+      "recipientPlaceholder": "Nama penerima di lokasi tujuan",
+      "notes": "Catatan",
+      "notesPlaceholder": "Misal: dititipkan ke pos satpam..."
+    },
+    "linkNotes": {
+      "legend": "Tautkan Surat Jalan Sementara",
+      "help": "Barang berikut sudah dikirim dengan surat jalan sementara. Pilih untuk menautkannya ke surat jalan resmi ini (qty boleh berbeda)."
+    },
+    "items": {
+      "title": "Daftar Barang",
+      "addRow": "Tambah Baris",
+      "tableLabel": "Daftar barang surat jalan"
+    },
+    "columns": {
+      "itemName": "Nama Barang",
+      "qty": "Qty",
+      "unit": "Satuan",
+      "description": "Keterangan",
+      "actions": "Aksi"
+    },
+    "rows": {
+      "item": "Barang baris {{row}}",
+      "itemPlaceholder": "Pilih dari Stok Gudang",
+      "manualName": "Nama barang manual baris {{row}}",
+      "manualNamePlaceholder": "Atau ketik nama barang manual...",
+      "warehouse": "Gudang sumber baris {{row}}",
+      "loadingStock": "Memuat stok gudang…",
+      "stockHere": "Stok di gudang ini: {{qty}} {{unit}}",
+      "qty": "Qty baris {{row}}",
+      "unit": "Satuan baris {{row}}",
+      "description": "Keterangan baris {{row}}",
+      "descriptionPlaceholder": "Catatan baris...",
+      "remove": "Hapus baris {{row}}"
+    },
+    "summary": {
+      "title": "Ringkasan Qty",
+      "empty": "Belum ada barang.",
+      "total": "Total {{unit}}",
+      "note": "Surat jalan tidak mencatat rupiah. Invoice menyusul setelah pengiriman."
+    },
+    "shortage": {
+      "title": "Stok tidak mencukupi untuk:",
+      "line": "tersedia {{available}} {{unit}}, dibutuhkan {{needed}} {{unit}}",
+      "short": "(kurang {{qty}})",
+      "adminOverride": "Admin override:",
+      "adminOverrideText": "izinkan stok minus (produksi/penerimaan akan menyusul). Audit log akan dicatat.",
+      "requestApproval": "Ajukan persetujuan stok minus:",
+      "requestApprovalText": "tetap buat Surat Jalan (mis. barang dikirim sambil produksi berjalan). Surat Jalan akan dibuat setelah",
+      "managerApproved": "disetujui manajer",
+      "reasonBypass": "Alasan bypass stok minus",
+      "reasonRequest": "Alasan pengajuan stok minus",
+      "reasonBypassPlaceholder": "Alasan bypass (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'",
+      "reasonPlaceholder": "Alasan (min 10 karakter): contoh 'Produksi 50 ton sedang berjalan, akan diinput sore ini'"
+    },
+    "footer": {
+      "ready": "Siap disimpan. Stok akan dikeluarkan dari gudang.",
+      "needCustomer": "Pilih customer dan tambahkan minimal 1 item.",
+      "needItem": "Lengkapi minimal 1 item dengan qty > 0."
+    }
+  },
+  "deliveryOrdersOfficialPage": {
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "poSoRef": "Ref PO / SO",
+      "vehicle": "No. Mobil",
+      "items": "Item",
+      "status": "Status",
+      "invoice": "Invoice",
+      "actions": "Aksi"
+    },
+    "rowActions": {
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail",
+      "createInvoice": "Buat invoice"
+    },
+    "searchLabel": "Cari surat jalan",
+    "searchPlaceholder": "Cari nomor DO, SO, PO, customer, no. mobil",
+    "tableLabel": "Daftar surat jalan resmi",
+    "itemLabel": "surat jalan",
+    "empty": {
+      "title": "Belum ada surat jalan",
+      "description": "Surat jalan resmi memotong stok saat dibuat; invoice menyusul.",
+      "action": "Buat surat jalan pertama"
+    }
+  },
+  "deliveryOrdersPage": {
+    "title": "Surat Jalan",
+    "descriptionOfficial": "Dokumen pengiriman fisik ke customer. Stok keluar di sini, invoice menyusul.",
+    "descriptionSjs": "Surat jalan sementara untuk barang yang dikirim sebelum produksi diinput.",
+    "createOfficial": "Buat Surat Jalan",
+    "createSjsShort": "Buat SJS",
+    "createSjs": "Buat Surat Jalan Sementara",
+    "tabsLabel": "Jenis surat jalan",
+    "tabOfficial": "Surat Jalan Resmi",
+    "tabSjs": "Surat Jalan Sementara",
+    "open": "terbuka"
+  },
+  "temporaryDeliveryNoteDrawer": {
+    "status": {
+      "open": "Terbuka",
+      "linked": "Tertaut",
+      "cancelled": "Dibatalkan"
+    },
+    "toast": {
+      "cancelled": "Surat jalan sementara dibatalkan.",
+      "linked": "Surat jalan sementara ditautkan ke surat jalan resmi."
+    },
+    "errors": {
+      "cancel": "Gagal membatalkan.",
+      "link": "Gagal menautkan."
+    },
+    "pdf": {
+      "title": "SURAT JALAN"
+    },
+    "docType": "Surat Jalan Sementara",
+    "description": "Dokumen sementara: tanpa stok, tanpa jurnal",
+    "loading": "Memuat surat jalan sementara…",
+    "notFound": "Surat jalan sementara tidak ditemukan.",
+    "customer": "Customer",
+    "fields": {
+      "date": "Tanggal",
+      "vehicle": "No. Mobil",
+      "driver": "Supir",
+      "recipient": "Penerima",
+      "salesOrder": "Sales Order"
+    },
+    "linkedTo": "Sudah ditautkan ke surat jalan resmi <b>{{number}}</b>",
+    "notLinked": "Belum ditautkan. Setelah produksi diinput, buat surat jalan resmi dan pilih surat jalan sementara ini di bagian <b>Tautkan Surat Jalan Sementara</b>.",
+    "items": {
+      "title": "Barang",
+      "tableLabel": "Daftar barang surat jalan sementara",
+      "name": "Nama",
+      "qty": "Qty",
+      "unit": "Sat"
+    },
+    "notesLabel": "Catatan:",
+    "cancel": "Batalkan",
+    "edit": "Ubah",
+    "linkToDo": "Tautkan ke DO",
+    "generating": "Membuat...",
+    "printPdf": "Cetak PDF",
+    "linkDialog": {
+      "title": "Tautkan {{number}} ke surat jalan resmi",
+      "description": "Pilih surat jalan resmi milik <b>{{customer}}</b> yang sudah dibuat. Hanya mengubah status SJS, tidak menyentuh stok atau jurnal.",
+      "field": "Surat jalan resmi",
+      "placeholder": "pilih surat jalan resmi",
+      "empty": "Belum ada surat jalan resmi aktif untuk customer ini.",
+      "cancel": "Batal",
+      "linking": "Menautkan…",
+      "submit": "Tautkan"
+    },
+    "confirmCancel": {
+      "title": "Batalkan surat jalan sementara?",
+      "description": "Dokumen akan ditandai Dibatalkan. Tidak ada stok atau jurnal yang terpengaruh.",
+      "confirm": "Batalkan"
+    }
+  },
+  "temporaryDeliveryNoteModal": {
+    "toast": {
+      "saved": "Surat jalan sementara {{number}} disimpan."
+    },
+    "errors": {
+      "save": "Gagal menyimpan surat jalan sementara."
+    },
+    "validation": {
+      "customer": "Customer wajib dipilih.",
+      "items": "Semua barang wajib dipilih dari master item.",
+      "qty": "Qty harus lebih dari 0."
+    },
+    "titleEdit": "Ubah {{number}}",
+    "titleCreate": "Buat Surat Jalan Sementara",
+    "description": "Dokumen sementara: <b>tidak memotong stok, tidak ada jurnal, tidak bisa diinvoice</b>. Tautkan ke surat jalan resmi setelah produksi diinput.",
+    "fields": {
+      "date": "Tanggal",
+      "customer": "Customer",
+      "customerPlaceholder": "Pilih customer",
+      "salesOrder": "Sales Order (opsional)",
+      "noSalesOrder": "Tanpa sales order",
+      "customerFirst": "Pilih customer dulu",
+      "salesOrderHint": "Tautkan pengiriman sementara ini ke sales order customer.",
+      "vehicle": "No. Mobil",
+      "driver": "Supir",
+      "recipient": "Penerima",
+      "notes": "Catatan"
+    },
+    "items": {
+      "title": "Barang",
+      "addRow": "Tambah baris",
+      "item": "Barang {{row}}",
+      "itemPlaceholder": "Pilih barang (master item)",
+      "qty": "Qty",
+      "unit": "Satuan",
+      "remove": "Hapus baris barang {{row}}"
+    },
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "save": "Simpan"
+  },
+  "temporaryDeliveryNotesPage": {
+    "reminder": {
+      "open_one": "<b>{{open}}</b> surat jalan sementara masih Terbuka (belum ditautkan ke surat jalan resmi).",
+      "open_other": "<b>{{open}}</b> surat jalan sementara masih Terbuka (belum ditautkan ke surat jalan resmi).",
+      "openLate_one": "<b>{{open}}</b> surat jalan sementara masih Terbuka (belum ditautkan ke surat jalan resmi), <b>{{overdue}}</b> sudah lebih dari {{days}} hari.",
+      "openLate_other": "<b>{{open}}</b> surat jalan sementara masih Terbuka (belum ditautkan ke surat jalan resmi), <b>{{overdue}}</b> sudah lebih dari {{days}} hari."
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "vehicle": "No. Mobil",
+      "items": "Barang",
+      "status": "Status",
+      "officialDo": "DO Resmi",
+      "actions": "Aksi"
+    },
+    "ageDays_one": "{{days}} hari",
+    "ageDays_other": "{{days}} hari",
+    "notLinked": "belum ditautkan",
+    "rowActions": {
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail"
+    },
+    "intro": "Barang dikirim sebelum produksi diinput. <b>Tidak memotong stok, tanpa jurnal, tidak bisa diinvoice.</b> Tautkan ke surat jalan resmi setelah produksi selesai.",
+    "searchLabel": "Cari surat jalan sementara",
+    "searchPlaceholder": "Cari nomor, customer, no. mobil",
+    "tableLabel": "Daftar surat jalan sementara",
+    "itemLabel": "surat jalan sementara",
+    "empty": {
+      "title": "Belum ada surat jalan sementara",
+      "description": "Gunakan saat barang harus dikirim sebelum produksi diinput.",
+      "action": "Buat surat jalan sementara"
+    }
+  },
+  "optionSelect": {
+    "placeholder": "Pilih…"
+  },
+  "pickerSelect": {
+    "placeholder": "Pilih",
+    "search": "Cari…"
+  },
+  "salesOrdersPage": {
+    "title": "Sales Order",
+    "description": "Komitmen jual sebelum Surat Jalan dan Invoice, cocok untuk skema “invoice dulu, kirim barang nanti”.",
+    "create": "Buat Pesanan",
+    "summaryLabel": "Ringkasan pesanan sesuai filter",
+    "stats": {
+      "active": "Pesanan Aktif",
+      "activeValue": "Nilai {{value}}",
+      "submitted": "Dikonfirmasi",
+      "submittedHint": "menunggu pengiriman",
+      "partiallyDelivered": "Terkirim Sebagian",
+      "partiallyDeliveredHint": "sisa belum dikirim",
+      "fullyDelivered": "Terkirim Penuh",
+      "fullyDeliveredHint": "semua barang terkirim"
+    },
+    "searchLabel": "Cari pesanan",
+    "searchPlaceholder": "Cari nomor SO, customer, atau ref",
+    "tableLabel": "Daftar sales order",
+    "itemLabel": "pesanan",
+    "empty": {
+      "title": "Belum ada sales order",
+      "description": "Pesanan yang Anda buat akan muncul di sini.",
+      "action": "Buat pesanan pertama"
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "expectedDelivery": "Target Kirim",
+      "items": "Item",
+      "total": "Total",
+      "status": "Status",
+      "deliveryOrdersTitle": "Jumlah surat jalan",
+      "deliveryOrdersAbbr": "SJ",
+      "actions": "Aksi"
+    },
+    "refPrefix": "Ref: {{ref}}",
+    "rowActions": "Aksi untuk {{number}}",
+    "viewDetail": "Lihat detail",
+    "toast": {
+      "quotationNotEligible": "Penawaran {{number}} tidak bisa dibuatkan Sales Order.",
+      "quotationLoadFailed": "Gagal memuat penawaran."
+    }
+  },
+  "salesReturnsPage": {
+    "title": "Retur Penjualan",
+    "description": "Kembalikan barang/nilai dari invoice penjualan (nota kredit).",
+    "create": "Retur Baru",
+    "searchLabel": "Cari retur",
+    "searchPlaceholder": "Cari no. retur, invoice, customer",
+    "tableLabel": "Daftar retur penjualan",
+    "itemLabel": "retur",
+    "empty": {
+      "title": "Belum ada retur penjualan",
+      "description": "Retur yang dibuat dari invoice penjualan akan muncul di sini.",
+      "action": "Buat retur pertama"
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "sourceInvoice": "Invoice Asal",
+      "totalReturn": "Total Retur",
+      "arReduced": "Kurangi Piutang",
+      "creditCreated": "Jadi Kredit",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "rowActions": "Aksi untuk {{number}}",
+    "cancelAction": "Batalkan retur",
+    "toast": {
+      "cancelled": "Retur dibatalkan.",
+      "cancelFailed": "Gagal membatalkan retur."
+    },
+    "confirm": {
+      "title": "Batalkan retur {{number}}?",
+      "description": "Stok dan jurnal akan dibalik. Tindakan ini tidak dapat diurungkan.",
+      "confirm": "Batalkan Retur",
+      "cancel": "Kembali"
+    }
+  },
+  "salesReturnModal": {
+    "title": "Retur Penjualan Baru",
+    "description": "Pilih invoice, lalu isi qty barang yang dikembalikan.",
+    "fields": {
+      "invoice": "Invoice Penjualan",
+      "invoicePlaceholder": "Pilih invoice",
+      "date": "Tanggal Retur",
+      "reason": "Alasan Retur (opsional)",
+      "reasonPlaceholder": "mis. barang rusak saat pengiriman, salah kirim, dll."
+    },
+    "outstanding": "Outstanding invoice:",
+    "total": "Total:",
+    "table": {
+      "label": "Baris invoice yang dapat diretur",
+      "item": "Item",
+      "sold": "Terjual",
+      "remaining": "Sisa bisa retur",
+      "returnQty": "Qty retur",
+      "restock": "Masuk stok?",
+      "discount": "disc {{value}}%",
+      "tax": "PPN {{value}}%",
+      "returnQtyFor": "Qty retur {{name}}",
+      "max": "Maksimal {{qty}} {{unit}}.",
+      "restockFor": "Masuk stok {{name}}"
+    },
+    "loading": "Memuat…",
+    "summary": {
+      "subtotal": "Subtotal retur",
+      "tax": "PPN",
+      "total": "Total Retur",
+      "arReduce": "Kurangi piutang",
+      "credit": "Jadi kredit customer",
+      "qtyOnly": "Retur qty-only (nilai Rp0): hanya mengembalikan stok fisik, tidak mengubah piutang/kredit customer."
+    },
+    "errors": {
+      "noLines": "Pilih minimal satu baris dengan qty > 0."
+    },
+    "toast": {
+      "pendingApproval": "Retur diajukan, menunggu persetujuan manajer.",
+      "created": "Retur penjualan dibuat.",
+      "createFailed": "Gagal membuat retur."
+    },
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "save": "Simpan Retur"
+  },
+  "salesOrderModal": {
+    "titleCreate": "Buat Sales Order",
+    "titleEdit": "Edit Sales Order",
+    "description": "Komitmen jual ke customer (Draft → Submitted)",
+    "fromQuotation": "Dari penawaran",
+    "fields": {
+      "date": "Tanggal",
+      "expectedDelivery": "Target Pengiriman",
+      "customer": "Customer",
+      "customerPlaceholder": "Pilih customer...",
+      "customerRefNo": "No. Referensi PO Customer",
+      "notes": "Catatan",
+      "optional": "Opsional",
+      "discountAmount": "Potongan",
+      "taxPct": "PPN %",
+      "otherCosts": "Biaya Lain"
+    },
+    "table": {
+      "label": "Daftar item sales order",
+      "item": "Item",
+      "qty": "Qty",
+      "unit": "Unit",
+      "rate": "Harga/Unit",
+      "discount": "Disc %",
+      "subtotal": "Subtotal",
+      "actions": "Aksi",
+      "itemRow": "Item baris {{row}}",
+      "itemPlaceholder": "Pilih item...",
+      "qtyRow": "Qty baris {{row}}",
+      "unitRow": "Unit baris {{row}}",
+      "rateRow": "Harga per unit baris {{row}}",
+      "discountRow": "Diskon persen baris {{row}}",
+      "removeRow": "Hapus baris {{row}}",
+      "addRow": "Tambah baris"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "PPN ({{pct}}%)",
+      "grandTotal": "Grand Total"
+    },
+    "errors": {
+      "customerRequired": "Customer wajib dipilih.",
+      "noItems": "Minimal satu item.",
+      "itemNameRequired": "Baris {{row}}: nama item wajib diisi.",
+      "qtyPositive": "Baris {{row}}: qty harus > 0.",
+      "saveFailed": "Gagal menyimpan."
+    },
+    "toast": {
+      "updated": "Sales Order diperbarui.",
+      "created": "Sales Order dibuat sebagai draf."
+    },
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "saveChanges": "Simpan Perubahan",
+    "saveDraft": "Simpan sebagai Draft"
+  },
+  "salesOrderDetailDrawer": {
+    "title": "Detail Sales Order",
+    "loading": "Memuat…",
+    "loadingOrder": "Memuat sales order…",
+    "notFound": "SO tidak ditemukan.",
+    "pdf": {
+      "title": "Unduh PDF SO",
+      "preparing": "Menyiapkan…",
+      "download": "Download PDF",
+      "titleWithAttachments_one": "Unduh PDF SO + {{count}} lampiran dalam 1 file",
+      "titleWithAttachments_other": "Unduh PDF SO + {{count}} lampiran dalam 1 file",
+      "downloadWithCount_one": "Download PDF +{{count}}",
+      "downloadWithCount_other": "Download PDF +{{count}}"
+    },
+    "meta": {
+      "date": "Tanggal:",
+      "expectedDelivery": "Target Kirim:",
+      "customer": "Customer:",
+      "customerRef": "Ref PO:",
+      "quotation": "Penawaran:",
+      "notes": "Catatan: {{notes}}"
+    },
+    "items": {
+      "label": "Item sales order",
+      "item": "Item",
+      "qty": "Qty",
+      "delivered": "Terkirim",
+      "remaining": "Sisa",
+      "rate": "Harga",
+      "subtotal": "Subtotal",
+      "overDeliveredTitle": "Terkirim melebihi pesanan SO",
+      "overDelivered": "+{{qty}} lebih",
+      "fullyDelivered": "Terkirim penuh"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "discount": "Potongan",
+      "tax": "PPN {{pct}}%",
+      "otherCosts": "Biaya Lain",
+      "grandTotal": "Grand Total"
+    },
+    "deposit": {
+      "label": "Uang muka",
+      "title": "Uang Muka (DP)",
+      "pctOfTotal": "{{pct}}% dari total",
+      "received": "DP Diterima",
+      "applied": "DP Terpakai",
+      "remaining": "Sisa Uang Muka",
+      "grandTotal": "Grand Total",
+      "outstanding": "Sisa Tagihan",
+      "receive": "+ Terima Uang Muka",
+      "amount": "Jumlah",
+      "account": "Terima ke Kas/Bank",
+      "accountPlaceholder": "Pilih akun",
+      "save": "Simpan DP",
+      "defaultNote": "Uang muka {{number}}",
+      "errors": {
+        "amountPositive": "Jumlah uang muka harus > 0.",
+        "accountRequired": "Pilih akun kas/bank."
+      }
+    },
+    "fields": {
+      "date": "Tanggal"
+    },
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "relatedDeliveryOrders": "Surat Jalan Terkait",
+    "attachments": "Lampiran (PO Customer / Dokumen)",
+    "generateDo": {
+      "title": "Buat Surat Jalan",
+      "creating": "Membuat…",
+      "warehouse": "Gudang Sumber",
+      "warehousePlaceholder": "Pilih gudang",
+      "vehicleNo": "No. Mobil",
+      "driver": "Sopir",
+      "recipient": "Penerima",
+      "recipientPlaceholder": "Nama penerima barang",
+      "notes": "Catatan",
+      "optional": "Opsional",
+      "table": {
+        "label": "Qty kirim per item",
+        "item": "Item",
+        "remaining": "Sisa",
+        "qty": "Qty Kirim",
+        "qtyFor": "Qty kirim {{name}}",
+        "max": "maks {{qty}}"
+      },
+      "override": {
+        "label": "Admin override:",
+        "text": "izinkan stok minus (produksi/penerimaan menyusul). Audit dicatat.",
+        "reason": "Alasan bypass stok minus",
+        "reasonPlaceholder": "Alasan bypass (min 10 karakter)"
+      },
+      "errors": {
+        "noItems": "Pilih minimal 1 item dengan qty > 0.",
+        "warehouseRequired": "Pilih gudang sumber.",
+        "reasonRequired": "Alasan bypass stok minus wajib diisi (min 10 karakter)."
+      }
+    },
+    "cancelSo": "Batalkan SO",
+    "edit": "Edit",
+    "submit": "Submit",
+    "confirmCancel": {
+      "title": "Batalkan Sales Order ini?",
+      "description": "{{number}} akan dibatalkan dan tidak dapat diproses lebih lanjut.",
+      "back": "Kembali"
+    },
+    "toast": {
+      "pdfFailed": "Gagal membuat PDF.",
+      "depositReceived": "Uang muka diterima.",
+      "depositFailed": "Gagal terima uang muka.",
+      "submitted": "Sales Order disubmit.",
+      "submitFailed": "Gagal submit.",
+      "cancelled": "Sales Order dibatalkan.",
+      "cancelFailed": "Gagal cancel.",
+      "doCreated": "Surat Jalan {{number}} dibuat.",
+      "doFailed": "Gagal generate Surat Jalan.",
+      "pdfReady_one": "PDF + {{count}} lampiran siap diunduh.",
+      "pdfReady_other": "PDF + {{count}} lampiran siap diunduh."
+    }
+  },
+  "inquiryDetailDrawer": {
+    "channels": {
+      "WhatsApp": "WhatsApp",
+      "Telepon": "Telepon",
+      "Email": "Email",
+      "WalkIn": "Walk-in",
+      "Referral": "Referral",
+      "Lainnya": "Lainnya"
+    },
+    "toast": {
+      "statusUpdated": "Status diperbarui.",
+      "deleted": "Inquiry dihapus."
+    },
+    "errors": {
+      "statusFailed": "Gagal ubah status.",
+      "deleteFailed": "Gagal hapus.",
+      "convertFailed": "Gagal menyiapkan konversi."
+    },
+    "title": "Detail Inquiry",
+    "loadingDetail": "Memuat detail inquiry",
+    "loading": "Memuat inquiry…",
+    "fields": {
+      "status": "Status",
+      "date": "Tanggal",
+      "channel": "Channel",
+      "followUp": "Tindak Lanjut",
+      "quotation": "Penawaran",
+      "lossReason": "Alasan hilang:",
+      "notes": "Catatan"
+    },
+    "party": {
+      "title": "Prospek / Customer",
+      "prospectBadge": "prospect",
+      "phone": "Telepon:",
+      "email": "Email:"
+    },
+    "items": {
+      "title": "Permintaan",
+      "tableLabel": "Daftar item permintaan",
+      "item": "Item",
+      "qty": "Qty",
+      "estimatedPrice": "Est. Harga",
+      "empty": "Tidak ada permintaan terstruktur."
+    },
+    "actions": {
+      "delete": "Hapus",
+      "edit": "Edit",
+      "close": "Tutup",
+      "markLost": "Tandai Hilang",
+      "process": "Diproses",
+      "createQuotation": "Buat Penawaran",
+      "cancel": "Batal"
+    },
+    "confirm": {
+      "process": {
+        "title": "Tandai Diproses",
+        "description": "Tandai inquiry ini sedang diproses?"
+      },
+      "close": {
+        "title": "Tutup Inquiry",
+        "description": "Tutup inquiry ini? Tidak akan ditindaklanjuti lagi."
+      },
+      "delete": {
+        "title": "Hapus Inquiry",
+        "description": "Hapus inquiry ini secara permanen?",
+        "confirm": "Ya, Hapus"
+      }
+    },
+    "lost": {
+      "title": "Tandai Hilang",
+      "description": "Berikan alasan singkat (minimal 5 karakter).",
+      "reasonLabel": "Alasan hilang",
+      "reasonPlaceholder": "Mis: Customer beralih ke kompetitor, harga di luar budget...",
+      "processing": "Memproses…",
+      "submit": "Tandai Hilang"
+    }
+  },
+  "inquiryModal": {
+    "channels": {
+      "WhatsApp": "WhatsApp",
+      "Telepon": "Telepon",
+      "Email": "Email",
+      "WalkIn": "Walk-in",
+      "Referral": "Referral",
+      "Lainnya": "Lainnya"
+    },
+    "toast": {
+      "updated": "Inquiry diperbarui.",
+      "created": "Inquiry dicatat."
+    },
+    "errors": {
+      "saveFailed": "Gagal menyimpan inquiry.",
+      "nameRequired": "Nama prospek/customer wajib diisi.",
+      "noItems": "Tambahkan minimal satu item, atau isi permintaan di mode free-text."
+    },
+    "titleEdit": "Edit Inquiry {{number}}",
+    "titleCreate": "Catat Inquiry Baru",
+    "description": "Catat permintaan awal dari calon customer sebelum dibuatkan Penawaran.",
+    "fields": {
+      "date": "Tanggal",
+      "channel": "Channel",
+      "followUp": "Tindak Lanjut (opsional)",
+      "existingCustomer": "Pilih dari Customer Existing (opsional)",
+      "prospectName": "Nama Prospek/Customer",
+      "phone": "Telepon",
+      "email": "Email",
+      "internalNotes": "Catatan Internal"
+    },
+    "placeholders": {
+      "existingCustomer": "Cari customer terdaftar...",
+      "prospectName": "Nama perusahaan atau perorangan",
+      "internalNotes": "Sumber referral, batas budget, dll..."
+    },
+    "newProspectHint": "Belum dipilih → akan dicatat sebagai prospect baru. Saat konversi ke Penawaran, customer otomatis dibuat.",
+    "items": {
+      "title": "Permintaan / Item",
+      "modeLabel": "Mode input permintaan",
+      "freetext": "Free-text",
+      "structured": "Terstruktur",
+      "freetextLabel": "Permintaan (free-text)",
+      "freetextPlaceholder": "Mis: Produk A 25 kg 100 sak, Produk B 2 ton, butuh delivery pekan depan...",
+      "item": "Item",
+      "itemPlaceholder": "Nama produk/jasa",
+      "qty": "Qty",
+      "unit": "Unit",
+      "estimatedPrice": "Est. Harga",
+      "removeRow": "Hapus baris item {{n}}",
+      "addRow": "Tambah baris"
+    },
+    "actions": {
+      "cancel": "Batal",
+      "saving": "Menyimpan…",
+      "saveChanges": "Simpan Perubahan",
+      "save": "Simpan Inquiry"
+    }
+  },
+  "inquiriesPage": {
+    "channels": {
+      "WhatsApp": "WhatsApp",
+      "Telepon": "Telepon",
+      "Email": "Email",
+      "WalkIn": "Walk-in",
+      "Referral": "Referral",
+      "Lainnya": "Lainnya"
+    },
+    "chips": {
+      "prospect": "Prospek",
+      "publicFormTitle": "Masuk lewat formulir publik (QR)",
+      "publicForm": "Form publik"
+    },
+    "channelFilter": {
+      "label": "Channel",
+      "all": "Semua channel"
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "prospect": "Prospek / Customer",
+      "contact": "Kontak",
+      "channel": "Channel",
+      "status": "Status",
+      "quotation": "Penawaran",
+      "actions": "Aksi"
+    },
+    "via": "via {{name}}",
+    "rowActions": {
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail",
+      "edit": "Edit"
+    },
+    "title": "Pertanyaan Customer",
+    "description": "Pertanyaan calon customer / prospek sebelum penawaran resmi.",
+    "qrButtonTitle": "Buat QR untuk formulir publik",
+    "qrButton": "QR Form",
+    "create": "Catat Pertanyaan",
+    "stats": {
+      "regionLabel": "Ringkasan pertanyaan sesuai filter",
+      "count": "Jumlah Pertanyaan",
+      "inProgress_one": "{{formatted}} sedang diproses",
+      "inProgress_other": "{{formatted}} sedang diproses",
+      "new": "Baru",
+      "newHint": "belum ditindaklanjuti",
+      "converted": "Dikonversi",
+      "convertedHint": "jadi penawaran",
+      "conversionRate": "Tingkat Konversi",
+      "conversionRateHint": "dari semua pertanyaan"
+    },
+    "search": {
+      "label": "Cari pertanyaan",
+      "placeholder": "Cari nomor, prospek, atau customer"
+    },
+    "table": {
+      "label": "Daftar pertanyaan customer",
+      "itemLabel": "pertanyaan"
+    },
+    "empty": {
+      "title": "Belum ada pertanyaan customer",
+      "description": "Catat pertanyaan dari WhatsApp, telepon, atau bagikan QR formulir publik.",
+      "action": "Catat pertanyaan pertama"
+    }
+  },
+  "quotationDetailDrawer": {
+    "toast": {
+      "sent": "Penawaran dikirim.",
+      "accepted": "Penawaran ditandai diterima.",
+      "rejected": "Penawaran ditandai ditolak.",
+      "cancelled": "Penawaran dibatalkan.",
+      "deleted": "Penawaran dihapus.",
+      "invoiceCreated": "Invoice Penjualan {{number}} dibuat."
+    },
+    "errors": {
+      "sendFailed": "Gagal mengirim.",
+      "acceptFailed": "Gagal accept.",
+      "rejectFailed": "Gagal reject.",
+      "cancelFailed": "Gagal cancel.",
+      "deleteFailed": "Gagal hapus.",
+      "convertFailed": "Gagal konversi."
+    },
+    "convertedFromNote": "[Konversi dari {{number}}]",
+    "title": "Detail Penawaran",
+    "loading": "Memuat…",
+    "loadingQuotation": "Memuat penawaran…",
+    "fields": {
+      "status": "Status",
+      "date": "Tanggal",
+      "validUntil": "Berlaku Sampai",
+      "customer": "Customer",
+      "salesInvoice": "Invoice Penjualan",
+      "salesOrder": "Sales Order",
+      "rejectReason": "Alasan ditolak:",
+      "notes": "Catatan",
+      "terms": "Syarat & Ketentuan"
+    },
+    "items": {
+      "title": "Item",
+      "tableLabel": "Item penawaran",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Harga",
+      "total": "Total"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "discount": "Potongan",
+      "otherCosts": "Biaya Lain",
+      "grandTotal": "Grand Total"
+    },
+    "actions": {
+      "delete": "Hapus",
+      "cancel": "Batalkan",
+      "edit": "Edit",
+      "send": "Kirim",
+      "reject": "Tolak",
+      "accept": "Diterima",
+      "createSalesOrder": "Buat Sales Order",
+      "convertToInvoice": "Konversi ke Invoice Penjualan"
+    },
+    "confirm": {
+      "send": {
+        "title": "Kirim Penawaran",
+        "description": "Kirim penawaran {{number}} ke customer? Setelah dikirim, penawaran tidak bisa diedit.",
+        "confirm": "Ya, Kirim"
+      },
+      "accept": {
+        "title": "Tandai Diterima",
+        "description": "Tandai penawaran ini diterima oleh customer?",
+        "confirm": "Ya, Diterima"
+      },
+      "cancel": {
+        "title": "Batalkan Penawaran",
+        "description": "Batalkan penawaran ini? Status akan jadi Cancelled dan tidak bisa di-aktifkan kembali.",
+        "confirm": "Ya, Batalkan"
+      },
+      "delete": {
+        "title": "Hapus Penawaran",
+        "description": "Hapus penawaran Draft ini secara permanen?",
+        "confirm": "Ya, Hapus"
+      },
+      "reject": {
+        "title": "Tolak Penawaran",
+        "description": "Berikan alasan singkat (minimal 5 karakter).",
+        "confirm": "Tolak Penawaran",
+        "reasonLabel": "Alasan penolakan",
+        "reasonPlaceholder": "Mis: Customer minta harga lebih rendah, beralih ke kompetitor..."
+      }
+    }
+  },
+  "quotationModal": {
+    "defaults": {
+      "terms": "Penawaran berlaku 30 hari. Harga sewaktu-waktu dapat berubah setelah masa berlaku.",
+      "discountLabel": "Potongan",
+      "otherCostLabel": "Biaya Lain"
+    },
+    "toast": {
+      "updated": "Penawaran diperbarui.",
+      "created": "Penawaran dibuat."
+    },
+    "errors": {
+      "saveFailed": "Gagal menyimpan penawaran.",
+      "noItems": "Tambahkan minimal satu item.",
+      "noCustomer": "Pilih customer.",
+      "validUntilBeforeDate": "Tanggal berlaku-sampai harus setelah tanggal penawaran.",
+      "missingRevenueAccount": "Item \"{{name}}\" belum punya akun pendapatan."
+    },
+    "titleEdit": "Edit Penawaran {{number}}",
+    "titleCreate": "Buat Penawaran Baru",
+    "description": "Penawaran harga ke customer sebelum menjadi Sales Order.",
+    "fields": {
+      "date": "Tanggal",
+      "validUntil": "Berlaku Sampai",
+      "customer": "Customer",
+      "notes": "Catatan",
+      "terms": "Syarat & Ketentuan"
+    },
+    "placeholders": {
+      "customer": "Pilih customer...",
+      "notes": "Catatan tambahan untuk customer..."
+    },
+    "items": {
+      "title": "Item Penawaran",
+      "addRow": "Tambah baris",
+      "rowLabel": "Item penawaran {{n}}",
+      "typeLabel": "Jenis item {{n}}",
+      "product": "Produk",
+      "service": "Jasa",
+      "removeRow": "Hapus baris {{n}}",
+      "item": "Item",
+      "productItemLabel": "Item produk baris {{n}}",
+      "productPlaceholder": "Pilih item / ketik nama bebas...",
+      "serviceItemLabel": "Item jasa baris {{n}}",
+      "servicePlaceholder": "Pilih jasa / ketik nama bebas...",
+      "freeNameLabel": "Nama item bebas baris {{n}}",
+      "freeNamePlaceholder": "Atau ketik nama item bebas",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitLabel": "Unit baris {{n}}",
+      "rate": "Harga Satuan",
+      "discountPct": "Diskon %",
+      "vatPct": "PPN %",
+      "pphPct": "PPh %"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "vat": "PPN",
+      "pph": "PPh",
+      "discountLabelAria": "Label potongan",
+      "discountValueAria": "Nilai potongan",
+      "otherCostLabelAria": "Label biaya lain",
+      "otherCostValueAria": "Nilai biaya lain",
+      "grandTotal": "Grand Total"
+    },
+    "actions": {
+      "cancel": "Batal",
+      "saving": "Menyimpan…",
+      "saveChanges": "Simpan Perubahan",
+      "saveDraft": "Simpan Draft"
+    },
+    "footer": {
+      "total": "Total: {{amount}}",
+      "incomplete": "Lengkapi customer dan minimal 1 item."
+    }
+  },
+  "quotationsPage": {
+    "export": {
+      "number": "No. Penawaran",
+      "date": "Tanggal",
+      "validUntil": "Berlaku Sampai",
+      "customer": "Customer",
+      "status": "Status",
+      "productName": "Nama Produk",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitPrice": "Harga Satuan",
+      "discountPct": "Diskon (%)",
+      "vatPct": "PPN (%)",
+      "pphPct": "PPh (%)",
+      "itemSubtotal": "Subtotal Item",
+      "grandTotal": "Grand Total Penawaran",
+      "salesInvoice": "Invoice Penjualan",
+      "notes": "Catatan",
+      "fileName": "penawaran",
+      "truncated_one": "Ekspor dibatasi {{formatted}} penawaran pertama. Persempit filter.",
+      "truncated_other": "Ekspor dibatasi {{formatted}} penawaran pertama. Persempit filter.",
+      "failed": "Gagal mengekspor penawaran. Coba lagi."
+    },
+    "fromInquiryNote": "[Dari inquiry {{number}}]",
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "validUntil": "Berlaku Sampai",
+      "total": "Total",
+      "status": "Status",
+      "conversion": "Konversi",
+      "actions": "Aksi"
+    },
+    "expiringSoonTitle_one": "Segera kedaluwarsa (≤ {{count}} hari)",
+    "expiringSoonTitle_other": "Segera kedaluwarsa (≤ {{count}} hari)",
+    "expiringSoonSr": "(segera kedaluwarsa)",
+    "notConverted": "Belum dikonversi",
+    "rowActions": {
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat detail",
+      "edit": "Edit"
+    },
+    "stats": {
+      "expiringSoon_one": "{{formatted}} segera kedaluwarsa",
+      "expiringSoon_other": "{{formatted}} segera kedaluwarsa",
+      "awaitingConfirmation": "menunggu konfirmasi",
+      "regionLabel": "Ringkasan penawaran sesuai filter",
+      "count": "Jumlah Penawaran",
+      "value": "Nilai {{amount}}",
+      "sent": "Terkirim",
+      "accepted": "Diterima",
+      "awaitingConversion_one": "{{formatted}} belum dikonversi",
+      "awaitingConversion_other": "{{formatted}} belum dikonversi",
+      "conversionRate": "Tingkat Konversi",
+      "ofIssued_one": "dari {{formatted}} diterbitkan",
+      "ofIssued_other": "dari {{formatted}} diterbitkan"
+    },
+    "title": "Penawaran",
+    "description": "Kelola dokumen penawaran ke customer dan konversi ke Invoice Penjualan.",
+    "exportExcel": "Ekspor Excel",
+    "create": "Buat Penawaran",
+    "search": {
+      "label": "Cari penawaran",
+      "placeholder": "Cari nomor atau customer"
+    },
+    "table": {
+      "label": "Daftar penawaran",
+      "itemLabel": "penawaran"
+    },
+    "empty": {
+      "title": "Belum ada penawaran",
+      "description": "Penawaran yang Anda buat akan muncul di sini.",
+      "action": "Buat penawaran pertama"
+    }
+  },
+  "inquiryQRModal": {
+    "sources": {
+      "none": "Tanpa tracking",
+      "print": "QR Cetak / Brosur",
+      "store": "QR di Toko / Display",
+      "businessCard": "QR Kartu Nama",
+      "whatsapp": "WhatsApp",
+      "instagram": "Instagram",
+      "referral": "Referral"
+    },
+    "toast": {
+      "copied": "Link disalin ke clipboard."
+    },
+    "errors": {
+      "copyFailed": "Gagal menyalin. Salin manual dari kotak URL.",
+      "qrNotReady": "QR belum siap. Coba lagi."
+    },
+    "share": {
+      "whatsappMessage": "Halo, untuk pertanyaan harga & ketersediaan stok, silakan isi form di:\n{{url}}\n\nKami akan respons dalam 1×24 jam. Terima kasih!",
+      "title": "Tanya Harga / Pemesanan",
+      "text": "Silakan isi form pertanyaan harga di sini."
+    },
+    "title": "QR Form Inquiry",
+    "description": "Bagikan form tanya harga agar calon customer bisa mengirim inquiry sendiri.",
+    "sourceLabel": "Tracking sumber (opsional)",
+    "sourceHint": "Setiap inquiry yang masuk dari QR ini akan otomatis di-tag dengan channel terkait.",
+    "qrAria": "Kode QR menuju {{url}}",
+    "actions": {
+      "copied": "Tersalin",
+      "copyLink": "Salin Link",
+      "downloadPng": "Unduh PNG",
+      "sendWhatsapp": "Kirim via WA",
+      "share": "Bagikan",
+      "close": "Tutup"
+    },
+    "tip": "<strong>Tip:</strong> Cetak QR untuk display di toko, kartu nama, atau brosur. Untuk WA/IG bio, salin link saja. Customer scan/klik → buka form, tim sales langsung dapat notifikasi inquiry baru."
+  },
+  "applyCustomerDepositModal": {
+    "title": "Gunakan Uang Muka Customer",
+    "description": "Aplikasikan deposit ke invoice penjualan",
+    "outstanding": "Sisa tagihan invoice: <amount>{{amount}}</amount>",
+    "loading": "Memuat deposit…",
+    "empty": "Tidak ada deposit aktif untuk customer ini.",
+    "chooseDeposit": "Pilih Deposit",
+    "ofAmount": "dari {{amount}}",
+    "amount": "Jumlah yang diaplikasikan (Rp)",
+    "errors": {
+      "applyFailed": "Gagal mengaplikasikan uang muka."
+    },
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "apply": "Aplikasikan"
+  },
+  "customerDepositModal": {
+    "title": "Uang Muka Customer",
+    "description": "Deposit dari customer sebelum penjualan",
+    "fields": {
+      "date": "Tanggal",
+      "customer": "Customer",
+      "customerPlaceholder": "Pilih Customer",
+      "amount": "Jumlah (Rp)",
+      "amountAria": "Jumlah uang muka",
+      "account": "Akun Kas/Bank",
+      "accountPlaceholder": "Pilih Akun",
+      "reference": "No. Referensi",
+      "referencePlaceholder": "No. cek, transfer, dll.",
+      "notes": "Catatan",
+      "notesPlaceholder": "Keterangan opsional..."
+    },
+    "currentBalance": "Saldo uang muka saat ini: <amount>{{amount}}</amount>",
+    "activeDeposits": "{{total}} deposit aktif",
+    "opening": {
+      "label": "Saldo Awal / Koreksi",
+      "hint": "Catat deposit tanpa mempengaruhi kas (offset ke Ekuitas Saldo Awal)",
+      "journal": "Jurnal: <mono>DR Ekuitas Saldo Awal / CR Uang Muka Customer</mono>",
+      "note": "Kas/Bank tidak terpengaruh. Gunakan untuk deposit yang uangnya sudah masuk sebelum sistem digunakan."
+    },
+    "summary": "Deposit <amount>{{amount}}</amount> dari customer",
+    "saved": "Tersimpan",
+    "attachments": "Lampiran Bukti Transfer",
+    "errors": {
+      "saveFailed": "Gagal menyimpan uang muka."
+    },
+    "done": "Selesai",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "save": "Simpan Deposit"
+  },
+  "customerDepositsPage": {
+    "title": "Uang Muka Customer",
+    "description": "Kelola deposit dan uang muka dari customer.",
+    "create": "Buat Uang Muka",
+    "toast": {
+      "cancelled": "Uang muka customer dibatalkan.",
+      "cancelFailed": "Gagal membatalkan uang muka."
+    },
+    "columns": {
+      "number": "Nomor",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "amount": "Jumlah",
+      "applied": "Digunakan",
+      "remaining": "Sisa",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "refundedTitle": "Dikembalikan (refund kas): {{amount}}",
+    "refundedShort": "refund {{amount}}",
+    "actions": {
+      "menuLabel": "Aksi untuk {{number}}",
+      "refund": "Refund / offset",
+      "cancel": "Batalkan"
+    },
+    "kpi": {
+      "label": "Ringkasan uang muka sesuai filter",
+      "total": "Total Deposit",
+      "totalHint": "{{total}} uang muka",
+      "applied": "Sudah Digunakan",
+      "refundHint": "Refund {{amount}}",
+      "appliedHint": "ke invoice",
+      "remaining": "Sisa Deposit",
+      "active": "Deposit Aktif",
+      "activeHint": "masih punya sisa"
+    },
+    "filters": {
+      "searchLabel": "Cari uang muka",
+      "searchPlaceholder": "Cari nomor deposit atau customer"
+    },
+    "table": {
+      "label": "Daftar uang muka customer",
+      "itemLabel": "uang muka"
+    },
+    "empty": {
+      "title": "Belum ada uang muka customer",
+      "description": "Deposit yang diterima dari customer akan muncul di sini.",
+      "action": "Buat uang muka pertama"
+    },
+    "cancelDialog": {
+      "title": "Batalkan Uang Muka",
+      "message": "Apakah Anda yakin ingin membatalkan uang muka {{number}}? Saldo akun dan deposit customer akan dikembalikan.",
+      "confirm": "Ya, Batalkan"
+    }
+  },
+  "partiesPage": {
+    "title": "Customer & Supplier",
+    "description": "Kelola data mitra bisnis, saldo piutang, dan hutang usaha.",
+    "exportExcel": "Ekspor Excel",
+    "import": "Impor",
+    "addPartner": "Tambah Mitra",
+    "status": {
+      "active": "Aktif",
+      "inactive": "Nonaktif"
+    },
+    "type": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Customer & Supplier"
+    },
+    "outstanding": {
+      "overpaid": "Lebih bayar",
+      "receivable": "Piutang",
+      "payable": "Hutang",
+      "owed": "Terutang"
+    },
+    "toast": {
+      "deactivated": "Mitra dinonaktifkan karena memiliki transaksi terkait.",
+      "deleted": "Mitra dihapus.",
+      "deleteFailed": "Gagal menghapus mitra."
+    },
+    "export": {
+      "fileName": "customer-supplier",
+      "truncated": "Ekspor dibatasi {{total}} mitra pertama. Persempit filter.",
+      "failed": "Gagal mengekspor data mitra. Coba lagi."
+    },
+    "columns": {
+      "name": "Nama",
+      "type": "Jenis",
+      "taxId": "NPWP",
+      "outstanding": "Saldo<wide> Terutang</wide> <unit>(Rp)</unit>",
+      "deposit": "Uang Muka",
+      "actions": "Aksi"
+    },
+    "actions": {
+      "menuLabel": "Aksi untuk {{name}}",
+      "edit": "Edit",
+      "viewSalesInvoices": "Lihat invoice penjualan",
+      "viewPurchaseInvoices": "Lihat invoice pembelian",
+      "delete": "Hapus"
+    },
+    "tabs": {
+      "label": "Jenis mitra",
+      "all": "Semua",
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "analysis": "Analisis"
+    },
+    "kpi": {
+      "label": "Ringkasan mitra sesuai filter",
+      "count": "Jumlah Mitra",
+      "countHint": "{{customers}} customer · {{suppliers}} supplier",
+      "receivable": "Total Piutang",
+      "customerDepositHint": "UM customer {{amount}}",
+      "payable": "Total Hutang",
+      "supplierDepositHint": "UM supplier {{amount}}",
+      "withBalance": "Mitra dengan Saldo",
+      "inactiveHint": "{{total}} nonaktif"
+    },
+    "filters": {
+      "searchLabel": "Cari mitra",
+      "searchPlaceholder": "Cari nama, email, telepon, atau NPWP",
+      "statusLabel": "Status mitra",
+      "allStatus": "Semua status",
+      "outstandingLabel": "Saldo terutang",
+      "allBalances": "Semua saldo",
+      "hasOutstanding": "Ada saldo terutang",
+      "noOutstanding": "Tanpa saldo terutang"
+    },
+    "table": {
+      "label": "Daftar customer dan supplier",
+      "itemLabel": "mitra"
+    },
+    "empty": {
+      "title": "Belum ada mitra",
+      "description": "Customer dan supplier yang Anda tambahkan akan muncul di sini.",
+      "action": "Tambah mitra pertama"
+    },
+    "delete": {
+      "title": "Hapus mitra?",
+      "description": "<name>{{name}}</name> akan dihapus. Jika mitra memiliki transaksi terkait (invoice/pembayaran), data akan dinonaktifkan, bukan dihapus permanen.",
+      "confirm": "Hapus"
+    }
+  },
+  "partyFormModal": {
+    "titleEdit": "Edit Mitra",
+    "titleCreate": "Tambah Mitra Baru",
+    "descriptionEdit": "Mengubah data {{name}}",
+    "descriptionCreate": "Customer, supplier, atau keduanya",
+    "partyType": "Tipe Mitra",
+    "typeOption": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Keduanya"
+    },
+    "typeShort": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Customer & Supplier"
+    },
+    "sections": {
+      "identity": "Identitas",
+      "contact": "Kontak",
+      "address": "Alamat"
+    },
+    "fields": {
+      "name": "Nama / Perusahaan",
+      "namePlaceholder": "Nama perusahaan atau perorangan",
+      "phone": "Telepon / WhatsApp",
+      "email": "Email",
+      "emailPlaceholder": "email@perusahaan.com",
+      "address": "Alamat",
+      "addressPlaceholder": "Jl. Sudirman No. 1, Kelurahan ..., Kota ..., Provinsi ..."
+    },
+    "duplicate": {
+      "title": "Nama mirip sudah ada",
+      "hint": "Periksa apakah salah satu di bawah ini adalah mitra yang Anda maksud:",
+      "inactive": "(Non-aktif)"
+    },
+    "wapu": {
+      "label": "Wajib Pungut (WAPU)",
+      "description": "Customer memungut PPN sendiri ke kas negara (mis. BUMN atau instansi pemerintah). Invoice ke pihak ini akan otomatis di-set tanpa PPN (tax_pct=0)."
+    },
+    "errors": {
+      "saveFailed": "Gagal menyimpan data mitra.",
+      "nameRequired": "Nama mitra wajib diisi."
+    },
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "saveChanges": "Simpan Perubahan",
+    "saveCreate": "Simpan Mitra"
+  },
+  "refundCustomerDepositModal": {
+    "title": "Refund / Offset Uang Muka",
+    "remaining": "Sisa Uang Muka",
+    "receivable": "Piutang Customer",
+    "fields": {
+      "date": "Tanggal",
+      "offset": "Offset ke Piutang (FIFO invoice terlama)",
+      "cash": "Refund Kas ke Bank",
+      "account": "Akun kas/bank",
+      "accountPlaceholder": "Pilih akun kas/bank",
+      "notes": "Catatan (opsional)"
+    },
+    "max": "Maks: {{amount}}",
+    "rest": "Sisa: {{amount}}",
+    "total": "Total penyelesaian:",
+    "after": "Sisa setelah ini:",
+    "toast": {
+      "settled": "Uang muka diselesaikan."
+    },
+    "errors": {
+      "failed": "Gagal memproses refund/offset.",
+      "invalidTotal": "Total offset + kas harus > 0 dan ≤ sisa.",
+      "accountRequired": "Pilih akun kas/bank untuk refund kas.",
+      "offsetExceeds": "Offset ({{offset}}) melebihi total piutang customer ({{outstanding}})."
+    },
+    "cancel": "Batal",
+    "processing": "Memproses…",
+    "submit": "Proses"
+  },
+  "invoiceExtras": {
+    "marginAnalysis": "Analisis margin",
+    "totalQty": "Total Qty",
+    "paidPercent": "Persentase terbayar",
+    "payment": "Pembayaran"
+  }
+}

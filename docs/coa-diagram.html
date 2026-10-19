@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Diagram Korelasi COA — Entaris</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; padding: 32px; }
+  h1 { text-align: center; font-size: 24px; color: #1e40af; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #64748b; font-size: 13px; margin-bottom: 40px; }
+
+  /* ── Flow Section ── */
+  .flow-section {
+    max-width: 1100px; margin: 0 auto 48px; background: white;
+    border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+  }
+  .flow-title {
+    font-size: 17px; font-weight: 700; margin-bottom: 20px; display: flex;
+    align-items: center; gap: 10px;
+  }
+  .flow-title .icon {
+    width: 36px; height: 36px; border-radius: 10px; display: flex;
+    align-items: center; justify-content: center; font-size: 18px; color: white;
+  }
+
+  /* ── Flow Diagram ── */
+  .flow-diagram {
+    display: flex; align-items: flex-start; gap: 0; overflow-x: auto;
+    padding: 16px 0;
+  }
+  .flow-step {
+    display: flex; flex-direction: column; align-items: center; min-width: 160px; position: relative;
+  }
+  .step-box {
+    background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 12px;
+    padding: 12px 16px; text-align: center; font-size: 12px; font-weight: 600;
+    color: #334155; min-width: 140px; position: relative;
+  }
+  .step-box.action { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+  .step-box.result { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+  .step-box.warn { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+
+  .step-accounts {
+    margin-top: 8px; font-size: 11px; color: #64748b; text-align: center; line-height: 1.6;
+  }
+  .step-accounts .dr { color: #2563eb; font-weight: 600; }
+  .step-accounts .cr { color: #dc2626; font-weight: 600; }
+
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 48px; padding-top: 8px; color: #94a3b8; font-size: 24px;
+    font-weight: 300;
+  }
+
+  /* ── Journal Table ── */
+  .journal-table {
+    width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px;
+  }
+  .journal-table th {
+    background: #1e40af; color: white; padding: 8px 12px; text-align: left;
+    font-weight: 600; font-size: 11px;
+  }
+  .journal-table td {
+    padding: 7px 12px; border-bottom: 1px solid #e2e8f0;
+  }
+  .journal-table tr:nth-child(even) td { background: #f8fafc; }
+  .journal-table .dr { color: #2563eb; font-weight: 600; }
+  .journal-table .cr { color: #dc2626; font-weight: 600; }
+  .journal-table .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+  .journal-table .indent { padding-left: 28px; }
+
+  /* ── Relationship Map ── */
+  .rel-map {
+    max-width: 1100px; margin: 0 auto 48px; background: white;
+    border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+  }
+  .rel-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px;
+  }
+  .rel-card {
+    border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px;
+  }
+  .rel-card h4 {
+    font-size: 13px; font-weight: 700; margin-bottom: 10px; display: flex;
+    align-items: center; gap: 8px;
+  }
+  .rel-card .dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+  .rel-card ul { list-style: none; padding: 0; }
+  .rel-card li {
+    font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f1f5f9;
+    display: flex; justify-content: space-between;
+  }
+  .rel-card li:last-child { border: none; }
+  .rel-card .acct { font-family: monospace; font-weight: 600; color: #1e40af; }
+  .rel-card .role { color: #64748b; font-size: 10px; }
+
+  /* ── Master Map (SVG-like) ── */
+  .master-map {
+    max-width: 1100px; margin: 0 auto 48px; background: white;
+    border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+  }
+  .map-row {
+    display: flex; align-items: stretch; gap: 12px; margin-bottom: 12px;
+  }
+  .map-module {
+    flex: 1; border-radius: 10px; padding: 14px; text-align: center;
+    font-weight: 700; font-size: 12px; color: white; position: relative;
+  }
+  .map-accounts-list {
+    margin-top: 6px; font-size: 10px; font-weight: 400; opacity: 0.9;
+    line-height: 1.5;
+  }
+  .map-connector {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: #94a3b8; min-width: 32px;
+  }
+
+  .legend {
+    display: flex; gap: 24px; justify-content: center; margin-top: 24px;
+    font-size: 11px; color: #64748b;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  @media print {
+    body { padding: 16px; }
+    .flow-section, .rel-map, .master-map { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Diagram Korelasi COA & Modul</h1>
+<p class="subtitle">Entaris — Chart of Accounts</p>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- MASTER OVERVIEW MAP -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="master-map">
+  <div class="flow-title">
+    <div class="icon" style="background:#1e40af;">&#9881;</div>
+    Peta Hubungan Modul & Akun COA
+  </div>
+
+  <div class="map-row">
+    <div class="map-module" style="background:#2563eb;">
+      PEMBELIAN
+      <div class="map-accounts-list">DR 1.4.0 Persediaan<br>DR 1.5.3 PPN Masukan<br>CR 2.1.1 Hutang Usaha</div>
+    </div>
+    <div class="map-connector">&#10132;</div>
+    <div class="map-module" style="background:#0d9488;">
+      STOK & GUDANG
+      <div class="map-accounts-list">1.4.x Persediaan<br>(32 sub-akun)</div>
+    </div>
+    <div class="map-connector">&#10132;</div>
+    <div class="map-module" style="background:#16a34a;">
+      PENJUALAN
+      <div class="map-accounts-list">DR 1.2.1 Piutang<br>CR 4.1 Penjualan<br>DR 5 HPP / CR 1.4.0</div>
+    </div>
+  </div>
+
+  <div class="map-row">
+    <div class="map-module" style="background:#d97706;">
+      UANG MUKA VENDOR
+      <div class="map-accounts-list">DR 1.3 Uang Muka<br>CR 1.1.x Kas/Bank</div>
+    </div>
+    <div class="map-connector">&#10132;</div>
+    <div class="map-module" style="background:#dc2626;">
+      BANK & KAS
+      <div class="map-accounts-list">1.1.x Kas & Bank<br>(5 rekening)</div>
+    </div>
+    <div class="map-connector">&#10132;</div>
+    <div class="map-module" style="background:#7c3aed;">
+      LAPORAN
+      <div class="map-accounts-list">Semua akun 1-7<br>Trial Balance, P&L, Neraca</div>
+    </div>
+  </div>
+
+  <div class="map-row">
+    <div class="map-module" style="background:#64748b;">
+      BUKU BESAR (JURNAL)
+      <div class="map-accounts-list">Semua akun detail<br>DR = CR selalu seimbang</div>
+    </div>
+    <div class="map-connector">&#10132;</div>
+    <div class="map-module" style="background:#475569;">
+      BEBAN OPERASIONAL
+      <div class="map-accounts-list">6.x Beban (26 akun)<br>7.x Pendapatan/Beban Luar Usaha</div>
+    </div>
+    <div class="map-connector">&#10132;</div>
+    <div class="map-module" style="background:#1e293b;">
+      TUTUP BUKU
+      <div class="map-accounts-list">Laba → 3.2 Laba Ditahan<br>Reset akun 4-7</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div> Pembelian (Uang Keluar)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16a34a;"></div> Penjualan (Uang Masuk)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0d9488;"></div> Persediaan</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Kas & Bank</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div> Pelaporan</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 1. SIKLUS PEMBELIAN -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="flow-section">
+  <div class="flow-title">
+    <div class="icon" style="background:#2563eb;">&#128230;</div>
+    1. Siklus Pembelian (Purchase Cycle)
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-box">Supplier<br>mengirim barang</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Buat Invoice<br>Pembelian</div>
+      <div class="step-accounts">
+        <span class="dr">DR 1.4.0 Persediaan</span><br>
+        <span class="dr">DR 1.5.3 PPN Masukan</span><br>
+        <span class="cr">CR 2.1.1 Hutang Usaha</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box warn">Stok Bertambah</div>
+      <div class="step-accounts">Item inventory<br>currentStock += qty</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Bayar Hutang<br>(Bank & Kas)</div>
+      <div class="step-accounts">
+        <span class="dr">DR 2.1.1 Hutang Usaha</span><br>
+        <span class="cr">CR 1.1.x Kas/Bank</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box result">Invoice Lunas<br>Hutang = 0</div>
+    </div>
+  </div>
+
+  <table class="journal-table">
+    <tr><th>Langkah</th><th>Akun</th><th>Debit</th><th>Kredit</th><th>Efek</th></tr>
+    <tr>
+      <td rowspan="3">Invoice Pembelian<br><span style="color:#64748b;font-size:10px;">Bahan Baku A 5.000 Kg @ Rp 5.500 + PPN 11%</span></td>
+      <td class="mono">1.4.0 Persediaan (Umum)</td>
+      <td class="dr">Rp 27.500.000</td><td></td>
+      <td class="role">Aset naik (stok bahan baku)</td>
+    </tr>
+    <tr>
+      <td class="mono">1.5.3 PPN Masukan</td>
+      <td class="dr">Rp 3.025.000</td><td></td>
+      <td class="role">Pajak dibayar dimuka</td>
+    </tr>
+    <tr>
+      <td class="mono">2.1.1 Hutang Usaha</td>
+      <td></td><td class="cr">Rp 30.525.000</td>
+      <td class="role">Liabilitas naik</td>
+    </tr>
+    <tr>
+      <td rowspan="2">Bayar Hutang<br><span style="color:#64748b;font-size:10px;">Full payment via Bank BRI</span></td>
+      <td class="mono">2.1.1 Hutang Usaha</td>
+      <td class="dr">Rp 30.525.000</td><td></td>
+      <td class="role">Liabilitas turun</td>
+    </tr>
+    <tr>
+      <td class="mono">1.1.2 Bank BRI</td>
+      <td></td><td class="cr">Rp 30.525.000</td>
+      <td class="role">Kas/Bank turun</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 2. SIKLUS PENJUALAN -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="flow-section">
+  <div class="flow-title">
+    <div class="icon" style="background:#16a34a;">&#128176;</div>
+    2. Siklus Penjualan (Sales Cycle)
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-box">Customer<br>pesan barang</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Buat Invoice<br>Penjualan</div>
+      <div class="step-accounts">
+        <span class="dr">DR 1.2.1 Piutang</span><br>
+        <span class="cr">CR 4.1 Penjualan</span><br>
+        <span class="cr">CR 2.2.1 PPN Keluaran</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box warn">HPP & Stok<br>(otomatis)</div>
+      <div class="step-accounts">
+        <span class="dr">DR 5 HPP</span><br>
+        <span class="cr">CR 1.4.0 Persediaan</span><br>
+        currentStock -= qty
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Terima Bayar<br>(Bank & Kas)</div>
+      <div class="step-accounts">
+        <span class="dr">DR 1.1.x Kas/Bank</span><br>
+        <span class="cr">CR 1.2.1 Piutang</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box result">Invoice Lunas<br>Piutang = 0</div>
+    </div>
+  </div>
+
+  <table class="journal-table">
+    <tr><th>Langkah</th><th>Akun</th><th>Debit</th><th>Kredit</th><th>Efek</th></tr>
+    <tr>
+      <td rowspan="3">Invoice Penjualan<br><span style="color:#64748b;font-size:10px;">Produk A 1.000 Kg @ Rp 14.000 + PPN 11%</span></td>
+      <td class="mono">1.2.1 Piutang Usaha</td>
+      <td class="dr">Rp 15.540.000</td><td></td>
+      <td class="role">Aset naik (tagihan)</td>
+    </tr>
+    <tr>
+      <td class="mono">4.1 Penjualan</td>
+      <td></td><td class="cr">Rp 14.000.000</td>
+      <td class="role">Revenue naik</td>
+    </tr>
+    <tr>
+      <td class="mono">2.2.1 PPN Keluaran</td>
+      <td></td><td class="cr">Rp 1.540.000</td>
+      <td class="role">Hutang pajak naik</td>
+    </tr>
+    <tr>
+      <td rowspan="2">HPP Otomatis<br><span style="color:#64748b;font-size:10px;">Harga perolehan Produk A</span></td>
+      <td class="mono">5 Beban Pokok Penjualan</td>
+      <td class="dr">Rp 8.000.000</td><td></td>
+      <td class="role">Beban HPP naik</td>
+    </tr>
+    <tr>
+      <td class="mono">1.4.0 Persediaan</td>
+      <td></td><td class="cr">Rp 8.000.000</td>
+      <td class="role">Aset persediaan turun</td>
+    </tr>
+    <tr>
+      <td rowspan="2">Terima Pembayaran<br><span style="color:#64748b;font-size:10px;">Full payment ke Bank BCA</span></td>
+      <td class="mono">1.1.5 Bank BCA</td>
+      <td class="dr">Rp 15.540.000</td><td></td>
+      <td class="role">Kas/Bank naik</td>
+    </tr>
+    <tr>
+      <td class="mono">1.2.1 Piutang Usaha</td>
+      <td></td><td class="cr">Rp 15.540.000</td>
+      <td class="role">Aset piutang turun</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 3. STOK & PRODUKSI -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="flow-section">
+  <div class="flow-title">
+    <div class="icon" style="background:#0d9488;">&#127981;</div>
+    3. Siklus Stok & Produksi
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-box" style="border-color:#2563eb;background:#dbeafe;">Beli Bahan Baku<br>(dari Pembelian)</div>
+      <div class="step-accounts">Stok Bahan Baku A<br>+5.000 Kg</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Proses<br>Produksi</div>
+      <div class="step-accounts">
+        Input: Bahan Baku A -5.000 Kg<br>
+        Output: Produk A +3.000 Kg<br>
+        Output: Produk Sampingan +500 Kg
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box warn">Adjustment<br>(jika perlu)</div>
+      <div class="step-accounts">Adj+: stok opname lebih<br>Adj-: barang rusak/hilang</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box" style="border-color:#16a34a;background:#f0fdf4;">Jual Produk A<br>(ke Penjualan)</div>
+      <div class="step-accounts">Stok Produk A<br>-1.000 Kg</div>
+    </div>
+  </div>
+
+  <table class="journal-table">
+    <tr><th>Aksi</th><th>Efek Stok</th><th>Efek Akun COA</th></tr>
+    <tr>
+      <td>Invoice Pembelian (Bahan Baku A 5.000 Kg)</td>
+      <td>Bahan Baku A: 0 → 5.000 Kg</td>
+      <td><span class="dr">DR 1.4.0</span> Persediaan naik Rp 27.5 jt</td>
+    </tr>
+    <tr>
+      <td>Adjustment In (Bahan Baku B 500 Kg @ Rp 6.000)</td>
+      <td>Bahan Baku B: 0 → 500 Kg</td>
+      <td><span class="dr">DR 1.4.0</span> Persediaan naik Rp 3 jt</td>
+    </tr>
+    <tr>
+      <td>Produksi (Bahan Baku A → Produk A + Produk Sampingan)</td>
+      <td>Bahan Baku A: 5.000 → 0<br>Produk A: 0 → 3.000<br>Produk Sampingan: 0 → 500</td>
+      <td>Stok pindah antar item<br>(nilai persediaan total tetap)</td>
+    </tr>
+    <tr>
+      <td>Adjustment Out (Produk Sampingan 50 Kg rusak)</td>
+      <td>Produk Sampingan: 500 → 450 Kg</td>
+      <td><span class="cr">CR 1.4.0</span> Persediaan turun</td>
+    </tr>
+    <tr>
+      <td>Invoice Penjualan (Produk A 1.000 Kg)</td>
+      <td>Produk A: 3.000 → 2.000 Kg</td>
+      <td><span class="dr">DR 5</span> HPP naik / <span class="cr">CR 1.4.0</span> Persediaan turun</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 4. UANG MUKA VENDOR -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="flow-section">
+  <div class="flow-title">
+    <div class="icon" style="background:#d97706;">&#128178;</div>
+    4. Siklus Uang Muka Vendor
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-box action">Buat Deposit<br>Rp 20 jt</div>
+      <div class="step-accounts">
+        <span class="dr">DR 1.3 Uang Muka</span><br>
+        <span class="cr">CR 1.1.2 Bank BRI</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box">Invoice Pembelian<br>Rp 11 jt</div>
+      <div class="step-accounts">
+        <span class="dr">DR 1.4.0 Persediaan</span><br>
+        <span class="cr">CR 2.1.1 Hutang</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Apply Deposit<br>Rp 11 jt</div>
+      <div class="step-accounts">
+        <span class="dr">DR 2.1.1 Hutang</span><br>
+        <span class="cr">CR 1.3 Uang Muka</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box result">Invoice Lunas<br>Sisa deposit Rp 9 jt</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 5. PENGELUARAN OPERASIONAL -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="flow-section">
+  <div class="flow-title">
+    <div class="icon" style="background:#dc2626;">&#128184;</div>
+    5. Pengeluaran Operasional (Catat Pengeluaran)
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-box">Beban terjadi<br>(listrik, gaji, dll.)</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box action">Catat Pengeluaran<br>di Bank & Kas</div>
+      <div class="step-accounts">
+        <span class="dr">DR 6.x Beban (sesuai jenis)</span><br>
+        <span class="cr">CR 1.1.x Kas/Bank</span>
+      </div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-box result">Saldo kas turun<br>Beban tercatat di P&L</div>
+    </div>
+  </div>
+
+  <table class="journal-table">
+    <tr><th>Contoh</th><th>Akun Debit</th><th>Akun Kredit</th><th>Jumlah</th></tr>
+    <tr><td>Bayar listrik</td><td class="mono"><span class="dr">6.11</span> Beban Listrik</td><td class="mono"><span class="cr">1.1.1</span> Petty Cash</td><td>Rp 3.500.000</td></tr>
+    <tr><td>Bayar gaji</td><td class="mono"><span class="dr">6.4</span> Beban Gaji</td><td class="mono"><span class="cr">1.1.2</span> Bank BRI</td><td>Rp 15.000.000</td></tr>
+    <tr><td>Bayar sewa</td><td class="mono"><span class="dr">6.19</span> Beban Sewa Gedung</td><td class="mono"><span class="cr">1.1.2</span> Bank BRI</td><td>Rp 5.000.000</td></tr>
+    <tr><td>Bayar bensin</td><td class="mono"><span class="dr">6.3</span> Beban Bensin, Parkir, Tol</td><td class="mono"><span class="cr">1.1.1</span> Petty Cash</td><td>Rp 500.000</td></tr>
+    <tr><td>Biaya admin bank</td><td class="mono"><span class="dr">7.2.2</span> Beban Adm. Bank</td><td class="mono"><span class="cr">1.1.2</span> Bank BRI</td><td>Rp 25.000</td></tr>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 6. AKUN YANG TERPENGARUH PER MODUL -->
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<div class="rel-map">
+  <div class="flow-title">
+    <div class="icon" style="background:#7c3aed;">&#128209;</div>
+    Ringkasan: Akun COA per Modul
+  </div>
+
+  <div class="rel-grid">
+    <div class="rel-card" style="border-color:#2563eb;">
+      <h4><div class="dot" style="background:#2563eb;"></div> Modul Pembelian</h4>
+      <ul>
+        <li><span class="acct">1.4.0</span> <span>Persediaan (Umum)</span> <span class="role">DR — stok masuk</span></li>
+        <li><span class="acct">1.5.3</span> <span>PPN Masukan</span> <span class="role">DR — pajak</span></li>
+        <li><span class="acct">2.1.1</span> <span>Hutang Usaha</span> <span class="role">CR — hutang naik</span></li>
+      </ul>
+    </div>
+
+    <div class="rel-card" style="border-color:#16a34a;">
+      <h4><div class="dot" style="background:#16a34a;"></div> Modul Penjualan</h4>
+      <ul>
+        <li><span class="acct">1.2.1</span> <span>Piutang Usaha</span> <span class="role">DR — tagihan naik</span></li>
+        <li><span class="acct">4.1</span> <span>Penjualan</span> <span class="role">CR — revenue</span></li>
+        <li><span class="acct">4.2</span> <span>Pendapatan Jasa</span> <span class="role">CR — service</span></li>
+        <li><span class="acct">2.2.1</span> <span>PPN Keluaran</span> <span class="role">CR — pajak</span></li>
+        <li><span class="acct">5</span> <span>HPP</span> <span class="role">DR — biaya barang</span></li>
+        <li><span class="acct">1.4.0</span> <span>Persediaan</span> <span class="role">CR — stok keluar</span></li>
+      </ul>
+    </div>
+
+    <div class="rel-card" style="border-color:#dc2626;">
+      <h4><div class="dot" style="background:#dc2626;"></div> Modul Bank & Kas</h4>
+      <ul>
+        <li><span class="acct">1.1.1</span> <span>Petty Cash</span> <span class="role">DR/CR</span></li>
+        <li><span class="acct">1.1.2</span> <span>Bank BRI</span> <span class="role">DR/CR</span></li>
+        <li><span class="acct">1.1.3</span> <span>Bank Mandiri</span> <span class="role">DR/CR</span></li>
+        <li><span class="acct">1.1.5</span> <span>Bank BCA</span> <span class="role">DR/CR</span></li>
+        <li><span class="acct">1.2.1</span> <span>Piutang Usaha</span> <span class="role">CR — terima bayar</span></li>
+        <li><span class="acct">2.1.1</span> <span>Hutang Usaha</span> <span class="role">DR — bayar hutang</span></li>
+        <li><span class="acct">6.x</span> <span>Beban Operasional</span> <span class="role">DR — pengeluaran</span></li>
+      </ul>
+    </div>
+
+    <div class="rel-card" style="border-color:#0d9488;">
+      <h4><div class="dot" style="background:#0d9488;"></div> Modul Stok & Gudang</h4>
+      <ul>
+        <li><span class="acct">1.4.0</span> <span>Persediaan (Umum)</span> <span class="role">DR/CR</span></li>
+        <li><span class="acct">1.4.1-32</span> <span>Persediaan per item</span> <span class="role">DR/CR</span></li>
+      </ul>
+    </div>
+
+    <div class="rel-card" style="border-color:#d97706;">
+      <h4><div class="dot" style="background:#d97706;"></div> Modul Uang Muka Vendor</h4>
+      <ul>
+        <li><span class="acct">1.3</span> <span>Uang Muka Pembelian</span> <span class="role">DR — deposit</span></li>
+        <li><span class="acct">1.1.x</span> <span>Kas/Bank</span> <span class="role">CR — bayar deposit</span></li>
+        <li><span class="acct">2.1.1</span> <span>Hutang Usaha</span> <span class="role">DR — apply deposit</span></li>
+      </ul>
+    </div>
+
+    <div class="rel-card" style="border-color:#1e293b;">
+      <h4><div class="dot" style="background:#1e293b;"></div> Modul Tutup Buku</h4>
+      <ul>
+        <li><span class="acct">4.x</span> <span>Pendapatan</span> <span class="role">Reset ke 0</span></li>
+        <li><span class="acct">5-7.x</span> <span>Beban</span> <span class="role">Reset ke 0</span></li>
+        <li><span class="acct">3.2</span> <span>Laba Ditahan</span> <span class="role">CR — terima laba</span></li>
+        <li><span class="acct">3.4</span> <span>Laba Tahun Berjalan</span> <span class="role">Computed</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:32px;">
+  Entaris — Chart of Accounts Documentation
+</p>
+
+</body>
+</html>

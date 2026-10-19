@@ -1,0 +1,300 @@
+{
+  "theme": {
+    "groupLabel": "Theme",
+    "light": {
+      "label": "Light",
+      "description": "Light background for bright rooms"
+    },
+    "dark": {
+      "label": "Dark",
+      "description": "Dark background, easier in dim rooms"
+    },
+    "system": {
+      "label": "System",
+      "description": "Follows your device setting"
+    }
+  },
+  "status": {
+    "active": "Active",
+    "stockOk": "Sufficient",
+    "new": "New",
+    "notInvoiced": "Not invoiced",
+    "notAccounted": "Not accounted for",
+    "notBilled": "Not billed",
+    "notReceived": "Not received",
+    "unpaid": "Unpaid",
+    "ended": "Ended",
+    "spare": "Spare",
+    "inRepair": "In repair",
+    "inProcess": "In process",
+    "submitted": "Submitted",
+    "archived": "Archived",
+    "cancelled": "Cancelled",
+    "partiallyPaid": "Partially paid",
+    "paid": "Paid",
+    "discarded": "Discarded",
+    "revoked": "Revoked",
+    "retired": "Retired",
+    "inProgress": "In progress",
+    "confirmed": "Confirmed",
+    "converted": "Converted",
+    "reported": "Reported",
+    "disposed": "Disposed",
+    "requested": "Requested",
+    "ordered": "Ordered",
+    "posted": "Posted",
+    "processing": "Processing",
+    "partiallySettled": "Partially settled",
+    "deposited": "Deposited",
+    "approved": "Approved",
+    "onHold": "On hold",
+    "fullyReceived": "Fully received",
+    "partiallyReceived": "Partially received",
+    "received": "Received",
+    "rejected": "Rejected",
+    "assigned": "Assigned",
+    "closed": "Closed",
+    "draft": "Draft",
+    "draftDoc": "Draft",
+    "failed": "Failed",
+    "outOfStock": "Out of stock",
+    "lost": "Lost",
+    "overdue": "Overdue",
+    "expired": "Expired",
+    "insuranceClaim": "Insurance claim",
+    "paidInFull": "Paid",
+    "lowStock": "Low stock",
+    "pendingManager": "Awaiting manager",
+    "pendingDirector": "Awaiting director",
+    "pendingApprovalDraft": "Pending approval",
+    "pendingApproval": "Pending approval",
+    "pending": "Pending",
+    "inactive": "Inactive",
+    "quoted": "Quoted",
+    "needsRevision": "Needs revision",
+    "partiallyPosted": "Partially posted",
+    "completed": "Completed",
+    "readyToPay": "Ready to pay",
+    "invoiced": "Invoiced",
+    "accounted": "Accounted for",
+    "billed": "Billed",
+    "open": "Open",
+    "fullyDelivered": "Fully delivered",
+    "partiallyDelivered": "Partially delivered",
+    "sent": "Sent",
+    "partiallyUsed": "Partially used",
+    "fullyUsed": "Used",
+    "fulfilled": "Fulfilled",
+    "linked": "Linked",
+    "customerOwned": "Customer-owned",
+    "financeReview": "Finance review",
+    "accepted": "Accepted",
+    "settled": "Settled"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "retry": "Try again",
+    "refresh": "Reload",
+    "reset": "Reset",
+    "apply": "Apply",
+    "clear": "Clear",
+    "select": "Select",
+    "upload": "Upload",
+    "download": "Download",
+    "print": "Print",
+    "export": "Export",
+    "import": "Import",
+    "view": "View",
+    "open": "Open",
+    "copy": "Copy",
+    "submit": "Submit",
+    "continue": "Continue",
+    "done": "Done",
+    "remove": "Remove",
+    "change": "Change",
+    "more": "More",
+    "detail": "Details",
+    "showAll": "See all"
+  },
+  "states": {
+    "loading": "Loading…",
+    "loadingData": "Loading data…",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "processing": "Processing…",
+    "uploading": "Uploading…"
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "network": "Cannot reach the server. Check your connection.",
+    "loadFailed": "Could not load the data.",
+    "saveFailed": "Could not save.",
+    "required": "Required."
+  },
+  "labels": {
+    "all": "All",
+    "none": "None",
+    "optional": "optional",
+    "required": "required",
+    "notes": "Notes",
+    "status": "Status",
+    "date": "Date",
+    "name": "Name",
+    "description": "Description",
+    "actions": "Actions",
+    "total": "Total"
+  },
+  "confirmDialog": {
+    "reason": "Reason",
+    "reasonPlaceholder": "Write a reason…",
+    "reasonRequired": "A reason is required (at least {{min}} characters)."
+  },
+  "emptyState": {
+    "empty": {
+      "title": "No data yet",
+      "description": "Data you create will appear here."
+    },
+    "noResults": {
+      "title": "No results",
+      "description": "Try different keywords or remove some filters."
+    },
+    "error": {
+      "title": "Could not load the data",
+      "description": "Check your connection and try again."
+    }
+  },
+  "emptyRow": "No records yet.",
+  "pagination": {
+    "none": "No data",
+    "noneOf": "No {{item}}",
+    "summary": "Showing {{from}}–{{to}} of {{total}}",
+    "summaryOf": "Showing {{from}}–{{to}} of {{total}} {{item}}",
+    "rowsPerPage": "Rows per page",
+    "label": "Pagination",
+    "previous": "Previous page",
+    "next": "Next page",
+    "page": "Page {{page}}"
+  },
+  "dataTable": {
+    "clearFilters": "Clear filters"
+  },
+  "filters": {
+    "label": "Filter list",
+    "searchPlaceholder": "Search…",
+    "clearSearch": "Clear search",
+    "allStatuses": "All statuses",
+    "dateRange": "Date range",
+    "dateFrom": "From date",
+    "dateTo": "To date",
+    "notFound": "Nothing found.",
+    "clearFilter": "Clear {{label}} filter"
+  },
+  "partyFilter": {
+    "customer": {
+      "label": "Customer",
+      "all": "All customers",
+      "search": "Search customers…"
+    },
+    "supplier": {
+      "label": "Supplier",
+      "all": "All suppliers",
+      "search": "Search suppliers…"
+    }
+  },
+  "dateInput": {
+    "placeholder": "dd/mm/yyyy",
+    "openPicker": "Pick a date"
+  },
+  "relativeTime": {
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
+  },
+  "auditDiff": {
+    "value": "value",
+    "empty": "(empty)",
+    "yes": "Yes",
+    "no": "No",
+    "justNow": "just now",
+    "actions": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "login": "Sign in",
+      "fixAleSync": "ALE sync fix",
+      "fixAccountBalanceDrift": "Account balance fix",
+      "fixOrphanAle": "Orphan ALE fix"
+    }
+  },
+  "attachments": {
+    "tooMany": "Up to {{max}} files per transaction.",
+    "badType": "File type not supported (JPG, PNG, WebP, PDF only).",
+    "tooLarge": "File is larger than {{size}}."
+  },
+  "validation": {
+    "passwordMin": "Password must be at least {{min}} characters.",
+    "passwordUpper": "Password must include an uppercase letter.",
+    "passwordDigit": "Password must include a number.",
+    "passwordSpecial": "Password must include a special character.",
+    "fullNameMin": "Full name must be at least {{min}} characters.",
+    "usernameMin": "Username must be at least {{min}} characters.",
+    "emailInvalid": "Email format is not valid.",
+    "roleRequired": "Choose a role.",
+    "passwordRequired": "A password is required for a new user."
+  },
+  "statCard": {
+    "viewDetail": "View details"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "accountant": "Accountant",
+    "staffProduksi": "Production Staff",
+    "viewer": "Viewer",
+    "user": "User"
+  },
+  "paymentTerm": {
+    "cash": "Cash",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
+  },
+  "density": {
+    "groupLabel": "Table density",
+    "comfortable": "Comfortable view",
+    "compact": "Compact view"
+  },
+  "dueState": {
+    "overdue": "Overdue",
+    "dueSoon": "Due soon",
+    "valid": "Valid",
+    "overdueShort": "Overdue",
+    "dueSoonShort": "Soon",
+    "validShort": "Valid",
+    "nearShort": "Due soon"
+  },
+  "pdfButton": {
+    "download": "Download PDF",
+    "generating": "Generating PDF…"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Reload the page or try again.",
+    "retry": "Try again"
+  }
+}

@@ -1,0 +1,678 @@
+{
+  "reportsHub": {
+    "title": "Semua Laporan",
+    "description": "Pilih laporan yang ingin Anda lihat atau cetak.",
+    "searchLabel": "Pencarian laporan",
+    "searchInput": "Cari laporan",
+    "searchPlaceholder": "Cari laporan, mis. pajak, piutang, OEE",
+    "clearSearch": "Hapus pencarian",
+    "found_one": "{{count}} laporan ditemukan",
+    "found_other": "{{count}} laporan ditemukan",
+    "notFoundTitle": "Laporan tidak ditemukan",
+    "noAccessTitle": "Belum ada laporan yang dapat diakses",
+    "notFoundDescription": "Coba kata kunci lain.",
+    "noAccessDescription": "Hubungi administrator untuk meminta akses.",
+    "groups": {
+      "finance": "Keuangan",
+      "sales": "Penjualan & Piutang",
+      "purchasing": "Pembelian & Hutang",
+      "production": "Produksi & Persediaan"
+    },
+    "descriptions": {
+      "daily": "Ringkasan lengkap aktivitas penjualan, pembelian, produksi, keuangan, piutang, hutang, dan deposit.",
+      "trialBalance": "Verifikasi keseimbangan saldo debit dan kredit per akun.",
+      "profitLoss": "Ringkasan pendapatan dan beban untuk menghitung laba bersih.",
+      "balanceSheet": "Posisi keuangan aset, liabilitas, dan ekuitas perusahaan.",
+      "cashFlow": "Pergerakan kas dari aktivitas operasi, investasi, dan pendanaan.",
+      "ledgerBook": "Detail mutasi per akun dengan saldo berjalan (debit, kredit, saldo).",
+      "tax": "Ringkasan PPN Keluaran, PPN Masukan, dan PPh berdasarkan periode.",
+      "agingAr": "Analisis umur piutang customer berdasarkan tanggal jatuh tempo.",
+      "receivableSchedule": "Daftar piutang berdasarkan jatuh tempo dan status penagihan.",
+      "profitabilityPerSku": "Margin side-by-side: Material WAC vs Loaded HPP (sudah include biaya produksi & NRV produk samping).",
+      "agingAp": "Analisis umur hutang ke supplier berdasarkan tanggal jatuh tempo.",
+      "payableSchedule": "Daftar hutang berdasarkan jatuh tempo, status, dan prioritas pembayaran.",
+      "poOutstanding": "Sisa Purchase Order yang belum diterima per item, nilai sisa, dan PO terlambat.",
+      "supplierPerformance": "Ketepatan kirim, lead time, fill rate, dan selisih harga invoice vs PO per supplier.",
+      "hpp": "Analisis Harga Pokok Penjualan per produk, margin, dan profitabilitas.",
+      "productionCostSummary": "Modal bahan baku murni/kg (angka real pembelian) vs HPP GL/kg per jenis output & gudang, lengkap yield dan produk samping.",
+      "oee": "Overall Equipment Effectiveness: Availability, Performance, Quality per mesin & shift, tren harian, dan Pareto downtime."
+    }
+  },
+  "reportsShared": {
+    "date": "Tanggal",
+    "description": "Keterangan",
+    "debit": "Debit",
+    "credit": "Kredit",
+    "balance": "Saldo",
+    "reference": "Referensi",
+    "status": "Status",
+    "openingBalance": "Saldo Awal",
+    "closingBalance": "Saldo Akhir",
+    "totalUpper": "TOTAL",
+    "invoiceCount_one": "{{count}} invoice",
+    "invoiceCount_other": "{{count}} invoice",
+    "balanceRp": "Saldo (Rp)",
+    "amountRp": "Jumlah (Rp)",
+    "debitRp": "Debit (Rp)",
+    "creditRp": "Kredit (Rp)",
+    "accountName": "Nama Akun",
+    "accountNumber": "No. Akun",
+    "noData": "Tidak ada data",
+    "total": "Total",
+    "dateRange": "{{start}} s/d {{end}}"
+  },
+  "ledgerAccountCard": {
+    "entryCount_one": "{{count}} mutasi",
+    "entryCount_other": "{{count}} mutasi",
+    "regionLabel": "Mutasi {{name}}",
+    "caption": "Mutasi akun {{number}} {{name}} dengan saldo berjalan",
+    "noEntries": "Tidak ada mutasi pada periode ini",
+    "totalEntries": "Total Mutasi"
+  },
+  "ledgerDetailDrawer": {
+    "subtitle": "Detail Buku Besar",
+    "bodyLabel": "Isi detail buku besar",
+    "loading": "Memuat buku besar…",
+    "errorTitle": "Buku besar gagal dimuat",
+    "errorDescription": "Permintaan ke server gagal, jadi transaksi akun ini belum bisa ditampilkan.",
+    "emptyTitle": "Tidak ada transaksi pada periode ini",
+    "emptyDescription": "Akun ini tidak bergerak di rentang tanggal laporan. Ubah periode di halaman laporan untuk melihat transaksi lain.",
+    "tableLabel": "Transaksi buku besar"
+  },
+  "reportLayout": {
+    "periodRange": "Periode: {{start}} s/d {{end}}",
+    "asOf": "Per tanggal: {{date}}",
+    "printed": "Dicetak: {{date}}",
+    "back": "Kembali ke Laporan",
+    "exportPdf": "Export PDF",
+    "exportExcel": "Export Excel",
+    "periodLabel": "Periode:",
+    "startDate": "Tanggal mulai",
+    "endDate": "Tanggal akhir",
+    "asOfLabel": "Per tanggal:",
+    "error": "Gagal memuat laporan."
+  },
+  "scheduleReport": {
+    "status": {
+      "overdue": "Jatuh Tempo",
+      "due_soon": "Segera",
+      "on_track": "On Track",
+      "no_due_date": "Tanpa Jatuh Tempo"
+    },
+    "daysOverdue_one": "{{count}} hari lewat",
+    "daysOverdue_other": "{{count}} hari lewat",
+    "daysLeft_one": "{{count}} hari",
+    "daysLeft_other": "{{count}} hari",
+    "currentPosition": "Posisi saat ini",
+    "columns": {
+      "invoiceNumber": "No. Invoice",
+      "dueDate": "Jatuh Tempo",
+      "outstanding": "Outstanding (Rp)",
+      "timeLeft": "Sisa Waktu"
+    }
+  },
+  "payableSchedule": {
+    "title": "Jadwal Utang",
+    "description": "Daftar utang berdasarkan jatuh tempo, status, dan prioritas pembayaran.",
+    "partyHeader": "Supplier",
+    "caption": "Jadwal utang per invoice pembelian",
+    "empty": "Tidak ada utang outstanding.",
+    "summary": {
+      "total": "Total Utang",
+      "dueSoon": "Segera (7 hari)"
+    }
+  },
+  "receivableSchedule": {
+    "title": "Jadwal Piutang",
+    "description": "Daftar piutang berdasarkan jatuh tempo dan status penagihan.",
+    "partyHeader": "Customer",
+    "caption": "Jadwal piutang per invoice penjualan",
+    "empty": "Tidak ada piutang outstanding.",
+    "summary": {
+      "total": "Total Piutang"
+    }
+  },
+  "agingAnalysis": {
+    "columns": {
+      "current": "Belum JT",
+      "d1": "1-30 Hari",
+      "d31": "31-60 Hari",
+      "d61": "61-90 Hari",
+      "d91": ">90 Hari",
+      "total": "Total"
+    },
+    "titleAr": "Umur Piutang",
+    "titleAp": "Umur Utang",
+    "descriptionAr": "Analisis saldo tak tertagih per customer",
+    "descriptionAp": "Analisis kewajiban pembayaran per supplier",
+    "excel": {
+      "name": "Nama Mitra",
+      "current": "Belum Jatuh Tempo (Rp)",
+      "d1": "1-30 Hari (Rp)",
+      "d31": "31-60 Hari (Rp)",
+      "d61": "61-90 Hari (Rp)",
+      "d91": ">90 Hari (Rp)",
+      "total": "Total (Rp)"
+    },
+    "empty": "Tidak ada saldo outstanding saat ini.",
+    "criticalNotice": "Terdapat tagihan kritis yang menunggak lebih dari 90 hari. Mohon lakukan tindakan penagihan intensif.",
+    "summary": {
+      "total": "Total Outstanding",
+      "current": "Belum Jatuh Tempo",
+      "overdue": "Menunggak 31-90 Hari",
+      "critical": "Kritis (>90 Hari)"
+    },
+    "captionAr": "{{title}} per customer",
+    "captionAp": "{{title}} per supplier",
+    "totalRow": "Total Kolektibilitas"
+  },
+  "balanceSheet": {
+    "title": "Neraca (Balance Sheet)",
+    "description": "Posisi keuangan aset, liabilitas, dan ekuitas",
+    "excel": {
+      "section": "Seksi"
+    },
+    "assets": "Aset",
+    "liabilities": "Kewajiban",
+    "equity": "Ekuitas",
+    "totalAssets": "Total Aset",
+    "totalLiabilities": "Total Kewajiban",
+    "totalEquity": "Total Ekuitas",
+    "totalPassiva": "Total Pasiva (L + E)",
+    "unbalanced": "Terdapat selisih antara total Aktiva dan Pasiva. Periksa jurnal yang tidak seimbang.",
+    "assetsCaption": "Aset per {{date}}",
+    "passivaCaption": "Kewajiban dan ekuitas per {{date}}",
+    "passivaHeader": "Kewajiban dan Ekuitas"
+  },
+  "cashFlow": {
+    "title": "Arus Kas",
+    "description": "Pergerakan kas masuk dan keluar perusahaan",
+    "operating": "Aktivitas Operasi",
+    "investing": "Aktivitas Investasi",
+    "financing": "Aktivitas Pendanaan",
+    "subtotal": "Subtotal {{label}}",
+    "noMovement": "Tidak ada pergerakan kas",
+    "netChange": "Net Change",
+    "netChangeRow": "Net Change (Kenaikan/Penurunan Kas)",
+    "caption": "Laporan arus kas, {{period}}",
+    "excel": {
+      "category": "Kategori",
+      "netChange": "NET CHANGE"
+    }
+  },
+  "ledgerBook": {
+    "title": "Buku Besar",
+    "description": "Mutasi per akun dengan saldo berjalan.",
+    "search": "Cari akun",
+    "searchPlaceholder": "Nama atau nomor akun",
+    "expandAll": "Buka Semua",
+    "collapseAll": "Tutup Semua",
+    "accountCount_one": "{{count}} akun",
+    "accountCount_other": "{{count}} akun",
+    "entryCount_one": "{{formatted}} mutasi",
+    "entryCount_other": "{{formatted}} mutasi",
+    "empty": "Tidak ada data buku besar untuk periode ini.",
+    "pagination": "Halaman buku besar",
+    "pageInfo": "Halaman {{page}} dari {{total}} · ~{{size}} mutasi/halaman",
+    "firstPage": "Halaman pertama",
+    "prevPage": "Halaman sebelumnya",
+    "nextPage": "Halaman berikutnya",
+    "lastPage": "Halaman terakhir",
+    "excel": {
+      "openingMarker": "── SALDO AWAL ──",
+      "totalMarker": "── TOTAL ──"
+    }
+  },
+  "profitLoss": {
+    "title": "Laporan Laba Rugi",
+    "description": "Performa finansial {{company}}",
+    "companyFallback": "perusahaan",
+    "revenueSection": "I. Pendapatan",
+    "expenseSection": "II. Beban-Beban",
+    "noRevenue": "Tidak ada data pendapatan",
+    "noExpense": "Tidak ada data beban",
+    "totalRevenue": "Total Pendapatan",
+    "totalExpense": "Total Beban",
+    "netRow": "Laba (Rugi) Bersih",
+    "netProfit": "Laba Bersih",
+    "caption": "Laporan laba rugi, {{period}}",
+    "excel": {
+      "revenue": "Pendapatan",
+      "expense": "Beban",
+      "netProfit": "LABA BERSIH"
+    }
+  },
+  "taxReport": {
+    "title": "Laporan Pajak",
+    "description": "Ringkasan PPN dan PPh berdasarkan transaksi invoice",
+    "outputVat": "PPN Keluaran",
+    "inputVat": "PPN Masukan",
+    "vatDiff": "Selisih PPN",
+    "pph": "PPh",
+    "totalPph": "Total PPh",
+    "vatPayable": "PPN Kurang/Lebih Bayar",
+    "month": "Bulan",
+    "caption": "Laporan pajak per bulan, {{period}}",
+    "excel": {
+      "outputVat": "PPN Keluaran (Rp)",
+      "inputVat": "PPN Masukan (Rp)",
+      "vatDiff": "Selisih PPN (Rp)",
+      "pph": "PPh (Rp)"
+    }
+  },
+  "trialBalance": {
+    "title": "Neraca Saldo",
+    "description": "Verifikasi keseimbangan debit-kredit per akun",
+    "viewLedger": "Lihat buku besar {{name}}",
+    "excel": {
+      "type": "Tipe"
+    },
+    "search": "Cari akun atau nomor",
+    "searchPlaceholder": "Cari akun atau nomor...",
+    "unbalanced": "Neraca tidak seimbang. Selisih:",
+    "caption": "Neraca saldo per akun, {{period}}",
+    "totalRow": "Total Saldo"
+  },
+  "dailyReport": {
+    "title": "Laporan Harian",
+    "description": "Ringkasan aktivitas bisnis pada {{date}}",
+    "invoiceCount": "Jumlah Invoice",
+    "totalQty": "Total Qty",
+    "cols": {
+      "no": "No.",
+      "party": "Pihak",
+      "amount": "Jumlah",
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "d1": "1-30 hari",
+      "d31": "31-60 hari",
+      "d61": "61-90 hari",
+      "d91": ">90 hari",
+      "invoiceNo": "No. Invoice",
+      "item": "Item",
+      "qty": "Qty",
+      "remainingAr": "Sisa Piutang",
+      "remainingAp": "Sisa Hutang"
+    },
+    "finance": {
+      "title": "Keuangan",
+      "summary": "Ringkasan keuangan",
+      "in": "Penerimaan",
+      "out": "Pengeluaran",
+      "net": "Arus Kas Bersih",
+      "manualJournals": "Jurnal Manual",
+      "cashBank": "Saldo Kas & Bank",
+      "inCount": "Penerimaan ({{count}})",
+      "outCount": "Pengeluaran ({{count}})",
+      "inCaption": "Penerimaan kas hari ini",
+      "outCaption": "Pengeluaran kas hari ini"
+    },
+    "receivables": {
+      "title": "Piutang Usaha",
+      "summary": "Ringkasan piutang",
+      "count": "Jumlah Customer",
+      "caption": "Umur piutang per customer",
+      "empty": "Tidak ada piutang"
+    },
+    "payables": {
+      "title": "Hutang Usaha",
+      "summary": "Ringkasan hutang",
+      "total": "Total Hutang",
+      "count": "Jumlah Supplier",
+      "caption": "Umur hutang per supplier",
+      "empty": "Tidak ada hutang"
+    },
+    "deposits": {
+      "title": "Deposit Supplier",
+      "summary": "Ringkasan deposit supplier",
+      "total": "Total Deposit",
+      "applied": "Sudah Dialokasi",
+      "remaining": "Sisa Belum Dialokasi",
+      "caption": "Deposit supplier",
+      "empty": "Tidak ada deposit supplier",
+      "cols": {
+        "paymentNo": "No. Pembayaran",
+        "amount": "Jumlah Deposit",
+        "applied": "Dialokasi",
+        "remaining": "Sisa"
+      }
+    },
+    "sales": {
+      "title": "Penjualan",
+      "summary": "Ringkasan penjualan",
+      "revenue": "Total Omzet",
+      "newAr": "Piutang Baru",
+      "caption": "Invoice penjualan hari ini",
+      "empty": "Tidak ada penjualan hari ini"
+    },
+    "purchases": {
+      "title": "Pembelian",
+      "summary": "Ringkasan pembelian",
+      "spend": "Total Belanja",
+      "newAp": "Hutang Baru",
+      "caption": "Invoice pembelian hari ini",
+      "empty": "Tidak ada pembelian hari ini"
+    },
+    "production": {
+      "title": "Produksi",
+      "summary": "Ringkasan produksi",
+      "runCount": "Jumlah Run",
+      "totalInput": "Total Input",
+      "totalOutput": "Total Output",
+      "avgYield": "Yield Rata-rata",
+      "caption": "Produksi hari ini",
+      "empty": "Tidak ada produksi hari ini",
+      "byProductNote": "* = produk samping",
+      "cols": {
+        "runNo": "No. Run",
+        "input": "Input",
+        "output": "Output",
+        "yield": "Yield"
+      }
+    },
+    "stock": {
+      "title": "Kondisi Stok",
+      "summary": "Ringkasan stok",
+      "warehouseCount": "Jumlah Gudang",
+      "itemLines": "Total Baris Item",
+      "negative": "Item Stok Negatif",
+      "totalValue": "Total Nilai Stok",
+      "empty": "Tidak ada stok pada tanggal ini.",
+      "default": "(default)",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} item",
+      "caption": "Stok gudang {{code}} {{name}}",
+      "cols": {
+        "code": "Kode",
+        "name": "Nama Item",
+        "unit": "Sat.",
+        "stock": "Stok",
+        "avgCost": "Avg Cost",
+        "value": "Nilai"
+      }
+    }
+  },
+  "hppReport": {
+    "title": "HPP per Produk",
+    "description": "Pendapatan, harga pokok penjualan, dan margin kotor per produk",
+    "cols": {
+      "code": "Kode",
+      "product": "Produk",
+      "category": "Kategori",
+      "revenue": "Pendapatan",
+      "cogs": "HPP",
+      "margin": "Margin"
+    },
+    "grossProfit": "Laba Kotor",
+    "totalCogs": "Total HPP",
+    "grossMargin": "Margin Kotor",
+    "caption": "HPP per produk, {{period}}"
+  },
+  "oeeReport": {
+    "title": "Laporan OEE",
+    "description": "Efektivitas mesin: availability, performance, quality, dan downtime",
+    "minutes": "{{value}} menit",
+    "minutesHours": "{{minutes}} menit ({{hours}} jam)",
+    "hoursShort": "{{value}} jam",
+    "minutesShort": "{{value}} mnt",
+    "band": {
+      "worldClass": "Kelas dunia",
+      "medium": "Sedang",
+      "low": "Rendah"
+    },
+    "cols": {
+      "name": "Nama",
+      "runs": "Run",
+      "availShort": "Avail.",
+      "perfShort": "Perf.",
+      "qualShort": "Qual.",
+      "runHours": "Jam Jalan",
+      "downtime": "Downtime",
+      "allocatedOutput": "Output Alokasi",
+      "shift": "Shift"
+    },
+    "availability": "Availability",
+    "performance": "Performance",
+    "quality": "Quality",
+    "trendEmpty": "Tidak ada data OEE pada periode ini.",
+    "trendSummary_one": "Tren OEE harian selama {{count}} hari. Tertinggi {{best}} pada {{bestDate}}, terendah {{worst}} pada {{worstDate}}. Garis putus-putus di 85% menandai patokan kelas dunia (Nakajima, JIPM).",
+    "trendSummary_other": "Tren OEE harian selama {{count}} hari. Tertinggi {{best}} pada {{bestDate}}, terendah {{worst}} pada {{worstDate}}. Garis putus-putus di 85% menandai patokan kelas dunia (Nakajima, JIPM).",
+    "average": "rata-rata {{value}}",
+    "trendTitle": "Tren OEE harian",
+    "trendCaption": "Data tren OEE harian",
+    "worldClassLine": "Kelas dunia 85%",
+    "tooltipLabel_one": "{{label}} · {{count}} run",
+    "tooltipLabel_other": "{{label}} · {{count}} run",
+    "paretoLabel": "Downtime per kategori, urut dari terbesar",
+    "paretoRow": "{{minutes}} mnt · {{count}}x · kum {{cumulative}}%",
+    "totalRuns": "Total Run",
+    "runsWithOee_one": "{{count}} run dengan OEE",
+    "runsWithOee_other": "{{count}} run dengan OEE",
+    "totalDowntime": "Total Downtime",
+    "machinesUsed": "Mesin Dipakai",
+    "notice": "<b>OEE (Overall Equipment Effectiveness)</b> = Availability × Performance × Quality. Semua angka adalah <b>rata-rata</b> dari nilai per run yang tercatat dalam periode. Patokan kelas dunia 85% mengikuti Nakajima (JIPM).",
+    "summaryOee": "Ringkasan OEE",
+    "trendSection": "Tren OEE Harian",
+    "trendSectionEmpty": "Tidak ada run produksi dengan data OEE pada periode ini. Ubah periode di atas.",
+    "perMachine": "Per Mesin",
+    "perMachineCaption": "OEE per mesin",
+    "perMachineEmpty": "Tidak ada run yang tercatat per mesin pada periode ini.",
+    "perShift": "Per Shift",
+    "perShiftCaption": "OEE per shift",
+    "perShiftEmpty": "Tidak ada run yang tercatat per shift pada periode ini.",
+    "downtimeSection": "Downtime per Kategori (Pareto)",
+    "downtimeEmpty": "Tidak ada downtime yang dicatat pada periode ini."
+  },
+  "poOutstanding": {
+    "title": "PO Outstanding",
+    "description": "Sisa Purchase Order yang belum diterima per item",
+    "cols": {
+      "poNo": "No. PO",
+      "eta": "Target Terima",
+      "ordered": "Dipesan",
+      "received": "Diterima",
+      "remaining": "Sisa",
+      "remainingValueRp": "Nilai Sisa (Rp)"
+    },
+    "lateDays_one": "Terlambat {{count}} hari",
+    "lateDays_other": "Terlambat {{count}} hari",
+    "excel": {
+      "poDate": "Tanggal PO",
+      "warehouse": "Gudang",
+      "unit": "Satuan",
+      "qtyOrdered": "Qty Dipesan",
+      "qtyReceived": "Qty Diterima",
+      "qtyRemaining": "Qty Sisa",
+      "unitNet": "Harga Satuan Neto (Rp)",
+      "late": "Terlambat",
+      "lateYes_one": "Ya ({{count}} hari)",
+      "lateYes_other": "Ya ({{count}} hari)",
+      "lateNo": "Tidak"
+    },
+    "periodRange": "Tanggal PO {{start}} s/d {{end}}",
+    "periodStart": "awal",
+    "periodEnd": "akhir",
+    "periodAll": "Semua tanggal PO",
+    "fromDate": "Tanggal PO dari",
+    "clearDates": "Hapus tanggal",
+    "overdueOnly": "Hanya yang terlambat",
+    "invalidRange": "Tanggal akhir sebelum tanggal mulai: hasil bisa kosong.",
+    "summary": {
+      "remainingValue": "Nilai Sisa",
+      "openPo": "PO Terbuka",
+      "lines": "Baris Item",
+      "latePo": "PO Terlambat"
+    },
+    "caption": "PO outstanding per item",
+    "empty": "Tidak ada PO outstanding untuk filter ini."
+  },
+  "productionCostSummary": {
+    "title": "Modal Produksi per Periode",
+    "description": "Modal bahan baku murni dan HPP GL per kg output, per jenis dan gudang",
+    "noByproductSr": "(tanpa produk samping tercatat)",
+    "cols": {
+      "inputKg": "Bahan (kg)",
+      "inputRp": "Nilai Bahan Real",
+      "inputPerKg": "Modal Bahan/kg",
+      "outputKg": "Output (kg)",
+      "yield": "Yield",
+      "rawPerKg": "Modal Murni/kg",
+      "glPerKg": "HPP GL/kg",
+      "diffPerKg": "Selisih/kg",
+      "byproductKg": "Produk Samping (kg)",
+      "output": "Jenis Output"
+    },
+    "excel": {
+      "type": "Jenis",
+      "warehouse": "Gudang",
+      "runs": "Jml Produksi",
+      "inputKg": "Bahan (kg)",
+      "inputRp": "Nilai Bahan Real (Rp)",
+      "inputPerKg": "Modal Bahan/kg",
+      "outputKg": "Output (kg)",
+      "yield": "Yield (%)",
+      "rawPerKg": "Modal Bahan Baku Murni/kg",
+      "glPerKg": "HPP GL/kg",
+      "diffPerKg": "Selisih GL − Murni/kg",
+      "byproductKg": "Produk Samping (kg)",
+      "byproductRp": "Nilai Produk Samping (Rp)",
+      "conversionRp": "Biaya Konversi Estimasi (Rp)"
+    },
+    "runDetailLabel": "Rincian per nomor produksi, {{output}}, {{warehouse}}",
+    "notice": {
+      "title": "Dua cara baca modal",
+      "raw": "<b>Modal Bahan Baku Murni/kg</b> = nilai bahan baku real (pembelian) dibagi kg output utama. Tanpa biaya estimasi dan produk samping. Laporan manajemen, tidak diposting ke GL.",
+      "gl": "<b>HPP GL/kg</b> = nilai yang diposting ke persediaan = bahan − NRV produk samping + biaya konversi estimasi (sesuai PSAK 14).",
+      "diff": "Selisih bertanda <b>+</b> = HPP GL lebih tinggi (biaya estimasi lebih besar dari nilai produk samping); <b>−</b> = sebaliknya."
+    },
+    "warehouseFilter": "Gudang output",
+    "allWarehouses": "Semua gudang",
+    "searchWarehouse": "Cari gudang…",
+    "summary": {
+      "production": "Produksi",
+      "runs_one": "{{count}} run",
+      "runs_other": "{{count}} run",
+      "productionHint": "{{input}} kg bahan → {{output}} kg",
+      "perKgInput": "{{value}}/kg bahan",
+      "raw": "Modal Bahan Baku Murni",
+      "perKg": "{{value}}/kg",
+      "yieldHint": "yield {{value}}% (campuran)",
+      "gl": "HPP GL",
+      "glHint": "selisih <diff/>/kg dari modal murni"
+    },
+    "caption": "Modal produksi per jenis output dan gudang, {{period}}",
+    "footnote": "Pilih jenis output untuk melihat rincian per nomor produksi. Ikon peringatan = produksi tanpa produk samping tercatat (periksa input). Total adalah campuran semua jenis/gudang; bandingkan per baris untuk keputusan."
+  },
+  "profitabilityPerSku": {
+    "title": "Profitabilitas per SKU",
+    "description": "Margin per produk dengan basis HPP Material (WAC) dan HPP Loaded per batch",
+    "materialCogs": "HPP Material",
+    "materialMargin": "Margin Material",
+    "loadedCogs": "HPP Loaded",
+    "loadedMargin": "Margin Loaded",
+    "coverage": "Cakupan",
+    "materialCogsWac": "HPP Material (WAC)",
+    "ofRevenue": "{{pct}}% dari pendapatan",
+    "notice": {
+      "title": "Material vs Loaded HPP",
+      "material": "<b>Material</b> = COGS pakai WAC saat ini (gambaran biaya material saja).",
+      "loaded": "<b>Loaded</b> = COGS pakai loaded HPP per batch, mencakup material + biaya produksi (listrik, buruh, dll) dikurangi produk samping NRV. Hanya tersedia untuk baris penjualan yang terhubung ke batch.",
+      "coverage": "<b>Cakupan</b> = persentase baris yang sudah terhubung ke batch. 100% = semua baris spesifik; 0% = belum ada batch dipilih."
+    },
+    "basis": "Basis margin",
+    "basisOptions": {
+      "both": "Material + Loaded (berdampingan)",
+      "material": "Material saja",
+      "loaded": "Loaded saja"
+    },
+    "caption": "Profitabilitas per SKU, {{period}}"
+  },
+  "supplierPerformance": {
+    "title": "Kinerja Supplier",
+    "description": "Ketepatan kirim, lead time, fill rate, dan selisih harga per supplier (berdasarkan tanggal PO)",
+    "cols": {
+      "poCount": "Jumlah PO",
+      "onTime": "Tepat Waktu",
+      "leadTime": "Lead Time",
+      "fillRate": "Fill Rate",
+      "priceVariance": "Selisih Harga"
+    },
+    "ofPo_one": "dari {{formatted}} PO",
+    "ofPo_other": "dari {{formatted}} PO",
+    "days": "{{value}} hari",
+    "excel": {
+      "evaluated": "PO Dinilai",
+      "onTime": "Tepat Waktu (%)",
+      "firstOnTime": "Kiriman Pertama Tepat Waktu (%)",
+      "leadTime": "Rata-rata Lead Time (hari)",
+      "fillRate": "Fill Rate (%)",
+      "variancePct": "Selisih Harga Invoice vs PO (%)",
+      "varianceRp": "Selisih Harga (Rp)"
+    },
+    "notice": "Tepat waktu = STT terakhir pada/sebelum target terima (PO bertarget yang sudah ada STT). Lead time = tanggal PO sampai STT pertama. Fill rate = qty diterima dibagi qty dipesan. Selisih harga = harga invoice vs harga PO setelah diskon.",
+    "caption": "Kinerja supplier, {{period}}"
+  },
+  "kit": {
+    "state": {
+      "errorTitle": "Laporan gagal dimuat",
+      "errorDescription": "Periksa koneksi Anda lalu coba lagi.",
+      "retry": "Coba lagi",
+      "loading": "Memuat laporan...",
+      "noResultsTitle": "Tidak ada hasil",
+      "noResultsDescription": "Coba ubah kata kunci pencarian.",
+      "emptyTitle": "Tidak ada data pada periode ini",
+      "emptyDescription": "Ubah periode untuk melihat data lain."
+    },
+    "filters": {
+      "label": "Filter laporan",
+      "choosePeriod": "Pilih periode",
+      "chooseAsOf": "Pilih tanggal posisi",
+      "allHistory": "Semua histori",
+      "custom": "Kustom",
+      "startDate": "Dari tanggal",
+      "endDate": "Sampai tanggal",
+      "asOfDate": "Per tanggal",
+      "apply": "Terapkan",
+      "invalidRange": "Tanggal akhir tidak boleh sebelum tanggal mulai."
+    },
+    "presets": {
+      "month": "Bulan ini",
+      "lastMonth": "Bulan lalu",
+      "quarter": "Kuartal ini",
+      "year": "Tahun ini",
+      "today": "Hari ini",
+      "lastMonthEnd": "Akhir bulan lalu",
+      "lastQuarterEnd": "Akhir kuartal lalu",
+      "lastYearEnd": "Akhir tahun lalu"
+    },
+    "period": {
+      "range": "Periode {{range}}",
+      "asOf": "Per {{date}}"
+    },
+    "summary": "Ringkasan",
+    "summaryCards": "Ringkasan laporan",
+    "table": {
+      "description": "Uraian",
+      "expand": "Buka {{label}}",
+      "collapse": "Tutup {{label}}",
+      "viewDetail": "Lihat rincian {{label}}",
+      "emptyRows": "Tidak ada baris pada periode ini."
+    },
+    "chart": {
+      "showTable": "Tampilkan tabel",
+      "hideTable": "Sembunyikan tabel",
+      "legend": "Keterangan seri"
+    },
+    "export": {
+      "print": "Cetak",
+      "downloadPdf": "Unduh PDF",
+      "excel": "Ekspor Excel",
+      "pdfFailed": "Gagal membuat PDF. Coba lagi.",
+      "excelFailed": "Gagal mengekspor data. Coba lagi."
+    },
+    "page": {
+      "companyFallback": "Perusahaan",
+      "printedAt": "Dicetak pada"
+    }
+  }
+}

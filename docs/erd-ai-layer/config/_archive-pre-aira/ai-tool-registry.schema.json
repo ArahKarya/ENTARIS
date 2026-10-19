@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://arahkarya.com/schemas/ai-tool-registry.schema.json",
+  "title": "AI Tool Registry — Entaris",
+  "description": "Skema validasi untuk registry tool AI Layer. Tiap entri = 1 tool yang dapat dipanggil agen, dipetakan ke endpoint/service ERP + kontrol izin. Tambah fitur baru = tambah 1 objek ke array 'tools' (validator akan menolak entri yang salah).",
+  "type": "object",
+  "required": ["version", "tools"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Versi registry (semver). Naikkan saat ada perubahan breaking.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "generatedNote": {
+      "type": "string",
+      "description": "Catatan bebas (opsional)."
+    },
+    "modules": {
+      "type": "array",
+      "description": "Daftar modul RBAC ERP yang valid (sumber kebenaran dari server/src/constants/modules.ts). Field 'module' tiap tool HARUS salah satu dari sini.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Daftar capability sensitif ERP yang valid.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "tools": {
+      "type": "array",
+      "description": "Daftar tool AI. Tambah entri baru di sini untuk fitur baru.",
+      "items": { "$ref": "#/definitions/tool" }
+    }
+  },
+  "definitions": {
+    "tool": {
+      "type": "object",
+      "required": ["name", "group", "module", "kind", "tier", "method", "path", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "ID unik tool (snake_case). Inilah yang dipanggil agen.",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "group": {
+          "type": "string",
+          "description": "Grup modul (UI grouping).",
+          "enum": ["Penjualan", "Pembelian", "Stok & Produksi", "Bank & Kas", "Akuntansi", "EAM", "Laporan", "Master & Sistem", "Universal"]
+        },
+        "module": {
+          "type": "string",
+          "description": "Modul RBAC ERP (harus ada di properties.modules). Dipakai backend untuk cek izin: can(role, module, action)."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Jenis tool: read (query), draft (siapkan payload), action (mutasi ERP).",
+          "enum": ["read", "draft", "action"]
+        },
+        "tier": {
+          "type": "string",
+          "description": "Kontrol izin. auto=langsung (read-only). draft=konfirmasi di chat. must_approve=wajib approval owner via Telegram.",
+          "enum": ["auto", "draft", "must_approve"]
+        },
+        "method": {
+          "type": "string",
+          "description": "HTTP method endpoint ERP yang dipanggil.",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        },
+        "path": {
+          "type": "string",
+          "description": "Path endpoint ERP (relatif /api). Boleh berisi :param.",
+          "pattern": "^/.+"
+        },
+        "service": {
+          "type": "string",
+          "description": "Service ERP yang mengeksekusi (opsional, untuk referensi). Mis. paymentSubmit."
+        },
+        "permAction": {
+          "type": "string",
+          "description": "Aksi izin yang dicek backend (view utk read, edit utk mutasi).",
+          "enum": ["view", "edit"]
+        },
+        "requiresCapability": {
+          "type": "string",
+          "description": "Capability sensitif yang wajib dimiliki (opsional). Mis. doc.cancel."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Deskripsi singkat untuk agen (apa yang tool ini lakukan)."
+        },
+        "args": {
+          "type": "array",
+          "description": "Parameter input tool (opsional, untuk dokumentasi & validasi argumen agen).",
+          "items": {
+            "type": "object",
+            "required": ["name", "type"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["string", "number", "boolean", "object", "array", "date"] },
+              "required": { "type": "boolean" },
+              "desc": { "type": "string" }
+            }
+          }
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Kontrol on/off per tool. false = tool tak diaktifkan (untuk rollout bertahap). Default true.",
+          "default": true
+        },
+        "phase": {
+          "type": "integer",
+          "description": "Fase rollout tool ini aktif (0-6, lihat roadmap). Untuk filter aktivasi bertahap.",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "allOf": [
+        {
+          "description": "Tool kind=read WAJIB tier=auto & method=GET.",
+          "if": { "properties": { "kind": { "const": "read" } } },
+          "then": { "properties": { "tier": { "const": "auto" }, "method": { "const": "GET" } } }
+        },
+        {
+          "description": "Tool kind=action TIDAK boleh tier=auto (mutasi wajib konfirmasi/approval).",
+          "if": { "properties": { "kind": { "const": "action" } } },
+          "then": { "properties": { "tier": { "enum": ["draft", "must_approve"] } } }
+        }
+      ]
+    }
+  }
+}

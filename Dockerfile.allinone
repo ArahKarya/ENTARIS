@@ -1,0 +1,96 @@
+# ============================================================================
+# Entaris — All-in-One Dockerfile
+# PostgreSQL 16 + Node.js 20 + Express API + React SPA dalam 1 container.
+#
+# Build:
+#   docker build -f Dockerfile.allinone -t entaris .
+#
+# Run (langsung pakai, seed otomatis saat pertama kali):
+#   docker run -d --name entaris \
+#     -p 3001:3001 \
+#     -e JWT_SECRET="$(openssl rand -hex 48)" \
+#     -v keuangan-pgdata:/var/lib/postgresql/data \
+#     entaris
+#
+# Catatan: nama volume keuangan-pgdata sengaja dipertahankan — instalasi
+# yang sudah berjalan WAJIB tetap memakai nama volume lamanya agar data
+# database tidak hilang.
+#
+# Logs:
+#   docker logs -f entaris
+#
+# Login default: admin@entaris.demo (lihat README)
+# ============================================================================
+
+# ── Stage 1: Install dependencies ───────────────────────────────────────────
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+COPY client/package.json client/package-lock.json* ./client/
+RUN cd client && npm ci
+
+COPY server/package.json server/package-lock.json* ./server/
+RUN cd server && npm ci
+
+# ── Stage 2: Build client + server ──────────────────────────────────────────
+FROM deps AS builder
+WORKDIR /app
+
+COPY client/ ./client/
+COPY server/ ./server/
+# Katalog tool AIRA (dokumen_tool di MCP) — disalin ke dist/ai oleh `npm run build`.
+COPY docs/ai-tools/catalog.json ./docs/ai-tools/catalog.json
+
+RUN cd client && npm run build
+RUN cd server && npx prisma generate && npm run build
+
+# ── Stage 3: All-in-one runtime ─────────────────────────────────────────────
+FROM node:20-alpine AS runtime
+WORKDIR /app
+
+# Install PostgreSQL 16
+RUN apk add --no-cache \
+    postgresql16 \
+    postgresql16-contrib \
+    su-exec \
+    tzdata \
+    && mkdir -p /var/lib/postgresql/data /run/postgresql \
+    && chown -R postgres:postgres /var/lib/postgresql /run/postgresql
+
+# Install only production deps + prisma CLI + tsx
+COPY server/package.json server/package-lock.json* ./server/
+RUN cd server && npm ci --omit=dev && npm install prisma tsx
+
+# Copy build artifacts
+COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/server/node_modules/.prisma ./server/node_modules/.prisma
+COPY --from=builder /app/server/node_modules/@prisma/client ./server/node_modules/@prisma/client
+COPY --from=builder /app/server/prisma ./server/prisma
+COPY --from=builder /app/server/prisma.config.ts ./server/prisma.config.ts
+COPY --from=builder /app/client/dist ./client/dist
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Environment defaults
+ENV NODE_ENV=production \
+    TZ=Asia/Jakarta \
+    PORT=3001 \
+    POSTGRES_USER=keuangan \
+    POSTGRES_PASSWORD=ganti-dengan-password-kuat \
+    POSTGRES_DB=keuangan_db \
+    PGDATA=/var/lib/postgresql/data \
+    JWT_SECRET=ganti-dengan-secret-yang-aman \
+    ALLOWED_ORIGINS=http://localhost:3001
+
+# Persistent volume for database
+VOLUME /var/lib/postgresql/data
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
+
+EXPOSE 3001
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

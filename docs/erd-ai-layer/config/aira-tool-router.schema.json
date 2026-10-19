@@ -1,0 +1,325 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://arahkarya.com/schemas/aira-tool-router.schema.json",
+  "title": "AIRA Tool Router Configuration — Entaris",
+  "description": "Skema validasi Tool Router config per-aplikasi (BRD AIRA Pilar 3). Tiap entri = 1 tool resmi yang boleh dipanggil Agent Core. Tambah kemampuan = tambah 1 entri (deklaratif, tanpa ubah otak agent). Selaras BRD AIRA §8.9. Sumber kebenaran registry: server/src/ai/aira-tool-router.json (docs/ai-tools/ dibangkitkan darinya).",
+  "type": "object",
+  "required": [
+    "app",
+    "version",
+    "tools"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "app": {
+      "type": "string",
+      "description": "ID aplikasi (mis. erp-aks). Satu file config per aplikasi."
+    },
+    "version": {
+      "type": "integer",
+      "description": "Versi config (integer, naik saat ada perubahan)."
+    },
+    "generatedNote": {
+      "type": "string"
+    },
+    "modules": {
+      "type": "array",
+      "description": "Daftar modul RBAC ERP valid (sumber: server/src/constants/modules.ts).",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "roles": {
+      "type": "array",
+      "description": "Daftar role aplikasi valid (key role di ERP). Field 'roles' tiap tool harus subset dari sini.",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Daftar capability sensitif ERP valid.",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "tools": {
+      "type": "array",
+      "description": "Daftar tool. Tambah entri baru untuk kemampuan baru.",
+      "items": {
+        "$ref": "#/definitions/tool"
+      }
+    }
+  },
+  "definitions": {
+    "tool": {
+      "type": "object",
+      "required": [
+        "name",
+        "desc",
+        "risk",
+        "roles",
+        "module",
+        "handler"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Identitas tool (snake_case). Yang dipanggil agent.",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "desc": {
+          "type": "string",
+          "description": "Deskripsi natural — agent pakai ini memutuskan kapan memanggil tool (BRD §8.9)."
+        },
+        "risk": {
+          "type": "string",
+          "description": "Klasifikasi risiko (BRD AIRA): read (auto) / write (perlu approval) / critical (approval + alasan).",
+          "enum": [
+            "read",
+            "write",
+            "critical"
+          ]
+        },
+        "roles": {
+          "type": "array",
+          "description": "Daftar role berhak. Agent menolak jika role user login tak termasuk (Pilar: warisi izin app).",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "group": {
+          "type": "string",
+          "description": "Grup modul (UI grouping).",
+          "enum": [
+            "Penjualan",
+            "Pembelian",
+            "Stok & Produksi",
+            "Bank & Kas",
+            "Akuntansi",
+            "EAM",
+            "Laporan",
+            "Master & Sistem",
+            "AI / Agentic",
+            "Universal",
+            "Laporan/Universal"
+          ]
+        },
+        "module": {
+          "type": "string",
+          "description": "Modul RBAC ERP (harus ada di properties.modules). Backend cek can(role, module, permAction)."
+        },
+        "input": {
+          "type": "object",
+          "description": "Skema argumen tool { namaArg: tipe }. Dipakai validasi sebelum eksekusi.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "output": {
+          "type": "object",
+          "description": "Bentuk hasil yang dikembalikan ke agent { namaField: tipe }.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "handler": {
+          "type": "string",
+          "description": "Endpoint API existing: 'METHOD /path' (mis. 'POST /api/payments'). Harus cocok route nyata (drift guard).",
+          "pattern": "^(GET|POST|PUT|PATCH|DELETE) /.+"
+        },
+        "service": {
+          "type": "string",
+          "description": "Service ERP yang eksekusi (referensi, mis. paymentSubmit)."
+        },
+        "permAction": {
+          "type": "string",
+          "description": "Aksi izin yang dicek backend.",
+          "enum": [
+            "view",
+            "edit"
+          ]
+        },
+        "requiresCapability": {
+          "type": "string",
+          "description": "Capability sensitif wajib (opsional, mis. doc.cancel)."
+        },
+        "confirm_template": {
+          "type": "string",
+          "description": "Teks ringkasan saat minta approval (untuk write/critical). Placeholder {arg}. BRD §8.9."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "On/off per tool (rollout bertahap). Default true.",
+          "default": true
+        },
+        "level": {
+          "type": "integer",
+          "description": "Tingkat kematangan AIRA (1=Copilot, 2=Workflow Agent, 3=Autonomous). BRD §6.",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "phase": {
+          "type": "integer",
+          "description": "Fase rollout (0-6).",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "toolset": {
+          "type": "string",
+          "description": "Pengelompokan katalog (satu endpoint MCP per toolset).",
+          "enum": [
+            "penjualan",
+            "pembelian",
+            "persediaan",
+            "produksi",
+            "akuntansi",
+            "kas-bank",
+            "aset-umum",
+            "pengajuan-pembayaran",
+            "persetujuan",
+            "laporan",
+            "dashboard",
+            "master-data",
+            "sistem"
+          ]
+        },
+        "draftCapable": {
+          "type": "boolean",
+          "description": "true = write yang hanya membuat draft / pengajuan pending (tidak posting)."
+        },
+        "postingEffect": {
+          "type": "string",
+          "description": "Efek GL/stok/WAC singkat (wajib utk write/critical)."
+        },
+        "safeNonGet": {
+          "type": "boolean",
+          "description": "true = handler non-GET tetapi murni baca (preview/search/export data); hanya untuk risk=read."
+        },
+        "accessNote": {
+          "type": "string",
+          "description": "Siapa yang benar-benar boleh memanggil bila guard campuran."
+        },
+        "outputSummary": {
+          "type": "string",
+          "description": "Ringkasan hasil (Indonesia)."
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "params": {
+          "type": "array",
+          "description": "Parameter terdokumentasi lengkap (path/query/body).",
+          "items": {
+            "$ref": "#/definitions/param"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "description": "risk=read WAJIB handler GET kecuali safeNonGet=true.",
+          "if": {
+            "properties": {
+              "risk": {
+                "const": "read"
+              }
+            },
+            "not": {
+              "required": [
+                "safeNonGet"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "handler": {
+                "pattern": "^GET /.+"
+              }
+            }
+          }
+        },
+        {
+          "description": "risk=read WAJIB confirm_template kosong (tak butuh approval). write/critical WAJIB ada confirm_template.",
+          "if": {
+            "properties": {
+              "risk": {
+                "enum": [
+                  "write",
+                  "critical"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "confirm_template"
+            ]
+          }
+        }
+      ]
+    },
+    "param": {
+      "type": "object",
+      "required": [
+        "name",
+        "in",
+        "type",
+        "required"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "in": {
+          "enum": [
+            "path",
+            "query",
+            "body"
+          ]
+        },
+        "type": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/param"
+          }
+        }
+      }
+    }
+  }
+}

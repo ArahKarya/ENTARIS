@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+server/prisma/*.db
+server/prisma/*.db-journal
+
+# Docker volumes
+pgdata/
+
+# Backup files
+server/backups/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Claude
+.claude/
+backups/
+
+# User uploads (runtime data, never commit)
+server/uploads/
+
+# AI tool catalog scratch output (route inventory etc.)
+server/scripts/ai-tools/out/

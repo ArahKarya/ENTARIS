@@ -1,0 +1,577 @@
+{
+  "nav": {
+    "sections": {
+      "sales": "Penjualan",
+      "purchasing": "Pembelian",
+      "cash": "Kas & Bank",
+      "inventory": "Persediaan & Produksi",
+      "accounting": "Akuntansi",
+      "assets": "Aset & Pemeliharaan",
+      "reports": "Laporan",
+      "master": "Data Induk",
+      "system": "Sistem"
+    },
+    "dashboard": "Dasbor",
+    "aira": "Asisten AIRA",
+    "paymentRequests": "Pengajuan Pembayaran",
+    "paymentRequestNew": "Buat Pengajuan",
+    "paymentRequestDetail": "Detail Pengajuan",
+    "paymentRequestEdit": "Ubah Pengajuan",
+    "paymentRequestSettlement": "Pertanggungjawaban Uang Muka",
+    "notifications": "Notifikasi",
+    "inquiries": "Pertanyaan Customer",
+    "quotations": "Penawaran",
+    "salesOrders": "Sales Order",
+    "deliveryOrders": "Surat Jalan",
+    "salesInvoices": "Invoice Penjualan",
+    "salesReturns": "Retur Penjualan",
+    "customerDeposits": "Uang Muka Customer",
+    "purchaseOrders": "Purchase Order",
+    "goodsReceipts": "Penerimaan Barang",
+    "purchaseInvoices": "Invoice Pembelian",
+    "supplierDeposits": "Uang Muka Supplier",
+    "payments": "Transaksi Kas & Bank",
+    "cashBookDrafts": "Draft Buku Kas",
+    "cashBookDraftReview": "Tinjau Draft Buku Kas",
+    "reconciliation": "Rekonsiliasi Bank",
+    "recurring": "Transaksi Berulang",
+    "projectGuarantees": "Uang Jaminan Proyek",
+    "inventory": "Stok & Produksi",
+    "warehouseStock": "Stok per Gudang",
+    "stockOpname": "Stok Opname",
+    "stockTransfers": "Transfer Stok",
+    "warehouses": "Daftar Gudang",
+    "coa": "Bagan Akun",
+    "generalJournal": "Jurnal Umum",
+    "fixedAssets": "Aset Tetap",
+    "approvals": "Persetujuan",
+    "gaOverview": "Ringkasan",
+    "gaAssets": "Daftar Aset",
+    "gaVehicles": "Kendaraan",
+    "gaFleetReport": "Laporan Armada",
+    "gaBuildings": "Gedung & Sewa",
+    "gaEquipment": "Peralatan & Kalibrasi",
+    "gaMaintenance": "Pemeliharaan",
+    "gaMaterialRequests": "Permintaan Barang",
+    "gaInventory": "Inventaris Kantor",
+    "gaDocuments": "Dokumen & Sertifikat",
+    "gaMaster": "Data Induk Aset",
+    "reports": "Semua Laporan",
+    "reportDaily": "Laporan Harian",
+    "reportTrialBalance": "Neraca Saldo",
+    "reportProfitLoss": "Laba Rugi",
+    "reportBalanceSheet": "Neraca",
+    "reportCashFlow": "Arus Kas",
+    "reportAgingAr": "Umur Piutang",
+    "reportAgingAp": "Umur Utang",
+    "reportTax": "Laporan Pajak",
+    "reportLedgerBook": "Buku Besar",
+    "reportCogs": "HPP per Produk",
+    "reportProfitabilitySku": "Profitabilitas per SKU",
+    "reportProductionCost": "Modal Produksi per Periode",
+    "reportOee": "Laporan OEE",
+    "reportPayableSchedule": "Jadwal Utang",
+    "reportReceivableSchedule": "Jadwal Piutang",
+    "reportPoOutstanding": "PO Outstanding",
+    "reportSupplierPerformance": "Kinerja Supplier",
+    "parties": "Customer & Supplier",
+    "settings": "Pengaturan",
+    "users": "Manajemen Pengguna",
+    "audit": "Jejak Audit",
+    "healthCheck": "Pemeriksaan Sistem"
+  },
+  "commandPalette": {
+    "title": "Palet perintah",
+    "description": "Cari halaman, data transaksi, atau jalankan aksi. Gunakan panah atas dan bawah, lalu Enter untuk membuka.",
+    "label": "Cari halaman, data, atau aksi",
+    "placeholder": "Cari halaman, nomor invoice, kontak…",
+    "closeEsc": "Tutup (Esc)",
+    "nothingFound": "Tidak ada halaman atau data untuk “{{query}}”.",
+    "minChars_one": "Ketik minimal {{count}} huruf untuk mencari data transaksi.",
+    "minChars_other": "Ketik minimal {{count}} huruf untuk mencari data transaksi.",
+    "recordsError": "Pencarian data gagal. Coba ketik ulang sebentar lagi.",
+    "askAira": "Tanya AIRA",
+    "askAiraAbout": "Tanya AIRA tentang “{{query}}”",
+    "openAira": "Buka Asisten AIRA",
+    "groups": {
+      "recent": "Terakhir dibuka",
+      "pages": "Halaman",
+      "records": "Data",
+      "actions": "Aksi",
+      "assistant": "Asisten"
+    },
+    "hints": {
+      "move": "pindah",
+      "open": "buka",
+      "close": "tutup"
+    },
+    "recordTypes": {
+      "party": "Kontak",
+      "sales": "Invoice Penjualan",
+      "purchase": "Invoice Pembelian",
+      "payment": "Kas & Bank",
+      "journal": "Jurnal",
+      "account": "Akun",
+      "other": "Data"
+    },
+    "theme": {
+      "light": "Ganti ke tema Terang",
+      "dark": "Ganti ke tema Gelap",
+      "system": "Ikuti tema Sistem"
+    }
+  },
+  "sidebar": {
+    "homeLink": "Entaris, ke Dasbor",
+    "mainNav": "Navigasi utama",
+    "expand": "Lebarkan sidebar",
+    "collapse": "Ciutkan sidebar",
+    "collapseShort": "Ciutkan"
+  },
+  "lazy": {
+    "loadingPage": "Memuat halaman…",
+    "failedTitle": "Gagal memuat halaman",
+    "failedBody": "Aplikasi baru saja diperbarui atau koneksi terputus. Muat ulang untuk mengambil versi terbaru."
+  },
+  "userMenu": {
+    "fallbackName": "Pengguna",
+    "trigger": "Menu pengguna: {{name}}",
+    "changePassword": "Ganti Kata Sandi",
+    "theme": "Tema",
+    "shortcuts": "Pintasan Keyboard",
+    "about": "Tentang Entaris",
+    "logout": "Keluar",
+    "linkTelegram": "Tautkan Telegram"
+  },
+  "topbar": {
+    "openMenu": "Buka menu navigasi",
+    "search": "Cari halaman atau data",
+    "searchShort": "Cari…",
+    "searchLong": "Cari halaman atau data…",
+    "askAira": "Tanya AIRA"
+  },
+  "layout": {
+    "skipToContent": "Langsung ke konten utama",
+    "mobileMenuTitle": "Menu navigasi",
+    "mobileMenuDescription": "Daftar halaman Entaris"
+  },
+  "shortcuts": {
+    "title": "Pintasan Keyboard",
+    "description": "Bekerja lebih cepat tanpa mouse. Pintasan huruf tidak aktif saat Anda sedang mengetik.",
+    "then": "lalu",
+    "groups": {
+      "general": "Umum",
+      "navigation": "Navigasi",
+      "palette": "Palet perintah"
+    },
+    "labels": {
+      "paletteOpen": "Cari halaman, data, atau aksi",
+      "helpOpen": "Tampilkan pintasan keyboard",
+      "overlayClose": "Tutup dialog, menu, atau panel",
+      "goTo": "Buka {{page}}",
+      "paletteMove": "Pindah antar-hasil",
+      "paletteSelect": "Buka hasil yang dipilih"
+    },
+    "keys": {
+      "space": "Spasi"
+    }
+  },
+  "notificationBell": {
+    "triggerUnread_one": "Notifikasi, {{count}} belum dibaca",
+    "triggerUnread_other": "Notifikasi, {{count}} belum dibaca",
+    "triggerNone": "Notifikasi, tidak ada yang belum dibaca",
+    "title": "Notifikasi",
+    "markAllRead": "Tandai semua dibaca",
+    "close": "Tutup notifikasi",
+    "loading": "Memuat notifikasi…",
+    "loadFailed": "Notifikasi gagal dimuat",
+    "emptyTitle": "Belum ada notifikasi",
+    "emptyDescription": "Invoice jatuh tempo, stok menipis, dan permintaan persetujuan akan muncul di sini.",
+    "latest": "Notifikasi terbaru",
+    "viewAll": "Lihat semua notifikasi",
+    "unread": "Belum dibaca"
+  },
+  "notifications": {
+    "title": "Notifikasi",
+    "description": "Pemberitahuan sistem untuk akun Anda.",
+    "unreadCount_one": "{{formatted}} notifikasi belum dibaca.",
+    "unreadCount_other": "{{formatted}} notifikasi belum dibaca.",
+    "allRead": "Semua notifikasi sudah dibaca.",
+    "markAllRead": "Tandai Semua Dibaca",
+    "markRead": "Tandai sudah dibaca",
+    "markFailed": "Gagal menandai notifikasi.",
+    "markAllFailed": "Gagal menandai semua notifikasi.",
+    "allMarked": "Semua notifikasi ditandai sudah dibaca.",
+    "unread": "Belum dibaca",
+    "read": "Sudah dibaca",
+    "unreadPrefix": "Belum dibaca:",
+    "readStatus": "Status baca",
+    "typeFilter": "Jenis notifikasi",
+    "allTypes": "Semua jenis",
+    "searchLabel": "Cari notifikasi",
+    "searchPlaceholder": "Cari judul atau isi notifikasi",
+    "tableLabel": "Daftar notifikasi",
+    "itemLabel": "notifikasi",
+    "rowActions": "Aksi untuk notifikasi {{title}}",
+    "emptyTitle": "Belum ada notifikasi",
+    "emptyDescription": "Pemberitahuan jatuh tempo, stok, dan persetujuan akan muncul di sini.",
+    "columns": {
+      "notification": "Notifikasi",
+      "type": "Jenis",
+      "time": "Waktu"
+    },
+    "types": {
+      "invoice_overdue": "Invoice Jatuh Tempo",
+      "payment_received": "Pembayaran",
+      "low_stock": "Stok Rendah",
+      "approval_pending": "Menunggu Persetujuan",
+      "approval_approved": "Disetujui",
+      "approval_rejected": "Ditolak",
+      "approval_revision": "Perlu Revisi",
+      "quotation_expiring": "Penawaran Kedaluwarsa",
+      "guarantee_due": "Jaminan Jatuh Tempo",
+      "po_overdue": "PO Terlambat",
+      "cash_book_draft": "Draft Buku Kas",
+      "wo_overdue": "WO Terlambat",
+      "wo_assigned": "WO Ditugaskan",
+      "wo_completed": "WO Selesai",
+      "mr_pending": "Permintaan Material",
+      "mr_approved": "Permintaan Disetujui",
+      "mr_rejected": "Permintaan Ditolak",
+      "calibration_due": "Kalibrasi",
+      "document_expiring": "Dokumen Kedaluwarsa",
+      "rental_expiring": "Sewa Berakhir",
+      "system": "Sistem"
+    }
+  },
+  "auditTrail": {
+    "title": "Jejak Audit",
+    "description": "Riwayat perubahan data dan aktivitas pengguna di aplikasi.",
+    "exportExcel": "Ekspor Excel",
+    "exportFailed": "Gagal mengekspor jejak audit. Coba lagi.",
+    "exportTruncated_one": "Ekspor dibatasi {{formatted}} catatan pertama. Persempit filter.",
+    "exportTruncated_other": "Ekspor dibatasi {{formatted}} catatan pertama. Persempit filter.",
+    "summaryLabel": "Ringkasan aktivitas sesuai filter",
+    "totalActivity": "Jumlah Aktivitas",
+    "loginCount_one": "{{formatted}} kali masuk",
+    "loginCount_other": "{{formatted}} kali masuk",
+    "searchEntityId": "Cari ID entitas",
+    "allActions": "Semua aksi",
+    "allUsers": "Semua pengguna",
+    "allEntities": "Semua entitas",
+    "tableLabel": "Daftar jejak audit",
+    "itemLabel": "catatan",
+    "emptyTitle": "Belum ada catatan audit",
+    "emptyDescription": "Perubahan data dan aktivitas masuk akan tercatat di sini.",
+    "viewDetail": "Lihat detail",
+    "rowActions": "Aksi untuk catatan {{entity}} {{time}}",
+    "columns": {
+      "time": "Waktu",
+      "user": "Pengguna",
+      "action": "Aksi",
+      "entity": "Entitas",
+      "ipAddress": "Alamat IP"
+    },
+    "export": {
+      "time": "Waktu",
+      "user": "Pengguna",
+      "email": "Email",
+      "action": "Aksi",
+      "actionCode": "Kode Aksi",
+      "entity": "Entitas",
+      "entityId": "ID Entitas",
+      "ipAddress": "Alamat IP",
+      "oldValues": "Nilai Lama",
+      "newValues": "Nilai Baru",
+      "fileName": "jejak-audit"
+    }
+  },
+  "dummyData": {
+    "banner": "Data uji coba sedang aktif. Transaksinya ikut terhitung di daftar, dasbor, dan laporan. Admin dapat menghapusnya di Pengaturan, tab Cadangan & Pemulihan."
+  },
+  "about": {
+    "title": "Tentang Entaris",
+    "description": "Sistem ERP dengan agen AI AIRA.",
+    "version": "Versi",
+    "releaseDate": "Tanggal rilis",
+    "developer": "Pengembang",
+    "credits": "Dibuat oleh {{maker}}. © {{year}}. Perangkat lunak bebas (AGPL-3.0)."
+  },
+  "versionWatcher": {
+    "title": "Versi aplikasi terbaru tersedia",
+    "description": "Muat ulang halaman untuk menerima pembaruan terbaru.",
+    "reload": "Muat Ulang"
+  },
+  "attachmentPreview": {
+    "loading": "Memuat lampiran...",
+    "previewFile": "Preview {{name}}",
+    "openFile": "Buka {{name}}",
+    "preview": "Preview",
+    "downloadFile": "Download {{name}}",
+    "deleteFile": "Hapus {{name}}",
+    "lightboxTitle": "Pratinjau lampiran",
+    "lightboxDescription": "Gambar lampiran ukuran penuh. Tekan Esc untuk menutup.",
+    "deleteTitle": "Hapus Lampiran",
+    "deleteMessage": "Yakin ingin menghapus lampiran ini? File akan dihapus permanen."
+  },
+  "attachmentUpload": {
+    "failed": "Gagal mengupload file.",
+    "badType": "File \"{{name}}\" tidak didukung. Hanya JPG, PNG, WebP, PDF.",
+    "tooLarge": "File \"{{name}}\" terlalu besar. Maksimal {{size}}.",
+    "tooMany": "Maksimal {{max}} file sekaligus.",
+    "uploading": "Mengupload...",
+    "dropzone": "Seret file atau klik untuk upload bukti transfer",
+    "hint": "JPG, PNG, PDF (maks {{size}}, maks {{max}} file)",
+    "choose": "Pilih file lampiran",
+    "dismiss": "Tutup pesan"
+  },
+  "changePassword": {
+    "title": "Ganti Kata Sandi",
+    "description": "Ubah kata sandi akun Anda.",
+    "current": "Kata sandi saat ini",
+    "new": "Kata sandi baru",
+    "newHint": "Minimal {{min}} karakter.",
+    "confirm": "Ulangi kata sandi baru",
+    "submit": "Ubah Kata Sandi",
+    "changed": "Kata sandi diubah.",
+    "failed": "Gagal mengubah kata sandi.",
+    "currentRequired": "Kata sandi saat ini wajib diisi.",
+    "newRequired": "Kata sandi baru wajib diisi.",
+    "newMin": "Kata sandi baru minimal {{min}} karakter.",
+    "mismatch": "Konfirmasi kata sandi tidak cocok."
+  },
+  "gaAssetQr": {
+    "title": "QR Aset {{code}}",
+    "description": "{{name}}. Pindai untuk melihat info aset.",
+    "noQr": "Aset ini belum punya kode QR. Hubungi admin untuk generate ulang.",
+    "qrLabel": "Kode QR aset {{code}}",
+    "copied": "Link disalin.",
+    "copiedShort": "Tersalin",
+    "copyFailed": "Gagal menyalin. Salin manual dari kotak URL.",
+    "notReady": "QR belum siap. Coba lagi.",
+    "popupBlocked": "Popup diblokir. Izinkan popup untuk mencetak.",
+    "scanHint": "Pindai untuk melihat info aset",
+    "tipLabel": "Tip:",
+    "tip": "Cetak QR lalu tempel di aset fisik. Scan dengan HP untuk lihat kode, nama, kategori, status & kondisi aset."
+  },
+  "importModal": {
+    "titles": {
+      "parties": "Import Mitra Bisnis",
+      "coa": "Import Bagan Akun",
+      "journals": "Import Jurnal",
+      "inventory": "Import Master Item"
+    },
+    "steps": {
+      "upload": "Unggah file",
+      "preview": "Pratinjau data",
+      "result": "Hasil import"
+    },
+    "stepOf": "Langkah {{current}} dari {{total}}: {{label}}",
+    "processFailed": "Gagal memproses file.",
+    "imported_one": "{{count}} data diimpor.",
+    "imported_other": "{{count}} data diimpor.",
+    "importFailed": "Gagal mengimport data.",
+    "processing": "Memproses file...",
+    "dropzone": "Seret file ke sini, atau klik untuk memilih",
+    "formats": "Mendukung format CSV, XLSX, XLS (maks {{size}})",
+    "chooseFile": "Pilih file import",
+    "downloadTemplate": "Download Template Excel",
+    "previewSummary": "{{valid}} data valid, {{errors}} error",
+    "errorsCount_one": "Error ({{count}}):",
+    "errorsCount_other": "Error ({{count}}):",
+    "rowError": "Baris {{row}}: {{message}}",
+    "moreErrors_one": "...dan {{count}} error lainnya",
+    "moreErrors_other": "...dan {{count}} error lainnya",
+    "previewLabel": "Pratinjau data import",
+    "showingOf": "...menampilkan {{shown}} dari {{total}} data",
+    "done": "Import Selesai",
+    "succeeded": "Berhasil",
+    "failed": "Gagal",
+    "errorDetail": "Error Detail:",
+    "changeFile": "Ganti File",
+    "importing": "Mengimport…",
+    "importCount_one": "Import {{count}} Data",
+    "importCount_other": "Import {{count}} Data"
+  },
+  "userForm": {
+    "saved": "Data pengguna disimpan.",
+    "added": "Pengguna baru ditambahkan.",
+    "saveFailed": "Gagal menyimpan data pengguna.",
+    "editTitle": "Ubah Pengguna",
+    "addTitle": "Tambah Pengguna",
+    "editDescription": "Mengubah data akun {{name}}.",
+    "addDescription": "Buat akun baru untuk mengakses aplikasi.",
+    "fullName": "Nama lengkap",
+    "username": "Nama pengguna",
+    "usernameHint": "Dipakai untuk masuk.",
+    "email": "Email",
+    "role": "Peran",
+    "rolePlaceholder": "Pilih peran",
+    "supervisor": "Atasan langsung",
+    "supervisorHint": "Menyetujui Pengajuan Pembayaran pengguna ini sebelum Keuangan. Kosong = langsung ke Keuangan.",
+    "password": "Kata sandi",
+    "passwordHintEdit": "Kosongkan jika tidak diubah. Minimal 8 karakter, huruf besar, angka dan karakter spesial.",
+    "passwordHintNew": "Minimal 8 karakter, berisi huruf besar, angka dan karakter spesial.",
+    "airaLegend": "AIRA (asisten AI)",
+    "airaAccess": "Akses AIRA",
+    "airaAccessHint": "Izinkan pengguna ini memakai AIRA (WhatsApp/Telegram/panel). Hak data tetap mengikuti peran.",
+    "airaTier": "Level akses AIRA",
+    "directWarning": "Perhatian: pada level Langsung, instruksi lewat AIRA dapat memposting transaksi tanpa persetujuan terpisah. Gunakan hanya untuk pengguna tepercaya.",
+    "airaTitle": "Jabatan AIRA",
+    "airaTitleHint": "Teks bebas (mis. Direktur Keuangan). Dibaca agen untuk menyesuaikan gaya bicara.",
+    "saveChanges": "Simpan Perubahan",
+    "tiers": {
+      "read": "Baca saja",
+      "standard": "Standar",
+      "direct": "Langsung"
+    },
+    "tierHints": {
+      "read": "Agen hanya boleh membaca data.",
+      "standard": "Membaca dan membuat draf langsung; tindakan lain (posting, pembayaran, pembatalan) menunggu persetujuan manusia.",
+      "direct": "Tindakan tulis/kritis dijalankan langsung atas nama pengguna ini, tanpa persetujuan terpisah. Tetap tunduk pada hak akses perannya."
+    }
+  },
+  "onboarding": {
+    "header": "Penyiapan awal",
+    "stepOf": "Langkah {{current}} dari {{total}}",
+    "skip": "Lewati penyiapan",
+    "stepsLabel": "Langkah penyiapan",
+    "stepDonePrefix": "Selesai:",
+    "stepCurrentPrefix": "Langkah saat ini:",
+    "persistFailed": "Status penyiapan gagal disimpan. Panduan ini akan muncul lagi saat Anda masuk berikutnya.",
+    "steps": {
+      "welcome": "Mulai",
+      "company": "Profil",
+      "fiscal": "Tahun Buku",
+      "security": "Keamanan",
+      "done": "Selesai"
+    },
+    "stepCopy": {
+      "welcome": {
+        "title": "Selamat datang di Entaris",
+        "description": "Siapkan perusahaan Anda dalam beberapa menit."
+      },
+      "company": {
+        "title": "Profil perusahaan",
+        "description": "Data ini tampil di kop invoice, surat jalan, dan laporan."
+      },
+      "fiscal": {
+        "title": "Tahun buku",
+        "description": "Periode akuntansi tempat transaksi dicatat."
+      },
+      "security": {
+        "title": "Keamanan akun",
+        "description": "Ganti kata sandi bawaan akun admin sebelum tim mulai bekerja."
+      },
+      "done": {
+        "title": "Penyiapan selesai",
+        "description": "Anda bisa mulai menggunakan Entaris."
+      }
+    },
+    "primary": {
+      "welcome": "Mulai penyiapan",
+      "company": "Simpan & lanjut",
+      "fiscal": "Lanjut",
+      "securityChange": "Ganti kata sandi",
+      "securitySkip": "Lanjut tanpa mengganti",
+      "done": "Mulai gunakan Entaris"
+    },
+    "welcome": {
+      "taskCompany": "Profil perusahaan untuk kop invoice dan dokumen",
+      "taskFiscal": "Tahun buku yang aktif",
+      "taskPassword": "Kata sandi akun admin",
+      "intro": "Sebelum tim mulai mencatat transaksi, siapkan beberapa hal dasar ini. Semua bisa diubah lagi nanti di Pengaturan, dan langkah yang dilewati tetap muncul sebagai daftar di Dasbor."
+    },
+    "company": {
+      "name": "Nama perusahaan",
+      "nameHint": "Nama resmi, mis. PT Maju Bersama.",
+      "address": "Alamat",
+      "addressHint": "Dicetak di kop invoice dan surat jalan.",
+      "phone": "Telepon",
+      "email": "Email",
+      "taxId": "NPWP",
+      "taxIdHint": "Opsional, bisa diisi nanti. 15 atau 16 digit.",
+      "nameRequired": "Nama perusahaan wajib diisi.",
+      "saveFailed": "Gagal menyimpan profil perusahaan."
+    },
+    "fiscal": {
+      "loading": "Memuat tahun buku…",
+      "emptyTitle": "Belum ada tahun buku",
+      "emptyDescription": "Buat tahun buku di Pengaturan › Tahun Buku setelah penyiapan ini selesai.",
+      "intro": "Transaksi hanya bisa dicatat di tahun buku yang terbuka. Tahun buku baru dan tutup buku diatur di Pengaturan › Tahun Buku.",
+      "yearName": "Tahun buku {{name}}"
+    },
+    "security": {
+      "intro": "Setelah kata sandi diganti, Anda akan diminta masuk lagi dengan kata sandi baru. Kosongkan semua kolom jika tidak ingin menggantinya sekarang.",
+      "current": "Kata sandi saat ini",
+      "new": "Kata sandi baru",
+      "newHint": "Minimal {{min}} karakter, dengan huruf besar, angka, dan karakter khusus.",
+      "confirm": "Ulangi kata sandi baru",
+      "currentRequired": "Isi kata sandi saat ini.",
+      "mismatch": "Ulangan kata sandi baru tidak cocok.",
+      "failed": "Gagal mengganti kata sandi.",
+      "changed": "Kata sandi diganti. Silakan masuk lagi dengan kata sandi baru."
+    },
+    "password": {
+      "min": "Kata sandi baru minimal {{min}} karakter.",
+      "upper": "Kata sandi baru harus mengandung huruf besar.",
+      "digit": "Kata sandi baru harus mengandung angka.",
+      "special": "Kata sandi baru harus mengandung karakter khusus."
+    },
+    "done": {
+      "ready": "{{name}} siap digunakan.",
+      "checklistNote": "Langkah yang belum lengkap tampil sebagai daftar <strong>Lengkapi penyiapan</strong> di Dasbor."
+    },
+    "checklist": {
+      "title": "Lengkapi penyiapan",
+      "progress": "{{done}} dari {{total}} langkah selesai. Lengkapi agar dokumen dan laporan siap dipakai.",
+      "progressLabel": "Kemajuan penyiapan",
+      "hide": "Sembunyikan daftar penyiapan",
+      "todoPrefix": "Belum:",
+      "openAt": "{{label}} di {{where}}",
+      "items": {
+        "profile": {
+          "label": "Lengkapi profil perusahaan",
+          "hint": "Nama dan alamat tampil di invoice dan dokumen.",
+          "where": "Pengaturan › Profil Perusahaan"
+        },
+        "logo": {
+          "label": "Unggah logo perusahaan",
+          "hint": "Logo dicetak di kop dokumen.",
+          "where": "Pengaturan › Profil Perusahaan"
+        },
+        "taxId": {
+          "label": "Isi NPWP perusahaan",
+          "hint": "Dibutuhkan untuk invoice dan laporan pajak.",
+          "where": "Pengaturan › Profil Perusahaan"
+        },
+        "fiscalYear": {
+          "label": "Siapkan tahun buku",
+          "hint": "Transaksi hanya bisa dicatat di tahun buku yang terbuka.",
+          "where": "Pengaturan › Tahun Buku"
+        },
+        "team": {
+          "label": "Undang anggota tim",
+          "hint": "Tambahkan akun untuk staf keuangan, gudang, atau produksi.",
+          "where": "Manajemen Pengguna"
+        }
+      }
+    }
+  },
+  "telegramLink": {
+    "title": "Tautkan Telegram",
+    "description": "Hubungkan akun Telegram Anda ke bot AIRA. Setelah tertaut, Anda bisa bertanya ke AIRA lewat Telegram dengan hak akses akun ini.",
+    "creating": "Membuat kode…",
+    "failed": "Gagal membuat kode penautan.",
+    "codeLabel": "Kode penautan: {{code}}",
+    "command": "Perintah",
+    "validUntil": "Sekali pakai, berlaku sampai {{time}}.",
+    "expired": "Kode sudah kedaluwarsa. Buat kode baru.",
+    "stepOpenBot": "Tekan Buka Telegram, lalu Start di bot @{{bot}}.",
+    "stepOpenAnyBot": "Buka bot AIRA di Telegram dan kirim {{command}}.",
+    "openTelegram": "Buka Telegram",
+    "newCode": "Buat kode baru",
+    "close": "Tutup",
+    "stepSendAlt": "Atau kirim {{command}} ke bot.",
+    "stepConfirm": "Bot menampilkan nama akun Entaris Anda. Kirim /ya untuk menautkan."
+  }
+}

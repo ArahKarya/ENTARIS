@@ -1,0 +1,737 @@
+{
+  "widgetsShared": {
+    "detail": "Details",
+    "selectedPeriod": "In the selected period",
+    "report": "Report",
+    "total": "Total",
+    "noCategory": "Uncategorized",
+    "amount": "Amount",
+    "today": "today",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "moreItems_one": "+ {{count}} more item",
+    "moreItems_other": "+ {{count}} more items",
+    "in": "In",
+    "out": "Out",
+    "date": "Date",
+    "item": "Item",
+    "qty": "Qty",
+    "value": "Value",
+    "code": "Code",
+    "name": "Name",
+    "category": "Category",
+    "stock": "Stock",
+    "status": "Status"
+  },
+  "agingSummary": {
+    "title": "Receivables & Payables Aging",
+    "ar": "Receivables (AR)",
+    "ap": "Payables (AP)",
+    "detailLabel": "Receivables and payables aging details",
+    "caption": "Receivables and payables aging by day range",
+    "age": "Age",
+    "receivable": "Receivables",
+    "payable": "Payables"
+  },
+  "attentionList": {
+    "arOverdue_one": "{{count}} sales invoice overdue",
+    "arOverdue_other": "{{count}} sales invoices overdue",
+    "apOverdue_one": "{{count}} purchase invoice overdue",
+    "apOverdue_other": "{{count}} purchase invoices overdue",
+    "overdueDetail_one": "{{amount}}, oldest {{count}} day",
+    "overdueDetail_other": "{{amount}}, oldest {{count}} days",
+    "stockCritical_one": "{{count}} item at critical stock",
+    "stockCritical_other": "{{count}} items at critical stock",
+    "stockDetail": "{{out}} out of stock, {{low}} below minimum",
+    "negative_one": "{{count}} item with negative stock",
+    "negative_other": "{{count}} items with negative stock",
+    "negativeDetail": "Enter production or receipts to bring stock back above zero",
+    "pendingDo_one": "{{count}} delivery order not yet invoiced",
+    "pendingDo_other": "{{count}} delivery orders not yet invoiced",
+    "pendingDoOld_one": "{{count}} is 5 days or older",
+    "pendingDoOld_other": "{{count}} are 5 days or older",
+    "pendingDoFresh": "None older than 5 days yet",
+    "approvals_one": "{{count}} request awaiting approval",
+    "approvals_other": "{{count}} requests awaiting approval",
+    "approvalsDetail": "Open the approval inbox",
+    "title": "Needs Attention",
+    "description": "Items that need action today",
+    "empty": "Nothing needs follow-up",
+    "listLabel": "Items that need attention"
+  },
+  "cashFlowChart": {
+    "in": "Cash In",
+    "out": "Cash Out",
+    "net": "Net Cash Flow",
+    "title": "Cash in vs cash out"
+  },
+  "cashPosition": {
+    "title": "Cash & Bank Position",
+    "description": "Balance per account",
+    "transactions": "Transactions",
+    "empty": "No cash or bank accounts yet"
+  },
+  "categoryDistribution": {
+    "title": "Categories with the most stock",
+    "description": "Total stock quantity per category",
+    "empty": "No inventory items have a category yet. Set a category when adding an item.",
+    "listLabel": "Stock distribution by category"
+  },
+  "cogsBackfill": {
+    "title": "COGS Pending Settlement",
+    "description": "Sales made while stock was negative, settled automatically when goods arrive",
+    "empty": "No pending COGS. All sales are covered by stock.",
+    "pendingItems": "Pending Items",
+    "estimatedValue": "Estimated Value",
+    "listLabel": "Pending COGS per item"
+  },
+  "depreciationDue": {
+    "title": "Upcoming Depreciation",
+    "description": "Schedules not yet posted",
+    "fixedAssets": "Fixed assets",
+    "thisMonth": "This month",
+    "entries_one": "{{count}} entry",
+    "entries_other": "{{count}} entries",
+    "allPosted": "All schedules are posted",
+    "listLabel": "Upcoming depreciation schedule"
+  },
+  "expenseBreakdown": {
+    "title": "Expenses per Account",
+    "profitLoss": "Profit and loss",
+    "empty": "No expense data for this period yet",
+    "summary_one": "Donut chart of expenses per account, total {{total}}, {{count}} account.",
+    "summary_other": "Donut chart of expenses per account, total {{total}}, {{count}} accounts.",
+    "caption": "Expenses per account"
+  },
+  "financialRatios": {
+    "title": "Financial Ratios",
+    "balanceSheet": "Balance sheet",
+    "healthy": ", healthy",
+    "attention": ", needs attention",
+    "totalAssets": "Total Assets",
+    "liabilities": "Liabilities",
+    "equity": "Equity"
+  },
+  "fixedAssetsByCategory": {
+    "title": "Assets per Category",
+    "description": "Book value distribution",
+    "empty": "No assets yet",
+    "assetCount_one": "{{count}} asset",
+    "assetCount_other": "{{count}} assets",
+    "summary": "Donut chart of fixed asset book value per category, total {{total}}.",
+    "caption": "Asset book value per category",
+    "bookValue": "Book value"
+  },
+  "fixedAssetsKpi": {
+    "title": "Fixed Assets Summary",
+    "countHint": "active fixed assets",
+    "cost": "Acquisition Cost",
+    "costHint": "total purchase value",
+    "accumulated": "Accum. Depreciation",
+    "ytd": "YTD {{value}}",
+    "noYtd": "nothing posted YTD",
+    "netBookValue": "Net Book Value",
+    "ofCost": "{{pct}}% of purchase cost"
+  },
+  "kpiCards": {
+    "vsPrevious": "vs previous period",
+    "title": "Performance Summary",
+    "stockCritical": "Critical Stock",
+    "loadFailed": "couldn't load",
+    "stockSafe": "all stock is fine",
+    "stockOut_one": "{{count}} out of stock",
+    "stockOut_other": "{{count}} out of stock",
+    "maintenance": "Maintenance",
+    "noneOverdue": "nothing overdue",
+    "overdueHint_one": "overdue, {{count}} due this week",
+    "overdueHint_other": "overdue, {{count}} due this week",
+    "revenue": "Revenue",
+    "revenueHint": "revenue for the period",
+    "netProfit": "Net Profit",
+    "selectedPeriodHint": "in the selected period",
+    "cashBank": "Cash & Bank",
+    "currentBalance": "current balance",
+    "receivables": "Trade Receivables",
+    "payables": "Trade Payables",
+    "inventoryValue": "Inventory Value",
+    "supplierDeposit": "Supplier Deposits"
+  },
+  "monthlyProfit": {
+    "title": "Monthly Profit Trend",
+    "description": "Revenue and expenses per month",
+    "empty": "No profit data for this period yet",
+    "summary": "Bar chart of revenue and expenses per month.",
+    "summaryWithLast": "Bar chart of revenue and expenses per month. Profit for the latest month ({{month}}) {{profit}}.",
+    "revenue": "Revenue",
+    "expense": "Expenses",
+    "profit": "Profit",
+    "profitOf": "Profit {{month}}",
+    "caption": "Revenue, expenses, and profit per month",
+    "month": "Month"
+  },
+  "movementTrend": {
+    "in": "In",
+    "out": "Out",
+    "net": "Net",
+    "title": "Stock in vs out per month",
+    "description": "Last 6 months",
+    "empty": "No stock movement in the last 6 months.",
+    "summary_one": "Bar chart of stock quantity in and out per month with a net change line, {{count}} month.",
+    "summary_other": "Bar chart of stock quantity in and out per month with a net change line, {{count}} months.",
+    "caption": "Stock movement per month"
+  },
+  "negativeStock": {
+    "title": "Active Negative Stock",
+    "stock": "Stock",
+    "empty": "No negative stock",
+    "notice": "Admin bypass is on. Enter production or receipts soon so stock goes back above zero.",
+    "listLabel": "Negative stock list"
+  },
+  "overdueInvoices": {
+    "title": "Overdue Invoices",
+    "description": "Oldest first, up to 10",
+    "empty": "No overdue invoices",
+    "listLabel": "Overdue invoice list",
+    "receivable": "Receivable",
+    "payable": "Payable"
+  },
+  "pendingDo": {
+    "title": "Delivery Orders Not Yet Invoiced",
+    "deliveryOrders": "Delivery orders",
+    "count_one": "{{count}} DO",
+    "count_other": "{{count}} DOs",
+    "empty": "All delivery orders are invoiced",
+    "notice_one": "<b>{{count}} DO</b> has gone {{days}} days or more without an invoice. Bill the customer soon.",
+    "notice_other": "<b>{{count}} DOs</b> have gone {{days}} days or more without an invoice. Bill the customers soon.",
+    "listLabel": "Delivery orders not yet invoiced",
+    "more_one": "+ {{count}} more DO",
+    "more_other": "+ {{count}} more DOs"
+  },
+  "productionDeepDive": {
+    "topEmpty": "No data for this period. Change the date range above.",
+    "yieldEmpty": "No runs with yield yet",
+    "title": "Production in the Period",
+    "vsPrevious": "vs previous period",
+    "periodRuns": "Runs this period",
+    "noPrevious": "no previous period yet",
+    "inputQty": "Input qty",
+    "inputHint": "total raw material in",
+    "outputQty": "Output qty",
+    "byproductHint": "+ {{qty}} kg by-product",
+    "noByproduct": "no by-product",
+    "avgYield": "Average yield this period",
+    "historical": "historical {{value}}%",
+    "trendTitle": "Yield Trend for the Period",
+    "trendDescription": "Average yield per production day",
+    "trendEmpty": "No runs with yield in this period yet.",
+    "trendSummary_one": "Line chart of production yield per day, {{count}} point. Period average {{avg}} percent.",
+    "trendSummary_other": "Line chart of production yield per day, {{count}} points. Period average {{avg}} percent.",
+    "trendCaption": "Production yield per day",
+    "yieldPct": "Yield (%)",
+    "runCount": "Runs",
+    "topInput": "Top Inputs",
+    "topInputHint": "Most-used raw materials this period",
+    "topOutput": "Top Outputs",
+    "topOutputHint": "Most-produced products this period",
+    "bestYield": "Best Yield",
+    "worstYield": "Lowest Yield",
+    "loadedTitle": "Loaded COGS Breakdown",
+    "loadedDescription_one": "{{count}} run with calculated COGS in the period",
+    "loadedDescription_other": "{{count}} runs with calculated COGS in the period",
+    "material": "Material",
+    "inputCost": "Input Cost",
+    "outputCost": "Output Cost",
+    "byproductNrv": "By-product (NRV)",
+    "netHpp": "Net COGS",
+    "perProductCaption": "COGS per main product",
+    "mainProduct": "Main Product",
+    "outputQtyCol": "Output Qty",
+    "avgHppKg": "Average COGS/kg",
+    "lastHpp": "Latest COGS",
+    "runs_one": "{{count}} run",
+    "runs_other": "{{count}} runs"
+  },
+  "productionStats": {
+    "total": "Total Production",
+    "thisMonth": "Production This Month",
+    "avgYield": "Average Yield",
+    "title": "Production Statistics",
+    "production": "Production",
+    "empty": "No posted production yet. Draft production is not counted until posted."
+  },
+  "profitabilityPerSku": {
+    "title": "Profitability per SKU",
+    "fallbackDescription": "Latest data: last 12 months (no sales in the selected period)",
+    "description": "Material vs loaded COGS margin (top 10 by revenue)",
+    "fullReport": "Full report",
+    "empty": "No inventory-linked sales in this period yet",
+    "revenue": "Revenue",
+    "materialMargin": "Material margin",
+    "loadedMargin": "Loaded margin",
+    "product": "Product",
+    "matPct": "Mat %",
+    "loadedPct": "Loaded %",
+    "coverage": "Coverage",
+    "coverageNote": "<b>Coverage</b> = share of lines linked to a batch. 100% means the loaded margin is most accurate."
+  },
+  "recentActivities": {
+    "title": "Latest Cash Transactions",
+    "empty": "No transactions yet"
+  },
+  "recentMovements": {
+    "adjIn": "Adj+",
+    "adjOut": "Adj-",
+    "title": "Recent Stock Movements",
+    "empty": "No stock movements yet",
+    "caption": "Recent stock movements",
+    "type": "Type"
+  },
+  "revenueChart": {
+    "title": "Does revenue cover expenses?",
+    "description": "Per month in the selected period",
+    "empty": "No transactions in this period yet",
+    "summary": "Area chart of revenue and expenses per month. Total revenue {{revenue}}, total expenses {{expense}}.",
+    "caption": "Revenue and expenses per month"
+  },
+  "stockAlert": {
+    "description": "Stock at or below minimum",
+    "empty": "All stock is fine",
+    "listLabel": "Critical stock list",
+    "stockLine": "Stock {{current}} / Min {{min}} {{unit}}",
+    "out": "Out of stock",
+    "low": "Low",
+    "top20": "Showing the top 20. View all stock"
+  },
+  "topAssets": {
+    "title": "Top 10 Assets (Book Value)",
+    "description": "Assets with the highest book value",
+    "caption": "Ten fixed assets with the highest book value",
+    "cost": "Purchase Cost",
+    "bookValue": "Book Value",
+    "depreciation": "Depreciation",
+    "acquired": "Acquired {{date}}"
+  },
+  "topCustomers": {
+    "title": "Top Customers",
+    "description": "By total sales",
+    "customers": "Customers",
+    "empty": "No sales invoices posted yet. Top customers appear after the first invoice is posted."
+  },
+  "topItemsByStock": {
+    "level": {
+      "safe": "Safe",
+      "low": "Running low",
+      "critical": "Critical"
+    },
+    "title": "Item Stock List",
+    "titleCount_one": "Item Stock List ({{count}})",
+    "titleCount_other": "Item Stock List ({{count}})",
+    "empty": "No inventory items yet. Add items in Inventory.",
+    "caption": "Item stock list",
+    "min": "Min"
+  },
+  "topVendors": {
+    "title": "Top Suppliers",
+    "description": "By total purchases",
+    "suppliers": "Suppliers",
+    "empty": "No purchase invoices posted yet. Top suppliers appear after the first invoice is posted."
+  },
+  "upcomingDue": {
+    "title": "Due Soon",
+    "description": "Invoices due within 14 days",
+    "empty": "No invoices due within 14 days",
+    "listLabel": "Invoices due soon",
+    "daysLeft_one": "in {{count}} day",
+    "daysLeft_other": "in {{count}} days"
+  },
+  "warehouseKpi": {
+    "title": "Stock Summary",
+    "totalItems": "Total Items",
+    "activeItems": "Active Items",
+    "lowStock": "Low Stock",
+    "needRestock": "Needs restock",
+    "movementsThisMonth": "Movements This Month"
+  },
+  "yieldTrend": {
+    "title": "Production Yield",
+    "description": "Average yield per month (6 months)",
+    "thisMonth": "This Month",
+    "average": "Average",
+    "vsLastMonth": "vs Last Month",
+    "summary_one": "Line chart of production yield per month, {{count}} month. This month {{latest}} percent, average {{avg}} percent.",
+    "summary_other": "Line chart of production yield per month, {{count}} months. This month {{latest}} percent, average {{avg}} percent.",
+    "caption": "Production yield per month",
+    "yield": "Yield",
+    "tooltipLabel_one": "{{label}} - {{count}} run",
+    "tooltipLabel_other": "{{label}} - {{count}} runs",
+    "avgLine": "avg {{value}}%"
+  },
+  "widgetCatalog": {
+    "attentionList": {
+      "name": "Needs Attention",
+      "description": "Overdue invoices, critical stock, pending delivery orders, and approvals waiting"
+    },
+    "revenueChart": {
+      "name": "Revenue Chart",
+      "description": "Area chart of revenue vs expenses over the last 6 months"
+    },
+    "recentActivities": {
+      "name": "Recent Activity",
+      "description": "Latest payment transactions"
+    },
+    "topCustomers": {
+      "name": "Top Customers",
+      "description": "Top 5 customers by total sales"
+    },
+    "overdueInvoices": {
+      "name": "Overdue Invoices",
+      "description": "Invoices past their due date"
+    },
+    "expenseBreakdown": {
+      "name": "Expense Breakdown",
+      "description": "This month's expenses as a pie chart"
+    },
+    "stockAlert": {
+      "name": "Stock Alert",
+      "description": "Items with stock below the minimum"
+    },
+    "warehouseKpi": {
+      "name": "Warehouse KPIs",
+      "description": "Summary of total items, active stock, and alerts"
+    },
+    "movementTrend": {
+      "name": "Stock Movement Trend",
+      "description": "Stock in/out chart for the last 6 months"
+    },
+    "categoryDistribution": {
+      "name": "Category Distribution",
+      "description": "Stock distribution by category"
+    },
+    "topItems": {
+      "name": "Top Stocked Items",
+      "description": "Top 10 items with the most stock"
+    },
+    "recentMovements": {
+      "name": "Recent Stock Movements",
+      "description": "Last 10 stock movements"
+    },
+    "productionStats": {
+      "name": "Production Statistics",
+      "description": "Total production and average yield"
+    },
+    "financialRatios": {
+      "name": "Financial Ratios",
+      "description": "Current ratio, debt-to-equity, and debt-to-asset"
+    },
+    "monthlyProfit": {
+      "name": "Monthly Profit Trend",
+      "description": "Revenue vs expenses chart for the last 12 months"
+    },
+    "cashFlowSummary": {
+      "name": "Cash Flow",
+      "description": "Cash in, cash out, and net flow this month"
+    },
+    "agingSummary": {
+      "name": "Aging Summary",
+      "description": "Receivables and payables aging per bucket"
+    },
+    "cashPosition": {
+      "name": "Cash & Bank Position",
+      "description": "Balance per cash/bank account with total"
+    },
+    "topVendors": {
+      "name": "Top Suppliers",
+      "description": "Top 5 suppliers by total purchases"
+    },
+    "yieldTrend": {
+      "name": "Yield Trend",
+      "description": "Average production yield over the last 6 months"
+    },
+    "cogsBackfill": {
+      "name": "COGS Pending Settlement",
+      "description": "Negative-stock sales waiting for automatic COGS correction"
+    },
+    "maintenance": {
+      "name": "Maintenance",
+      "description": "Overdue, needs-attention, and upcoming maintenance and expiry list (schedules, work orders, vehicles, documents)"
+    },
+    "upcomingDue": {
+      "name": "Due Soon",
+      "description": "Sales/purchase invoices due within 14 days"
+    },
+    "fixedAssetsKpi": {
+      "name": "Fixed Asset KPIs",
+      "description": "Total assets, acquisition cost, accumulated depreciation, book value"
+    },
+    "fixedAssetsByCategory": {
+      "name": "Assets per Category",
+      "description": "Fixed asset book value per category (pie chart)"
+    },
+    "depreciationDue": {
+      "name": "Upcoming Depreciation",
+      "description": "This month's depreciation schedule + 5 upcoming entries"
+    },
+    "topAssets": {
+      "name": "Top 10 Assets",
+      "description": "Fixed assets with the highest book value"
+    },
+    "profitabilityPerSku": {
+      "name": "Profitability per SKU",
+      "description": "Top 10 SKUs with material vs loaded COGS margin"
+    },
+    "productionDeepDive": {
+      "name": "Production Deep Dive",
+      "description": "Run KPIs + yield trend + top inputs/outputs + best/worst + loaded COGS"
+    }
+  },
+  "periodFilter": {
+    "presets": {
+      "thisMonth": "This Month",
+      "lastMonth": "Last Month",
+      "thisQuarter": "This Quarter",
+      "ytd": "Year to Date (YTD)",
+      "last12Months": "Last 12 Months",
+      "all": "All Time",
+      "custom": "Custom"
+    },
+    "ariaLabel": "Period: {{label}}",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply"
+  },
+  "opsPeriod": {
+    "presets": {
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "last30": "Last 30 days",
+      "thisQuarter": "This quarter",
+      "ytd": "Year to date",
+      "custom": "Custom range"
+    },
+    "vsPrevious": "vs previous period",
+    "points": "{{value}} pts",
+    "groupLabel": "Dashboard period",
+    "period": "Period",
+    "dateRange": "Date range",
+    "loadingChart": "Loading chart",
+    "loadingData": "Loading data"
+  },
+  "dashboardPage": {
+    "title": "Dashboard",
+    "yourCompany": "your company",
+    "description": "Performance summary for {{company}}",
+    "descriptionProduction": "Stock, warehouse & production summary for {{company}}",
+    "configure": "Configure dashboard",
+    "trailingDescription": "Last 6 months up to the end of the selected period",
+    "nav": {
+      "overview": "Overview",
+      "finance": "Finance",
+      "sales": "Sales",
+      "stock": "Stock",
+      "production": "Production",
+      "assets": "Assets"
+    },
+    "sections": {
+      "overview": "Key figures for the selected period",
+      "finance": "Profit, cash flow & ratios",
+      "sales": "Customers & payment activity",
+      "stockTitle": "Stock & Warehouse",
+      "stock": "Inventory, movements & stock alerts",
+      "production": "Production statistics & yield",
+      "assetsTitle": "Fixed Assets",
+      "assets": "Asset value, distribution, and depreciation schedule"
+    }
+  },
+  "inventoryTab": {
+    "summaryLabel": "Inventory summary",
+    "valueHint": "stock × average cost, active items",
+    "activeHint": "inventory items",
+    "outOfStock": "Out of Stock",
+    "outHint": "zero or negative stock",
+    "belowMin": "Below Minimum",
+    "belowMinHint": "needs reordering",
+    "movements": "Stock Movements",
+    "movementsHint": "{{in}} in · {{out}} out",
+    "summaryError": "Couldn't load the inventory summary.",
+    "stockMin": "Stock / Min.",
+    "coverage": "{{pct}} of minimum stock",
+    "actions": "Actions",
+    "actionsFor": "Actions for {{code}}",
+    "viewItem": "View item",
+    "movementHistory": "Movement history",
+    "attentionTitle": "Needs action",
+    "attentionDescription": "Active items that are out of stock or below minimum.",
+    "viewAll": "View all ({{count}})",
+    "allSafeDescription": "No active items are out of stock or below minimum.",
+    "attentionTableLabel": "Items that need action",
+    "warehouse": "Warehouse",
+    "valueByCategory": "Stock value by category",
+    "valueByWarehouse": "Stock value by warehouse",
+    "total": "Total {{total}}",
+    "totalPerWarehouse": "Total {{total}} · balance per warehouse",
+    "valueDescription": "Stock × average cost, active items.",
+    "groupToggle": "Group stock value",
+    "valueEmptyTitle": "No stock value yet",
+    "valueEmptyDescription": "Values appear once items have stock and an average cost.",
+    "itemsWithStock": "Items in stock",
+    "movementNo": "Movement No.",
+    "itemMovementHistory": "Item movement history",
+    "quantity": "Quantity",
+    "recentTitle": "Latest stock movements",
+    "allMovements": "All movements",
+    "recentEmptyTitle": "No movements yet",
+    "recentEmptyDescription": "No stock movements in this period."
+  },
+  "partiesTab": {
+    "aging": {
+      "current": "Not Yet Due",
+      "d30": "1-30 days",
+      "d60": "31-60 days",
+      "d90": "61-90 days",
+      "over90": "> 90 days"
+    },
+    "noOpenBalance": "No open balance right now.",
+    "loading": "Loading partner summary…",
+    "errorTitle": "Couldn't load the partner summary",
+    "errorDescription": "The request to the server failed. Check your connection and try again.",
+    "activeCustomers": "Active Customers",
+    "activeSuppliers": "Active Suppliers",
+    "totalReceivables": "Total Receivables",
+    "totalPayables": "Total Payables",
+    "customerDeposit": "Customer Deposits",
+    "supplierDeposit": "Supplier Deposits",
+    "agingAr": "Receivables Aging",
+    "agingAp": "Payables Aging",
+    "topAr": "Top 10 Customer Receivables",
+    "topAp": "Top 10 Supplier Payables",
+    "overdueAr": "Overdue Receivable Invoices",
+    "overdueAp": "Overdue Payable Invoices",
+    "recentPayments": "Recent Payments",
+    "noPayments": "No payments yet.",
+    "paymentNo": "Payment No.",
+    "partner": "Partner",
+    "account": "Account",
+    "receive": "Receive",
+    "pay": "Pay",
+    "noOverdue": "No overdue invoices.",
+    "invoice": "Invoice",
+    "outstanding": "Outstanding",
+    "days": "Days",
+    "daysShort_one": "{{count}}d",
+    "daysShort_other": "{{count}}d"
+  },
+  "productionTab": {
+    "summaryLabel": "Production summary",
+    "runs": "Production Runs",
+    "input": "Material Processed",
+    "inputHint": "total input",
+    "mainOutput": "Main Output",
+    "mainOutputHint": "excluding by-products",
+    "byproduct": "By-products",
+    "ofOutput": "{{pct}} of output",
+    "weightedYield": "Weighted Yield",
+    "weightedHint": "weighted by input qty",
+    "conversionCost": "Conversion Cost",
+    "avgHpp": "Average COGS {{value}}/kg",
+    "noHpp": "no COGS in the period yet",
+    "summaryError": "Couldn't load the production summary.",
+    "mixedUnits": "Quantities use mixed units; figures are summed as is.",
+    "trendTitle": "Daily yield trend",
+    "trendDescription": "Average run yield per day · {{range}}",
+    "trendEmptyTitle": "No yield data yet",
+    "trendEmptyDescription": "Yield appears once there are production runs in this period.",
+    "avgYield": "Average yield",
+    "runCount": "Runs",
+    "weightedLine": "Weighted {{value}}",
+    "dailyYield": "Daily yield",
+    "pendingTitle": "Awaiting approval",
+    "pendingCount": "{{count}} production run requests",
+    "pendingDescription": "Production run requests",
+    "openQueue": "Open queue",
+    "queueEmptyTitle": "Queue is empty",
+    "queueEmptyDescription": "All production run requests have been decided.",
+    "kgInput": "{{qty}} kg input",
+    "today": "Today",
+    "topTitle": "Top products",
+    "topDescription": "Largest outputs in the period, with average COGS.",
+    "topEmptyTitle": "No output yet",
+    "topEmptyDescription": "This period's production output will appear here.",
+    "hppPerUnit": "COGS {{value}}/{{unit}}",
+    "unit": "unit",
+    "noHppYet": "No COGS yet",
+    "recentTitle": "Latest runs",
+    "recentDescription": "Last 10 runs in the period.",
+    "productionData": "Production data",
+    "recentEmptyTitle": "No runs yet",
+    "recentEmptyDescription": "No production runs in this period.",
+    "runAria": "{{run}}, {{date}}, yield {{yield}}",
+    "runsCount_one": "{{count}} run",
+    "runsCount_other": "{{count}} runs"
+  },
+  "warehouseStock": {
+    "negativeStock": "Negative stock",
+    "positiveStock": "Positive stock",
+    "otherCategory": "Other",
+    "default": "(default)",
+    "avgCost": "Avg. Cost (Rp)",
+    "valueRp": "Value (Rp)",
+    "companyFallback": "Company",
+    "pdfFailed": "Couldn't create the PDF.",
+    "selectedWarehouse": "selected warehouse",
+    "title": "Stock per Warehouse",
+    "description": "Stock position per warehouse at the end of the selected date. Items with zero stock are hidden.",
+    "downloadTitle": "Download the stock position for the selected date",
+    "downloadPdf": "Download PDF",
+    "activeWarehouseHint": "active warehouses",
+    "itemsWithBalance": "Items with Balance",
+    "balancesPerWarehouse": "{{value}} balances per warehouse",
+    "itemTypes": "item types",
+    "valueHint": "estimate at current average cost",
+    "negativeStockTitle": "Negative Stock",
+    "needsFollowUp": "needs follow-up",
+    "none": "none",
+    "searchLabel": "Search items",
+    "searchPlaceholder": "Search item name or code",
+    "stockCondition": "Stock condition",
+    "allStock": "All stock",
+    "allWarehouses": "All warehouses",
+    "searchWarehouse": "Search warehouses…",
+    "allCategories": "All categories",
+    "searchCategory": "Search categories…",
+    "asOf": "As of",
+    "tableLabel": "Stock per warehouse as of {{date}}",
+    "itemLabel": "balance",
+    "noWarehousesTitle": "No active warehouses yet",
+    "noWarehousesDescription": "Activate or add a warehouse to see stock per location.",
+    "openWarehouses": "Open Warehouse List",
+    "emptyTitle": "No stock yet",
+    "emptyTitleAsOf": "No stock as of {{date}}",
+    "emptyDescription": "Stock balances appear after goods receipts or stock movements.",
+    "historicalNote": "Historical positions are calculated backward from current stock.",
+    "activeWarehouses_one": "{{formatted}} active warehouse",
+    "activeWarehouses_other": "{{formatted}} active warehouses"
+  },
+  "kit": {
+    "dataTable": "Data table",
+    "dataTableOf": "{{caption}} (data table)",
+    "donut": {
+      "group": "Group",
+      "share": "Share"
+    },
+    "widget": {
+      "loading": "Loading widget",
+      "loadingTitle": "{{title}} (loading)",
+      "error": "Couldn't load the data",
+      "retry": "Try again",
+      "empty": "No data to show for this period.",
+      "viewAll": "View all"
+    }
+  },
+  "sectionNav": {
+    "label": "Dashboard sections"
+  }
+}

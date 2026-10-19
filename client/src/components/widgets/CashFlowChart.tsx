@@ -1,0 +1,62 @@
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { ArrowDownCircle, ArrowUpCircle, Wallet } from 'lucide-react';
+import api from '../../lib/api';
+import { formatRupiah } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { WidgetCard } from '../dashboard-kit/WidgetCard';
+
+interface CashFlowData {
+  days: { date: string; cashIn: number; cashOut: number }[];
+  totalIn: number;
+  totalOut: number;
+  net: number;
+}
+
+interface CashFlowProps {
+  startDate?: string;
+  endDate?: string;
+}
+
+export default function CashFlowChart({ startDate, endDate }: CashFlowProps = {}) {
+  const { t } = useTranslation('dashboard');
+  const { data, isLoading, isError, refetch } = useQuery<CashFlowData>({
+    queryKey: ['dashboard-cash-flow', startDate, endDate],
+    queryFn: async () => (await api.get('/dashboard/cash-flow', { params: { startDate, endDate } })).data,
+  });
+
+  const rows = data
+    ? [
+        { label: t('cashFlowChart.in'), value: data.totalIn, Icon: ArrowDownCircle, tone: 'text-success-text' },
+        { label: t('cashFlowChart.out'), value: data.totalOut, Icon: ArrowUpCircle, tone: 'text-danger-text' },
+        { label: t('cashFlowChart.net'), value: data.net, Icon: Wallet, tone: data.net >= 0 ? 'text-success-text' : 'text-danger-text', strong: true },
+      ]
+    : [];
+
+  return (
+    <WidgetCard
+      title={t('cashFlowChart.title')}
+      description={t('widgetsShared.selectedPeriod')}
+      icon={Wallet}
+      href="/reports/cash-flow"
+      hrefLabel={t('widgetsShared.report')}
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      minHeight={190}
+    >
+      <ul className="space-y-2">
+        {rows.map(({ label, value, Icon, tone, strong }) => (
+          <li
+            key={label}
+            className={cn('flex items-center gap-3 rounded-md bg-muted/50 p-3', strong && 'border border-border-strong')}
+          >
+            <Icon className={cn('size-[18px] shrink-0', tone)} aria-hidden />
+            <span className="flex-1 text-xs font-medium text-muted-foreground">{label}</span>
+            <span className={cn('num text-sm font-semibold', tone)}>{formatRupiah(value, { negative: 'parens' })}</span>
+          </li>
+        ))}
+      </ul>
+    </WidgetCard>
+  );
+}

@@ -1,0 +1,153 @@
+import * as Menu from '@radix-ui/react-dropdown-menu';
+import { Check, ChevronRight, Info, Keyboard, KeyRound, LogOut, Monitor, Moon, Palette, Send, Sun } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { LOCALE } from '@/lib/format';
+import { useTheme, type ThemeId } from '@/contexts/ThemeContext';
+import { roleLabel, initials } from './role-label';
+
+export interface UserMenuUser {
+  fullName?: string | null;
+  username?: string | null;
+  role?: string | null;
+}
+
+interface UserMenuProps {
+  user: UserMenuUser | null;
+  companyName?: string | null;
+  onChangePassword: () => void;
+  /** Shown only when the AIRA bot can be used (engine configured, service on). */
+  onLinkTelegram?: () => void;
+  onOpenShortcuts: () => void;
+  onOpenAbout: () => void;
+  onLogout: () => void;
+}
+
+/** Label: `common:theme.<id>.label`. */
+const THEME_OPTIONS: { id: ThemeId; icon: typeof Sun }[] = [
+  { id: 'light', icon: Sun },
+  { id: 'dark', icon: Moon },
+  { id: 'system', icon: Monitor },
+];
+
+const contentClass =
+  'z-[var(--z-dropdown)] min-w-[14rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-2)] ' +
+  'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95';
+
+const itemClass =
+  'relative flex h-9 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-sm text-foreground outline-none transition-colors ' +
+  'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_2px_0_0_var(--primary)] data-[state=open]:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ' +
+  '[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground';
+
+const Separator = () => <Menu.Separator className="-mx-1 my-1 h-px bg-border" />;
+
+/** Avatar menu: identity, password, theme, shortcuts, about, sign out. */
+export function UserMenu({ user, companyName, onChangePassword, onLinkTelegram, onOpenShortcuts, onOpenAbout, onLogout }: UserMenuProps) {
+  const { t } = useTranslation(['shell', 'common']);
+  const { theme, setTheme } = useTheme();
+  const name = user?.fullName || user?.username || t('userMenu.fallbackName');
+  const role = roleLabel(user?.role);
+  // Seed/admin accounts are often named after their role; don't print it twice.
+  const showRole = role.localeCompare(name, LOCALE, { sensitivity: 'base' }) !== 0;
+  const ThemeIcon = THEME_OPTIONS.find((o) => o.id === theme)?.icon ?? Monitor;
+
+  return (
+    <Menu.Root modal={false}>
+      <Menu.Trigger
+        aria-label={t('userMenu.trigger', { name })}
+        className={cn(
+          'flex h-9 items-center gap-2 rounded-md pr-1 pl-0.5 transition-colors hover:bg-accent xl:pr-2',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+          'data-[state=open]:bg-accent',
+        )}
+      >
+        <span
+          aria-hidden
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-semibold text-primary-subtle-foreground"
+        >
+          {initials(name)}
+        </span>
+        <span className="hidden min-w-0 flex-col items-start text-left leading-tight xl:flex">
+          <span className="max-w-[10rem] truncate text-sm font-medium text-foreground">{name}</span>
+          {showRole && <span className="text-xs text-muted-foreground">{role}</span>}
+        </span>
+      </Menu.Trigger>
+
+      <Menu.Portal>
+        <Menu.Content align="end" sideOffset={6} className={cn(contentClass, 'w-64')}>
+          <div className="flex items-center gap-3 px-2.5 py-2">
+            <span
+              aria-hidden
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-sm font-semibold text-primary-subtle-foreground"
+            >
+              {initials(name)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+              {showRole && <p className="truncate text-xs text-muted-foreground">{role}</p>}
+              {companyName && <p className="truncate text-xs text-muted-foreground">{companyName}</p>}
+            </div>
+          </div>
+          <Separator />
+
+          <Menu.Item className={itemClass} onSelect={onChangePassword}>
+            <KeyRound aria-hidden />
+            {t('userMenu.changePassword')}
+          </Menu.Item>
+
+          {onLinkTelegram && (
+            <Menu.Item className={itemClass} onSelect={onLinkTelegram}>
+              <Send aria-hidden />
+              {t('userMenu.linkTelegram')}
+            </Menu.Item>
+          )}
+
+          <Menu.Sub>
+            <Menu.SubTrigger className={itemClass}>
+              <Palette aria-hidden />
+              <span className="flex-1">{t('userMenu.theme')}</span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <ThemeIcon aria-hidden className="!size-3.5" />
+                {t(`common:theme.${theme}.label`)}
+              </span>
+              <ChevronRight aria-hidden />
+            </Menu.SubTrigger>
+            <Menu.Portal>
+              <Menu.SubContent sideOffset={6} alignOffset={-4} className={cn(contentClass, 'min-w-[10rem]')}>
+                <Menu.RadioGroup value={theme} onValueChange={(v) => setTheme(v as ThemeId)}>
+                  {THEME_OPTIONS.map(({ id, icon: Icon }) => (
+                    <Menu.RadioItem key={id} value={id} className={cn(itemClass, 'pr-8')}>
+                      <Icon aria-hidden />
+                      {t(`common:theme.${id}.label`)}
+                      <Menu.ItemIndicator className="absolute right-2.5 flex items-center">
+                        <Check aria-hidden className="!text-primary" />
+                      </Menu.ItemIndicator>
+                    </Menu.RadioItem>
+                  ))}
+                </Menu.RadioGroup>
+              </Menu.SubContent>
+            </Menu.Portal>
+          </Menu.Sub>
+
+          <Menu.Item className={itemClass} onSelect={onOpenShortcuts}>
+            <Keyboard aria-hidden />
+            <span className="flex-1">{t('userMenu.shortcuts')}</span>
+            <kbd className="rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground">?</kbd>
+          </Menu.Item>
+          <Menu.Item className={itemClass} onSelect={onOpenAbout}>
+            <Info aria-hidden />
+            {t('userMenu.about')}
+          </Menu.Item>
+          <Separator />
+          <Menu.Item
+            className={cn(itemClass, 'text-danger-text data-[highlighted]:bg-danger-subtle [&_svg]:text-danger-text')}
+            onSelect={onLogout}
+          >
+            <LogOut aria-hidden />
+            {t('userMenu.logout')}
+          </Menu.Item>
+        </Menu.Content>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}

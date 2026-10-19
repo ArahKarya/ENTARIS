@@ -1,0 +1,539 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource-variable/plus-jakarta-sans/index.css';
+
+/* Override dark: variant to use .dark class instead of prefers-color-scheme */
+@custom-variant dark (&:is(.dark *));
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Entaris design tokens (brand: docs/brand/entaris/README.md)
+   Themes: light (:root) and dark (.dark). Every text pair ≥4.5:1 and every
+   non-text pair ≥3:1 — verified by `node scripts/contrast-check.mjs`.
+   Tailwind utilities are exposed through @theme inline below; the shadcn alias
+   names (--primary, --card, --muted-foreground, ...) map onto the new tokens so
+   existing pages keep working.
+   ──────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans:
+    'Inter Variable', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-heading:
+    'Plus Jakarta Sans Variable', 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --color-chart-6: var(--chart-6);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+
+  /* Brand */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-2: var(--brand-navy-2);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-blue-light: var(--brand-blue-light);
+  --color-aira: var(--aira);
+
+  /* Surfaces & text levels */
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-foreground-secondary: var(--text-secondary);
+  --color-border-strong: var(--border-strong);
+  --color-overlay: var(--overlay);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+
+  /* Primary */
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-subtle-foreground: var(--primary-subtle-foreground);
+
+  /* Semantic: solid / -foreground (text on solid) / -subtle (tint) / -text (text on tint or surface) */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-text: var(--warning-text);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-text: var(--danger-text);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-text: var(--info-text);
+  --color-neutral-subtle: var(--neutral-subtle);
+  --color-neutral-text: var(--neutral-text);
+
+  /* shadcn aliases */
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+}
+
+@theme {
+  /* Sharp corners per DESIGN.md: xs/sm 2 (badge, checkbox, count) · md and up 4
+     (input, button, card, popover, modal) · full only for avatars and status dots */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.25rem;
+  --radius-3xl: 0.25rem;
+  --radius-4xl: 0.25rem;
+}
+
+/* ─── Light theme (default; .light forces it inside a dark subtree) ─────── */
+:root,
+.light {
+  /* Brand palette (docs/brand/entaris) */
+  --brand-navy: #1B2B48;
+  --brand-navy-2: #22385C;
+  --brand-blue: #3D8BE0;
+  --brand-blue-mid: #2E5CA8;
+  --brand-blue-light: #9CC9F5;
+  --brand-accent: #3D8BE0;
+
+  /* Surfaces */
+  --background: #F6F8FB;
+  --surface: #FFFFFF;
+  --surface-sunken: #EEF2F7;
+  --surface-raised: #FFFFFF;
+  --surface-hover: #EAEFF6;
+
+  /* Borders: --border is decorative; --input/--border-strong carry meaning (≥3:1) */
+  --border: #E2E7EF;
+  --border-strong: #808B9D;
+  --input: #808B9D;
+
+  /* Text levels */
+  --text: #142033;
+  --text-secondary: #46546B;
+  --text-muted: #5B687C;
+
+  /* Primary (buttons, links) */
+  --primary: #2F6FC4;
+  --primary-hover: #285FA9;
+  --primary-foreground: #FFFFFF;
+  --primary-subtle: #EEF4FD;
+  --primary-subtle-foreground: #1F4E8C;
+  /* Solid fill that always carries white text (legacy bg-blue-600 text-white) */
+  --primary-solid: #2F6FC4;
+  --primary-solid-hover: #285FA9;
+  --ring: #3D8BE0;
+
+  /* Semantic */
+  --success: #1A7F51;
+  --success-foreground: #FFFFFF;
+  --success-subtle: #E7F5EE;
+  --success-text: #14663F;
+  --warning: #B97E0F;
+  --warning-foreground: #1F1503;
+  --warning-subtle: #FDF3E1;
+  --warning-text: #7D5100;
+  --danger: #C8372D;
+  --danger-hover: #A92E25;
+  --danger-foreground: #FFFFFF;
+  --danger-subtle: #FCEBE9;
+  --danger-text: #9B2219;
+  --info: #0B7A88;
+  --info-foreground: #FFFFFF;
+  --info-subtle: #E4F5F7;
+  --info-text: #0B6470;
+  --neutral-subtle: #EEF1F5;
+  --neutral-text: #46546B;
+
+  /* Charts: brand ramp + teal/amber for contrast between series */
+  --chart-1: #1B2B48;
+  --chart-2: #2F6FC4;
+  --chart-3: #0E8A9A;
+  --chart-4: #A86F0A;
+  --chart-5: #3D8BE0;
+  --chart-6: #77839A;
+
+  --overlay: rgb(15 23 38 / 0.5);
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px 0 rgb(20 32 51 / 0.05), 0 1px 3px 0 rgb(20 32 51 / 0.04);
+  --shadow-2: 0 4px 12px -2px rgb(20 32 51 / 0.12), 0 2px 4px -2px rgb(20 32 51 / 0.06);
+  --shadow-3: 0 16px 40px -8px rgb(20 32 51 / 0.24), 0 4px 12px -4px rgb(20 32 51 / 0.1);
+
+  /* Z-index scale */
+  --z-sticky: 30;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-popover: 65;
+  --z-toast: 70;
+  --z-palette: 80;
+
+  color-scheme: light;
+}
+
+/* ─── Dark theme ─────────────────────────────────────────────────────────── */
+.dark {
+  --brand-navy: #0F1A2E;
+  --brand-navy-2: #1A2942;
+  --brand-accent: #6FA8EC;
+
+  --background: #0D1524;
+  --surface: #131D2F;
+  --surface-sunken: #0F1828;
+  --surface-raised: #1A263B;
+  --surface-hover: #1D2A40;
+
+  --border: #24324A;
+  --border-strong: #63738D;
+  --input: #63738D;
+
+  --text: #E8EDF5;
+  --text-secondary: #B4C0D2;
+  --text-muted: #8C9AAF;
+
+  --primary: #5B9BE8;
+  --primary-hover: #74ABEC;
+  --primary-foreground: #0D1524;
+  --primary-subtle: #1A2F4F;
+  --primary-subtle-foreground: #A9CCF4;
+  --primary-solid: #2F6FC4;
+  --primary-solid-hover: #2A65B4;
+  --ring: #6FA8EC;
+
+  --success: #3DBE82;
+  --success-foreground: #0D1524;
+  --success-subtle: #12301F;
+  --success-text: #7CD9AA;
+  --warning: #E5A93A;
+  --warning-foreground: #0D1524;
+  --warning-subtle: #33270F;
+  --warning-text: #F1C877;
+  --danger: #EF6B61;
+  --danger-hover: #F28A82;
+  --danger-foreground: #0D1524;
+  --danger-subtle: #3A1A18;
+  --danger-text: #F6A29B;
+  --info: #3BB7C6;
+  --info-foreground: #0D1524;
+  --info-subtle: #0F2E33;
+  --info-text: #86D6E0;
+  --neutral-subtle: #1D2A40;
+  --neutral-text: #B4C0D2;
+
+  --chart-1: #9CC9F5;
+  --chart-2: #5B9BE8;
+  --chart-3: #3BB7C6;
+  --chart-4: #E5A93A;
+  --chart-5: #3D8BE0;
+  --chart-6: #8C9AAF;
+
+  --overlay: rgb(3 6 12 / 0.65);
+
+  --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-3: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 4px 12px -4px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+/* ─── Aliases: re-declared per theme scope so a nested .light/.dark subtree
+   (e.g. the /_ui review page) resolves them against its own tokens ────── */
+:root,
+.light,
+.dark {
+  --aira: var(--brand-accent);
+  --shadow-focus: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  /* Legacy shadow names */
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+
+  --radius: 0.25rem;
+
+  /* shadcn aliases → tokens */
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--text);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--danger-foreground);
+
+  /* Sidebar (stays on the light surface until the Phase 2 shell work) */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-subtle);
+  --sidebar-accent-foreground: var(--primary-subtle-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Legacy aliases (inline style={{ color: 'var(--color-…)' }}) */
+  --color-bg-primary: var(--card);
+  --color-bg-secondary: var(--background);
+  --color-bg-tertiary: var(--secondary);
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border-light: var(--border);
+  --color-card-bg: var(--card);
+  --color-input-bg: var(--card);
+  --color-hover: var(--accent);
+
+}
+.dark {
+  --sidebar: var(--surface-sunken);
+}
+
+/* Numeric cells: tabular, lining figures, never wrapped */
+@utility num {
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  h1 { font-size: clamp(1.375rem, 1.6vw + 0.75rem, 1.625rem); font-weight: 600; }
+  h2 { font-size: clamp(1.125rem, 1vw + 0.75rem, 1.375rem); font-weight: 600; }
+  h3 { font-size: 1.0625rem; font-weight: 600; }
+  h4 { font-size: 0.9375rem; font-weight: 600; }
+  h5 { font-size: 0.875rem; font-weight: 600; }
+  h6 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+  }
+
+  p { line-height: 1.6; }
+
+  a {
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+
+  code, kbd, pre {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  @supports (font-variation-settings: "wght" 400) {
+    html { font-synthesis-weight: none; }
+  }
+
+  /* Motion levels (DESIGN.md "Gerak"), set on <html data-motion> by theme-init.js and
+     MotionContext. 'smooth' and 'lively' keep the CSS as written; 'lively' adds JS
+     effects (KPI count-up, chart animation). Loading spinners keep spinning. */
+  :root[data-motion='none'] *:not(.animate-spin):not(.aira-pixel),
+  :root[data-motion='none'] *::before,
+  :root[data-motion='none'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Only open/close of dialogs, sheets and menus (keyframe animations) remain. */
+  :root[data-motion='minimal'] *,
+  :root[data-motion='minimal'] *::before,
+  :root[data-motion='minimal'] *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root:not([data-motion]) *,
+    :root:not([data-motion]) *::before,
+    :root:not([data-motion]) *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Penanda "AIRA sedang bekerja" (components/aira/LoadingState.tsx) */
+@keyframes pixel-on {
+  0%,
+  60%,
+  100% {
+    opacity: 0.15;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+/* Sel grid = penanda aktivitas seperti .animate-spin: tetap bergerak di mode gerak "none" dan
+   "minimal", diam hanya bila sistem meminta reduced motion. Kilau label hanya hiasan: diam di
+   kedua mode itu. */
+.aira-pixel {
+  opacity: 0.15;
+  animation: pixel-on 650ms ease-in-out var(--pixel-delay, 0ms) infinite;
+}
+.aira-shimmer {
+  color: var(--muted-foreground);
+  background-image: linear-gradient(90deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 1.4s linear infinite;
+}
+@supports not (background-clip: text) {
+  .aira-shimmer {
+    -webkit-text-fill-color: currentColor;
+  }
+}
+@media (forced-colors: active) {
+  .aira-shimmer {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+:root[data-motion='none'] .aira-shimmer,
+:root[data-motion='minimal'] .aira-shimmer {
+  animation: none;
+}
+@keyframes shimmer-text {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Skip-link a11y */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 0 0 0.25rem 0;
+  font-weight: 600;
+}
+.skip-to-content:focus { left: 0; }
+
+/* ─── Print Styles ─────────────────────────────────────────────────── */
+@media print {
+  @page { size: A4; margin: 1.5cm 1cm; }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  nav, aside, header, .sidebar, .no-print, [data-no-print] { display: none !important; }
+  main, .main-content {
+    margin: 0 !important; padding: 0 !important;
+    width: 100% !important; max-width: 100% !important;
+  }
+  .print-only { display: block !important; }
+  .bg-card.border { border: none !important; box-shadow: none !important; break-inside: auto; }
+  .report-summary-cards { break-inside: avoid; }
+  .bg-blue-600, .bg-primary { background-color: #2F6FC4 !important; color: white !important; }
+  .bg-green-50\/60, .bg-red-50\/60, .bg-gray-50\/60 { background-color: #f9fafb !important; }
+  .overflow-y-auto, .overflow-auto, .overflow-x-auto {
+    overflow: visible !important; max-height: none !important;
+  }
+  [class*="max-h-"] { max-height: none !important; }
+  .grid.grid-cols-1.lg\:grid-cols-2 { display: block !important; }
+  .grid.grid-cols-1.lg\:grid-cols-2 > * { margin-bottom: 16px !important; }
+  .border-b { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+  table { break-inside: auto; width: 100% !important; border-collapse: collapse !important; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  .border-t.border-border { break-before: avoid; }
+  .truncate { overflow: visible !important; text-overflow: unset !important; white-space: normal !important; }
+  .rounded-xl, .rounded-lg { border-radius: 0 !important; }
+  .overflow-hidden { overflow: visible !important; }
+  a[href]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #555; }
+  a[href^="#"]::after, a[href^="javascript:"]::after, a[data-no-print-url]::after { content: ""; }
+  .font-tabular, [class*="font-mono"] { font-variant-numeric: tabular-nums; }
+}

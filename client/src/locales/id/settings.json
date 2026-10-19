@@ -1,0 +1,743 @@
+{
+  "appearance": {
+    "active": "Aktif",
+    "theme": {
+      "title": "Tema Tampilan",
+      "description": "Pilih Terang, Gelap, atau Sistem. Perubahan langsung berlaku dan disimpan di browser ini.",
+      "current": "Tema aktif: <strong>{{label}}</strong>",
+      "systemNow": ", saat ini {{mode}}.",
+      "systemDark": "gelap",
+      "systemLight": "terang"
+    },
+    "motion": {
+      "title": "Gerak dan Animasi",
+      "description": "Atur seberapa banyak animasi di aplikasi. Perubahan langsung berlaku dan disimpan di browser ini.",
+      "groupLabel": "Tingkat gerak",
+      "followsReduced": "Perangkat Anda meminta gerak dikurangi, jadi tingkat Tidak ada dipakai sampai Anda memilih sendiri.",
+      "followsDefault": "Belum ada pilihan tersimpan; tingkat Halus dipakai.",
+      "levels": {
+        "none": {
+          "label": "Tidak ada",
+          "description": "Tanpa transisi. Semua berubah seketika."
+        },
+        "minimal": {
+          "label": "Minimalis",
+          "description": "Hanya buka dan tutup dialog, panel samping, dan menu."
+        },
+        "smooth": {
+          "label": "Halus",
+          "description": "Ditambah transisi saat kursor lewat dan saat berganti tab."
+        },
+        "lively": {
+          "label": "Terasa hidup",
+          "description": "Ditambah angka KPI yang menghitung naik dan grafik yang bergerak saat dimuat."
+        }
+      }
+    },
+    "language": {
+      "title": "Bahasa",
+      "description": "Bahasa tampilan, PDF, dan ekspor untuk akun Anda. Disimpan di akun, jadi ikut ke perangkat lain.",
+      "saveError": "Bahasa gagal disimpan. Coba lagi."
+    }
+  },
+  "company": {
+    "defaultLanguage": {
+      "label": "Bahasa bawaan",
+      "hint": "Dipakai pengguna yang belum memilih bahasa sendiri di Pengaturan > Tampilan."
+    },
+    "legend": "Profil perusahaan",
+    "save": "Simpan Pengaturan",
+    "viewOnly": "Anda hanya memiliki akses lihat untuk pengaturan ini.",
+    "footerNote": "Catatan kaki",
+    "toast": {
+      "saved": "Pengaturan disimpan.",
+      "saveError": "Gagal menyimpan pengaturan."
+    },
+    "errors": {
+      "nameRequired": "Nama perusahaan wajib diisi.",
+      "emailInvalid": "Format email tidak valid."
+    },
+    "fields": {
+      "companyName": {
+        "label": "Nama perusahaan",
+        "placeholder": "Nama Perusahaan Anda"
+      },
+      "address": {
+        "label": "Alamat",
+        "placeholder": "Alamat perusahaan"
+      },
+      "phone": {
+        "label": "Nomor telepon"
+      },
+      "email": {
+        "label": "Email"
+      },
+      "taxId": {
+        "label": "NPWP"
+      },
+      "defaultCurrency": {
+        "label": "Mata uang",
+        "hint": "Kode ISO, mis. IDR."
+      }
+    },
+    "logo": {
+      "title": "Logo Perusahaan",
+      "description": "Unggah dua varian agar tetap terlihat di semua tema. Jika varian gelap kosong, varian terang dipakai di semua mode.",
+      "light": {
+        "title": "Mode terang",
+        "hint": "Logo gelap di atas latar terang"
+      },
+      "dark": {
+        "title": "Mode gelap",
+        "hint": "Logo terang di atas latar gelap"
+      },
+      "formats": "PNG, JPG, SVG, WEBP · Maks. 2MB per file · Disarankan latar transparan.",
+      "tooLarge": "Ukuran file maksimal 2MB.",
+      "previewAlt": "Pratinjau logo {{variant}}",
+      "none": "Belum ada",
+      "uploadLabel": "Unggah logo {{variant}}",
+      "replace": "Ganti",
+      "upload": "Unggah",
+      "remove": "Hapus"
+    },
+    "identity": {
+      "title": "Identitas Perusahaan",
+      "description": "Muncul di laporan keuangan, dokumen PDF, dan tampilan aplikasi."
+    },
+    "salesInvoice": {
+      "title": "Format Invoice Penjualan",
+      "description": "Tampilan PDF invoice penjualan.",
+      "bankAccounts": "Info rekening bank",
+      "bankAccountsHint": "Ditampilkan di invoice penjualan untuk membantu customer melakukan pembayaran.",
+      "bankAccountsPlaceholder": "BRI: 0123-4567-8901 a.n. Nama Perusahaan Anda\nMandiri: 1234-5678-9012 a.n. Nama Perusahaan Anda",
+      "footerPlaceholder": "Terima kasih atas kepercayaan Anda."
+    },
+    "purchaseInvoice": {
+      "title": "Format Invoice Pembelian",
+      "description": "Tampilan PDF invoice pembelian.",
+      "footerPlaceholder": "Barang yang sudah dibeli tidak dapat dikembalikan."
+    },
+    "signature": {
+      "show": "Tampilkan area tanda tangan",
+      "legend": "Label tanda tangan",
+      "label": "Label tanda tangan {{index}}",
+      "remove": "Hapus label tanda tangan {{index}}",
+      "add": "Tambah kolom tanda tangan"
+    }
+  },
+  "page": {
+    "title": "Pengaturan",
+    "description": "Konfigurasi perusahaan, akses, dan sistem ERP.",
+    "sectionLabel": "Bagian pengaturan"
+  },
+  "nav": {
+    "groups": {
+      "company": "Perusahaan",
+      "access": "Pengguna & Akses",
+      "system": "Sistem"
+    },
+    "items": {
+      "company": {
+        "label": "Profil Perusahaan",
+        "description": "Identitas perusahaan, logo, dan format invoice PDF."
+      },
+      "fiscal": {
+        "label": "Tahun Buku",
+        "description": "Kelola periode akuntansi serta tutup dan buka kembali tahun buku."
+      },
+      "tax": {
+        "label": "Pajak",
+        "description": "Tarif PPN, PPh, dan pajak lain yang dipakai di transaksi."
+      },
+      "accounts": {
+        "label": "Akun Sistem",
+        "description": "Pemetaan akun COA yang dipakai otomatis oleh sistem."
+      },
+      "paymentRequestTypes": {
+        "label": "Jenis Pengajuan",
+        "description": "Jenis Pengajuan Pembayaran: reimbursement, uang muka, perjalanan dinas, dan lainnya."
+      },
+      "roles": {
+        "label": "Peran & Hak Akses",
+        "description": "Atur hak lihat/ubah per modul dan hak khusus untuk setiap peran."
+      },
+      "notifications": {
+        "label": "Notifikasi",
+        "description": "Kirim notifikasi sistem ke Telegram."
+      },
+      "backup": {
+        "label": "Cadangan & Pemulihan",
+        "description": "Buat, unduh, unggah, dan pulihkan cadangan database."
+      },
+      "agentic": {
+        "label": "AIRA (MCP)",
+        "description": "Status AIRA, token MCP untuk engine AIRA, dan riwayat panggilan tool."
+      },
+      "appearance": {
+        "label": "Tampilan",
+        "description": "Tema terang atau gelap, dan tingkat gerak animasi."
+      },
+      "about": {
+        "label": "Tentang",
+        "description": "Versi aplikasi, pembaruan, dan riwayat perubahan."
+      }
+    }
+  },
+  "saveBar": {
+    "save": "Simpan",
+    "dirty": "Ada perubahan yang belum disimpan.",
+    "clean": "Semua perubahan sudah tersimpan.",
+    "reset": "Batalkan"
+  },
+  "typedConfirm": {
+    "prompt": "Ketik <strong>{{keyword}}</strong> untuk mengonfirmasi",
+    "placeholder": "Ketik {{keyword}}",
+    "cancel": "Batal"
+  },
+  "dashboardSettings": {
+    "title": "Konfigurasi Dashboard",
+    "description": "Pilih widget yang ingin ditampilkan",
+    "done": "Selesai"
+  },
+  "permissionMatrix": {
+    "actions": {
+      "view": "Lihat",
+      "edit": "Ubah"
+    },
+    "regionLabel": "Matriks hak akses {{role}}",
+    "caption": "Hak akses modul untuk peran {{role}}",
+    "module": "Modul",
+    "all": "Semua",
+    "actionAllModules": "{{action}} semua modul",
+    "fullAllModules": "Akses penuh semua modul",
+    "actionGroup": "{{action}} semua modul grup {{group}}",
+    "fullGroup": "Akses penuh grup {{group}}",
+    "actionModule": "{{action}} {{module}}",
+    "fullModule": "Akses penuh {{module}}"
+  },
+  "auditLog": {
+    "change": {
+      "added": "Ditambahkan",
+      "removed": "Dihapus",
+      "changed": "Diubah",
+      "unchanged": "Tetap"
+    },
+    "before": "Sebelum",
+    "after": "Sesudah",
+    "noChanges": "Tidak ada nilai yang berubah.",
+    "unchangedCount_one": "{{count}} kolom tidak berubah",
+    "unchangedCount_other": "{{count}} kolom tidak berubah",
+    "detailTitle": "Detail Catatan Audit",
+    "loadingEntry": "Memuat catatan…",
+    "bodyLabel": "Isi catatan audit",
+    "loading": "Memuat log audit…",
+    "notFound": "Catatan audit tidak ditemukan atau gagal dimuat.",
+    "fields": {
+      "action": "Aksi",
+      "time": "Waktu",
+      "user": "Pengguna",
+      "entity": "Entitas",
+      "entityId": "ID Entitas",
+      "ipAddress": "Alamat IP",
+      "userAgent": "Perangkat (user agent)"
+    },
+    "valueChanges": "Perubahan nilai",
+    "noValues": "Catatan ini tidak menyimpan nilai data.",
+    "createdValues": "Nilai saat data dibuat.",
+    "noPreviousValues": "Nilai sebelumnya tidak dicatat untuk entri ini; yang tampil adalah nilai yang dikirim.",
+    "secretsMasked": "Nilai rahasia (mis. kata sandi, token) disamarkan saat dicatat."
+  },
+  "users": {
+    "title": "Manajemen Pengguna",
+    "description": "Kelola akun, peran dan status pengguna aplikasi.",
+    "add": "Tambah Pengguna",
+    "status": {
+      "active": "Aktif",
+      "inactive": "Nonaktif"
+    },
+    "never": "Belum pernah",
+    "telegram": {
+      "linked": "Tertaut",
+      "notLinked": "Belum"
+    },
+    "toast": {
+      "activated": "Pengguna {{name}} diaktifkan.",
+      "deactivated": "Pengguna {{name}} dinonaktifkan.",
+      "toggleError": "Gagal mengubah status pengguna.",
+      "passwordReset": "Kata sandi diatur ulang.",
+      "passwordResetError": "Gagal mengatur ulang kata sandi.",
+      "linkError": "Gagal membuat kode tautan.",
+      "unlinked": "Tautan Telegram diputus.",
+      "unlinkError": "Gagal memutus tautan.",
+      "testSent": "Pesan uji terkirim.",
+      "testError": "Tes gagal."
+    },
+    "columns": {
+      "name": "Nama",
+      "username": "Nama Pengguna",
+      "email": "Email",
+      "role": "Peran",
+      "supervisor": "Atasan",
+      "status": "Status",
+      "lastLogin": "Login Terakhir",
+      "actions": "Aksi"
+    },
+    "actions": {
+      "menuLabel": "Aksi untuk {{name}}",
+      "edit": "Ubah",
+      "resetPassword": "Atur ulang kata sandi",
+      "relinkTelegram": "Tautkan ulang Telegram",
+      "linkTelegram": "Hubungkan Telegram",
+      "testTelegram": "Tes Telegram",
+      "activate": "Aktifkan",
+      "unlinkTelegram": "Putuskan Telegram",
+      "deactivateSelf": "Nonaktifkan (akun sendiri)",
+      "deactivate": "Nonaktifkan"
+    },
+    "summary": {
+      "label": "Ringkasan pengguna sesuai filter",
+      "total": "Jumlah Pengguna",
+      "activeHint": "dapat masuk ke aplikasi",
+      "inactiveHint": "akses diblokir",
+      "telegramLinked": "Telegram Tertaut",
+      "telegramHint": "menerima notifikasi"
+    },
+    "search": {
+      "label": "Cari pengguna",
+      "placeholder": "Cari nama, email atau nama pengguna"
+    },
+    "filter": {
+      "allRoles": "Semua peran"
+    },
+    "table": {
+      "label": "Daftar pengguna",
+      "itemLabel": "pengguna"
+    },
+    "empty": {
+      "title": "Belum ada pengguna",
+      "description": "Akun pengguna yang Anda buat akan muncul di sini."
+    },
+    "reset": {
+      "newPassword": "Kata sandi baru",
+      "hint": "Minimal 8 karakter, berisi huruf besar, angka dan karakter spesial."
+    },
+    "link": {
+      "linked": "Telegram <b>{{name}}</b> sudah tertaut. Notifikasi akan dikirim ke pesan pribadinya.",
+      "sendTest": "Kirim pesan uji",
+      "intro": "Minta <b>{{name}}</b> melakukan langkah berikut di ponselnya:",
+      "step1": "Buka tautan bot di bawah lalu tekan <b>Start</b> (atau kirim <code>{{command}}</code> ke bot).",
+      "step2": "Status berubah menjadi <b>Tertaut</b> dalam kurang dari 1 menit.",
+      "botLink": "Tautan bot",
+      "copied": "Tautan disalin.",
+      "copy": "Salin",
+      "botNotConfigured": "Bot belum dikonfigurasi. Atur dulu di <b>Pengaturan → Notifikasi</b>. Kode tautan: <code>{{code}}</code>",
+      "waiting": "Menunggu pengguna menekan Start… status diperbarui otomatis.",
+      "close": "Tutup"
+    },
+    "confirm": {
+      "reset": {
+        "title": "Atur ulang kata sandi {{name}}?",
+        "description": "Kata sandi lama langsung tidak berlaku. Sampaikan kata sandi baru kepada pengguna secara aman.",
+        "confirm": "Atur ulang"
+      },
+      "unlink": {
+        "title": "Putuskan Telegram {{name}}?",
+        "description": "Pengguna tidak lagi menerima notifikasi Telegram sampai ditautkan ulang.",
+        "confirm": "Putuskan"
+      },
+      "deactivate": {
+        "title": "Nonaktifkan {{name}}?",
+        "description": "Pengguna tidak dapat masuk ke aplikasi sampai diaktifkan kembali. Data dan riwayatnya tetap tersimpan.",
+        "confirm": "Nonaktifkan"
+      },
+      "activate": {
+        "title": "Aktifkan {{name}}?",
+        "description": "Pengguna dapat masuk kembali dengan kata sandinya.",
+        "confirm": "Aktifkan"
+      }
+    },
+    "airaTier": {
+      "read": "Baca saja",
+      "standard": "Standar",
+      "direct": "Langsung"
+    }
+  },
+  "about": {
+    "readVersionError": "Gagal membaca informasi versi.",
+    "checkError": "Gagal memeriksa pembaruan.",
+    "facts": {
+      "version": "Versi",
+      "buildDate": "Tanggal build",
+      "platform": "Platform",
+      "domain": "Domain"
+    },
+    "tagline": "Sistem ERP & Operasional",
+    "checking": "Memeriksa…",
+    "checkUpdate": "Periksa Pembaruan",
+    "upToDate": "Aplikasi sudah versi terbaru (v{{version}}).",
+    "available": "Pembaruan tersedia: v{{version}}",
+    "newChanges": "Perubahan baru:",
+    "howToUpdate": "Cara update di server:",
+    "changelog": "Riwayat Perubahan",
+    "releases_one": "{{count}} rilis",
+    "releases_other": "{{count}} rilis"
+  },
+  "backup": {
+    "title": "Cadangan Database",
+    "description": "Maksimal 5 cadangan disimpan otomatis. Pemulihan menimpa seluruh data saat ini.",
+    "upload": "Unggah Cadangan",
+    "create": "Buat Cadangan",
+    "last": "Cadangan terakhir",
+    "warning": "Pemulihan akan <strong>menimpa seluruh data</strong> yang ada. Buat cadangan terlebih dahulu sebelum memulihkan.",
+    "loading": "Memuat daftar cadangan…",
+    "empty": "Belum ada file cadangan",
+    "table": {
+      "label": "Tabel file cadangan",
+      "filename": "Nama file",
+      "size": "Ukuran",
+      "date": "Tanggal",
+      "actions": "Aksi",
+      "download": "Unduh {{filename}}",
+      "restore": "Pulihkan {{filename}}"
+    },
+    "toast": {
+      "created": "Backup dibuat.",
+      "createError": "Gagal membuat backup.",
+      "restored": "Backup dipulihkan. Silakan muat ulang halaman.",
+      "restoreError": "Gagal restore backup.",
+      "uploaded": "File backup diunggah.",
+      "uploadError": "Gagal mengupload file backup.",
+      "invalidFile": "Hanya file .sql.gz yang diperbolehkan.",
+      "downloadError": "Gagal mengunduh backup."
+    },
+    "demo": {
+      "title": "Data Uji Coba",
+      "description": "Isi semua modul (penjualan, pembelian, produksi, stok, aset tetap, kas & bank, pengajuan pembayaran, aset & pemeliharaan, armada, dan contoh percakapan AIRA) dengan contoh transaksi tiga bulan terakhir dari pabrik beras dan distribusi, dibuat lewat alur aplikasi yang sama dengan pengguna. Hanya bisa dibuat saat belum ada transaksi.",
+      "create": "Buat Data Uji Coba",
+      "delete": "Hapus Data Uji Coba",
+      "deleteLegacy": "Hapus Data Dummy Lama",
+      "loading": "Memuat status data uji coba...",
+      "loadError": "Status data uji coba tidak bisa dimuat.",
+      "ready": "Belum ada transaksi. Data uji coba siap dibuat.",
+      "blocked": "Sudah ada transaksi, jadi data uji coba tidak bisa dibuat. Data uji coba hanya untuk perusahaan yang belum mencatat transaksi.",
+      "legacy": "Data dummy versi lama masih ada. Hapus dulu sebelum membuat data uji coba yang baru.",
+      "running": "Sedang membuat: {{step}}",
+      "progressLabel": "Progres pembuatan data uji coba",
+      "progressText": "{{done}} dari {{total}} langkah",
+      "active": "Data uji coba aktif sejak {{date}}.",
+      "failed": "Pembuatan data uji coba berhenti di tengah jalan. Hapus data uji coba, lalu coba lagi.",
+      "created": "Data uji coba selesai dibuat.",
+      "createError": "Gagal memulai pembuatan data uji coba.",
+      "deleted": "Data uji coba dihapus.",
+      "deleteError": "Gagal menghapus data uji coba.",
+      "legacyDeleted": "Data dummy lama dihapus.",
+      "legacyDeleteError": "Gagal menghapus data dummy lama.",
+      "confirm": {
+        "title": "Hapus data uji coba?",
+        "description": "Semua transaksi di semua modul akan dikosongkan, termasuk transaksi yang Anda catat setelah data uji coba dibuat.",
+        "items": {
+          "transactions": "Semua dokumen penjualan, pembelian, stok, jurnal, pembayaran, persetujuan, data EAM, dan notifikasi sejak data uji coba dibuat.",
+          "masters": "Mitra, item, gudang, dan jasa yang dibuat data uji coba.",
+          "kept": "Tetap disimpan: pengguna, peran, bagan akun, Akun Sistem, pengaturan perusahaan, tahun buku, dan master yang Anda buat sendiri."
+        },
+        "userChanges": "Ada {{count}} perubahan oleh pengguna sejak data uji coba dibuat. Semuanya ikut terhapus."
+      }
+    },
+    "reset": {
+      "title": "Reset Seluruh Data",
+      "description": "Hapus semua transaksi, akun, mitra, dan pengguna; database dikembalikan ke kondisi awal (seed). Hanya untuk development/pengujian.",
+      "action": "Reset Data",
+      "done": "Data direset. Silakan login ulang.",
+      "error": "Gagal mereset data."
+    },
+    "restoreConfirm": {
+      "title": "Pulihkan cadangan?",
+      "description": "Aksi ini tidak dapat dibatalkan. Seluruh data saat ini akan ditimpa dengan data dari file berikut.",
+      "confirm": "Pulihkan"
+    },
+    "resetConfirm": {
+      "title": "Reset seluruh data?",
+      "description": "Aksi ini tidak dapat dibatalkan. Semua data akan dihapus dan dikembalikan ke kondisi awal.",
+      "items": {
+        "transactions": "Semua transaksi (invoice, pembayaran, jurnal)",
+        "partners": "Semua mitra (customer, supplier)",
+        "accounts": "Semua akun (COA) dan saldo",
+        "users": "Semua pengguna (dibuat ulang dari seed)",
+        "stock": "Semua stok dan gerakan inventori"
+      }
+    }
+  },
+  "fiscal": {
+    "errors": {
+      "nameRequired": "Nama tahun buku wajib diisi.",
+      "startRequired": "Tanggal mulai wajib diisi.",
+      "endRequired": "Tanggal selesai wajib diisi.",
+      "endAfterStart": "Tanggal selesai harus setelah tanggal mulai."
+    },
+    "toast": {
+      "created": "Tahun buku dibuat.",
+      "createError": "Gagal membuat tahun buku.",
+      "closed": "Tahun buku ditutup.",
+      "closeError": "Gagal menutup tahun buku.",
+      "reopened": "Tahun buku dibuka kembali.",
+      "reopenError": "Gagal membuka tahun buku."
+    },
+    "title": "Periode Akuntansi",
+    "description": "Tutup buku membuat jurnal penutup; buka kembali menghapusnya. Kedua aksi memerlukan hak pembatalan dokumen.",
+    "new": "Tahun Buku Baru",
+    "loading": "Memuat tahun buku…",
+    "empty": {
+      "title": "Belum ada tahun buku",
+      "description": "Buat tahun buku pertama untuk mulai mencatat periode akuntansi."
+    },
+    "yearName": "Tahun {{name}}",
+    "closedAt": "Ditutup {{date}}",
+    "close": "Tutup Buku",
+    "reopen": "Buka Kembali",
+    "closeConfirm": {
+      "title": "Tutup tahun buku {{name}}?",
+      "description": "Jurnal penutup akan dibuat dan saldo pendapatan/beban akan direset ke laba ditahan."
+    },
+    "reopenConfirm": {
+      "title": "Buka kembali tahun buku {{name}}?",
+      "description": "Jurnal penutup akan dihapus dan saldo pendapatan/beban akan dipulihkan."
+    },
+    "form": {
+      "title": "Tambah Tahun Buku",
+      "description": "Periode baru dibuat dalam status terbuka.",
+      "name": "Nama tahun",
+      "nameHint": "Contoh: 2027",
+      "startDate": "Tanggal mulai",
+      "endDate": "Tanggal selesai",
+      "cancel": "Batal",
+      "save": "Simpan"
+    }
+  },
+  "notifications": {
+    "toast": {
+      "saved": "Konfigurasi Telegram disimpan.",
+      "saveError": "Gagal menyimpan.",
+      "testSent": "Pesan uji terkirim ke Telegram. Cek grup Anda.",
+      "testError": "Tes gagal."
+    },
+    "loading": "Memuat pengaturan notifikasi…",
+    "tokenInvalid": "Format token tidak dikenali (contoh: 123456789:ABC-DEF…).",
+    "title": "Notifikasi Telegram",
+    "description": "Kirim notifikasi sistem (approval, invoice jatuh tempo, stok rendah) ke Telegram.",
+    "testConnection": "Tes Koneksi",
+    "enabled": {
+      "label": "Aktifkan notifikasi Telegram",
+      "description": "Sakelar utama. Jika mati, tidak ada pesan yang dikirim."
+    },
+    "botToken": {
+      "label": "Bot token",
+      "hintSaved": "Token tersimpan dan tidak ditampilkan kembali. Isi hanya untuk mengganti.",
+      "hintNew": "Token tidak pernah ditampilkan kembali demi keamanan.",
+      "placeholderSaved": "•••••••• (tersimpan)",
+      "placeholderNew": "mis. 123456789:ABC-DEF..."
+    },
+    "chatId": {
+      "label": "Chat ID grup (opsional)",
+      "hint": "Notifikasi dikirim japri ke staf yang ditautkan; Chat ID grup hanya untuk mirror pengumuman ke grup.",
+      "placeholder": "mis. -1001234567890"
+    },
+    "types": {
+      "title": "Jenis Notifikasi",
+      "description": "Pilih kejadian yang dikirim ke Telegram.",
+      "approval": "Approval / pengajuan menunggu",
+      "overdue": "Invoice jatuh tempo",
+      "lowStock": "Stok rendah",
+      "personal": {
+        "label": "Notifikasi personal (japri ke user)",
+        "description": "Kirim ke Telegram pribadi staf yang sudah ditautkan (mis. hasil approval ke pengaju). Tautkan akun di Manajemen User."
+      }
+    },
+    "setup": {
+      "title": "Cara setup singkat",
+      "step1": "Buka <b>@BotFather</b> di Telegram → <code>/newbot</code> → ikuti langkah → dapat <b>Bot Token</b>.",
+      "step2": "Buat grup, tambahkan bot tadi ke grup (jadikan admin agar bisa kirim).",
+      "step3": "Kirim 1 pesan di grup, lalu dapatkan <b>Chat ID</b> grup (mis. via <b>@userinfobot</b> / <b>@getidsbot</b>, atau buka <url>{{url}}</url> dan ambil <code>chat.id</code> yang diawali <code>-100…</code>).",
+      "step4": "Isi Token & Chat ID di atas → <b>Simpan</b> → <b>Tes Koneksi</b>."
+    },
+    "fixToken": "Perbaiki format token sebelum menyimpan."
+  },
+  "paymentRequestTypes": {
+    "kinds": {
+      "REIMBURSEMENT": "Reimbursement",
+      "VENDOR_PAYMENT": "Pembayaran supplier",
+      "CASH_ADVANCE": "Uang muka",
+      "TRAVEL": "Perjalanan dinas",
+      "OTHER": "Lainnya"
+    },
+    "toast": {
+      "saved": "Jenis pengajuan disimpan.",
+      "saveError": "Gagal menyimpan jenis pengajuan.",
+      "toggleError": "Gagal mengubah status.",
+      "deleted": "Jenis pengajuan dihapus.",
+      "deleteError": "Gagal menghapus jenis pengajuan."
+    },
+    "errors": {
+      "code": "Kode 2–20 karakter: huruf, angka, _ atau -.",
+      "name": "Nama minimal 2 karakter."
+    },
+    "title": "Jenis Pengajuan Pembayaran",
+    "description": "Jenis yang bisa dipilih karyawan saat membuat Pengajuan Pembayaran. Jenis yang sudah dipakai cukup dinonaktifkan.",
+    "add": "Tambah Jenis",
+    "loading": "Memuat jenis pengajuan…",
+    "empty": "Belum ada jenis pengajuan",
+    "requiresAttachment": "Wajib lampiran",
+    "requiresSettlement": "Wajib pertanggungjawaban",
+    "account": "Akun {{number}}",
+    "activate": "Aktifkan {{name}}",
+    "deactivate": "Nonaktifkan {{name}}",
+    "edit": "Ubah {{name}}",
+    "delete": "Hapus {{name}}",
+    "form": {
+      "addTitle": "Tambah Jenis Pengajuan",
+      "description": "Jenis menentukan perlakuan akuntansi saat dibayar dan syarat lampiran.",
+      "code": "Kode",
+      "name": "Nama",
+      "kind": "Perlakuan",
+      "kindHint": "Uang muka & perjalanan dinas dicatat ke Uang Muka Karyawan.",
+      "notes": "Keterangan",
+      "defaultAccount": "Akun biaya default",
+      "defaultAccountHint": "Opsional. Terisi otomatis di rincian, bisa diubah Keuangan.",
+      "sortOrder": "Urutan",
+      "active": "Aktif",
+      "cancel": "Batal",
+      "save": "Simpan"
+    },
+    "deleteConfirm": {
+      "title": "Hapus {{name}}?",
+      "description": "Jenis yang belum pernah dipakai akan dihapus permanen.",
+      "confirm": "Hapus"
+    }
+  },
+  "roles": {
+    "errors": {
+      "nameMin_one": "Nama peran minimal {{count}} karakter.",
+      "nameMin_other": "Nama peran minimal {{count}} karakter."
+    },
+    "toast": {
+      "saved": "Role disimpan.",
+      "saveError": "Gagal menyimpan role.",
+      "created": "Role dibuat.",
+      "createError": "Gagal membuat role.",
+      "deleted": "Role dihapus.",
+      "deleteError": "Gagal menghapus role."
+    },
+    "loading": "Memuat hak akses…",
+    "listTitle": "Peran",
+    "new": "Peran Baru",
+    "newName": "Nama peran baru",
+    "newNamePlaceholder": "mis. Kasir",
+    "cancel": "Batal",
+    "create": "Buat",
+    "listLabel": "Daftar peran",
+    "superAdmin": "Super-admin",
+    "system": "Sistem",
+    "custom": "Kustom",
+    "userCount_one": "{{count}} pengguna",
+    "userCount_other": "{{count}} pengguna",
+    "permissions": "Hak akses",
+    "pick": {
+      "title": "Pilih peran",
+      "description": "Pilih peran di daftar untuk mengatur izin, atau buat peran baru."
+    },
+    "superAdminNote": "Peran ini adalah super-admin, selalu memiliki akses penuh dan tidak dapat dibatasi.",
+    "detail": "Detail Peran",
+    "builtIn": "Peran bawaan",
+    "inUse": "Peran masih dipakai pengguna",
+    "delete": "Hapus Peran",
+    "name": "Nama peran",
+    "description": "Deskripsi",
+    "builtInNote": "Peran bawaan: izinnya boleh diubah, tetapi peran tidak dapat dihapus.",
+    "inUseNote_one": "Peran masih dipakai {{count}} pengguna sehingga tidak dapat dihapus.",
+    "inUseNote_other": "Peran masih dipakai {{count}} pengguna sehingga tidak dapat dihapus.",
+    "modules": {
+      "title": "Hak Akses Modul",
+      "description": "Ubah otomatis menyertakan Lihat; mencabut Lihat juga mencabut Ubah. Gunakan kotak di header untuk memilih sekaligus."
+    },
+    "caps": {
+      "title": "Hak Khusus",
+      "description": "Kemampuan sensitif di luar hak modul.",
+      "empty": "Tidak ada hak khusus."
+    },
+    "saveChanges": "Simpan Perubahan",
+    "saveConfirm": {
+      "title": "Simpan hak akses {{name}}?",
+      "descriptionUsers_one": "Perubahan langsung berlaku untuk {{count}} pengguna dengan peran ini.",
+      "descriptionUsers_other": "Perubahan langsung berlaku untuk {{count}} pengguna dengan peran ini.",
+      "descriptionNone": "Perubahan berlaku untuk pengguna yang nanti diberi peran ini.",
+      "confirm": "Simpan"
+    },
+    "deleteConfirm": {
+      "title": "Hapus peran \"{{name}}\"?",
+      "description": "Peran yang dihapus tidak dapat dipulihkan."
+    }
+  },
+  "tax": {
+    "types": {
+      "sales": {
+        "label": "Penjualan",
+        "option": "Penjualan (PPN Keluaran)"
+      },
+      "purchase": {
+        "label": "Pembelian",
+        "option": "Pembelian (PPN Masukan)"
+      },
+      "withholding": {
+        "label": "Pemotongan",
+        "option": "Pemotongan (PPh)"
+      }
+    },
+    "errors": {
+      "nameRequired": "Nama pajak wajib diisi.",
+      "rateRequired": "Tarif wajib diisi.",
+      "rateRange": "Tarif harus antara 0 dan 100."
+    },
+    "toast": {
+      "created": "Konfigurasi pajak dibuat.",
+      "createError": "Gagal membuat konfigurasi pajak.",
+      "updated": "Konfigurasi pajak diperbarui.",
+      "updateError": "Gagal memperbarui konfigurasi pajak.",
+      "deactivated": "Konfigurasi pajak dinonaktifkan.",
+      "deleteError": "Gagal menghapus konfigurasi pajak.",
+      "enabled": "Pajak diaktifkan.",
+      "disabled": "Pajak dinonaktifkan.",
+      "toggleError": "Gagal mengubah status."
+    },
+    "title": "Konfigurasi Pajak",
+    "description": "Pajak nonaktif tidak muncul sebagai pilihan di transaksi baru.",
+    "add": "Tambah Pajak",
+    "loading": "Memuat konfigurasi pajak…",
+    "empty": "Belum ada konfigurasi pajak",
+    "table": {
+      "label": "Tabel konfigurasi pajak",
+      "name": "Nama Pajak",
+      "rate": "Tarif",
+      "type": "Tipe",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "activate": "Aktifkan {{name}}",
+    "deactivate": "Nonaktifkan {{name}}",
+    "edit": "Ubah {{name}}",
+    "form": {
+      "editTitle": "Ubah Konfigurasi Pajak",
+      "addTitle": "Tambah Konfigurasi Pajak",
+      "description": "Tarif dalam persen, mis. 11 untuk PPN 11%.",
+      "name": "Nama pajak",
+      "namePlaceholder": "Contoh: \"PPN 11%\", \"PPh 23\"",
+      "rate": "Tarif (%)",
+      "cancel": "Batal",
+      "save": "Simpan"
+    },
+    "deleteConfirm": {
+      "title": "Nonaktifkan {{name}}?",
+      "fallbackName": "pajak",
+      "description": "Konfigurasi pajak ini tidak akan bisa dipilih di transaksi baru. Transaksi lama tidak berubah.",
+      "confirm": "Nonaktifkan"
+    }
+  }
+}

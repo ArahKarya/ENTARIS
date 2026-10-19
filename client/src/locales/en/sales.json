@@ -1,0 +1,1722 @@
+{
+  "invoiceAttachmentsSection": {
+    "title": "Supporting documents ({{count}})",
+    "addFile": "Add file",
+    "empty": "No attachments yet.",
+    "remove": "Delete attachment {{name}}",
+    "fromPayments": "From payments ({{count}})",
+    "paymentNote": "These attachments belong to the related payments. Manage them from Cash & Bank."
+  },
+  "invoiceDetailDrawer": {
+    "toast": {
+      "cancelled": "Invoice cancelled.",
+      "cancelFailed": "Could not cancel the invoice.",
+      "depositAppCancelled": "Deposit allocation cancelled.",
+      "depositAppCancelFailed": "Could not cancel the deposit allocation.",
+      "updated": "Invoice updated.",
+      "updateFailed": "Could not update the invoice.",
+      "sentForApproval": "Change sent for approval.",
+      "priceRevised": "Invoice prices revised. The variance journal has been posted.",
+      "reviseFailed": "Could not revise the invoice prices.",
+      "noPriceChanged": "No prices were changed.",
+      "reasonTooShort": "The revision reason must be at least 10 characters.",
+      "attachmentUploaded": "Attachment uploaded.",
+      "attachmentUploadFailed": "Could not upload the attachment.",
+      "attachmentDeleted": "Attachment deleted.",
+      "attachmentDeleteFailed": "Could not delete the attachment.",
+      "mergedReady": "PDF with attachments is ready to download.",
+      "mergeFailed": "Could not merge the PDF."
+    },
+    "party": {
+      "customer": "Customer",
+      "supplier": "Supplier"
+    },
+    "loading": "Loading…",
+    "salesInvoice": "Sales invoice",
+    "purchaseInvoice": "Purchase invoice",
+    "pendingRevise": "Invoice price revision",
+    "loadingInvoice": "Loading invoice…",
+    "notFound": "Invoice not found.",
+    "depositBalance": {
+      "customer": "Customer deposit balance",
+      "supplier": "Supplier deposit balance"
+    },
+    "noDepositBalance": {
+      "customer": "This customer has no deposit balance",
+      "supplier": "This supplier has no deposit balance"
+    },
+    "useDeposit": "Apply deposit",
+    "zeroBalance": "(balance 0)",
+    "notes": "Notes",
+    "notesAria": "Invoice notes",
+    "notesPlaceholder": "Invoice notes...",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save",
+    "noNotes": "No notes",
+    "cancelInvoiceTitle": "Cancel invoice",
+    "cancelInvoice": "Cancel invoice",
+    "editTitle": "Edit notes and due date",
+    "edit": "Edit",
+    "editFullTitle": "Cancel and recreate this invoice",
+    "editFull": "Full edit",
+    "awaitingApproval": "Awaiting approval",
+    "revisePriceTitle": "Revise prices from the supplier (the variance is posted automatically)",
+    "revisePrice": "Revise prices",
+    "mergedPdfTitle_one": "Download the invoice PDF with {{count}} attachment ({{invoiceCount}} invoice, {{paymentCount}} payment) in one file",
+    "mergedPdfTitle_other": "Download the invoice PDF with {{count}} attachments ({{invoiceCount}} invoice, {{paymentCount}} payment) in one file",
+    "downloadPdfPlus": "Download PDF +{{count}}",
+    "downloadPdf": "Download PDF",
+    "confirmCancel": {
+      "title": "Cancel invoice",
+      "description": "Cancel this invoice? All related journals, stock and balances will be reversed. Payments and deposit allocations on the invoice must be cancelled first.",
+      "confirm": "Cancel invoice"
+    },
+    "confirmCancelDeposit": {
+      "title": "Cancel deposit allocation",
+      "description": "Cancel this deposit allocation? The deposit balance is restored and the invoice outstanding goes back up.",
+      "confirm": "Cancel allocation"
+    }
+  },
+  "invoiceDOPicker": {
+    "fromDO": "From delivery order",
+    "fromDOHint": "(the delivery order was shipped earlier)",
+    "empty": "No open delivery orders for this customer.",
+    "selectAria": "Select delivery order {{number}}",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "collapse": "Hide",
+    "expand": "View details"
+  },
+  "invoiceInfoGrid": {
+    "taxId": "Tax ID (NPWP): {{value}}",
+    "title": "Invoice details",
+    "dueDate": "Due date",
+    "terms": "Terms",
+    "date": "Date",
+    "customerRefNo": "PO / quotation ref. no.",
+    "createdBy": "Created by"
+  },
+  "invoiceLineRow": {
+    "descriptionAria": "Line {{n}} description",
+    "descriptionPlaceholder": "Line description (optional)...",
+    "itemTypeAria": "Line {{n}} item type",
+    "product": "Goods",
+    "service": "Service",
+    "productAria": "Line {{n}} item",
+    "productPlaceholder": "Select from warehouse stock",
+    "manualProductAria": "Line {{n}} manual item name",
+    "manualProductPlaceholder": "Or type an item name...",
+    "warehouseAria": "Line {{n}} source warehouse",
+    "batchLabel": "Batch (optional, defaults to WAC)",
+    "batchAria": "Line {{n}} batch",
+    "serviceAria": "Line {{n}} service",
+    "servicePlaceholder": "Select service",
+    "manualServiceAria": "Line {{n}} manual service name",
+    "manualServicePlaceholder": "Or type a service name...",
+    "qtyAria": "Line {{n}} qty",
+    "unitAria": "Line {{n}} unit",
+    "rateAria": "Line {{n}} unit price",
+    "discountAria": "Line {{n}} discount percent",
+    "vatAria": "Line {{n}} VAT percent",
+    "pphAria": "Line {{n}} income tax percent",
+    "removeAria": "Remove line {{n}}"
+  },
+  "invoicePaymentTimeline": {
+    "title": "Payment history ({{count}})",
+    "deposit": "Deposit",
+    "cashBank": "Cash/bank",
+    "cancelledTag": "(Cancelled)",
+    "cancelledOn": "cancelled {{date}}",
+    "cancelAllocationAria": "Cancel deposit allocation {{label}}",
+    "cancelAllocation": "Cancel deposit allocation"
+  },
+  "invoiceRevisePriceDialog": {
+    "title": "Revise invoice prices",
+    "explainer": "The price variance is posted automatically: the share of goods <strong>still in stock</strong> adjusts the Inventory value and average cost; the share <strong>already used</strong> (production/sales) goes to account <strong>5.11 Purchase Price Variance</strong>. The payable to the supplier is adjusted too.",
+    "oldRate": "Old: {{value}}",
+    "newRateAria": "New price for {{name}}",
+    "newRatePlaceholder": "new price",
+    "reason": "Revision reason (min. 10 characters)",
+    "reasonPlaceholder": "e.g. Supplier corrected the paddy price from Rp 5,000 to 5,200 per the final agreement",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save revision"
+  },
+  "salesInvoiceModal": {
+    "defaultDeductionLabel": "Deduction",
+    "defaultExtraChargeLabel": "Other charges",
+    "errors": {
+      "saveFailed": "Could not save the invoice.",
+      "unsupportedType": "{{name}}: file type not supported (JPG/PNG/WebP/PDF).",
+      "tooLarge": "{{name}}: file is larger than 5 MB."
+    },
+    "title": "New sales invoice",
+    "description": "Draft • not saved",
+    "billTo": "Bill to",
+    "customerPlaceholder": "Select or search customer",
+    "customerAria": "Select customer",
+    "wapuNotice": "This customer is a VAT collector (WAPU) and pays the VAT to the state directly. All item lines are set to 0% VAT.",
+    "invoiceDate": "Invoice date",
+    "dueDate": "Due date",
+    "paymentTerms": "Payment terms",
+    "customerRefNo": "PO / quotation reference no. (optional)",
+    "customerRefNoHint": "Printed on the invoice as the buyer reference. VAT and income tax are set per item line.",
+    "customerRefNoPlaceholder": "e.g. PO-2026-001 or QO-202604-0012",
+    "fromDONotice": "Items are pulled from the selected delivery orders. Stock is not reduced again when the invoice is submitted. COGS uses the unit cost locked on the delivery order.",
+    "itemsTitle": "Items / services",
+    "addRow": "Add row",
+    "itemsTableLabel": "Invoice items and services",
+    "columns": {
+      "itemName": "Item / service name",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitPrice": "Unit price",
+      "discountPct": "Discount %",
+      "vatPct": "VAT %",
+      "pphPct": "Income tax %",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+    "notesLabel": "Notes for customer",
+    "notesPlaceholder": "E.g. Thank you for your business. Please pay by transfer to our BCA account...",
+    "totalQty": "Total qty",
+    "subtotal": "Subtotal",
+    "vatPerItem": "VAT (per item)",
+    "pphPerItem": "Income tax (per item)",
+    "deductionLabelAria": "Deduction label",
+    "deductionLabelPlaceholder": "Deduction label...",
+    "deductionValueAria": "Deduction amount",
+    "extraChargeLabelAria": "Other charges label",
+    "extraChargeLabelPlaceholder": "Other charges label...",
+    "extraChargeValueAria": "Other charges amount",
+    "total": "Total",
+    "orphan": {
+      "title": "Inventory items must go through a delivery order",
+      "body": "Since 20 May 2026, outgoing stock must go through a delivery order (DO). The invoice is only the bill. These items are still direct sales on this invoice:",
+      "notLinked": ": not linked to a delivery order",
+      "solution": "<strong>Fix:</strong> create a <b>delivery order</b> first under Sales → Delivery Orders, then come back and pick it from the <b>Pending delivery orders</b> list above. Or remove the inventory item lines here and use a service or a free account instead."
+    },
+    "attachments": {
+      "title": "Supporting documents",
+      "addFile": "Add file",
+      "empty": "No files yet. Up to {{max}} files, 5 MB each (JPG/PNG/PDF).",
+      "remove": "Remove file {{name}}"
+    },
+    "cancel": "Cancel",
+    "footer": {
+      "total": "Total: {{amount}}",
+      "orphan": "Inventory items must go through a delivery order. See the warning above.",
+      "incomplete": "Choose a customer and add at least 1 item to continue"
+    },
+    "saving": "Saving…",
+    "save": "Save invoice"
+  },
+  "salesInvoicesPage": {
+    "export": {
+      "date": "Date",
+      "documentNumber": "Document number",
+      "customer": "Customer",
+      "phone": "Phone",
+      "dueDate": "Due date",
+      "itemType": "Item type",
+      "productName": "Product name",
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitPrice": "Unit price",
+      "discountPct": "Discount (%)",
+      "vatPct": "VAT (%)",
+      "pphPct": "Income tax (%)",
+      "itemSubtotal": "Item subtotal",
+      "invoiceTotal": "Invoice total",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "notes": "Notes",
+      "service": "Service",
+      "product": "Product",
+      "overdueStatus": "{{status}} (overdue)",
+      "fileName": "sales-invoices-{{stamp}}",
+      "truncated": "Export is limited to the first {{count}} invoices. Narrow the filter.",
+      "failed": "Could not export invoices. Try again."
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "dueDate": "Due date",
+      "overdueSr": "(overdue)",
+      "items": "Items",
+      "total": "Total",
+      "deductionTitle": "Deductions from payments (commission/discount): {{deduction}}\nNet: {{net}}",
+      "deductionShort": "ded. {{deduction}} · net {{net}}",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "actions": {
+      "label": "Actions for {{number}}",
+      "view": "View details",
+      "createReturn": "Create return"
+    },
+    "title": "Sales invoices",
+    "description": "Manage sales invoices and customer receivables.",
+    "exportExcel": "Export to Excel",
+    "return": "Return",
+    "create": "New invoice",
+    "kpi": {
+      "sectionLabel": "Invoice summary for the current filter",
+      "count": "Invoices",
+      "countHint": "Value {{amount}}",
+      "receivables": "Total receivables",
+      "paid": "Paid",
+      "paidHint": "invoices paid in full",
+      "overdue": "Overdue",
+      "overdueHint": "Outstanding {{amount}}"
+    },
+    "search": {
+      "label": "Search invoices",
+      "placeholder": "Search invoice number or customer"
+    },
+    "table": {
+      "label": "Sales invoice list",
+      "itemLabel": "invoices"
+    },
+    "empty": {
+      "title": "No sales invoices yet",
+      "description": "Invoices you create appear here.",
+      "action": "Create your first invoice"
+    }
+  },
+  "deliveryOrderDetailDrawer": {
+    "toast": {
+      "cancelled": "Delivery order cancelled. Stock returned to the warehouse."
+    },
+    "errors": {
+      "cancel": "Could not cancel the delivery order."
+    },
+    "loading": "Loading…",
+    "docType": "Delivery Order",
+    "loadingDoc": "Loading delivery order…",
+    "notFound": "Delivery order not found.",
+    "customer": "Customer",
+    "shippingInfo": "Shipping information",
+    "fields": {
+      "date": "Date",
+      "customerPo": "Customer PO no.",
+      "soNumber": "Sales Order no. (SO)",
+      "vehicle": "Vehicle no.",
+      "driver": "Driver",
+      "recipient": "Recipient",
+      "createdBy": "Created by"
+    },
+    "invoicedVia": "Already billed on invoice",
+    "viewInvoice": "View invoice",
+    "items": {
+      "title_one": "Items ({{count}} item)",
+      "title_other": "Items ({{count}} items)",
+      "tableLabel": "Delivery order items"
+    },
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "warehouse": "Warehouse",
+      "qty": "Qty",
+      "unit": "Unit"
+    },
+    "notes": "Notes",
+    "noNotes": "No notes",
+    "attachments": "Attachments (weighbridge slip / photo)",
+    "cancelledNotice": "This delivery order has been cancelled. Stock was returned to the warehouse. The document is kept for the audit trail.",
+    "cancelTitle": "Only an admin can cancel a delivery order",
+    "cancel": "Cancel",
+    "generating": "Generating…",
+    "printPdf": "Print PDF",
+    "editTitle": "Edit delivery order (number and date are kept)",
+    "edit": "Edit",
+    "createInvoice": "Create invoice",
+    "confirmCancel": {
+      "title": "Cancel delivery order",
+      "description": "Cancel delivery order {{number}}? Stock will be returned to the source warehouse. This action is recorded in the audit trail.",
+      "confirm": "Yes, cancel"
+    }
+  },
+  "deliveryOrderFromInvoiceModal": {
+    "toast": {
+      "created": "Delivery order created and linked to the invoice."
+    },
+    "errors": {
+      "create": "Could not create the delivery order."
+    },
+    "validation": {
+      "date": "Delivery date is required.",
+      "noLines": "This invoice has no physical item lines to ship."
+    },
+    "title": "New delivery order",
+    "description": "For invoice <mono>{{number}}</mono> ({{customer}})",
+    "stockNotice": "Stock was already reduced when the invoice was submitted. This delivery order is only the physical shipping document and driver printout; it does not touch stock again.",
+    "fields": {
+      "date": "Delivery date",
+      "vehicle": "Vehicle no.",
+      "vehiclePlaceholder": "e.g. B 1234 ABC",
+      "driver": "Driver name",
+      "driverPlaceholder": "Driver name",
+      "recipient": "Recipient",
+      "recipientPlaceholder": "Recipient name",
+      "notes": "Notes",
+      "notesPlaceholder": "Delivery notes (optional)"
+    },
+    "items": {
+      "title_one": "Items from invoice ({{count}} item)",
+      "title_other": "Items from invoice ({{count}} items)",
+      "skipped_one": "({{count}} service line skipped)",
+      "skipped_other": "({{count}} service lines skipped)",
+      "tableLabel": "Items from invoice"
+    },
+    "columns": {
+      "itemName": "Item name",
+      "qty": "Qty",
+      "unit": "Unit"
+    },
+    "cancel": "Cancel",
+    "creating": "Creating…"
+  },
+  "deliveryOrderModal": {
+    "titleEdit": "Edit {{number}}",
+    "titleCreate": "New delivery order",
+    "description": "Physical shipping document • stock goes out when saved",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "submit": "Save delivery order",
+    "toast": {
+      "allDelivered": "All SO items are fully delivered. Enter a qty to ship more.",
+      "pendingApproval": "Delivery order submitted and waiting for manager approval (negative stock).",
+      "updated": "{{number}} updated. Old stock returned, new stock issued.",
+      "created": "Delivery order created. Stock issued from the warehouse."
+    },
+    "errors": {
+      "loadSo": "Could not load the SO details.",
+      "edit": "Could not edit the delivery order.",
+      "save": "Could not save the delivery order."
+    },
+    "validation": {
+      "customer": "Select a customer.",
+      "minItem": "Add at least one item with qty > 0.",
+      "warehouse": "Select a source warehouse for every stock item line.",
+      "reasonMin": "A negative stock bypass reason is required (at least 10 characters).",
+      "noSoLines": "No lines were pulled from the SO."
+    },
+    "fields": {
+      "fromSo": "Pull from Sales Order (optional)",
+      "fromSoHint": "Lines are filled from the SO balance. The delivery order will reduce the SO and update its status.",
+      "fromSoAria": "Pull from Sales Order",
+      "fromSoPlaceholder": "No SO (free delivery)",
+      "customer": "Customer",
+      "customerPlaceholder": "Select customer",
+      "date": "Date",
+      "vehicle": "Vehicle no.",
+      "vehiclePlaceholder": "e.g. B 1234 ABC",
+      "driver": "Driver",
+      "driverPlaceholder": "Driver name",
+      "recipient": "Recipient (optional)",
+      "recipientPlaceholder": "Recipient name at the destination",
+      "notes": "Notes",
+      "notesPlaceholder": "e.g. left at the security post..."
+    },
+    "linkNotes": {
+      "legend": "Link temporary delivery notes",
+      "help": "These goods were already shipped with a temporary delivery note. Select them to link to this official delivery order (qty may differ)."
+    },
+    "items": {
+      "title": "Items",
+      "addRow": "Add row",
+      "tableLabel": "Delivery order items"
+    },
+    "columns": {
+      "itemName": "Item name",
+      "qty": "Qty",
+      "unit": "Unit",
+      "description": "Description",
+      "actions": "Actions"
+    },
+    "rows": {
+      "item": "Item row {{row}}",
+      "itemPlaceholder": "Select from warehouse stock",
+      "manualName": "Manual item name row {{row}}",
+      "manualNamePlaceholder": "Or type an item name manually...",
+      "warehouse": "Source warehouse row {{row}}",
+      "loadingStock": "Loading warehouse stock…",
+      "stockHere": "Stock in this warehouse: {{qty}} {{unit}}",
+      "qty": "Qty row {{row}}",
+      "unit": "Unit row {{row}}",
+      "description": "Description row {{row}}",
+      "descriptionPlaceholder": "Line note...",
+      "remove": "Remove row {{row}}"
+    },
+    "summary": {
+      "title": "Qty summary",
+      "empty": "No items yet.",
+      "total": "Total {{unit}}",
+      "note": "Delivery orders do not record amounts. The invoice follows after delivery."
+    },
+    "shortage": {
+      "title": "Insufficient stock for:",
+      "line": "available {{available}} {{unit}}, needed {{needed}} {{unit}}",
+      "short": "(short {{qty}})",
+      "adminOverride": "Admin override:",
+      "adminOverrideText": "allow negative stock (production/receipt will follow). This is recorded in the audit log.",
+      "requestApproval": "Request negative stock approval:",
+      "requestApprovalText": "create the delivery order anyway (e.g. goods ship while production is running). The delivery order is created once",
+      "managerApproved": "approved by a manager",
+      "reasonBypass": "Negative stock bypass reason",
+      "reasonRequest": "Negative stock request reason",
+      "reasonBypassPlaceholder": "Bypass reason (min 10 characters): e.g. 'Production of 50 tons is running, will be entered this afternoon'",
+      "reasonPlaceholder": "Reason (min 10 characters): e.g. 'Production of 50 tons is running, will be entered this afternoon'"
+    },
+    "footer": {
+      "ready": "Ready to save. Stock will be issued from the warehouse.",
+      "needCustomer": "Select a customer and add at least 1 item.",
+      "needItem": "Complete at least 1 item with qty > 0."
+    }
+  },
+  "deliveryOrdersOfficialPage": {
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "poSoRef": "PO / SO ref",
+      "vehicle": "Vehicle no.",
+      "items": "Items",
+      "status": "Status",
+      "invoice": "Invoice",
+      "actions": "Actions"
+    },
+    "rowActions": {
+      "label": "Actions for {{number}}",
+      "view": "View details",
+      "createInvoice": "Create invoice"
+    },
+    "searchLabel": "Search delivery orders",
+    "searchPlaceholder": "Search DO, SO, PO number, customer, vehicle no.",
+    "tableLabel": "Official delivery orders",
+    "itemLabel": "delivery orders",
+    "empty": {
+      "title": "No delivery orders yet",
+      "description": "Official delivery orders reduce stock when created; the invoice follows.",
+      "action": "Create the first delivery order"
+    }
+  },
+  "deliveryOrdersPage": {
+    "title": "Delivery Orders",
+    "descriptionOfficial": "Physical shipping documents to customers. Stock goes out here; the invoice follows.",
+    "descriptionSjs": "Temporary delivery notes for goods shipped before production is entered.",
+    "createOfficial": "New delivery order",
+    "createSjsShort": "New temp. note",
+    "createSjs": "New temporary delivery note",
+    "tabsLabel": "Delivery order type",
+    "tabOfficial": "Official delivery orders",
+    "tabSjs": "Temporary delivery notes",
+    "open": "open"
+  },
+  "temporaryDeliveryNoteDrawer": {
+    "status": {
+      "open": "Open",
+      "linked": "Linked",
+      "cancelled": "Cancelled"
+    },
+    "toast": {
+      "cancelled": "Temporary delivery note cancelled.",
+      "linked": "Temporary delivery note linked to the official delivery order."
+    },
+    "errors": {
+      "cancel": "Could not cancel.",
+      "link": "Could not link."
+    },
+    "pdf": {
+      "title": "DELIVERY NOTE"
+    },
+    "docType": "Temporary delivery note",
+    "description": "Temporary document: no stock, no journal",
+    "loading": "Loading temporary delivery note…",
+    "notFound": "Temporary delivery note not found.",
+    "customer": "Customer",
+    "fields": {
+      "date": "Date",
+      "vehicle": "Vehicle no.",
+      "driver": "Driver",
+      "recipient": "Recipient",
+      "salesOrder": "Sales Order"
+    },
+    "linkedTo": "Linked to official delivery order <b>{{number}}</b>",
+    "notLinked": "Not linked yet. Once production is entered, create an official delivery order and select this temporary note under <b>Link temporary delivery notes</b>.",
+    "items": {
+      "title": "Items",
+      "tableLabel": "Temporary delivery note items",
+      "name": "Name",
+      "qty": "Qty",
+      "unit": "Unit"
+    },
+    "notesLabel": "Notes:",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "linkToDo": "Link to DO",
+    "generating": "Generating...",
+    "printPdf": "Print PDF",
+    "linkDialog": {
+      "title": "Link {{number}} to an official delivery order",
+      "description": "Select an existing official delivery order for <b>{{customer}}</b>. This only changes the temporary note status; it does not touch stock or journals.",
+      "field": "Official delivery order",
+      "placeholder": "select an official delivery order",
+      "empty": "No active official delivery orders for this customer yet.",
+      "cancel": "Cancel",
+      "linking": "Linking…",
+      "submit": "Link"
+    },
+    "confirmCancel": {
+      "title": "Cancel temporary delivery note?",
+      "description": "The document will be marked Cancelled. No stock or journals are affected.",
+      "confirm": "Cancel note"
+    }
+  },
+  "temporaryDeliveryNoteModal": {
+    "toast": {
+      "saved": "Temporary delivery note {{number}} saved."
+    },
+    "errors": {
+      "save": "Could not save the temporary delivery note."
+    },
+    "validation": {
+      "customer": "Select a customer.",
+      "items": "Every item must be selected from the item master.",
+      "qty": "Qty must be greater than 0."
+    },
+    "titleEdit": "Edit {{number}}",
+    "titleCreate": "New temporary delivery note",
+    "description": "Temporary document: <b>does not reduce stock, has no journal, and cannot be invoiced</b>. Link it to an official delivery order once production is entered.",
+    "fields": {
+      "date": "Date",
+      "customer": "Customer",
+      "customerPlaceholder": "Select customer",
+      "salesOrder": "Sales Order (optional)",
+      "noSalesOrder": "No sales order",
+      "customerFirst": "Select a customer first",
+      "salesOrderHint": "Link this temporary delivery to the customer's sales order.",
+      "vehicle": "Vehicle no.",
+      "driver": "Driver",
+      "recipient": "Recipient",
+      "notes": "Notes"
+    },
+    "items": {
+      "title": "Items",
+      "addRow": "Add row",
+      "item": "Item {{row}}",
+      "itemPlaceholder": "Select item (item master)",
+      "qty": "Qty",
+      "unit": "Unit",
+      "remove": "Remove item row {{row}}"
+    },
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save"
+  },
+  "temporaryDeliveryNotesPage": {
+    "reminder": {
+      "open_one": "<b>{{open}}</b> temporary delivery note is still Open (not linked to an official delivery order).",
+      "open_other": "<b>{{open}}</b> temporary delivery notes are still Open (not linked to an official delivery order).",
+      "openLate_one": "<b>{{open}}</b> temporary delivery note is still Open (not linked to an official delivery order), <b>{{overdue}}</b> older than {{days}} days.",
+      "openLate_other": "<b>{{open}}</b> temporary delivery notes are still Open (not linked to an official delivery order), <b>{{overdue}}</b> older than {{days}} days."
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "vehicle": "Vehicle no.",
+      "items": "Items",
+      "status": "Status",
+      "officialDo": "Official DO",
+      "actions": "Actions"
+    },
+    "ageDays_one": "{{days}} day",
+    "ageDays_other": "{{days}} days",
+    "notLinked": "not linked yet",
+    "rowActions": {
+      "label": "Actions for {{number}}",
+      "view": "View details"
+    },
+    "intro": "Goods shipped before production is entered. <b>No stock reduction, no journal, cannot be invoiced.</b> Link to an official delivery order once production is done.",
+    "searchLabel": "Search temporary delivery notes",
+    "searchPlaceholder": "Search number, customer, vehicle no.",
+    "tableLabel": "Temporary delivery notes",
+    "itemLabel": "temporary delivery notes",
+    "empty": {
+      "title": "No temporary delivery notes yet",
+      "description": "Use one when goods must ship before production is entered.",
+      "action": "Create temporary delivery note"
+    }
+  },
+  "optionSelect": {
+    "placeholder": "Select…"
+  },
+  "pickerSelect": {
+    "placeholder": "Select",
+    "search": "Search…"
+  },
+  "salesOrdersPage": {
+    "title": "Sales orders",
+    "description": "Sales commitments made before the delivery order and invoice, for an “invoice first, ship later” flow.",
+    "create": "New order",
+    "summaryLabel": "Sales order summary for the current filters",
+    "stats": {
+      "active": "Active orders",
+      "activeValue": "Value {{value}}",
+      "submitted": "Confirmed",
+      "submittedHint": "awaiting delivery",
+      "partiallyDelivered": "Partially delivered",
+      "partiallyDeliveredHint": "remainder not yet delivered",
+      "fullyDelivered": "Fully delivered",
+      "fullyDeliveredHint": "all items delivered"
+    },
+    "searchLabel": "Search orders",
+    "searchPlaceholder": "Search SO number, customer, or reference",
+    "tableLabel": "Sales order list",
+    "itemLabel": "orders",
+    "empty": {
+      "title": "No sales orders yet",
+      "description": "Sales orders you create will appear here.",
+      "action": "Create the first order"
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "expectedDelivery": "Target delivery",
+      "items": "Items",
+      "total": "Total",
+      "status": "Status",
+      "deliveryOrdersTitle": "Number of delivery orders",
+      "deliveryOrdersAbbr": "DO",
+      "actions": "Actions"
+    },
+    "refPrefix": "Ref: {{ref}}",
+    "rowActions": "Actions for {{number}}",
+    "viewDetail": "View details",
+    "toast": {
+      "quotationNotEligible": "Quotation {{number}} cannot be turned into a sales order.",
+      "quotationLoadFailed": "Could not load the quotation."
+    }
+  },
+  "salesReturnsPage": {
+    "title": "Sales returns",
+    "description": "Return goods or value from a sales invoice (credit note).",
+    "create": "New return",
+    "searchLabel": "Search returns",
+    "searchPlaceholder": "Search return no., invoice, customer",
+    "tableLabel": "Sales return list",
+    "itemLabel": "returns",
+    "empty": {
+      "title": "No sales returns yet",
+      "description": "Returns created from sales invoices will appear here.",
+      "action": "Create the first return"
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "sourceInvoice": "Source invoice",
+      "totalReturn": "Return total",
+      "arReduced": "Receivables reduced",
+      "creditCreated": "Credit created",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {{number}}",
+    "cancelAction": "Cancel return",
+    "toast": {
+      "cancelled": "Return cancelled.",
+      "cancelFailed": "Could not cancel the return."
+    },
+    "confirm": {
+      "title": "Cancel return {{number}}?",
+      "description": "Stock and journal entries will be reversed. This cannot be undone.",
+      "confirm": "Cancel return",
+      "cancel": "Back"
+    }
+  },
+  "salesReturnModal": {
+    "title": "New sales return",
+    "description": "Choose an invoice, then enter the quantity returned.",
+    "fields": {
+      "invoice": "Sales invoice",
+      "invoicePlaceholder": "Select invoice",
+      "date": "Return date",
+      "reason": "Return reason (optional)",
+      "reasonPlaceholder": "e.g. damaged in transit, wrong item shipped"
+    },
+    "outstanding": "Invoice outstanding:",
+    "total": "Total:",
+    "table": {
+      "label": "Invoice lines that can be returned",
+      "item": "Item",
+      "sold": "Sold",
+      "remaining": "Returnable",
+      "returnQty": "Return qty",
+      "restock": "Restock?",
+      "discount": "disc {{value}}%",
+      "tax": "VAT {{value}}%",
+      "returnQtyFor": "Return qty for {{name}}",
+      "max": "Maximum {{qty}} {{unit}}.",
+      "restockFor": "Restock {{name}}"
+    },
+    "loading": "Loading…",
+    "summary": {
+      "subtotal": "Return subtotal",
+      "tax": "VAT",
+      "total": "Return total",
+      "arReduce": "Reduce receivables",
+      "credit": "Customer credit",
+      "qtyOnly": "Quantity-only return (Rp0 value): restores physical stock only and does not change receivables or customer credit."
+    },
+    "errors": {
+      "noLines": "Select at least one line with qty > 0."
+    },
+    "toast": {
+      "pendingApproval": "Return submitted, awaiting manager approval.",
+      "created": "Sales return created.",
+      "createFailed": "Could not create the return."
+    },
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save return"
+  },
+  "salesOrderModal": {
+    "titleCreate": "New sales order",
+    "titleEdit": "Edit sales order",
+    "description": "Sales commitment to a customer (Draft → Submitted)",
+    "fromQuotation": "From quotation",
+    "fields": {
+      "date": "Date",
+      "expectedDelivery": "Target delivery",
+      "customer": "Customer",
+      "customerPlaceholder": "Select customer...",
+      "customerRefNo": "Customer PO reference",
+      "notes": "Notes",
+      "optional": "Optional",
+      "discountAmount": "Discount",
+      "taxPct": "VAT %",
+      "otherCosts": "Other costs"
+    },
+    "table": {
+      "label": "Sales order items",
+      "item": "Item",
+      "qty": "Qty",
+      "unit": "Unit",
+      "rate": "Unit price",
+      "discount": "Disc %",
+      "subtotal": "Subtotal",
+      "actions": "Actions",
+      "itemRow": "Item, row {{row}}",
+      "itemPlaceholder": "Select item...",
+      "qtyRow": "Qty, row {{row}}",
+      "unitRow": "Unit, row {{row}}",
+      "rateRow": "Unit price, row {{row}}",
+      "discountRow": "Discount percent, row {{row}}",
+      "removeRow": "Remove row {{row}}",
+      "addRow": "Add row"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "tax": "VAT ({{pct}}%)",
+      "grandTotal": "Grand total"
+    },
+    "errors": {
+      "customerRequired": "Select a customer.",
+      "noItems": "Add at least one item.",
+      "itemNameRequired": "Row {{row}}: item name is required.",
+      "qtyPositive": "Row {{row}}: qty must be > 0.",
+      "saveFailed": "Could not save."
+    },
+    "toast": {
+      "updated": "Sales order updated.",
+      "created": "Sales order saved as draft."
+    },
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "saveDraft": "Save as draft"
+  },
+  "salesOrderDetailDrawer": {
+    "title": "Sales order details",
+    "loading": "Loading…",
+    "loadingOrder": "Loading sales order…",
+    "notFound": "Sales order not found.",
+    "pdf": {
+      "title": "Download SO PDF",
+      "preparing": "Preparing…",
+      "download": "Download PDF",
+      "titleWithAttachments_one": "Download SO PDF + {{count}} attachment in one file",
+      "titleWithAttachments_other": "Download SO PDF + {{count}} attachments in one file",
+      "downloadWithCount_one": "Download PDF +{{count}}",
+      "downloadWithCount_other": "Download PDF +{{count}}"
+    },
+    "meta": {
+      "date": "Date:",
+      "expectedDelivery": "Target delivery:",
+      "customer": "Customer:",
+      "customerRef": "PO ref:",
+      "quotation": "Quotation:",
+      "notes": "Notes: {{notes}}"
+    },
+    "items": {
+      "label": "Sales order items",
+      "item": "Item",
+      "qty": "Qty",
+      "delivered": "Delivered",
+      "remaining": "Remaining",
+      "rate": "Price",
+      "subtotal": "Subtotal",
+      "overDeliveredTitle": "Delivered more than ordered",
+      "overDelivered": "+{{qty}} over",
+      "fullyDelivered": "Fully delivered"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "tax": "VAT {{pct}}%",
+      "otherCosts": "Other costs",
+      "grandTotal": "Grand total"
+    },
+    "deposit": {
+      "label": "Deposit",
+      "title": "Deposit",
+      "pctOfTotal": "{{pct}}% of total",
+      "received": "Deposit received",
+      "applied": "Deposit applied",
+      "remaining": "Deposit remaining",
+      "grandTotal": "Grand total",
+      "outstanding": "Amount due",
+      "receive": "+ Receive deposit",
+      "amount": "Amount",
+      "account": "Deposit to cash/bank",
+      "accountPlaceholder": "Select account",
+      "save": "Save deposit",
+      "defaultNote": "Deposit {{number}}",
+      "errors": {
+        "amountPositive": "Deposit amount must be > 0.",
+        "accountRequired": "Select a cash/bank account."
+      }
+    },
+    "fields": {
+      "date": "Date"
+    },
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "relatedDeliveryOrders": "Related delivery orders",
+    "attachments": "Attachments (customer PO / documents)",
+    "generateDo": {
+      "title": "Create delivery order",
+      "creating": "Creating…",
+      "warehouse": "Source warehouse",
+      "warehousePlaceholder": "Select warehouse",
+      "vehicleNo": "Vehicle no.",
+      "driver": "Driver",
+      "recipient": "Recipient",
+      "recipientPlaceholder": "Name of the person receiving the goods",
+      "notes": "Notes",
+      "optional": "Optional",
+      "table": {
+        "label": "Quantity to ship per item",
+        "item": "Item",
+        "remaining": "Remaining",
+        "qty": "Ship qty",
+        "qtyFor": "Ship qty for {{name}}",
+        "max": "max {{qty}}"
+      },
+      "override": {
+        "label": "Admin override:",
+        "text": "allow negative stock (production or receipt to follow). This is recorded in the audit trail.",
+        "reason": "Reason for allowing negative stock",
+        "reasonPlaceholder": "Reason (at least 10 characters)"
+      },
+      "errors": {
+        "noItems": "Select at least 1 item with qty > 0.",
+        "warehouseRequired": "Select a source warehouse.",
+        "reasonRequired": "Enter a reason for allowing negative stock (at least 10 characters)."
+      }
+    },
+    "cancelSo": "Cancel SO",
+    "edit": "Edit",
+    "submit": "Submit",
+    "confirmCancel": {
+      "title": "Cancel this sales order?",
+      "description": "{{number}} will be cancelled and cannot be processed further.",
+      "back": "Back"
+    },
+    "toast": {
+      "pdfFailed": "Could not create the PDF.",
+      "depositReceived": "Deposit received.",
+      "depositFailed": "Could not record the deposit.",
+      "submitted": "Sales order submitted.",
+      "submitFailed": "Could not submit.",
+      "cancelled": "Sales order cancelled.",
+      "cancelFailed": "Could not cancel.",
+      "doCreated": "Delivery order {{number}} created.",
+      "doFailed": "Could not create the delivery order.",
+      "pdfReady_one": "PDF + {{count}} attachment ready to download.",
+      "pdfReady_other": "PDF + {{count}} attachments ready to download."
+    }
+  },
+  "inquiryDetailDrawer": {
+    "channels": {
+      "WhatsApp": "WhatsApp",
+      "Telepon": "Phone",
+      "Email": "Email",
+      "WalkIn": "Walk-in",
+      "Referral": "Referral",
+      "Lainnya": "Other"
+    },
+    "toast": {
+      "statusUpdated": "Status updated.",
+      "deleted": "Inquiry deleted."
+    },
+    "errors": {
+      "statusFailed": "Could not change the status.",
+      "deleteFailed": "Could not delete.",
+      "convertFailed": "Could not prepare the conversion."
+    },
+    "title": "Inquiry details",
+    "loadingDetail": "Loading inquiry details",
+    "loading": "Loading inquiry…",
+    "fields": {
+      "status": "Status",
+      "date": "Date",
+      "channel": "Channel",
+      "followUp": "Follow-up",
+      "quotation": "Quotation",
+      "lossReason": "Loss reason:",
+      "notes": "Notes"
+    },
+    "party": {
+      "title": "Prospect / customer",
+      "prospectBadge": "prospect",
+      "phone": "Phone:",
+      "email": "Email:"
+    },
+    "items": {
+      "title": "Request",
+      "tableLabel": "Requested items",
+      "item": "Item",
+      "qty": "Qty",
+      "estimatedPrice": "Est. price",
+      "empty": "No structured request."
+    },
+    "actions": {
+      "delete": "Delete",
+      "edit": "Edit",
+      "close": "Close",
+      "markLost": "Mark as lost",
+      "process": "In progress",
+      "createQuotation": "Create quotation",
+      "cancel": "Cancel"
+    },
+    "confirm": {
+      "process": {
+        "title": "Mark as in progress",
+        "description": "Mark this inquiry as in progress?"
+      },
+      "close": {
+        "title": "Close inquiry",
+        "description": "Close this inquiry? It will not be followed up any further."
+      },
+      "delete": {
+        "title": "Delete inquiry",
+        "description": "Permanently delete this inquiry?",
+        "confirm": "Yes, delete"
+      }
+    },
+    "lost": {
+      "title": "Mark as lost",
+      "description": "Give a short reason (at least 5 characters).",
+      "reasonLabel": "Loss reason",
+      "reasonPlaceholder": "E.g. customer switched to a competitor, price over budget...",
+      "processing": "Processing…",
+      "submit": "Mark as lost"
+    }
+  },
+  "inquiryModal": {
+    "channels": {
+      "WhatsApp": "WhatsApp",
+      "Telepon": "Phone",
+      "Email": "Email",
+      "WalkIn": "Walk-in",
+      "Referral": "Referral",
+      "Lainnya": "Other"
+    },
+    "toast": {
+      "updated": "Inquiry updated.",
+      "created": "Inquiry recorded."
+    },
+    "errors": {
+      "saveFailed": "Could not save the inquiry.",
+      "nameRequired": "Prospect or customer name is required.",
+      "noItems": "Add at least one item, or describe the request in free-text mode."
+    },
+    "titleEdit": "Edit inquiry {{number}}",
+    "titleCreate": "New inquiry",
+    "description": "Record an initial request from a prospective customer before preparing a quotation.",
+    "fields": {
+      "date": "Date",
+      "channel": "Channel",
+      "followUp": "Follow-up (optional)",
+      "existingCustomer": "Select an existing customer (optional)",
+      "prospectName": "Prospect/customer name",
+      "phone": "Phone",
+      "email": "Email",
+      "internalNotes": "Internal notes"
+    },
+    "placeholders": {
+      "existingCustomer": "Search registered customers...",
+      "prospectName": "Company or individual name",
+      "internalNotes": "Referral source, budget limit, etc..."
+    },
+    "newProspectHint": "None selected → recorded as a new prospect. The customer is created automatically when converting to a quotation.",
+    "items": {
+      "title": "Request / items",
+      "modeLabel": "Request input mode",
+      "freetext": "Free text",
+      "structured": "Structured",
+      "freetextLabel": "Request (free text)",
+      "freetextPlaceholder": "E.g. Product A 25 kg x 100 sacks, Product B 2 tons, delivery needed next week...",
+      "item": "Item",
+      "itemPlaceholder": "Product or service name",
+      "qty": "Qty",
+      "unit": "Unit",
+      "estimatedPrice": "Est. price",
+      "removeRow": "Remove item row {{n}}",
+      "addRow": "Add row"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "save": "Save inquiry"
+    }
+  },
+  "inquiriesPage": {
+    "channels": {
+      "WhatsApp": "WhatsApp",
+      "Telepon": "Phone",
+      "Email": "Email",
+      "WalkIn": "Walk-in",
+      "Referral": "Referral",
+      "Lainnya": "Other"
+    },
+    "chips": {
+      "prospect": "Prospect",
+      "publicFormTitle": "Submitted through the public form (QR)",
+      "publicForm": "Public form"
+    },
+    "channelFilter": {
+      "label": "Channel",
+      "all": "All channels"
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "prospect": "Prospect / customer",
+      "contact": "Contact",
+      "channel": "Channel",
+      "status": "Status",
+      "quotation": "Quotation",
+      "actions": "Actions"
+    },
+    "via": "via {{name}}",
+    "rowActions": {
+      "label": "Actions for {{number}}",
+      "view": "View details",
+      "edit": "Edit"
+    },
+    "title": "Customer inquiries",
+    "description": "Questions from prospective customers before a formal quotation.",
+    "qrButtonTitle": "Create a QR code for the public form",
+    "qrButton": "Form QR",
+    "create": "New inquiry",
+    "stats": {
+      "regionLabel": "Inquiry summary for the current filters",
+      "count": "Inquiries",
+      "inProgress_one": "{{formatted}} in progress",
+      "inProgress_other": "{{formatted}} in progress",
+      "new": "New",
+      "newHint": "not yet followed up",
+      "converted": "Converted",
+      "convertedHint": "became quotations",
+      "conversionRate": "Conversion rate",
+      "conversionRateHint": "of all inquiries"
+    },
+    "search": {
+      "label": "Search inquiries",
+      "placeholder": "Search by number, prospect, or customer"
+    },
+    "table": {
+      "label": "Customer inquiry list",
+      "itemLabel": "inquiries"
+    },
+    "empty": {
+      "title": "No customer inquiries yet",
+      "description": "Record inquiries from WhatsApp or phone, or share the public form QR code.",
+      "action": "Record the first inquiry"
+    }
+  },
+  "quotationDetailDrawer": {
+    "toast": {
+      "sent": "Quotation sent.",
+      "accepted": "Quotation marked as accepted.",
+      "rejected": "Quotation marked as rejected.",
+      "cancelled": "Quotation cancelled.",
+      "deleted": "Quotation deleted.",
+      "invoiceCreated": "Sales Invoice {{number}} created."
+    },
+    "errors": {
+      "sendFailed": "Could not send.",
+      "acceptFailed": "Could not accept.",
+      "rejectFailed": "Could not reject.",
+      "cancelFailed": "Could not cancel.",
+      "deleteFailed": "Could not delete.",
+      "convertFailed": "Could not convert."
+    },
+    "convertedFromNote": "[Converted from {{number}}]",
+    "title": "Quotation details",
+    "loading": "Loading…",
+    "loadingQuotation": "Loading quotation…",
+    "fields": {
+      "status": "Status",
+      "date": "Date",
+      "validUntil": "Valid until",
+      "customer": "Customer",
+      "salesInvoice": "Sales Invoice",
+      "salesOrder": "Sales Order",
+      "rejectReason": "Rejection reason:",
+      "notes": "Notes",
+      "terms": "Terms & conditions"
+    },
+    "items": {
+      "title": "Items",
+      "tableLabel": "Quotation items",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Price",
+      "total": "Total"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "otherCosts": "Other costs",
+      "grandTotal": "Grand total"
+    },
+    "actions": {
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "send": "Send",
+      "reject": "Reject",
+      "accept": "Accepted",
+      "createSalesOrder": "Create Sales Order",
+      "convertToInvoice": "Convert to Sales Invoice"
+    },
+    "confirm": {
+      "send": {
+        "title": "Send quotation",
+        "description": "Send quotation {{number}} to the customer? Once sent, the quotation can no longer be edited.",
+        "confirm": "Yes, send"
+      },
+      "accept": {
+        "title": "Mark as accepted",
+        "description": "Mark this quotation as accepted by the customer?",
+        "confirm": "Yes, accepted"
+      },
+      "cancel": {
+        "title": "Cancel quotation",
+        "description": "Cancel this quotation? Its status becomes Cancelled and it cannot be reactivated.",
+        "confirm": "Yes, cancel"
+      },
+      "delete": {
+        "title": "Delete quotation",
+        "description": "Permanently delete this draft quotation?",
+        "confirm": "Yes, delete"
+      },
+      "reject": {
+        "title": "Reject quotation",
+        "description": "Give a short reason (at least 5 characters).",
+        "confirm": "Reject quotation",
+        "reasonLabel": "Rejection reason",
+        "reasonPlaceholder": "E.g. customer asked for a lower price, switched to a competitor..."
+      }
+    }
+  },
+  "quotationModal": {
+    "defaults": {
+      "terms": "Quotation valid for 30 days. Prices may change after the validity period.",
+      "discountLabel": "Discount",
+      "otherCostLabel": "Other costs"
+    },
+    "toast": {
+      "updated": "Quotation updated.",
+      "created": "Quotation created."
+    },
+    "errors": {
+      "saveFailed": "Could not save the quotation.",
+      "noItems": "Add at least one item.",
+      "noCustomer": "Select a customer.",
+      "validUntilBeforeDate": "The valid-until date must be after the quotation date.",
+      "missingRevenueAccount": "Item \"{{name}}\" has no revenue account."
+    },
+    "titleEdit": "Edit quotation {{number}}",
+    "titleCreate": "New quotation",
+    "description": "Price quotation to a customer before it becomes a Sales Order.",
+    "fields": {
+      "date": "Date",
+      "validUntil": "Valid until",
+      "customer": "Customer",
+      "notes": "Notes",
+      "terms": "Terms & conditions"
+    },
+    "placeholders": {
+      "customer": "Select customer...",
+      "notes": "Additional notes for the customer..."
+    },
+    "items": {
+      "title": "Quotation items",
+      "addRow": "Add row",
+      "rowLabel": "Quotation item {{n}}",
+      "typeLabel": "Item type {{n}}",
+      "product": "Product",
+      "service": "Service",
+      "removeRow": "Remove row {{n}}",
+      "item": "Item",
+      "productItemLabel": "Product item, row {{n}}",
+      "productPlaceholder": "Select an item or type a name...",
+      "serviceItemLabel": "Service item, row {{n}}",
+      "servicePlaceholder": "Select a service or type a name...",
+      "freeNameLabel": "Custom item name, row {{n}}",
+      "freeNamePlaceholder": "Or type a custom item name",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitLabel": "Unit, row {{n}}",
+      "rate": "Unit price",
+      "discountPct": "Discount %",
+      "vatPct": "VAT %",
+      "pphPct": "Income tax (PPh) %"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "vat": "VAT",
+      "pph": "Income tax (PPh)",
+      "discountLabelAria": "Discount label",
+      "discountValueAria": "Discount amount",
+      "otherCostLabelAria": "Other costs label",
+      "otherCostValueAria": "Other costs amount",
+      "grandTotal": "Grand total"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "saveDraft": "Save draft"
+    },
+    "footer": {
+      "total": "Total: {{amount}}",
+      "incomplete": "Select a customer and add at least 1 item."
+    }
+  },
+  "quotationsPage": {
+    "export": {
+      "number": "Quotation No.",
+      "date": "Date",
+      "validUntil": "Valid until",
+      "customer": "Customer",
+      "status": "Status",
+      "productName": "Product name",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitPrice": "Unit price",
+      "discountPct": "Discount (%)",
+      "vatPct": "VAT (%)",
+      "pphPct": "Income tax (PPh) (%)",
+      "itemSubtotal": "Item subtotal",
+      "grandTotal": "Quotation grand total",
+      "salesInvoice": "Sales Invoice",
+      "notes": "Notes",
+      "fileName": "quotations",
+      "truncated_one": "Export limited to the first {{formatted}} quotation. Narrow the filters.",
+      "truncated_other": "Export limited to the first {{formatted}} quotations. Narrow the filters.",
+      "failed": "Could not export quotations. Try again."
+    },
+    "fromInquiryNote": "[From inquiry {{number}}]",
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "validUntil": "Valid until",
+      "total": "Total",
+      "status": "Status",
+      "conversion": "Conversion",
+      "actions": "Actions"
+    },
+    "expiringSoonTitle_one": "Expiring soon (≤ {{count}} day)",
+    "expiringSoonTitle_other": "Expiring soon (≤ {{count}} days)",
+    "expiringSoonSr": "(expiring soon)",
+    "notConverted": "Not converted",
+    "rowActions": {
+      "label": "Actions for {{number}}",
+      "view": "View details",
+      "edit": "Edit"
+    },
+    "stats": {
+      "expiringSoon_one": "{{formatted}} expiring soon",
+      "expiringSoon_other": "{{formatted}} expiring soon",
+      "awaitingConfirmation": "awaiting confirmation",
+      "regionLabel": "Quotation summary for the current filters",
+      "count": "Quotations",
+      "value": "Value {{amount}}",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "awaitingConversion_one": "{{formatted}} not converted",
+      "awaitingConversion_other": "{{formatted}} not converted",
+      "conversionRate": "Conversion rate",
+      "ofIssued_one": "of {{formatted}} issued",
+      "ofIssued_other": "of {{formatted}} issued"
+    },
+    "title": "Quotations",
+    "description": "Manage quotations to customers and convert them to sales invoices.",
+    "exportExcel": "Export to Excel",
+    "create": "New quotation",
+    "search": {
+      "label": "Search quotations",
+      "placeholder": "Search by number or customer"
+    },
+    "table": {
+      "label": "Quotation list",
+      "itemLabel": "quotations"
+    },
+    "empty": {
+      "title": "No quotations yet",
+      "description": "Quotations you create will appear here.",
+      "action": "Create the first quotation"
+    }
+  },
+  "inquiryQRModal": {
+    "sources": {
+      "none": "No tracking",
+      "print": "Printed QR / brochure",
+      "store": "In-store QR / display",
+      "businessCard": "Business card QR",
+      "whatsapp": "WhatsApp",
+      "instagram": "Instagram",
+      "referral": "Referral"
+    },
+    "toast": {
+      "copied": "Link copied to the clipboard."
+    },
+    "errors": {
+      "copyFailed": "Could not copy. Copy it manually from the URL box.",
+      "qrNotReady": "The QR code is not ready yet. Try again."
+    },
+    "share": {
+      "whatsappMessage": "Hello, for price and stock availability questions, please fill in the form at:\n{{url}}\n\nWe will respond within 24 hours. Thank you.",
+      "title": "Price inquiry / order",
+      "text": "Fill in the price inquiry form here."
+    },
+    "title": "Inquiry form QR code",
+    "description": "Share the price inquiry form so prospective customers can send inquiries themselves.",
+    "sourceLabel": "Source tracking (optional)",
+    "sourceHint": "Every inquiry submitted through this QR code is tagged with the matching channel automatically.",
+    "qrAria": "QR code linking to {{url}}",
+    "actions": {
+      "copied": "Copied",
+      "copyLink": "Copy link",
+      "downloadPng": "Download PNG",
+      "sendWhatsapp": "Send via WhatsApp",
+      "share": "Share",
+      "close": "Close"
+    },
+    "tip": "<strong>Tip:</strong> Print the QR code for in-store displays, business cards, or brochures. For WhatsApp or Instagram bios, just copy the link. Customers scan or tap → the form opens, and the sales team is notified of the new inquiry right away."
+  },
+  "applyCustomerDepositModal": {
+    "title": "Use customer deposit",
+    "description": "Apply a deposit to a sales invoice",
+    "outstanding": "Invoice balance due: <amount>{{amount}}</amount>",
+    "loading": "Loading deposits…",
+    "empty": "This customer has no active deposits.",
+    "chooseDeposit": "Choose deposit",
+    "ofAmount": "of {{amount}}",
+    "amount": "Amount to apply (Rp)",
+    "errors": {
+      "applyFailed": "Could not apply the deposit."
+    },
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "apply": "Apply"
+  },
+  "customerDepositModal": {
+    "title": "Customer Deposit",
+    "description": "Advance payment from a customer before a sale",
+    "fields": {
+      "date": "Date",
+      "customer": "Customer",
+      "customerPlaceholder": "Select customer",
+      "amount": "Amount (Rp)",
+      "amountAria": "Deposit amount",
+      "account": "Cash/bank account",
+      "accountPlaceholder": "Select account",
+      "reference": "Reference no.",
+      "referencePlaceholder": "Cheque no., transfer, etc.",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional notes..."
+    },
+    "currentBalance": "Current deposit balance: <amount>{{amount}}</amount>",
+    "activeDeposits": "{{total}} active deposits",
+    "opening": {
+      "label": "Opening balance / correction",
+      "hint": "Record the deposit without affecting cash (offset to Opening Balance Equity)",
+      "journal": "Journal: <mono>DR Opening Balance Equity / CR Customer Deposits</mono>",
+      "note": "Cash and bank are not affected. Use this for deposits received before the system was in use."
+    },
+    "summary": "Deposit of <amount>{{amount}}</amount> from the customer",
+    "saved": "Saved",
+    "attachments": "Transfer receipt attachments",
+    "errors": {
+      "saveFailed": "Could not save the deposit."
+    },
+    "done": "Done",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save deposit"
+  },
+  "customerDepositsPage": {
+    "title": "Customer Deposits",
+    "description": "Manage deposits and advance payments from customers.",
+    "create": "New deposit",
+    "toast": {
+      "cancelled": "Customer deposit cancelled.",
+      "cancelFailed": "Could not cancel the deposit."
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "customer": "Customer",
+      "amount": "Amount",
+      "applied": "Applied",
+      "remaining": "Remaining",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "refundedTitle": "Refunded (cash refund): {{amount}}",
+    "refundedShort": "refund {{amount}}",
+    "actions": {
+      "menuLabel": "Actions for {{number}}",
+      "refund": "Refund / offset",
+      "cancel": "Cancel"
+    },
+    "kpi": {
+      "label": "Deposit summary for the current filters",
+      "total": "Total deposits",
+      "totalHint": "{{total}} deposits",
+      "applied": "Applied",
+      "refundHint": "Refunded {{amount}}",
+      "appliedHint": "to invoices",
+      "remaining": "Remaining deposits",
+      "active": "Active deposits",
+      "activeHint": "with a remaining balance"
+    },
+    "filters": {
+      "searchLabel": "Search deposits",
+      "searchPlaceholder": "Search deposit number or customer"
+    },
+    "table": {
+      "label": "Customer deposits",
+      "itemLabel": "deposits"
+    },
+    "empty": {
+      "title": "No customer deposits yet",
+      "description": "Deposits received from customers will appear here.",
+      "action": "Create your first deposit"
+    },
+    "cancelDialog": {
+      "title": "Cancel deposit",
+      "message": "Cancel deposit {{number}}? The account balance and the customer's deposit will be reversed.",
+      "confirm": "Yes, cancel"
+    }
+  },
+  "partiesPage": {
+    "title": "Customers & Suppliers",
+    "description": "Manage business partners, receivable balances, and trade payables.",
+    "exportExcel": "Export to Excel",
+    "import": "Import",
+    "addPartner": "Add partner",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "type": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Customer & Supplier"
+    },
+    "outstanding": {
+      "overpaid": "Overpaid",
+      "receivable": "Receivable",
+      "payable": "Payable",
+      "owed": "Outstanding"
+    },
+    "toast": {
+      "deactivated": "Partner deactivated because it has related transactions.",
+      "deleted": "Partner deleted.",
+      "deleteFailed": "Could not delete the partner."
+    },
+    "export": {
+      "fileName": "customers-suppliers",
+      "truncated": "Export limited to the first {{total}} partners. Narrow the filters.",
+      "failed": "Could not export partners. Try again."
+    },
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "taxId": "Tax ID (NPWP)",
+      "outstanding": "<wide>Outstanding </wide>Balance <unit>(Rp)</unit>",
+      "deposit": "Deposit",
+      "actions": "Actions"
+    },
+    "actions": {
+      "menuLabel": "Actions for {{name}}",
+      "edit": "Edit",
+      "viewSalesInvoices": "View sales invoices",
+      "viewPurchaseInvoices": "View purchase invoices",
+      "delete": "Delete"
+    },
+    "tabs": {
+      "label": "Partner type",
+      "all": "All",
+      "customer": "Customers",
+      "supplier": "Suppliers",
+      "analysis": "Analysis"
+    },
+    "kpi": {
+      "label": "Partner summary for the current filters",
+      "count": "Partners",
+      "countHint": "{{customers}} customers · {{suppliers}} suppliers",
+      "receivable": "Total receivables",
+      "customerDepositHint": "Customer deposits {{amount}}",
+      "payable": "Total payables",
+      "supplierDepositHint": "Supplier deposits {{amount}}",
+      "withBalance": "Partners with a balance",
+      "inactiveHint": "{{total}} inactive"
+    },
+    "filters": {
+      "searchLabel": "Search partners",
+      "searchPlaceholder": "Search name, email, phone, or Tax ID",
+      "statusLabel": "Partner status",
+      "allStatus": "All statuses",
+      "outstandingLabel": "Outstanding balance",
+      "allBalances": "All balances",
+      "hasOutstanding": "Has an outstanding balance",
+      "noOutstanding": "No outstanding balance"
+    },
+    "table": {
+      "label": "Customers and suppliers",
+      "itemLabel": "partners"
+    },
+    "empty": {
+      "title": "No partners yet",
+      "description": "Customers and suppliers you add will appear here.",
+      "action": "Add your first partner"
+    },
+    "delete": {
+      "title": "Delete partner?",
+      "description": "<name>{{name}}</name> will be deleted. If the partner has related transactions (invoices or payments), it is deactivated instead of permanently deleted.",
+      "confirm": "Delete"
+    }
+  },
+  "partyFormModal": {
+    "titleEdit": "Edit partner",
+    "titleCreate": "Add new partner",
+    "descriptionEdit": "Editing {{name}}",
+    "descriptionCreate": "Customer, supplier, or both",
+    "partyType": "Partner type",
+    "typeOption": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Both"
+    },
+    "typeShort": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "both": "Customer & Supplier"
+    },
+    "sections": {
+      "identity": "Identity",
+      "contact": "Contact",
+      "address": "Address"
+    },
+    "fields": {
+      "name": "Name / Company",
+      "namePlaceholder": "Company or individual name",
+      "phone": "Phone / WhatsApp",
+      "email": "Email",
+      "emailPlaceholder": "email@company.com",
+      "address": "Address",
+      "addressPlaceholder": "Street, district, city, province"
+    },
+    "duplicate": {
+      "title": "A similar name already exists",
+      "hint": "Check whether one of these is the partner you mean:",
+      "inactive": "(Inactive)"
+    },
+    "wapu": {
+      "label": "VAT collector (WAPU)",
+      "description": "The customer pays VAT directly to the state treasury (e.g. state-owned enterprises or government agencies). Invoices to this partner are set without VAT automatically (tax_pct=0)."
+    },
+    "errors": {
+      "saveFailed": "Could not save the partner.",
+      "nameRequired": "Partner name is required."
+    },
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "saveCreate": "Save partner"
+  },
+  "refundCustomerDepositModal": {
+    "title": "Refund / offset deposit",
+    "remaining": "Remaining deposit",
+    "receivable": "Customer receivables",
+    "fields": {
+      "date": "Date",
+      "offset": "Offset against receivables (oldest invoices first)",
+      "cash": "Cash refund to bank",
+      "account": "Cash/bank account",
+      "accountPlaceholder": "Select cash/bank account",
+      "notes": "Notes (optional)"
+    },
+    "max": "Max: {{amount}}",
+    "rest": "Remaining: {{amount}}",
+    "total": "Total settled:",
+    "after": "Remaining after this:",
+    "toast": {
+      "settled": "Deposit settled."
+    },
+    "errors": {
+      "failed": "Could not process the refund or offset.",
+      "invalidTotal": "Offset plus cash must be greater than 0 and no more than the remaining deposit.",
+      "accountRequired": "Select a cash/bank account for the cash refund.",
+      "offsetExceeds": "The offset ({{offset}}) is more than the customer's total receivables ({{outstanding}})."
+    },
+    "cancel": "Cancel",
+    "processing": "Processing…",
+    "submit": "Process"
+  },
+  "invoiceExtras": {
+    "marginAnalysis": "Margin analysis",
+    "totalQty": "Total qty",
+    "paidPercent": "Percentage paid",
+    "payment": "Payment"
+  }
+}

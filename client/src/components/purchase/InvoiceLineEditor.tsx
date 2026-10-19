@@ -1,0 +1,281 @@
+/**
+ * Line editor for the purchase invoice form: one responsive card per line
+ * (bahan baku with timbangan, or jasa/biaya). Presentational only — all state
+ * and calculations stay in PurchaseInvoiceModal.
+ */
+import { useTranslation } from 'react-i18next';
+import { Plus, Trash2 } from 'lucide-react';
+import { NumberInput } from '@/components/ui/number-input';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { formatRupiah } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { OptionPicker } from '@/components/purchase-cash/OptionPicker';
+import { WarehouseField } from '@/components/purchase-cash/WarehouseField';
+import type { InvoiceItem, LineCalc } from './invoice-item';
+
+interface InventoryOption {
+  id: string;
+  code?: string;
+  name: string;
+}
+
+interface InvoiceLineEditorProps {
+  items: InvoiceItem[];
+  lineCalcs: LineCalc[];
+  inventoryItems: InventoryOption[] | undefined;
+  onUpdate: (index: number, field: keyof InvoiceItem, value: string | number) => void;
+  onSelectInventory: (index: number, inventoryId: string) => void;
+  onRemove: (index: number) => void;
+  onAddMaterial: () => void;
+  onAddService: () => void;
+}
+
+const numCls = 'num h-10 text-right md:h-9';
+
+function Cell({
+  label,
+  htmlFor,
+  className,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn('flex min-w-0 flex-col gap-1', className)}>
+      <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+export function InvoiceLineEditor({
+  items,
+  lineCalcs,
+  inventoryItems,
+  onUpdate,
+  onSelectInventory,
+  onRemove,
+  onAddMaterial,
+  onAddService,
+}: InvoiceLineEditorProps) {
+  const { t } = useTranslation('purchasing');
+  const clampPct = (v: string) => Math.max(0, Math.min(100, Number(v)));
+  return (
+    <section aria-labelledby="pi-items-title" className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="pi-items-title" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t('lineEditor.title')}
+        </h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" className="h-11 sm:h-8" onClick={onAddMaterial}>
+            <Plus aria-hidden /> {t('lineEditor.addMaterial')}
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="h-11 sm:h-8" onClick={onAddService}>
+            <Plus aria-hidden /> {t('lineEditor.addService')}
+          </Button>
+        </div>
+      </div>
+
+      <ul className="space-y-3">
+        {items.map((item, idx) => {
+          const calc = lineCalcs[idx];
+          const isService = item.itemType === 'service';
+          const n = idx + 1;
+          const k = item.id;
+          return (
+            <li
+              key={k}
+              aria-label={t(isService ? 'lineEditor.serviceRow' : 'lineEditor.materialRow', { n })}
+              className={cn(
+                'space-y-3 rounded-xl border p-3',
+                isService ? 'border-success/40 bg-success-subtle/40' : 'border-border bg-card',
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={cn(
+                    'rounded px-1.5 py-0.5 text-xs font-semibold uppercase',
+                    isService ? 'bg-success-subtle text-success-text' : 'bg-info-subtle text-info-text',
+                  )}
+                >
+                  {isService ? t('lineEditor.service') : t('lineEditor.material')} #{n}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{t('lineEditor.finalPrice')}</span>
+                  <span className="num text-sm font-bold text-foreground">{formatRupiah(calc.hargaAkhir)}</span>
+                  {items.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-touch"
+                      className="text-muted-foreground hover:text-danger-text md:size-9"
+                      onClick={() => onRemove(idx)}
+                      aria-label={t('lineEditor.removeRow', { n })}
+                    >
+                      <Trash2 aria-hidden />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {isService ? (
+                  <Cell label={t('lineEditor.serviceName')} htmlFor={`pi-name-${k}`}>
+                    <Input
+                      id={`pi-name-${k}`}
+                      value={item.itemName}
+                      onChange={(e) => onUpdate(idx, 'itemName', e.target.value)}
+                      placeholder={t('lineEditor.serviceNamePlaceholder')}
+                    />
+                  </Cell>
+                ) : (
+                  <Cell label={t('lineEditor.itemType')} htmlFor={`pi-inv-${k}`}>
+                    <OptionPicker
+                      id={`pi-inv-${k}`}
+                      value={item.inventoryItemId}
+                      onChange={(v) => onSelectInventory(idx, v)}
+                      placeholder={t('lineEditor.pickFromStock')}
+                      emptyLabel={t('lineEditor.pickFromStock')}
+                      options={(inventoryItems ?? []).map((inv) => ({
+                        value: inv.id,
+                        label: inv.code ? `${inv.code} · ${inv.name}` : inv.name,
+                      }))}
+                    />
+                    {!item.inventoryItemId && (
+                      <Input
+                        aria-label={t('lineEditor.manualNameRow', { n })}
+                        value={item.itemName}
+                        onChange={(e) => onUpdate(idx, 'itemName', e.target.value)}
+                        placeholder={t('lineEditor.manualNamePlaceholder')}
+                      />
+                    )}
+                  </Cell>
+                )}
+                {!isService && (
+                  <Cell label={t('lineEditor.targetWarehouse')} htmlFor={`pi-wh-${k}`}>
+                    <WarehouseField
+                      id={`pi-wh-${k}`}
+                      value={item.warehouseId}
+                      onChange={(v) => onUpdate(idx, 'warehouseId', v)}
+                      placeholder={t('lineEditor.pickWarehouse')}
+                    />
+                  </Cell>
+                )}
+                <Cell label={t('lineEditor.vehicleNo')} htmlFor={`pi-car-${k}`}>
+                  <Input
+                    id={`pi-car-${k}`}
+                    value={item.nomorMobil}
+                    onChange={(e) => onUpdate(idx, 'nomorMobil', e.target.value)}
+                    placeholder={isService ? '—' : 'B 1234 ABC'}
+                    className="font-mono uppercase placeholder:normal-case"
+                  />
+                </Cell>
+                <Cell label={isService ? t('lineEditor.notes') : t('lineEditor.quality')} htmlFor={`pi-note-${k}`}>
+                  {isService ? (
+                    <Input
+                      id={`pi-note-${k}`}
+                      value={item.description}
+                      onChange={(e) => onUpdate(idx, 'description', e.target.value)}
+                      placeholder={t('lineEditor.notesPlaceholder')}
+                    />
+                  ) : (
+                    <Input
+                      id={`pi-note-${k}`}
+                      value={item.kualitas}
+                      onChange={(e) => onUpdate(idx, 'kualitas', e.target.value)}
+                      placeholder={t('lineEditor.qualityPlaceholder')}
+                    />
+                  )}
+                </Cell>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                {!isService && (
+                  <>
+                    <Cell label={t('lineEditor.truckWeight')} htmlFor={`pi-truk-${k}`}>
+                      <NumberInput
+                        id={`pi-truk-${k}`}
+                        inputMode="decimal"
+                        value={item.timbanganTruk || ''}
+                        onChange={(e) => onUpdate(idx, 'timbanganTruk', Number(e.target.value))}
+                        placeholder="0"
+                        className={numCls}
+                      />
+                    </Cell>
+                    <Cell label={t('lineEditor.refraction')} htmlFor={`pi-ref-${k}`}>
+                      <NumberInput
+                        id={`pi-ref-${k}`}
+                        inputMode="decimal"
+                        value={item.refaksi || ''}
+                        onChange={(e) => onUpdate(idx, 'refaksi', Number(e.target.value))}
+                        placeholder="0"
+                        className={numCls}
+                      />
+                    </Cell>
+                  </>
+                )}
+                <Cell label={isService ? t('lineEditor.quantityRequired') : t('lineEditor.receivedKgRequired')} htmlFor={`pi-qty-${k}`}>
+                  <NumberInput
+                    id={`pi-qty-${k}`}
+                    inputMode="decimal"
+                    value={item.timbanganDiterima || ''}
+                    onChange={(e) => onUpdate(idx, 'timbanganDiterima', Number(e.target.value))}
+                    placeholder={isService ? '1' : '0'}
+                    className={cn(numCls, 'font-semibold')}
+                  />
+                </Cell>
+                <Cell label={isService ? t('lineEditor.unitPriceRequired') : t('lineEditor.unitPriceKgRequired')} htmlFor={`pi-rate-${k}`}>
+                  <NumberInput
+                    id={`pi-rate-${k}`}
+                    aria-label={t('lineEditor.unitPriceRow', { n })}
+                    inputMode="decimal"
+                    value={item.rate || ''}
+                    onChange={(e) => onUpdate(idx, 'rate', Number(e.target.value))}
+                    placeholder="0"
+                    className={numCls}
+                  />
+                </Cell>
+                <Cell label={t('lineEditor.vatPct')} htmlFor={`pi-ppn-${k}`}>
+                  <NumberInput
+                    id={`pi-ppn-${k}`}
+                    inputMode="decimal"
+                    value={item.taxPct || ''}
+                    onChange={(e) => onUpdate(idx, 'taxPct', clampPct(e.target.value))}
+                    placeholder="0"
+                    className={numCls}
+                  />
+                </Cell>
+                <Cell label={t('lineEditor.pphPct')} htmlFor={`pi-pph-${k}`}>
+                  <NumberInput
+                    id={`pi-pph-${k}`}
+                    inputMode="decimal"
+                    value={item.pphPct || ''}
+                    onChange={(e) => onUpdate(idx, 'pphPct', clampPct(e.target.value))}
+                    placeholder="0"
+                    className={numCls}
+                  />
+                </Cell>
+                <Cell label={t('lineEditor.deduction')} htmlFor={`pi-pot-${k}`}>
+                  <NumberInput
+                    id={`pi-pot-${k}`}
+                    inputMode="decimal"
+                    value={item.potonganItem || ''}
+                    onChange={(e) => onUpdate(idx, 'potonganItem', Math.max(0, Number(e.target.value)))}
+                    placeholder="0"
+                    className={numCls}
+                  />
+                </Cell>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}

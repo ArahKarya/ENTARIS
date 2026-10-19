@@ -1,0 +1,577 @@
+{
+  "nav": {
+    "sections": {
+      "sales": "Sales",
+      "purchasing": "Purchasing",
+      "cash": "Cash & bank",
+      "inventory": "Inventory & production",
+      "accounting": "Accounting",
+      "assets": "Assets & maintenance",
+      "reports": "Reports",
+      "master": "Master data",
+      "system": "System"
+    },
+    "dashboard": "Dashboard",
+    "aira": "AIRA assistant",
+    "paymentRequests": "Payment requests",
+    "paymentRequestNew": "New payment request",
+    "paymentRequestDetail": "Payment request details",
+    "paymentRequestEdit": "Edit payment request",
+    "paymentRequestSettlement": "Advance settlement",
+    "notifications": "Notifications",
+    "inquiries": "Customer inquiries",
+    "quotations": "Quotations",
+    "salesOrders": "Sales orders",
+    "deliveryOrders": "Delivery orders",
+    "salesInvoices": "Sales invoices",
+    "salesReturns": "Sales returns",
+    "customerDeposits": "Customer deposits",
+    "purchaseOrders": "Purchase orders",
+    "goodsReceipts": "Goods receipts",
+    "purchaseInvoices": "Purchase invoices",
+    "supplierDeposits": "Supplier deposits",
+    "payments": "Cash & bank transactions",
+    "cashBookDrafts": "Cash book drafts",
+    "cashBookDraftReview": "Review cash book draft",
+    "reconciliation": "Bank reconciliation",
+    "recurring": "Recurring transactions",
+    "projectGuarantees": "Project guarantees",
+    "inventory": "Stock & production",
+    "warehouseStock": "Stock by warehouse",
+    "stockOpname": "Stock count",
+    "stockTransfers": "Stock transfers",
+    "warehouses": "Warehouses",
+    "coa": "Chart of accounts",
+    "generalJournal": "General journal",
+    "fixedAssets": "Fixed assets",
+    "approvals": "Approvals",
+    "gaOverview": "Overview",
+    "gaAssets": "Assets",
+    "gaVehicles": "Vehicles",
+    "gaFleetReport": "Fleet report",
+    "gaBuildings": "Buildings & leases",
+    "gaEquipment": "Equipment & calibration",
+    "gaMaintenance": "Maintenance",
+    "gaMaterialRequests": "Material requests",
+    "gaInventory": "Office inventory",
+    "gaDocuments": "Documents & certificates",
+    "gaMaster": "Asset master data",
+    "reports": "All reports",
+    "reportDaily": "Daily report",
+    "reportTrialBalance": "Trial balance",
+    "reportProfitLoss": "Profit and loss",
+    "reportBalanceSheet": "Balance sheet",
+    "reportCashFlow": "Cash flow",
+    "reportAgingAr": "Receivables aging",
+    "reportAgingAp": "Payables aging",
+    "reportTax": "Tax report",
+    "reportLedgerBook": "General ledger",
+    "reportCogs": "COGS by product",
+    "reportProfitabilitySku": "Profitability by SKU",
+    "reportProductionCost": "Production cost by period",
+    "reportOee": "OEE report",
+    "reportPayableSchedule": "Payables schedule",
+    "reportReceivableSchedule": "Receivables schedule",
+    "reportPoOutstanding": "Outstanding POs",
+    "reportSupplierPerformance": "Supplier performance",
+    "parties": "Customers & suppliers",
+    "settings": "Settings",
+    "users": "User management",
+    "audit": "Audit trail",
+    "healthCheck": "System check"
+  },
+  "commandPalette": {
+    "title": "Command palette",
+    "description": "Search pages and records, or run an action. Use the up and down arrows, then Enter to open.",
+    "label": "Search pages, records, or actions",
+    "placeholder": "Search pages, invoice numbers, contacts…",
+    "closeEsc": "Close (Esc)",
+    "nothingFound": "No pages or records for “{{query}}”.",
+    "minChars_one": "Type at least {{count}} letter to search records.",
+    "minChars_other": "Type at least {{count}} letters to search records.",
+    "recordsError": "Record search failed. Try typing again in a moment.",
+    "askAira": "Ask AIRA",
+    "askAiraAbout": "Ask AIRA about “{{query}}”",
+    "openAira": "Open AIRA assistant",
+    "groups": {
+      "recent": "Recently opened",
+      "pages": "Pages",
+      "records": "Records",
+      "actions": "Actions",
+      "assistant": "Assistant"
+    },
+    "hints": {
+      "move": "move",
+      "open": "open",
+      "close": "close"
+    },
+    "recordTypes": {
+      "party": "Contact",
+      "sales": "Sales invoice",
+      "purchase": "Purchase invoice",
+      "payment": "Cash & bank",
+      "journal": "Journal",
+      "account": "Account",
+      "other": "Record"
+    },
+    "theme": {
+      "light": "Switch to light theme",
+      "dark": "Switch to dark theme",
+      "system": "Follow system theme"
+    }
+  },
+  "sidebar": {
+    "homeLink": "Entaris, go to dashboard",
+    "mainNav": "Main navigation",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "collapseShort": "Collapse"
+  },
+  "lazy": {
+    "loadingPage": "Loading page…",
+    "failedTitle": "Could not load the page",
+    "failedBody": "The app was just updated or the connection dropped. Reload to get the latest version."
+  },
+  "userMenu": {
+    "fallbackName": "User",
+    "trigger": "User menu: {{name}}",
+    "changePassword": "Change password",
+    "theme": "Theme",
+    "shortcuts": "Keyboard shortcuts",
+    "about": "About Entaris",
+    "logout": "Sign out",
+    "linkTelegram": "Link Telegram"
+  },
+  "topbar": {
+    "openMenu": "Open navigation menu",
+    "search": "Search pages or records",
+    "searchShort": "Search…",
+    "searchLong": "Search pages or records…",
+    "askAira": "Ask AIRA"
+  },
+  "layout": {
+    "skipToContent": "Skip to main content",
+    "mobileMenuTitle": "Navigation menu",
+    "mobileMenuDescription": "Entaris pages"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Work faster without a mouse. Letter shortcuts are off while you are typing.",
+    "then": "then",
+    "groups": {
+      "general": "General",
+      "navigation": "Navigation",
+      "palette": "Command palette"
+    },
+    "labels": {
+      "paletteOpen": "Search pages, records, or actions",
+      "helpOpen": "Show keyboard shortcuts",
+      "overlayClose": "Close a dialog, menu, or panel",
+      "goTo": "Open {{page}}",
+      "paletteMove": "Move between results",
+      "paletteSelect": "Open the selected result"
+    },
+    "keys": {
+      "space": "Space"
+    }
+  },
+  "notificationBell": {
+    "triggerUnread_one": "Notifications, {{count}} unread",
+    "triggerUnread_other": "Notifications, {{count}} unread",
+    "triggerNone": "Notifications, none unread",
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "close": "Close notifications",
+    "loading": "Loading notifications…",
+    "loadFailed": "Could not load notifications",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "Overdue invoices, low stock, and approval requests will appear here.",
+    "latest": "Latest notifications",
+    "viewAll": "See all notifications",
+    "unread": "Unread"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "System notices for your account.",
+    "unreadCount_one": "{{formatted}} unread notification.",
+    "unreadCount_other": "{{formatted}} unread notifications.",
+    "allRead": "All notifications are read.",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "markFailed": "Could not mark the notification.",
+    "markAllFailed": "Could not mark all notifications.",
+    "allMarked": "All notifications marked as read.",
+    "unread": "Unread",
+    "read": "Read",
+    "unreadPrefix": "Unread:",
+    "readStatus": "Read status",
+    "typeFilter": "Notification type",
+    "allTypes": "All types",
+    "searchLabel": "Search notifications",
+    "searchPlaceholder": "Search notification title or text",
+    "tableLabel": "Notifications",
+    "itemLabel": "notifications",
+    "rowActions": "Actions for notification {{title}}",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "Due dates, stock, and approval notices will appear here.",
+    "columns": {
+      "notification": "Notification",
+      "type": "Type",
+      "time": "Time"
+    },
+    "types": {
+      "invoice_overdue": "Overdue invoice",
+      "payment_received": "Payment",
+      "low_stock": "Low stock",
+      "approval_pending": "Pending approval",
+      "approval_approved": "Approved",
+      "approval_rejected": "Rejected",
+      "approval_revision": "Needs revision",
+      "quotation_expiring": "Quotation expiring",
+      "guarantee_due": "Guarantee due",
+      "po_overdue": "Late PO",
+      "cash_book_draft": "Cash book draft",
+      "wo_overdue": "Late WO",
+      "wo_assigned": "WO assigned",
+      "wo_completed": "WO completed",
+      "mr_pending": "Material request",
+      "mr_approved": "Request approved",
+      "mr_rejected": "Request rejected",
+      "calibration_due": "Calibration",
+      "document_expiring": "Document expiring",
+      "rental_expiring": "Lease ending",
+      "system": "System"
+    }
+  },
+  "auditTrail": {
+    "title": "Audit trail",
+    "description": "History of data changes and user activity in the app.",
+    "exportExcel": "Export to Excel",
+    "exportFailed": "Could not export the audit trail. Try again.",
+    "exportTruncated_one": "Export limited to the first {{formatted}} record. Narrow the filters.",
+    "exportTruncated_other": "Export limited to the first {{formatted}} records. Narrow the filters.",
+    "summaryLabel": "Activity summary for the current filters",
+    "totalActivity": "Total activity",
+    "loginCount_one": "{{formatted}} sign-in",
+    "loginCount_other": "{{formatted}} sign-ins",
+    "searchEntityId": "Search entity ID",
+    "allActions": "All actions",
+    "allUsers": "All users",
+    "allEntities": "All entities",
+    "tableLabel": "Audit trail",
+    "itemLabel": "records",
+    "emptyTitle": "No audit records yet",
+    "emptyDescription": "Data changes and sign-ins will be recorded here.",
+    "viewDetail": "View details",
+    "rowActions": "Actions for {{entity}} record {{time}}",
+    "columns": {
+      "time": "Time",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "ipAddress": "IP address"
+    },
+    "export": {
+      "time": "Time",
+      "user": "User",
+      "email": "Email",
+      "action": "Action",
+      "actionCode": "Action code",
+      "entity": "Entity",
+      "entityId": "Entity ID",
+      "ipAddress": "IP address",
+      "oldValues": "Old values",
+      "newValues": "New values",
+      "fileName": "audit-trail"
+    }
+  },
+  "dummyData": {
+    "banner": "Demo data is active. Its transactions are counted in lists, dashboards, and reports. An admin can remove it in Settings, Backup & Restore tab."
+  },
+  "about": {
+    "title": "About Entaris",
+    "description": "ERP system with the AIRA AI agent.",
+    "version": "Version",
+    "releaseDate": "Release date",
+    "developer": "Developer",
+    "credits": "Made by {{maker}}. © {{year}}. Free software (AGPL-3.0)."
+  },
+  "versionWatcher": {
+    "title": "A new version of the app is available",
+    "description": "Reload the page to get the latest update.",
+    "reload": "Reload"
+  },
+  "attachmentPreview": {
+    "loading": "Loading attachments...",
+    "previewFile": "Preview {{name}}",
+    "openFile": "Open {{name}}",
+    "preview": "Preview",
+    "downloadFile": "Download {{name}}",
+    "deleteFile": "Delete {{name}}",
+    "lightboxTitle": "Attachment preview",
+    "lightboxDescription": "Full-size attachment image. Press Esc to close.",
+    "deleteTitle": "Delete attachment",
+    "deleteMessage": "Delete this attachment? The file will be removed permanently."
+  },
+  "attachmentUpload": {
+    "failed": "Could not upload the file.",
+    "badType": "File \"{{name}}\" is not supported. JPG, PNG, WebP, PDF only.",
+    "tooLarge": "File \"{{name}}\" is too large. Maximum {{size}}.",
+    "tooMany": "Up to {{max}} files at once.",
+    "uploading": "Uploading...",
+    "dropzone": "Drag files here or click to upload proof of transfer",
+    "hint": "JPG, PNG, PDF (max {{size}}, up to {{max}} files)",
+    "choose": "Choose attachment files",
+    "dismiss": "Dismiss message"
+  },
+  "changePassword": {
+    "title": "Change password",
+    "description": "Change your account password.",
+    "current": "Current password",
+    "new": "New password",
+    "newHint": "At least {{min}} characters.",
+    "confirm": "Repeat new password",
+    "submit": "Change password",
+    "changed": "Password changed.",
+    "failed": "Could not change the password.",
+    "currentRequired": "Enter your current password.",
+    "newRequired": "Enter a new password.",
+    "newMin": "The new password must be at least {{min}} characters.",
+    "mismatch": "The passwords do not match."
+  },
+  "gaAssetQr": {
+    "title": "Asset QR {{code}}",
+    "description": "{{name}}. Scan to view the asset details.",
+    "noQr": "This asset has no QR code yet. Ask an admin to generate it again.",
+    "qrLabel": "QR code for asset {{code}}",
+    "copied": "Link copied.",
+    "copiedShort": "Copied",
+    "copyFailed": "Could not copy. Copy it from the URL box.",
+    "notReady": "The QR is not ready yet. Try again.",
+    "popupBlocked": "Pop-up blocked. Allow pop-ups to print.",
+    "scanHint": "Scan to view the asset details",
+    "tipLabel": "Tip:",
+    "tip": "Print the QR and stick it on the physical asset. Scan it with a phone to see the code, name, category, status, and condition."
+  },
+  "importModal": {
+    "titles": {
+      "parties": "Import business partners",
+      "coa": "Import chart of accounts",
+      "journals": "Import journals",
+      "inventory": "Import item master"
+    },
+    "steps": {
+      "upload": "Upload file",
+      "preview": "Preview data",
+      "result": "Import result"
+    },
+    "stepOf": "Step {{current}} of {{total}}: {{label}}",
+    "processFailed": "Could not process the file.",
+    "imported_one": "{{count}} record imported.",
+    "imported_other": "{{count}} records imported.",
+    "importFailed": "Could not import the data.",
+    "processing": "Processing file...",
+    "dropzone": "Drag a file here, or click to choose one",
+    "formats": "CSV, XLSX, XLS supported (max {{size}})",
+    "chooseFile": "Choose import file",
+    "downloadTemplate": "Download Excel template",
+    "previewSummary": "{{valid}} valid rows, {{errors}} errors",
+    "errorsCount_one": "Error ({{count}}):",
+    "errorsCount_other": "Errors ({{count}}):",
+    "rowError": "Row {{row}}: {{message}}",
+    "moreErrors_one": "...and {{count}} more error",
+    "moreErrors_other": "...and {{count}} more errors",
+    "previewLabel": "Import data preview",
+    "showingOf": "...showing {{shown}} of {{total}} rows",
+    "done": "Import finished",
+    "succeeded": "Imported",
+    "failed": "Failed",
+    "errorDetail": "Error details:",
+    "changeFile": "Change file",
+    "importing": "Importing…",
+    "importCount_one": "Import {{count}} row",
+    "importCount_other": "Import {{count}} rows"
+  },
+  "userForm": {
+    "saved": "User saved.",
+    "added": "User added.",
+    "saveFailed": "Could not save the user.",
+    "editTitle": "Edit user",
+    "addTitle": "Add user",
+    "editDescription": "Editing the account of {{name}}.",
+    "addDescription": "Create a new account to access the app.",
+    "fullName": "Full name",
+    "username": "Username",
+    "usernameHint": "Used to sign in.",
+    "email": "Email",
+    "role": "Role",
+    "rolePlaceholder": "Choose a role",
+    "supervisor": "Direct supervisor",
+    "supervisorHint": "Approves this user's payment requests before Finance. Empty = straight to Finance.",
+    "password": "Password",
+    "passwordHintEdit": "Leave blank to keep it. At least 8 characters, with an uppercase letter, a number, and a special character.",
+    "passwordHintNew": "At least 8 characters, with an uppercase letter, a number, and a special character.",
+    "airaLegend": "AIRA (AI assistant)",
+    "airaAccess": "AIRA access",
+    "airaAccessHint": "Let this user use AIRA (WhatsApp/Telegram/panel). Data access still follows the role.",
+    "airaTier": "AIRA access level",
+    "directWarning": "Caution: at the Direct level, instructions through AIRA can post transactions without a separate approval. Use it only for trusted users.",
+    "airaTitle": "AIRA job title",
+    "airaTitleHint": "Free text (e.g. Finance Director). The agent reads it to adjust its tone.",
+    "saveChanges": "Save changes",
+    "tiers": {
+      "read": "Read only",
+      "standard": "Standard",
+      "direct": "Direct"
+    },
+    "tierHints": {
+      "read": "The agent may only read data.",
+      "standard": "Reads and creates drafts directly; other actions (posting, payments, cancellations) wait for human approval.",
+      "direct": "Write and critical actions run directly on behalf of this user, without a separate approval. Still limited by the role's access rights."
+    }
+  },
+  "onboarding": {
+    "header": "Initial setup",
+    "stepOf": "Step {{current}} of {{total}}",
+    "skip": "Skip setup",
+    "stepsLabel": "Setup steps",
+    "stepDonePrefix": "Done:",
+    "stepCurrentPrefix": "Current step:",
+    "persistFailed": "Could not save the setup status. This guide will appear again the next time you sign in.",
+    "steps": {
+      "welcome": "Start",
+      "company": "Profile",
+      "fiscal": "Fiscal year",
+      "security": "Security",
+      "done": "Done"
+    },
+    "stepCopy": {
+      "welcome": {
+        "title": "Welcome to Entaris",
+        "description": "Set up your company in a few minutes."
+      },
+      "company": {
+        "title": "Company profile",
+        "description": "This appears on invoice letterheads, delivery orders, and reports."
+      },
+      "fiscal": {
+        "title": "Fiscal year",
+        "description": "The accounting period transactions are recorded in."
+      },
+      "security": {
+        "title": "Account security",
+        "description": "Change the default admin password before your team starts working."
+      },
+      "done": {
+        "title": "Setup complete",
+        "description": "You can start using Entaris."
+      }
+    },
+    "primary": {
+      "welcome": "Start setup",
+      "company": "Save & continue",
+      "fiscal": "Continue",
+      "securityChange": "Change password",
+      "securitySkip": "Continue without changing",
+      "done": "Start using Entaris"
+    },
+    "welcome": {
+      "taskCompany": "Company profile for invoice letterheads and documents",
+      "taskFiscal": "An active fiscal year",
+      "taskPassword": "Admin account password",
+      "intro": "Before your team starts recording transactions, set up these basics. You can change everything later in Settings, and skipped steps stay on a list on the Dashboard."
+    },
+    "company": {
+      "name": "Company name",
+      "nameHint": "Legal name, e.g. PT Maju Bersama.",
+      "address": "Address",
+      "addressHint": "Printed on invoice and delivery order letterheads.",
+      "phone": "Phone",
+      "email": "Email",
+      "taxId": "Tax ID (NPWP)",
+      "taxIdHint": "Optional, you can fill it in later. 15 or 16 digits.",
+      "nameRequired": "Company name is required.",
+      "saveFailed": "Could not save the company profile."
+    },
+    "fiscal": {
+      "loading": "Loading fiscal years…",
+      "emptyTitle": "No fiscal year yet",
+      "emptyDescription": "Create a fiscal year in Settings › Fiscal Year after this setup.",
+      "intro": "Transactions can only be recorded in an open fiscal year. New fiscal years and year-end closing are managed in Settings › Fiscal Year.",
+      "yearName": "Fiscal year {{name}}"
+    },
+    "security": {
+      "intro": "After the password changes, you will be asked to sign in again with the new password. Leave all fields empty if you do not want to change it now.",
+      "current": "Current password",
+      "new": "New password",
+      "newHint": "At least {{min}} characters, with an uppercase letter, a number, and a special character.",
+      "confirm": "Repeat new password",
+      "currentRequired": "Enter your current password.",
+      "mismatch": "The new passwords do not match.",
+      "failed": "Could not change the password.",
+      "changed": "Password changed. Sign in again with your new password."
+    },
+    "password": {
+      "min": "The new password must be at least {{min}} characters.",
+      "upper": "The new password must include an uppercase letter.",
+      "digit": "The new password must include a number.",
+      "special": "The new password must include a special character."
+    },
+    "done": {
+      "ready": "{{name}} is ready to use.",
+      "checklistNote": "Unfinished steps appear in the <strong>Complete setup</strong> list on the Dashboard."
+    },
+    "checklist": {
+      "title": "Complete setup",
+      "progress": "{{done}} of {{total}} steps done. Finish them so documents and reports are ready to use.",
+      "progressLabel": "Setup progress",
+      "hide": "Hide setup list",
+      "todoPrefix": "To do:",
+      "openAt": "{{label}} in {{where}}",
+      "items": {
+        "profile": {
+          "label": "Complete the company profile",
+          "hint": "Name and address appear on invoices and documents.",
+          "where": "Settings › Company Profile"
+        },
+        "logo": {
+          "label": "Upload the company logo",
+          "hint": "The logo is printed on document letterheads.",
+          "where": "Settings › Company Profile"
+        },
+        "taxId": {
+          "label": "Enter the company tax ID (NPWP)",
+          "hint": "Needed for invoices and tax reports.",
+          "where": "Settings › Company Profile"
+        },
+        "fiscalYear": {
+          "label": "Set up a fiscal year",
+          "hint": "Transactions can only be recorded in an open fiscal year.",
+          "where": "Settings › Fiscal Year"
+        },
+        "team": {
+          "label": "Invite team members",
+          "hint": "Add accounts for finance, warehouse, or production staff.",
+          "where": "User management"
+        }
+      }
+    }
+  },
+  "telegramLink": {
+    "title": "Link Telegram",
+    "description": "Connect your Telegram account to the AIRA bot. Once linked, you can ask AIRA on Telegram with this account's permissions.",
+    "creating": "Creating a code…",
+    "failed": "Failed to create a link code.",
+    "codeLabel": "Link code: {{code}}",
+    "command": "Command",
+    "validUntil": "Single use, valid until {{time}}.",
+    "expired": "This code has expired. Create a new one.",
+    "stepOpenBot": "Press Open Telegram, then Start in the @{{bot}} bot.",
+    "stepOpenAnyBot": "Open the AIRA bot in Telegram and send {{command}}.",
+    "openTelegram": "Open Telegram",
+    "newCode": "Create a new code",
+    "close": "Close",
+    "stepSendAlt": "Or send {{command}} to the bot.",
+    "stepConfirm": "The bot shows your Entaris account name. Send /ya to link it."
+  }
+}

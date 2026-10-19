@@ -1,0 +1,3680 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum RootType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+model Account {
+  id                            String                         @id @default(uuid())
+  name                          String
+  accountNumber                 String                         @unique
+  accountType                   AccountType
+  rootType                      RootType
+  isGroup                       Boolean                        @default(false)
+  isActive                      Boolean                        @default(true)
+  balance                       Decimal                        @default(0) @db.Decimal(15, 2)
+  currency                      String                         @default("IDR")
+  description                   String?
+  parentId                      String?
+  parent                        Account?                       @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children                      Account[]                      @relation("AccountHierarchy")
+  ledgerEntries                 AccountingLedgerEntry[]
+  journalItems                  JournalItem[]
+  salesItems                    SalesInvoiceItem[]
+  purchaseItems                 PurchaseInvoiceItem[]
+  quotationItems                QuotationItem[]                @relation("QuotationItemAccount")
+  payments                      Payment[]                      @relation("PaymentAccount")
+  paymentSplits                 PaymentSplit[]                 @relation("PaymentSplitAccount")
+  inventoryItems                InventoryItem[]                @relation("ItemAccount")
+  movementsAsOffset             StockMovement[]                @relation("MovementOffset")
+  reconciliations               BankReconciliation[]           @relation("ReconciliationAccount")
+  serviceItems                  ServiceItem[]                  @relation("ServiceItemAccount")
+  systemAccountMappings         SystemAccountMapping[]         @relation("MappedAccount")
+  fixedAssetsAsAsset            FixedAsset[]                   @relation("AssetAccount")
+  fixedAssetsAsDepr             FixedAsset[]                   @relation("DepreciationAccount")
+  fixedAssetsAsAccDep           FixedAsset[]                   @relation("AccumulatedDepAccount")
+  productionCostStandards       ProductionCostStandard[]       @relation("CostStandardAccount")
+  productionRunCosts            ProductionRunCost[]            @relation("RunCostAccount")
+  gaVehicleServiceExpense       GaVehicleServiceLog[]          @relation("GaVehicleServiceExpense")
+  gaVehicleTaxExpense           GaVehicleTax[]                 @relation("GaVehicleTaxExpense")
+  gaVehicleTaxCredit            GaVehicleTax[]                 @relation("GaVehicleTaxCredit")
+  gaMaterialRequestExpense      GaMaterialRequest[]            @relation("GaMaterialRequestExpense")
+  gaMaterialRequestCredit       GaMaterialRequest[]            @relation("GaMaterialRequestCredit")
+  gaVehicleServiceCredit        GaVehicleServiceLog[]          @relation("GaVehicleServiceCredit")
+  paymentRequestTypes           PaymentRequestType[]           @relation("PaymentRequestTypeAccount")
+  paymentRequestLines           PaymentRequestLine[]           @relation("PaymentRequestLineAccount")
+  paymentRequestsPaidFrom       PaymentRequest[]               @relation("PaymentRequestCashAccount")
+  paymentRequestsSettledFrom    PaymentRequest[]               @relation("PaymentRequestSettlementCash")
+  paymentRequestSettlementLines PaymentRequestSettlementLine[] @relation("PaymentRequestSettlementLineAccount")
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+
+  @@index([rootType])
+  @@index([accountNumber])
+  @@index([parentId])
+  @@map("accounts")
+}
+
+model Party {
+  id                     String                  @id @default(uuid())
+  name                   String
+  partyType              PartyType
+  phone                  String?
+  email                  String?
+  address                String?
+  taxId                  String?                 @map("tax_id")
+  outstandingAmount      Decimal                 @default(0) @map("outstanding_amount") @db.Decimal(15, 2)
+  openingOutstanding     Decimal                 @default(0) @map("opening_outstanding") @db.Decimal(15, 2)
+  depositBalance         Decimal                 @default(0) @map("deposit_balance") @db.Decimal(15, 2)
+  customerDepositBalance Decimal                 @default(0) @map("customer_deposit_balance") @db.Decimal(15, 2)
+  isActive               Boolean                 @default(true) @map("is_active")
+  isDummy                Boolean                 @default(false) @map("is_dummy")
+  // WAPU (Wajib Pungut) — pemerintah/BUMN tertentu
+  // memungut PPN sendiri ke kas negara. Tagihan ke mereka TIDAK include
+  // PPN — frontend default tax_pct=0 untuk customer berlabel ini.
+  isWapu                 Boolean                 @default(false) @map("is_wapu")
+  salesInvoices          SalesInvoice[]
+  purchaseInvoices       PurchaseInvoice[]
+  payments               Payment[]
+  quotations             Quotation[]             @relation("QuotationCustomer")
+  inquiries              Inquiry[]               @relation("InquiryParty")
+  deliveryOrders         DeliveryOrder[]         @relation("DeliveryOrderCustomer")
+  salesOrders            SalesOrder[]            @relation("SalesOrderCustomer")
+  purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrderSupplier")
+  goodsReceipts          GoodsReceipt[]          @relation("GoodsReceiptSupplier")
+  salesReturns           SalesReturn[]
+  projectGuarantees      ProjectGuarantee[]      @relation("ProjectGuaranteeParty")
+  ledgerEntries          AccountingLedgerEntry[]
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  paymentRequests        PaymentRequest[]        @relation("PaymentRequestParty")
+
+  @@index([partyType])
+  @@map("parties")
+}
+
+enum PartyType {
+  Customer
+  Supplier
+  Both
+}
+
+model AccountingLedgerEntry {
+  id            String     @id @default(uuid())
+  date          DateTime
+  accountId     String     @map("account_id")
+  account       Account    @relation(fields: [accountId], references: [id])
+  partyId       String?    @map("party_id")
+  party         Party?     @relation(fields: [partyId], references: [id])
+  debit         Decimal    @default(0) @db.Decimal(15, 2)
+  credit        Decimal    @default(0) @db.Decimal(15, 2)
+  referenceType String     @map("reference_type")
+  referenceId   String     @map("reference_id")
+  description   String?
+  fiscalYearId  String     @map("fiscal_year_id")
+  fiscalYear    FiscalYear @relation(fields: [fiscalYearId], references: [id])
+  isCancelled   Boolean    @default(false) @map("is_cancelled")
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  @@index([accountId])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@index([referenceId])
+  @@index([partyId])
+  @@map("accounting_ledger_entries")
+}
+
+model JournalEntry {
+  id                         String                      @id @default(uuid())
+  entryNumber                String                      @unique @map("entry_number")
+  date                       DateTime
+  status                     DocumentStatus              @default(Draft)
+  narration                  String?
+  fiscalYearId               String                      @map("fiscal_year_id")
+  fiscalYear                 FiscalYear                  @relation(fields: [fiscalYearId], references: [id])
+  createdBy                  String                      @map("created_by")
+  user                       User                        @relation(fields: [createdBy], references: [id])
+  items                      JournalItem[]
+  stockMovement              StockMovement?
+  payment                    Payment?
+  depositApplication         VendorDepositApplication?
+  customerDepositApplication CustomerDepositApplication?
+  depreciationEntries        DepreciationEntry[]
+  cogsBackfillSettlements    CogsBackfillSettlement[]    @relation("CogsBackfillJE")
+  gaVehicleServiceLog        GaVehicleServiceLog?        @relation("GaVehicleServiceJournal")
+  gaVehicleTax               GaVehicleTax?               @relation("GaVehicleTaxJournal")
+  gaMaterialRequest          GaMaterialRequest?          @relation("GaMaterialRequestJournal")
+  paymentRequest             PaymentRequest?             @relation("PaymentRequestJournal")
+  paymentRequestSettlement   PaymentRequest?             @relation("PaymentRequestSettlementJournal")
+  submittedAt                DateTime?                   @map("submitted_at")
+  isDummy                    Boolean                     @default(false) @map("is_dummy")
+  cancelledAt                DateTime?                   @map("cancelled_at")
+  createdAt                  DateTime                    @default(now()) @map("created_at")
+  updatedAt                  DateTime                    @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@map("journal_entries")
+}
+
+model JournalItem {
+  id             String       @id @default(uuid())
+  journalEntryId String       @map("journal_entry_id")
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String       @map("account_id")
+  account        Account      @relation(fields: [accountId], references: [id])
+  partyId        String?      @map("party_id")
+  debit          Decimal      @default(0) @db.Decimal(15, 2)
+  credit         Decimal      @default(0) @db.Decimal(15, 2)
+  description    String?
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_entry_accounts")
+}
+
+model SalesInvoice {
+  id                  String                       @id @default(uuid())
+  invoiceNumber       String                       @unique @map("invoice_number")
+  date                DateTime
+  partyId             String                       @map("party_id")
+  customer            Party                        @relation(fields: [partyId], references: [id])
+  status              InvoiceStatus                @default(Draft)
+  grandTotal          Decimal                      @map("grand_total") @db.Decimal(15, 2)
+  outstanding         Decimal                      @db.Decimal(15, 2)
+  taxPct              Decimal                      @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan            Decimal                      @default(0) @db.Decimal(15, 2)
+  biayaLain           Decimal                      @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  labelPotongan       String?                      @map("label_potongan")
+  labelBiaya          String?                      @map("label_biaya")
+  terms               String?
+  dueDate             DateTime?                    @map("due_date")
+  notes               String?
+  customerRefNo       String?                      @map("customer_ref_no")
+  fiscalYearId        String                       @map("fiscal_year_id")
+  fiscalYear          FiscalYear                   @relation(fields: [fiscalYearId], references: [id])
+  createdBy           String                       @map("created_by")
+  user                User                         @relation(fields: [createdBy], references: [id])
+  items               SalesInvoiceItem[]
+  cogsBackfills       CogsBackfillQueue[]
+  depositApplications CustomerDepositApplication[] @relation("CustomerDepositApplied")
+  quotation           Quotation?                   @relation("QuotationConvertedTo")
+  deliveryOrders      DeliveryOrder[]              @relation("DeliveryOrderInvoice")
+  returns             SalesReturn[]
+  submittedAt         DateTime?                    @map("submitted_at")
+  cancelledAt         DateTime?                    @map("cancelled_at")
+  isDummy             Boolean                      @default(false) @map("is_dummy")
+  createdAt           DateTime                     @default(now()) @map("created_at")
+  updatedAt           DateTime                     @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@map("sales_invoices")
+}
+
+enum QuotationStatus {
+  Draft
+  Sent
+  Accepted
+  Rejected
+  Expired
+  Cancelled
+}
+
+enum SalesOrderStatus {
+  Draft
+  Submitted
+  PartiallyDelivered
+  FullyDelivered
+  Cancelled
+}
+
+model SalesOrder {
+  id               String           @id @default(uuid())
+  soNumber         String           @unique @map("so_number")
+  date             DateTime
+  expectedDelivery DateTime?        @map("expected_delivery")
+  partyId          String           @map("party_id")
+  customer         Party            @relation("SalesOrderCustomer", fields: [partyId], references: [id])
+  customerRefNo    String?          @map("customer_ref_no")
+  // Optional link kalau SO digenerate dari Quotation yang Accepted.
+  quotationId      String?          @map("quotation_id")
+  quotation        Quotation?       @relation("SalesOrderFromQuotation", fields: [quotationId], references: [id])
+  status           SalesOrderStatus @default(Draft)
+  notes            String?
+  subtotal         Decimal          @db.Decimal(15, 2)
+  taxPct           Decimal          @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan         Decimal          @default(0) @db.Decimal(15, 2)
+  biayaLain        Decimal          @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  grandTotal       Decimal          @map("grand_total") @db.Decimal(15, 2)
+  fiscalYearId     String           @map("fiscal_year_id")
+  fiscalYear       FiscalYear       @relation("SalesOrderFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy        String           @map("created_by")
+  user             User             @relation("SalesOrderCreator", fields: [createdBy], references: [id])
+  items            SalesOrderItem[]
+  deliveryOrders   DeliveryOrder[]  @relation("DOFromSO")
+  depositPayments  Payment[]        @relation("SalesOrderDeposits")
+  submittedAt      DateTime?        @map("submitted_at")
+  cancelledAt      DateTime?        @map("cancelled_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([quotationId])
+  @@index([fiscalYearId])
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id                 String              @id @default(uuid())
+  salesOrderId       String              @map("sales_order_id")
+  salesOrder         SalesOrder          @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId    String?             @map("inventory_item_id")
+  inventoryItem      InventoryItem?      @relation("SOItemInventory", fields: [inventoryItemId], references: [id])
+  itemName           String              @map("item_name")
+  quantity           Decimal             @db.Decimal(15, 3)
+  unit               String
+  rate               Decimal             @db.Decimal(15, 2)
+  discount           Decimal             @default(0) @db.Decimal(5, 2)
+  amount             Decimal             @db.Decimal(15, 2)
+  description        String?
+  // Akumulasi qty yang sudah dikirim via DO (multiple DO bisa link ke 1 SO item).
+  deliveredQty       Decimal             @default(0) @map("delivered_qty") @db.Decimal(15, 3)
+  deliveryOrderItems DeliveryOrderItem[] @relation("DOLineFromSO")
+  createdAt          DateTime            @default(now()) @map("created_at")
+
+  @@index([salesOrderId])
+  @@index([inventoryItemId])
+  @@map("sales_order_items")
+}
+
+model Quotation {
+  id               String          @id @default(uuid())
+  quotationNumber  String          @unique @map("quotation_number")
+  date             DateTime
+  validUntil       DateTime        @map("valid_until")
+  partyId          String          @map("party_id")
+  customer         Party           @relation("QuotationCustomer", fields: [partyId], references: [id])
+  status           QuotationStatus @default(Draft)
+  subtotal         Decimal         @db.Decimal(15, 2)
+  taxPct           Decimal         @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan         Decimal         @default(0) @db.Decimal(15, 2)
+  biayaLain        Decimal         @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  labelPotongan    String?         @map("label_potongan")
+  labelBiaya       String?         @map("label_biaya")
+  grandTotal       Decimal         @map("grand_total") @db.Decimal(15, 2)
+  terms            String?
+  notes            String?
+  rejectReason     String?         @map("reject_reason")
+  salesInvoiceId   String?         @unique @map("sales_invoice_id")
+  salesInvoice     SalesInvoice?   @relation("QuotationConvertedTo", fields: [salesInvoiceId], references: [id])
+  salesOrders      SalesOrder[]    @relation("SalesOrderFromQuotation")
+  inquiry          Inquiry?        @relation("QuotationFromInquiry")
+  fiscalYearId     String          @map("fiscal_year_id")
+  fiscalYear       FiscalYear      @relation("QuotationFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy        String          @map("created_by")
+  user             User            @relation("QuotationCreator", fields: [createdBy], references: [id])
+  items            QuotationItem[]
+  sentAt           DateTime?       @map("sent_at")
+  acceptedAt       DateTime?       @map("accepted_at")
+  rejectedAt       DateTime?       @map("rejected_at")
+  expiredAt        DateTime?       @map("expired_at")
+  convertedAt      DateTime?       @map("converted_at")
+  cancelledAt      DateTime?       @map("cancelled_at")
+  expiryNotifiedAt DateTime?       @map("expiry_notified_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([validUntil])
+  @@index([fiscalYearId])
+  @@index([status, validUntil])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id              String         @id @default(uuid())
+  quotationId     String         @map("quotation_id")
+  quotation       Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  itemType        String         @default("product") @map("item_type")
+  inventoryItemId String?        @map("inventory_item_id")
+  inventoryItem   InventoryItem? @relation("QuotationItemInventory", fields: [inventoryItemId], references: [id])
+  serviceItemId   String?        @map("service_item_id")
+  serviceItem     ServiceItem?   @relation("QuotationItemService", fields: [serviceItemId], references: [id])
+  accountId       String?        @map("account_id")
+  account         Account?       @relation("QuotationItemAccount", fields: [accountId], references: [id])
+  itemName        String         @map("item_name")
+  quantity        Decimal        @db.Decimal(15, 3)
+  unit            String         @default("Kg")
+  rate            Decimal        @db.Decimal(15, 2)
+  discount        Decimal        @default(0) @db.Decimal(5, 2)
+  amount          Decimal        @db.Decimal(15, 2)
+  taxPct          Decimal        @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  pphPct          Decimal        @default(0) @map("pph_pct") @db.Decimal(5, 2)
+  description     String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([quotationId])
+  @@index([inventoryItemId])
+  @@index([serviceItemId])
+  @@map("quotation_items")
+}
+
+enum InquiryStatus {
+  Baru
+  Diproses
+  Dikonversi
+  Hilang
+  Ditutup
+}
+
+enum InquiryChannel {
+  WhatsApp
+  Telepon
+  Email
+  WalkIn
+  Referral
+  Lainnya
+}
+
+// Customer/prospect inquiry — captured before a Quotation is issued.
+// Lives in the Sales pipeline as the earliest stage: Inquiry → Quotation → Sales Invoice.
+model Inquiry {
+  id            String         @id @default(uuid())
+  inquiryNumber String         @unique @map("inquiry_number")
+  date          DateTime
+  status        InquiryStatus  @default(Baru)
+  channel       InquiryChannel @default(Lainnya)
+
+  // Contact info — partyId optional (prospect not yet in Parties).
+  // prospectName always present (denormalized for fast list display).
+  partyId       String? @map("party_id")
+  party         Party?  @relation("InquiryParty", fields: [partyId], references: [id])
+  prospectName  String  @map("prospect_name")
+  prospectPhone String? @map("prospect_phone")
+  prospectEmail String? @map("prospect_email")
+
+  // Items: hybrid — either a freetext blob OR structured InquiryItem rows.
+  itemsMode String        @default("freetext") @map("items_mode") // 'freetext' | 'structured'
+  itemsText String?       @map("items_text")
+  items     InquiryItem[]
+
+  notes        String?
+  followUpDate DateTime? @map("follow_up_date")
+  lossReason   String?   @map("loss_reason")
+
+  // Conversion link — set once when convert-to-quotation succeeds.
+  quotationId String?    @unique @map("quotation_id")
+  quotation   Quotation? @relation("QuotationFromInquiry", fields: [quotationId], references: [id])
+  convertedAt DateTime?  @map("converted_at")
+
+  fiscalYearId String     @map("fiscal_year_id")
+  fiscalYear   FiscalYear @relation("InquiryFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy    String     @map("created_by")
+  user         User       @relation("InquiryCreator", fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@map("inquiries")
+}
+
+model InquiryItem {
+  id             String   @id @default(uuid())
+  inquiryId      String   @map("inquiry_id")
+  inquiry        Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  itemName       String   @map("item_name")
+  quantity       Decimal? @db.Decimal(15, 3)
+  unit           String?
+  estimatedPrice Decimal? @map("estimated_price") @db.Decimal(15, 2)
+  description    String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([inquiryId])
+  @@map("inquiry_items")
+}
+
+model SalesInvoiceItem {
+  id                  String              @id @default(uuid())
+  salesInvoiceId      String              @map("sales_invoice_id")
+  salesInvoice        SalesInvoice        @relation(fields: [salesInvoiceId], references: [id], onDelete: Cascade)
+  itemType            String              @default("product") @map("item_type")
+  inventoryItemId     String?             @map("inventory_item_id")
+  inventoryItem       InventoryItem?      @relation("SalesInvoiceInventory", fields: [inventoryItemId], references: [id])
+  warehouseId         String?             @map("warehouse_id")
+  warehouse           Warehouse?          @relation("SalesInvoiceItemWarehouse", fields: [warehouseId], references: [id])
+  serviceItemId       String?             @map("service_item_id")
+  serviceItem         ServiceItem?        @relation("SalesInvoiceService", fields: [serviceItemId], references: [id])
+  // From-DO lines: this invoice line was generated by aggregating an existing
+  // delivery order item. Skip stock-out at invoice submit (DO already did);
+  // COGS uses the locked unitCost from the DO's stockMovement.
+  deliveryOrderItemId String?             @unique @map("delivery_order_item_id")
+  deliveryOrderItem   DeliveryOrderItem?  @relation(fields: [deliveryOrderItemId], references: [id])
+  cogsBackfills       CogsBackfillQueue[]
+  returnItems         SalesReturnItem[]
+  itemName            String              @map("item_name")
+  quantity            Decimal             @db.Decimal(15, 3)
+  unit                String
+  rate                Decimal             @db.Decimal(15, 2)
+  discount            Decimal             @default(0) @db.Decimal(5, 2)
+  amount              Decimal             @db.Decimal(15, 2)
+  taxPct              Decimal             @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  pphPct              Decimal             @default(0) @map("pph_pct") @db.Decimal(5, 2)
+  accountId           String              @map("account_id")
+  account             Account             @relation(fields: [accountId], references: [id])
+  description         String?
+  // Batch picker: the stock-out created at submit links to this inbound batch.
+  // unitCostLoaded is the loaded HPP captured at submit (loaded-margin reports).
+  sourceMovementId    String?             @map("source_movement_id")
+  sourceMovement      StockMovement?      @relation("SalesBatchSource", fields: [sourceMovementId], references: [id])
+  unitCostLoaded      Decimal?            @map("unit_cost_loaded") @db.Decimal(20, 4)
+
+  @@index([salesInvoiceId])
+  @@index([sourceMovementId])
+  @@index([inventoryItemId])
+  @@index([serviceItemId])
+  @@index([warehouseId])
+  @@map("sales_invoice_items")
+}
+
+// Delivery Order (Surat Jalan): decrements stock without GL; several DOs can be billed on one
+// invoice. Its stock movements lock unitCost at delivery so invoice COGS matches what left.
+model DeliveryOrder {
+  id            String              @id @default(uuid())
+  doNumber      String              @unique @map("do_number")
+  date          DateTime
+  partyId       String              @map("party_id")
+  customer      Party               @relation("DeliveryOrderCustomer", fields: [partyId], references: [id])
+  status        DocumentStatus      @default(Submitted)
+  notes         String?
+  // Pengiriman fisik
+  nomorMobil    String?             @map("nomor_mobil")
+  driverName    String?             @map("driver_name")
+  recipientName String?             @map("recipient_name")
+  // Billing linkage — set once items are folded into an invoice.
+  invoiceId     String?             @map("invoice_id")
+  invoice       SalesInvoice?       @relation("DeliveryOrderInvoice", fields: [invoiceId], references: [id])
+  invoicedAt    DateTime?           @map("invoiced_at")
+  // Sales order linkage (optional): kalau DO digenerate dari SO.
+  salesOrderId  String?             @map("sales_order_id")
+  salesOrder    SalesOrder?         @relation("DOFromSO", fields: [salesOrderId], references: [id])
+  fiscalYearId  String              @map("fiscal_year_id")
+  fiscalYear    FiscalYear          @relation("DeliveryOrderFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy     String              @map("created_by")
+  user          User                @relation("DeliveryOrderCreator", fields: [createdBy], references: [id])
+  items         DeliveryOrderItem[]
+  submittedAt   DateTime?           @map("submitted_at")
+  cancelledAt   DateTime?           @map("cancelled_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([partyId])
+  @@index([status])
+  @@index([invoiceId])
+  @@index([salesOrderId])
+  @@index([fiscalYearId])
+  @@map("delivery_orders")
+}
+
+model DeliveryOrderItem {
+  id               String            @id @default(uuid())
+  deliveryOrderId  String            @map("delivery_order_id")
+  deliveryOrder    DeliveryOrder     @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId  String?           @map("inventory_item_id")
+  inventoryItem    InventoryItem?    @relation("DOLineInventory", fields: [inventoryItemId], references: [id])
+  warehouseId      String?           @map("warehouse_id")
+  warehouse        Warehouse?        @relation("DOLineWarehouse", fields: [warehouseId], references: [id])
+  itemName         String            @map("item_name")
+  quantity         Decimal           @db.Decimal(15, 3)
+  unit             String
+  description      String?
+  // Link to the stockMovement Out row created when this DO was submitted.
+  // unitCost is locked there so COGS at invoice time matches the goods'
+  // actual cost at delivery.
+  stockMovementId  String?           @unique @map("stock_movement_id")
+  stockMovement    StockMovement?    @relation("DOLineMovement", fields: [stockMovementId], references: [id])
+  // Link back to source SO line (for partial-delivery tracking).
+  salesOrderItemId String?           @map("sales_order_item_id")
+  salesOrderItem   SalesOrderItem?   @relation("DOLineFromSO", fields: [salesOrderItemId], references: [id])
+  // Back-relation: which sales invoice line picked this DO item up.
+  invoiceItem      SalesInvoiceItem?
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  @@index([deliveryOrderId])
+  @@index([inventoryItemId])
+  @@index([warehouseId])
+  @@index([salesOrderItemId])
+  @@map("delivery_order_items")
+}
+
+model PurchaseInvoice {
+  id                  String                     @id @default(uuid())
+  invoiceNumber       String                     @unique @map("invoice_number")
+  date                DateTime
+  partyId             String                     @map("party_id")
+  supplier            Party                      @relation(fields: [partyId], references: [id])
+  status              InvoiceStatus              @default(Draft)
+  grandTotal          Decimal                    @map("grand_total") @db.Decimal(15, 2)
+  outstanding         Decimal                    @db.Decimal(15, 2)
+  taxPct              Decimal                    @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan            Decimal                    @default(0) @db.Decimal(15, 2)
+  biayaLain           Decimal                    @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  dueDate             DateTime?                  @map("due_date")
+  notes               String?
+  terms               String?
+  fiscalYearId        String                     @map("fiscal_year_id")
+  fiscalYear          FiscalYear                 @relation(fields: [fiscalYearId], references: [id])
+  createdBy           String                     @map("created_by")
+  user                User                       @relation(fields: [createdBy], references: [id])
+  items               PurchaseInvoiceItem[]
+  depositApplications VendorDepositApplication[] @relation("DepositApplied")
+  // PO linkage (header shortcut). Lines may still come from STT via per-line link.
+  purchaseOrderId     String?                    @map("purchase_order_id")
+  purchaseOrder       PurchaseOrder?             @relation("PIFromPO", fields: [purchaseOrderId], references: [id])
+  // STT (GoodsReceipt) header-level back-relation. PI created from STT.
+  // 1 STT → at most 1 active PI; many lines billed at once.
+  // One PI can bill several STTs at once (combined invoice).
+  goodsReceipts       GoodsReceipt[]             @relation("PIFromGR")
+  gaVehicleTaxes      GaVehicleTax[]             @relation("GaVehicleTaxInvoice")
+  gaServiceLogs       GaVehicleServiceLog[]      @relation("GaServiceLogInvoice")
+  gaMaterialRequests  GaMaterialRequest[]        @relation("GaMaterialRequestInvoice")
+  // Marks PIs migrated to the new "stock-from-STT" flow as legacy/backfilled
+  // (their JV still posts DR Persediaan / CR Hutang Usaha for historical truth).
+  isLegacyStockFlow   Boolean                    @default(false) @map("is_legacy_stock_flow")
+  submittedAt         DateTime?                  @map("submitted_at")
+  cancelledAt         DateTime?                  @map("cancelled_at")
+  isDummy             Boolean                    @default(false) @map("is_dummy")
+  createdAt           DateTime                   @default(now()) @map("created_at")
+  updatedAt           DateTime                   @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@index([purchaseOrderId])
+  @@map("purchase_invoices")
+}
+
+model PurchaseInvoiceItem {
+  id                 String            @id @default(uuid())
+  purchaseInvoiceId  String            @map("purchase_invoice_id")
+  purchaseInvoice    PurchaseInvoice   @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  // 'product' (goods) | 'service' (jasa/biaya). Column added by loose SQL 2026101800000.
+  itemType           String            @default("product") @map("item_type")
+  inventoryItemId    String?           @map("inventory_item_id")
+  inventoryItem      InventoryItem?    @relation("PurchaseInvoiceInventory", fields: [inventoryItemId], references: [id])
+  warehouseId        String?           @map("warehouse_id")
+  warehouse          Warehouse?        @relation("PurchaseInvoiceItemWarehouse", fields: [warehouseId], references: [id])
+  itemName           String            @map("item_name")
+  quantity           Decimal           @db.Decimal(15, 3)
+  unit               String
+  rate               Decimal           @db.Decimal(15, 2)
+  discount           Decimal           @default(0) @db.Decimal(5, 2)
+  amount             Decimal           @db.Decimal(15, 2)
+  taxPct             Decimal           @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  pphPct             Decimal           @default(0) @map("pph_pct") @db.Decimal(5, 2)
+  potonganItem       Decimal           @default(0) @map("potongan_item") @db.Decimal(15, 2)
+  kualitas           String?
+  refaksi            Decimal?          @db.Decimal(15, 3)
+  timbanganTruk      Decimal?          @map("timbangan_truk") @db.Decimal(15, 3)
+  timbanganDiterima  Decimal?          @map("timbangan_diterima") @db.Decimal(15, 3)
+  nomorMobil         String?           @map("nomor_mobil")
+  accountId          String            @map("account_id")
+  account            Account           @relation(fields: [accountId], references: [id])
+  description        String?
+  // Link ke baris STT yang menyebabkan stok masuk. UNIQUE — tiap baris STT
+  // hanya bisa di-invoice sekali. Nullable untuk PI legacy / standalone (no
+  // STT existed when invoice was first created).
+  goodsReceiptItemId String?           @unique @map("goods_receipt_item_id")
+  goodsReceiptItem   GoodsReceiptItem? @relation("PILineFromGRLine", fields: [goodsReceiptItemId], references: [id])
+
+  @@index([purchaseInvoiceId])
+  @@index([inventoryItemId])
+  @@index([warehouseId])
+  @@map("purchase_invoice_items")
+}
+
+model Payment {
+  id                          String                       @id @default(uuid())
+  paymentNumber               String                       @unique @map("payment_number")
+  date                        DateTime
+  paymentType                 PaymentType                  @map("payment_type")
+  partyId                     String                       @map("party_id")
+  party                       Party                        @relation(fields: [partyId], references: [id])
+  accountId                   String                       @map("account_id")
+  account                     Account                      @relation("PaymentAccount", fields: [accountId], references: [id])
+  amount                      Decimal                      @db.Decimal(15, 2)
+  refundedAmount              Decimal                      @default(0) @map("refunded_amount") @db.Decimal(15, 2)
+  status                      DocumentStatus               @default(Draft)
+  referenceNo                 String?                      @map("reference_number")
+  notes                       String?
+  createdBy                   String                       @map("created_by")
+  user                        User                         @relation(fields: [createdBy], references: [id])
+  allocations                 PaymentAllocation[]
+  splits                      PaymentSplit[]
+  depositApplications         VendorDepositApplication[]   @relation("DepositApplications")
+  customerDepositApplications CustomerDepositApplication[] @relation("CustomerDepositApplications")
+  journalEntryId              String?                      @unique @map("journal_entry_id")
+  journalEntry                JournalEntry?                @relation(fields: [journalEntryId], references: [id])
+  // Optional: kalau pembayaran ini uang muka (CustomerDeposit) untuk SO tertentu.
+  salesOrderId                String?                      @map("sales_order_id")
+  salesOrder                  SalesOrder?                  @relation("SalesOrderDeposits", fields: [salesOrderId], references: [id])
+  fiscalYearId                String                       @map("fiscal_year_id")
+  fiscalYear                  FiscalYear                   @relation(fields: [fiscalYearId], references: [id])
+  submittedAt                 DateTime?                    @map("submitted_at")
+  cancelledAt                 DateTime?                    @map("cancelled_at")
+  createdAt                   DateTime                     @default(now()) @map("created_at")
+  updatedAt                   DateTime                     @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([accountId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@map("payments")
+}
+
+model PaymentSplit {
+  id        String  @id @default(uuid())
+  paymentId String  @map("payment_id")
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  accountId String  @map("account_id")
+  account   Account @relation("PaymentSplitAccount", fields: [accountId], references: [id])
+  amount    Decimal @db.Decimal(15, 2)
+  notes     String?
+
+  @@index([paymentId])
+  @@index([accountId])
+  @@map("payment_splits")
+}
+
+model PaymentAllocation {
+  id              String  @id @default(uuid())
+  paymentId       String  @map("payment_id")
+  payment         Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoiceType     String  @map("invoice_type")
+  invoiceId       String  @map("invoice_id")
+  allocatedAmount Decimal @map("allocated_amount") @db.Decimal(15, 2)
+
+  @@index([paymentId])
+  @@index([invoiceType, invoiceId])
+  @@map("payment_allocations")
+}
+
+model FiscalYear {
+  id               String                  @id @default(uuid())
+  name             String                  @unique
+  startDate        DateTime                @map("start_date")
+  endDate          DateTime                @map("end_date")
+  isClosed         Boolean                 @default(false) @map("is_closed")
+  closedAt         DateTime?               @map("closed_at")
+  closedBy         String?                 @map("closed_by")
+  user             User?                   @relation("ClosedBy", fields: [closedBy], references: [id])
+  ledgerEntries    AccountingLedgerEntry[]
+  journalEntries   JournalEntry[]
+  salesInvoices    SalesInvoice[]
+  purchaseInvoices PurchaseInvoice[]
+  quotations       Quotation[]             @relation("QuotationFiscalYear")
+  inquiries        Inquiry[]               @relation("InquiryFiscalYear")
+  payments         Payment[]
+  stockMovements   StockMovement[]
+  productionRuns   ProductionRun[]
+  stockOpnames     StockOpname[]
+  stockTransfers   StockTransfer[]         @relation("TransferFiscalYear")
+  deliveryOrders   DeliveryOrder[]         @relation("DeliveryOrderFiscalYear")
+  salesOrders      SalesOrder[]            @relation("SalesOrderFiscalYear")
+  purchaseOrders   PurchaseOrder[]         @relation("PurchaseOrderFY")
+  goodsReceipts    GoodsReceipt[]          @relation("GoodsReceiptFY")
+  fixedAssets      FixedAsset[]
+  cogsBackfills    CogsBackfillQueue[]     @relation("CogsBackfillFY")
+  createdAt        DateTime                @default(now()) @map("created_at")
+
+  @@map("fiscal_years")
+}
+
+model User {
+  id                                  String                       @id @default(uuid())
+  username                            String                       @unique
+  fullName                            String                       @map("full_name")
+  email                               String                       @unique
+  passwordHash                        String                       @map("password_hash")
+  // role = Role.key (string dinamis). Nilai lama 'Admin'/'Accountant'/'StaffProduksi'/'Viewer'
+  // tetap valid; role custom dibuat Admin lewat RBAC. Enum UserRole sudah ditinggalkan.
+  role                                String                       @default("Accountant")
+  isActive                            Boolean                      @default(true) @map("is_active")
+  lastLoginAt                         DateTime?                    @map("last_login_at")
+  // Notifikasi Telegram japri: chat id pribadi (tertaut via /start) + kode tautan sementara.
+  telegramChatId                      String?                      @map("telegram_chat_id")
+  telegramLinkCode                    String?                      @unique @map("telegram_link_code")
+  // AIRA (MCP): user harus didaftarkan agar bisa dipakai sebagai aktor agen. Channel
+  // (WhatsApp/Telegram) TIDAK disimpan di Entaris — engine AIRA memetakan identitas channel ke user id.
+  airaEnabled                         Boolean                      @default(false) @map("aira_enabled")
+  // read = hanya tool baca | standard = semua tool dgn tier (tulis non-draft & kritis → antrian approval) | direct = tulis/kritis langsung sebagai aktor
+  airaTier                            String                       @default("standard") @map("aira_tier")
+  airaJabatan                         String?                      @map("aira_jabatan")
+  // UI language 'id' | 'en'; NULL = follow CompanySettings.defaultLanguage.
+  language                            String?                      @map("language")
+  journalEntries                      JournalEntry[]
+  salesInvoices                       SalesInvoice[]
+  purchaseInvoices                    PurchaseInvoice[]
+  quotations                          Quotation[]                  @relation("QuotationCreator")
+  inquiries                           Inquiry[]                    @relation("InquiryCreator")
+  payments                            Payment[]
+  closedYears                         FiscalYear[]                 @relation("ClosedBy")
+  audits                              AuditLog[]
+  stockMovements                      StockMovement[]              @relation("MovementCreatedBy")
+  productionRuns                      ProductionRun[]              @relation("ProductionCreatedBy")
+  notifications                       Notification[]               @relation("UserNotifications")
+  recurringTemplates                  RecurringTemplate[]          @relation("UserRecurring")
+  vendorDepositApplications           VendorDepositApplication[]
+  customerDepositApplications         CustomerDepositApplication[]
+  tokenBlacklist                      TokenBlacklist[]
+  attachments                         TransactionAttachment[]
+  stockOpnames                        StockOpname[]                @relation("OpnameCreatedBy")
+  stockTransfers                      StockTransfer[]              @relation("TransferCreator")
+  deliveryOrders                      DeliveryOrder[]              @relation("DeliveryOrderCreator")
+  salesOrders                         SalesOrder[]                 @relation("SalesOrderCreator")
+  purchaseOrders                      PurchaseOrder[]              @relation("PurchaseOrderCreator")
+  goodsReceipts                       GoodsReceipt[]               @relation("GoodsReceiptCreator")
+  fixedAssets                         FixedAsset[]                 @relation("AssetCreatedBy")
+  approvalRequests                    ApprovalRequest[]            @relation("ApprovalRequester")
+  approvalApprovals                   ApprovalRequest[]            @relation("ApprovalApprover")
+  approvalRejections                  ApprovalRequest[]            @relation("ApprovalRejecter")
+  // Atasan langsung (approver tahap 1 Pengajuan Pembayaran). Nullable.
+  supervisorId                        String?                      @map("supervisor_id")
+  supervisor                          User?                        @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  subordinates                        User[]                       @relation("UserSupervisor")
+  paymentRequests                     PaymentRequest[]             @relation("PaymentRequestRequester")
+  paymentRequestsSupervised           PaymentRequest[]             @relation("PaymentRequestSupervisor")
+  paymentRequestSettlementsSupervised PaymentRequest[]             @relation("PaymentRequestSettlementSupervisor")
+  paymentRequestsPaid                 PaymentRequest[]             @relation("PaymentRequestPaidBy")
+  paymentRequestHistory               PaymentRequestHistory[]      @relation("PaymentRequestHistoryActor")
+  chatSessions                        ChatSession[]
+  createdAt                           DateTime                     @default(now()) @map("created_at")
+  updatedAt                           DateTime                     @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// RBAC Dinamis: Role custom + matriks izin (role × modul → view/edit)
+// Role.key dirujuk oleh User.role (string). Role bawaan isSystem=true (tak bisa
+// dihapus); Admin isSuperAdmin=true (lolos semua cek). Lihat constants/modules.ts.
+model Role {
+  id           String           @id @default(uuid())
+  key          String           @unique
+  name         String
+  description  String?
+  isSystem     Boolean          @default(false) @map("is_system")
+  isSuperAdmin Boolean          @default(false) @map("is_super_admin")
+  isActive     Boolean          @default(true) @map("is_active")
+  permissions  RolePermission[]
+  capabilities RoleCapability[]
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id      String  @id @default(uuid())
+  roleId  String  @map("role_id")
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module  String
+  canView Boolean @default(false) @map("can_view")
+  canEdit Boolean @default(false) @map("can_edit")
+
+  @@unique([roleId, module])
+  @@map("role_permissions")
+}
+
+model RoleCapability {
+  id         String @id @default(uuid())
+  roleId     String @map("role_id")
+  role       Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  capability String
+
+  @@unique([roleId, capability])
+  @@map("role_capabilities")
+}
+
+model TokenBlacklist {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("token_blacklist")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  /// 'mcp' bila aksi dijalankan agen lewat MCP (viaMeta = { token, channel, tool, approvalId? }); 'demo' bila dibuat generator data uji coba.
+  via        String?
+  viaMeta    Json?    @map("via_meta")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_trail")
+}
+
+model CompanySettings {
+  id                   String    @id @default(uuid())
+  slug                 String    @unique @default("default")
+  companyName          String    @map("company_name")
+  address              String?
+  phone                String?
+  email                String?
+  taxId                String?   @map("tax_id")
+  logoUrl              String?   @map("logo_url")
+  logoUrlDark          String?   @map("logo_url_dark")
+  defaultCurrency      String    @default("IDR") @map("default_currency")
+  fiscalYearStartMonth Int       @default(1) @map("fiscal_year_start_month")
+  /// Default UI language for users without their own choice: 'id' | 'en'.
+  defaultLanguage      String    @default("id") @map("default_language")
+  invoiceSettings      Json?     @map("invoice_settings")
+  /// Penyiapan awal (onboarding wizard) selesai/dilewati admin. NULL = belum.
+  onboardedAt          DateTime? @map("onboarded_at")
+
+  @@map("company_settings")
+}
+
+model SystemAccountMapping {
+  id        String   @id @default(uuid())
+  role      String
+  accountId String   @map("account_id")
+  account   Account  @relation("MappedAccount", fields: [accountId], references: [id])
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([role, accountId])
+  @@index([role])
+  @@map("system_account_mappings")
+}
+
+enum DocumentStatus {
+  Draft
+  Submitted
+  Cancelled
+}
+
+enum InvoiceStatus {
+  Draft
+  Submitted
+  Paid
+  PartiallyPaid
+  Overdue
+  Cancelled
+}
+
+enum PaymentType {
+  Receive
+  Pay
+  VendorDeposit
+  CustomerDeposit
+  VendorRefund
+  CustomerRefund
+}
+
+enum UserRole {
+  Admin
+  Accountant
+  StaffProduksi
+  Viewer
+}
+
+enum StockMovementType {
+  In
+  Out
+  AdjustmentIn
+  AdjustmentOut
+  TransferOut
+  TransferIn
+}
+
+// Storage location. Stock is tracked per (item, warehouse) in InventoryStock; averageCost
+// stays at item level by design (one weighted average across warehouses).
+model Warehouse {
+  id                   String                   @id @default(uuid())
+  code                 String                   @unique
+  name                 String
+  location             String?
+  description          String?
+  isActive             Boolean                  @default(true) @map("is_active")
+  isDefault            Boolean                  @default(false) @map("is_default")
+  sortOrder            Int                      @default(0) @map("sort_order")
+  stocks               InventoryStock[]
+  movements            StockMovement[]
+  transfersFrom        StockTransfer[]          @relation("TransferFrom")
+  transfersTo          StockTransfer[]          @relation("TransferTo")
+  purchaseInvoiceItems PurchaseInvoiceItem[]    @relation("PurchaseInvoiceItemWarehouse")
+  salesInvoiceItems    SalesInvoiceItem[]       @relation("SalesInvoiceItemWarehouse")
+  productionLines      ProductionRunItem[]      @relation("ProductionLineWarehouse")
+  opnameLines          StockOpnameItem[]        @relation("OpnameLineWarehouse")
+  opnames              StockOpname[]            @relation("OpnameWarehouse")
+  deliveryOrderItems   DeliveryOrderItem[]      @relation("DOLineWarehouse")
+  goodsReceiptItems    GoodsReceiptItem[]       @relation("GRItemWarehouse")
+  costStandards        ProductionCostStandard[] @relation("WarehouseCostStandards")
+  purchaseOrders       PurchaseOrder[]          @relation("PurchaseOrderWarehouse")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("warehouses")
+}
+
+// Stock balance per (item, warehouse). Replaces single-tenant
+// InventoryItem.currentStock as the source of truth for "where is the
+// stock physically?". InventoryItem.currentStock stays as a denormalized
+// total (sum across all warehouses) for fast list-page queries.
+model InventoryStock {
+  id           String        @id @default(uuid())
+  itemId       String        @map("item_id")
+  item         InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  warehouseId  String        @map("warehouse_id")
+  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
+  currentStock Decimal       @default(0) @map("current_stock") @db.Decimal(20, 3)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@unique([itemId, warehouseId])
+  @@index([itemId])
+  @@index([warehouseId])
+  @@map("inventory_stocks")
+}
+
+model InventoryItem {
+  id                   String                   @id @default(uuid())
+  code                 String                   @unique
+  name                 String
+  unit                 String
+  category             String?
+  description          String?
+  currentStock         Decimal                  @default(0) @map("current_stock") @db.Decimal(15, 3)
+  averageCost          Decimal                  @default(0) @map("average_cost") @db.Decimal(20, 2)
+  minimumStock         Decimal                  @default(0) @map("minimum_stock") @db.Decimal(15, 3)
+  isActive             Boolean                  @default(true) @map("is_active")
+  isDummy              Boolean                  @default(false) @map("is_dummy")
+  accountId            String?                  @map("account_id")
+  account              Account?                 @relation("ItemAccount", fields: [accountId], references: [id])
+  stocks               InventoryStock[]
+  movements            StockMovement[]
+  productionLines      ProductionRunItem[]      @relation("ProductionLines")
+  salesInvoiceItems    SalesInvoiceItem[]       @relation("SalesInvoiceInventory")
+  purchaseInvoiceItems PurchaseInvoiceItem[]    @relation("PurchaseInvoiceInventory")
+  quotationItems       QuotationItem[]          @relation("QuotationItemInventory")
+  opnameLines          StockOpnameItem[]        @relation("OpnameLines")
+  cogsBackfills        CogsBackfillQueue[]      @relation("CogsBackfillItem")
+  transferLines        StockTransferItem[]
+  deliveryOrderItems   DeliveryOrderItem[]      @relation("DOLineInventory")
+  salesOrderItems      SalesOrderItem[]         @relation("SOItemInventory")
+  purchaseOrderItems   PurchaseOrderItem[]      @relation("POItemInventory")
+  goodsReceiptItems    GoodsReceiptItem[]       @relation("GRItemInventory")
+  costStandards        ProductionCostStandard[] @relation("ItemCostStandards")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([accountId])
+  @@map("inventory_items")
+}
+
+// Stock transfer between warehouses. One logical transfer → two
+// StockMovement rows (TransferOut from source + TransferIn to destination)
+// plus an InventoryStock decrement/increment pair. No GL impact (same
+// account on both sides).
+model StockTransfer {
+  id              String              @id @default(uuid())
+  transferNumber  String              @unique @map("transfer_number")
+  date            DateTime
+  fromWarehouseId String              @map("from_warehouse_id")
+  fromWarehouse   Warehouse           @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String              @map("to_warehouse_id")
+  toWarehouse     Warehouse           @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  status          DocumentStatus      @default(Draft)
+  notes           String?
+  items           StockTransferItem[]
+  // SJG (Surat Jalan Antar Gudang) metadata for the driver's PDF only; stock
+  // still moves instantly on submit.
+  nomorMobil      String?             @map("nomor_mobil")
+  driverName      String?             @map("driver_name")
+  recipientName   String?             @map("recipient_name")
+  printedAt       DateTime?           @map("printed_at")
+  fiscalYearId    String              @map("fiscal_year_id")
+  fiscalYear      FiscalYear          @relation("TransferFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy       String              @map("created_by")
+  user            User                @relation("TransferCreator", fields: [createdBy], references: [id])
+  submittedAt     DateTime?           @map("submitted_at")
+  cancelledAt     DateTime?           @map("cancelled_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([status])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([fiscalYearId])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id               String         @id @default(uuid())
+  transferId       String         @map("transfer_id")
+  transfer         StockTransfer  @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  itemId           String         @map("item_id")
+  item             InventoryItem  @relation(fields: [itemId], references: [id])
+  quantity         Decimal        @db.Decimal(20, 3)
+  description      String?
+  // Batch picker for transfers. When set, the source-warehouse Out
+  // movement created at submit links back to this inbound batch. The
+  // destination-warehouse In movement is a fresh inbound batch.
+  sourceMovementId String?        @map("source_movement_id")
+  sourceMovement   StockMovement? @relation("TransferBatchSource", fields: [sourceMovementId], references: [id])
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([transferId])
+  @@index([itemId])
+  @@index([sourceMovementId])
+  @@map("stock_transfer_items")
+}
+
+model StockMovement {
+  id                        String              @id @default(uuid())
+  movementNumber            String              @unique @map("movement_number")
+  date                      DateTime
+  itemId                    String              @map("item_id")
+  item                      InventoryItem       @relation(fields: [itemId], references: [id])
+  warehouseId               String?             @map("warehouse_id")
+  warehouse                 Warehouse?          @relation(fields: [warehouseId], references: [id])
+  movementType              StockMovementType   @map("movement_type")
+  quantity                  Decimal             @db.Decimal(20, 3)
+  unitCost                  Decimal             @default(0) @map("unit_cost") @db.Decimal(20, 2)
+  totalValue                Decimal             @default(0) @map("total_value") @db.Decimal(20, 2)
+  notes                     String?
+  referenceType             String?             @map("reference_type")
+  referenceId               String?             @map("reference_id")
+  referenceNumber           String?             @map("reference_number")
+  offsetAccountId           String?             @map("offset_account_id")
+  offsetAccount             Account?            @relation("MovementOffset", fields: [offsetAccountId], references: [id])
+  journalEntryId            String?             @unique @map("journal_entry_id")
+  journalEntry              JournalEntry?       @relation(fields: [journalEntryId], references: [id])
+  fiscalYearId              String              @map("fiscal_year_id")
+  fiscalYear                FiscalYear          @relation(fields: [fiscalYearId], references: [id])
+  createdById               String              @map("created_by_id")
+  createdBy                 User                @relation("MovementCreatedBy", fields: [createdById], references: [id])
+  isCancelled               Boolean             @default(false) @map("is_cancelled")
+  // Loaded HPP per Kg for production-output movements. Includes material +
+  // cost components (listrik, buruh, etc.) less by-product NRV. Material-only
+  // unit_cost is still used for GL/WAC. unitCostLoaded is informational and
+  // drives "loaded margin" reports.
+  unitCostLoaded            Decimal?            @map("unit_cost_loaded") @db.Decimal(20, 4)
+  // Batch tracking. For outbound movements (Out /
+  // AdjustmentOut) this links to the inbound StockMovement (batch) the qty
+  // was consumed from. The /items/:id/batches endpoint sums these to compute
+  // per-batch availability.
+  sourceMovementId          String?             @map("source_movement_id")
+  sourceMovement            StockMovement?      @relation("BatchSource", fields: [sourceMovementId], references: [id])
+  consumingMovements        StockMovement[]     @relation("BatchSource")
+  deliveryOrderItem         DeliveryOrderItem?  @relation("DOLineMovement")
+  goodsReceiptItem          GoodsReceiptItem?   @relation("GRLineMovement")
+  productionInputBatchUsage ProductionRunItem[] @relation("ProductionInputBatch")
+  consumingSalesItems       SalesInvoiceItem[]  @relation("SalesBatchSource")
+  consumingTransferItems    StockTransferItem[] @relation("TransferBatchSource")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
+
+  @@index([itemId])
+  @@index([warehouseId])
+  @@index([date])
+  @@index([movementType])
+  @@index([fiscalYearId])
+  @@map("stock_movements")
+}
+
+// Production input draft: no stock/GL/HPP/OEE effect until posted via submitProductionRunInTx
+// (directly for bypass roles, else via approval). No FK to ProductionRun/User on purpose.
+model ProductionRunDraft {
+  id                String    @id @default(uuid())
+  draftNumber       String    @unique @map("draft_number")
+  date              DateTime
+  notes             String?
+  warehouseId       String?   @map("warehouse_id")
+  // Ringkasan terdenormalisasi utk tampilan daftar.
+  summary           Json?
+  // Body CreateProductionRunSchema apa adanya (seluruh isian modal).
+  payload           Json
+  // Draft | PendingApproval | Posted | Discarded
+  status            String    @default("Draft")
+  createdById       String    @map("created_by_id")
+  updatedById       String?   @map("updated_by_id")
+  postedRunId       String?   @map("posted_run_id")
+  postedRunNumber   String?   @map("posted_run_number")
+  postedAt          DateTime? @map("posted_at")
+  postedById        String?   @map("posted_by_id")
+  approvalRequestId String?   @map("approval_request_id")
+  lastError         String?   @map("last_error")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, date])
+  @@index([createdById])
+  @@index([approvalRequestId])
+  @@map("production_run_drafts")
+}
+
+/// Draft Buku Kas (dari nota / halaman buku kas). Tidak berefek ke GL sampai diposting.
+model CashBookDraft {
+  id             String             @id @default(uuid())
+  draftNumber    String             @unique @map("draft_number")
+  // Draft | PartiallyPosted | Posted | Discarded
+  status         String             @default("Draft")
+  title          String
+  entryDate      DateTime           @map("entry_date")
+  cashAccountId  String             @map("cash_account_id")
+  openingBalance Decimal?           @map("opening_balance") @db.Decimal(20, 2)
+  closingBalance Decimal?           @map("closing_balance") @db.Decimal(20, 2)
+  // manual | aira
+  source         String             @default("manual")
+  // Referensi opak chat/sesi engine AIRA (tidak diinterpretasi).
+  sourceRef      String?            @map("source_ref")
+  sourceNote     String?            @map("source_note")
+  createdById    String             @map("created_by_id")
+  // mcp | ui
+  createdVia     String?            @map("created_via")
+  postedAt       DateTime?          @map("posted_at")
+  postedById     String?            @map("posted_by_id")
+  lastError      String?            @map("last_error")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  rows           CashBookDraftRow[]
+
+  @@index([status, entryDate])
+  @@index([createdById])
+  @@map("cash_book_drafts")
+}
+
+model CashBookDraftRow {
+  id             String        @id @default(uuid())
+  draftId        String        @map("draft_id")
+  draft          CashBookDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  idx            Int
+  rowDate        DateTime      @map("row_date")
+  description    String
+  amount         Decimal       @db.Decimal(20, 2)
+  // masuk (kas masuk / debit kas) | keluar (kas keluar / kredit kas)
+  direction      String
+  // pengeluaran | pemasukan | uang_muka | terima_kasbon | lainnya
+  txnType        String        @map("txn_type")
+  accountId      String?       @map("account_id")
+  accountCode    String?       @map("account_code")
+  accountLabel   String?       @map("account_label")
+  confidence     Decimal       @default(0) @db.Decimal(4, 3)
+  needsReview    Boolean       @default(false) @map("needs_review")
+  reason         String?
+  skip           Boolean       @default(false)
+  // true bila manusia memilih/menegaskan akun & jenis (dasar pembelajaran pola saat posting)
+  userEdited     Boolean       @default(false) @map("user_edited")
+  journalEntryId String?       @map("journal_entry_id")
+  postedAt       DateTime?     @map("posted_at")
+  error          String?
+
+  @@unique([draftId, idx])
+  @@index([journalEntryId])
+  @@index([rowDate, amount])
+  @@map("cash_book_draft_rows")
+}
+
+/// Pola keterangan ternormalisasi -> akun, dipelajari dari koreksi manusia saat posting.
+model CashBookLearnedMap {
+  id        String   @id @default(uuid())
+  pattern   String
+  txnType   String   @map("txn_type")
+  accountId String   @map("account_id")
+  hits      Int      @default(1)
+  updatedBy String   @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([pattern, txnType])
+  @@index([accountId])
+  @@map("cash_book_learned_maps")
+}
+
+model ProductionRun {
+  id                  String                 @id @default(uuid())
+  runNumber           String                 @unique @map("run_number")
+  date                DateTime
+  notes               String?
+  referenceType       String?                @map("reference_type")
+  referenceId         String?                @map("reference_id")
+  referenceNumber     String?                @map("reference_number")
+  yieldPct            Decimal?               @map("yield_pct") @db.Decimal(5, 2)
+  // Loaded HPP breakdown (informational, computed at submit)
+  // totalMaterialCost: sum(input.qty × batchUnitCost) — real from batches
+  // totalCostInputSide: sum of input-side cost components (listrik, dll)
+  // totalCostOutputSide: sum of output-side cost components (kirim, dll)
+  // totalByproductValue: sum(byproduct.qty × nrvUnitValue)
+  // computedHpp: (material + costs - byproductValue) / mainOutputQty
+  // hppManualOverride: when true, computedHpp was overridden by user
+  totalMaterialCost   Decimal?               @map("total_material_cost") @db.Decimal(20, 4)
+  totalCostInputSide  Decimal?               @map("total_cost_input_side") @db.Decimal(20, 4)
+  totalCostOutputSide Decimal?               @map("total_cost_output_side") @db.Decimal(20, 4)
+  totalByproductValue Decimal?               @map("total_byproduct_value") @db.Decimal(20, 4)
+  computedHpp         Decimal?               @map("computed_hpp") @db.Decimal(20, 4)
+  hppManualOverride   Boolean                @default(false) @map("hpp_manual_override")
+  // OEE tracking (Overall Equipment Effectiveness)
+  // Semua opsional: run lama / tanpa data OEE tetap valid.
+  machineId           String?                @map("machine_id")
+  machine             Machine?               @relation("RunMachine", fields: [machineId], references: [id])
+  shift               String? // "1" | "2" | "3" (atau Pagi/Siang/Malam)
+  shiftLead           String?                @map("shift_lead") // kepala shift (teks bebas)
+  manpowerCount       Int?                   @map("manpower_count") // jumlah MP (orang)
+  startAt             DateTime?              @map("start_at") // mulai produksi
+  endAt               DateTime?              @map("end_at") // selesai produksi
+  goodQty             Decimal?               @map("good_qty") @db.Decimal(15, 3) // output good (utk Quality)
+  rejectQty           Decimal?               @map("reject_qty") @db.Decimal(15, 3) // afkir/reject
+  downtimeMin         Decimal?               @map("downtime_min") @db.Decimal(10, 2) // total downtime (menit)
+  availabilityPct     Decimal?               @map("availability_pct") @db.Decimal(5, 2)
+  performancePct      Decimal?               @map("performance_pct") @db.Decimal(5, 2)
+  qualityPct          Decimal?               @map("quality_pct") @db.Decimal(5, 2)
+  oeePct              Decimal?               @map("oee_pct") @db.Decimal(5, 2)
+  // Standard shift window (planned production time) and break.
+  // plannedMin = (plannedEnd − plannedStart) − (breakEnd − breakStart).
+  plannedStart        DateTime?              @map("planned_start")
+  plannedEnd          DateTime?              @map("planned_end")
+  breakStart          DateTime?              @map("break_start")
+  breakEnd            DateTime?              @map("break_end")
+  runMachines         ProductionRunMachine[]
+  downtimes           ProductionDowntime[]
+  items               ProductionRunItem[]
+  runCosts            ProductionRunCost[]
+  runProcesses        ProductionRunProcess[]
+  isCancelled         Boolean                @default(false) @map("is_cancelled")
+  fiscalYearId        String                 @map("fiscal_year_id")
+  fiscalYear          FiscalYear             @relation(fields: [fiscalYearId], references: [id])
+  createdById         String                 @map("created_by_id")
+  createdBy           User                   @relation("ProductionCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([fiscalYearId])
+  @@index([machineId])
+  @@map("production_runs")
+}
+
+// Master mesin produksi — dipakai untuk OEE (kapasitas ideal utk Performance).
+model Machine {
+  id               String                 @id @default(uuid())
+  code             String                 @unique
+  name             String
+  idealRatePerHour Decimal?               @map("ideal_rate_per_hour") @db.Decimal(15, 3) // kapasitas ideal (kg/jam)
+  unit             String                 @default("kg")
+  isActive         Boolean                @default(true) @map("is_active")
+  notes            String?
+  productionRuns   ProductionRun[]        @relation("RunMachine")
+  runMachines      ProductionRunMachine[]
+  downtimes        ProductionDowntime[]
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("machines")
+}
+
+// Event downtime per production run (utk komponen Availability OEE).
+model ProductionDowntime {
+  id              String        @id @default(uuid())
+  productionRunId String        @map("production_run_id")
+  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  machineId       String?       @map("machine_id")
+  machine         Machine?      @relation(fields: [machineId], references: [id])
+  category        String // Breakdown | Setup | Material | Lain
+  reason          String?
+  durationMin     Decimal       @map("duration_min") @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([machineId])
+  @@map("production_downtimes")
+}
+
+// Machine used in a production run (parallel, own start/stop). OEE is computed per
+// machine and stored at submit/edit.
+model ProductionRunMachine {
+  id              String        @id @default(uuid())
+  productionRunId String        @map("production_run_id")
+  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  machineId       String        @map("machine_id")
+  machine         Machine       @relation(fields: [machineId], references: [id])
+  startAt         DateTime?     @map("start_at")
+  endAt           DateTime?     @map("end_at")
+  runMin          Decimal?      @map("run_min") @db.Decimal(10, 2) // jam jalan efektif (on − istirahat − downtime)
+  downtimeMin     Decimal?      @map("downtime_min") @db.Decimal(10, 2)
+  allocatedQty    Decimal?      @map("allocated_qty") @db.Decimal(15, 3) // output dialokasi proporsional runMin
+  availabilityPct Decimal?      @map("availability_pct") @db.Decimal(5, 2)
+  performancePct  Decimal?      @map("performance_pct") @db.Decimal(5, 2)
+  qualityPct      Decimal?      @map("quality_pct") @db.Decimal(5, 2)
+  oeePct          Decimal?      @map("oee_pct") @db.Decimal(5, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([machineId])
+  @@map("production_run_machines")
+}
+
+model ProductionRunItem {
+  id               String         @id @default(uuid())
+  productionRunId  String         @map("production_run_id")
+  productionRun    ProductionRun  @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  itemId           String         @map("item_id")
+  item             InventoryItem  @relation("ProductionLines", fields: [itemId], references: [id])
+  warehouseId      String?        @map("warehouse_id")
+  warehouse        Warehouse?     @relation("ProductionLineWarehouse", fields: [warehouseId], references: [id])
+  lineType         String         @map("line_type")
+  quantity         Decimal        @db.Decimal(15, 3)
+  unitPrice        Decimal?       @map("unit_price") @db.Decimal(15, 2)
+  yieldPct         Decimal?       @map("yield_pct") @db.Decimal(5, 2)
+  isByProduct      Boolean        @default(false) @map("is_by_product")
+  // Batch tracking (input side): link to the inbound StockMovement (batch)
+  // that the staff picked. batchUnitCost is captured at pick time so the
+  // production cost is locked even if WAC changes later.
+  sourceMovementId String?        @map("source_movement_id")
+  sourceMovement   StockMovement? @relation("ProductionInputBatch", fields: [sourceMovementId], references: [id])
+  batchUnitCost    Decimal?       @map("batch_unit_cost") @db.Decimal(20, 4)
+  // NRV per Kg for by-product output. Used as unit_cost for the inbound
+  // stock movement of that by-product and to compute the loaded HPP of the
+  // main output.
+  nrvUnitValue     Decimal?       @map("nrv_unit_value") @db.Decimal(20, 4)
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([warehouseId])
+  @@index([itemId])
+  @@index([sourceMovementId])
+  @@map("production_run_items")
+}
+
+// Master rates for cost components used by production runs. Staff picks a
+// standard at run-time and the default rate is prefilled; they can override
+// per run if needed (e.g. abnormal electricity bill).
+model ProductionCostStandard {
+  id            String              @id @default(uuid())
+  name          String
+  description   String?
+  // InputSide: charged per unit of input qty. OutputSide: per unit of main output qty.
+  costSide      String              @map("cost_side")
+  // InputQty: rate × sum(input qty). OutputQty: rate × main output qty. Fixed: flat per run.
+  basis         String
+  defaultRate   Decimal             @map("default_rate") @db.Decimal(15, 4)
+  // Optional GL account tag (informational; production module does NOT post
+  // to this account — real expense still flows via JV / payment / invoice).
+  costAccountId String?             @map("cost_account_id")
+  costAccount   Account?            @relation("CostStandardAccount", fields: [costAccountId], references: [id])
+  // Optional item scope — when set, this standard applies only to runs that
+  // produce/consume the linked item. Null = applies to any run.
+  itemId        String?             @map("item_id")
+  item          InventoryItem?      @relation("ItemCostStandards", fields: [itemId], references: [id])
+  // Optional warehouse scope — when set, this standard only appears in
+  // production runs at this warehouse (mis. "biaya mesin X" hanya muncul
+  // di gudang produksi X). Null = berlaku semua gudang.
+  warehouseId   String?             @map("warehouse_id")
+  warehouse     Warehouse?          @relation("WarehouseCostStandards", fields: [warehouseId], references: [id])
+  isActive      Boolean             @default(true) @map("is_active")
+  runCosts      ProductionRunCost[]
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([costSide])
+  @@index([itemId])
+  @@index([warehouseId])
+  @@map("production_cost_standards")
+}
+
+// Cost component used in a specific production run. Snapshot of the master
+// rate at submit time (so retroactive master edits don't change historical HPP).
+model ProductionRunCost {
+  id              String                  @id @default(uuid())
+  productionRunId String                  @map("production_run_id")
+  productionRun   ProductionRun           @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  standardId      String?                 @map("standard_id")
+  standard        ProductionCostStandard? @relation(fields: [standardId], references: [id])
+  description     String
+  costSide        String                  @map("cost_side")
+  basis           String
+  rate            Decimal                 @db.Decimal(15, 4)
+  qtyBasis        Decimal                 @map("qty_basis") @db.Decimal(15, 3)
+  totalAmount     Decimal                 @map("total_amount") @db.Decimal(20, 4)
+  costAccountId   String?                 @map("cost_account_id")
+  costAccount     Account?                @relation("RunCostAccount", fields: [costAccountId], references: [id])
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  @@index([productionRunId])
+  @@index([standardId])
+  @@map("production_run_costs")
+}
+
+// Master list of production processes (Drying, Huller, Polishing, Packing,
+// etc.). User-managed. Production runs reference these via the junction
+// table production_run_processes for traceability only — no cost or stock
+// behavior is tied to a process.
+model ProductionProcess {
+  id           String                 @id @default(uuid())
+  name         String                 @unique
+  description  String?
+  sortOrder    Int                    @default(0) @map("sort_order")
+  isActive     Boolean                @default(true) @map("is_active")
+  runProcesses ProductionRunProcess[]
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("production_processes")
+}
+
+// Junction many-to-many: which processes were executed in a given run.
+// Backward-compat: rows missing = unspecified (legacy runs).
+model ProductionRunProcess {
+  id              String            @id @default(uuid())
+  productionRunId String            @map("production_run_id")
+  productionRun   ProductionRun     @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  processId       String            @map("process_id")
+  process         ProductionProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@unique([productionRunId, processId])
+  @@index([productionRunId])
+  @@index([processId])
+  @@map("production_run_processes")
+}
+
+enum StockOpnameStatus {
+  Draft
+  Submitted
+  Cancelled
+}
+
+model StockOpname {
+  id           String            @id @default(uuid())
+  opnameNumber String            @unique @map("opname_number")
+  date         DateTime
+  status       StockOpnameStatus @default(Draft)
+  notes        String?
+  // Warehouse the session counted (one warehouse per opname).
+  warehouseId  String?           @map("warehouse_id")
+  warehouse    Warehouse?        @relation("OpnameWarehouse", fields: [warehouseId], references: [id])
+  items        StockOpnameItem[]
+  fiscalYearId String            @map("fiscal_year_id")
+  fiscalYear   FiscalYear        @relation(fields: [fiscalYearId], references: [id])
+  createdById  String            @map("created_by_id")
+  createdBy    User              @relation("OpnameCreatedBy", fields: [createdById], references: [id])
+  submittedAt  DateTime?         @map("submitted_at")
+  cancelledAt  DateTime?         @map("cancelled_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([status])
+  @@index([fiscalYearId])
+  @@index([warehouseId])
+  @@map("stock_opnames")
+}
+
+model StockOpnameItem {
+  id            String        @id @default(uuid())
+  stockOpnameId String        @map("stock_opname_id")
+  stockOpname   StockOpname   @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade)
+  itemId        String        @map("item_id")
+  item          InventoryItem @relation("OpnameLines", fields: [itemId], references: [id])
+  warehouseId   String?       @map("warehouse_id")
+  warehouse     Warehouse?    @relation("OpnameLineWarehouse", fields: [warehouseId], references: [id])
+  systemStock   Decimal       @map("system_stock") @db.Decimal(15, 3)
+  actualStock   Decimal       @map("actual_stock") @db.Decimal(15, 3)
+  difference    Decimal       @db.Decimal(15, 3)
+  unitCost      Decimal       @default(0) @map("unit_cost") @db.Decimal(20, 2)
+  totalValue    Decimal       @default(0) @map("total_value") @db.Decimal(20, 2)
+  movementId    String?       @map("movement_id")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@index([stockOpnameId])
+  @@index([itemId])
+  @@index([warehouseId])
+  @@index([movementId])
+  @@map("stock_opname_items")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
+  type      String // invoice_overdue, payment_received, low_stock, system
+  title     String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model RecurringTemplate {
+  id           String    @id @default(uuid())
+  name         String
+  templateType String    @map("template_type") // journal, sales_invoice, purchase_invoice
+  frequency    String // daily, weekly, monthly, quarterly, yearly
+  dayOfMonth   Int?      @map("day_of_month")
+  nextRunDate  DateTime  @map("next_run_date")
+  lastRunDate  DateTime? @map("last_run_date")
+  isActive     Boolean   @default(true) @map("is_active")
+  templateData Json      @map("template_data")
+  createdBy    String    @map("created_by")
+  user         User      @relation("UserRecurring", fields: [createdBy], references: [id])
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([isActive, nextRunDate])
+  @@map("recurring_templates")
+}
+
+model BankReconciliation {
+  id               String                   @id @default(uuid())
+  accountId        String                   @map("account_id")
+  account          Account                  @relation("ReconciliationAccount", fields: [accountId], references: [id])
+  statementDate    DateTime                 @map("statement_date")
+  statementBalance Decimal                  @map("statement_balance") @db.Decimal(15, 2)
+  bookBalance      Decimal                  @default(0) @map("book_balance") @db.Decimal(15, 2)
+  status           String                   @default("Draft") // Draft, Completed
+  notes            String?
+  items            BankReconciliationItem[]
+  createdBy        String                   @map("created_by")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+
+  @@index([accountId, statementDate])
+  @@map("bank_reconciliations")
+}
+
+model BankReconciliationItem {
+  id               String             @id @default(uuid())
+  reconciliationId String             @map("reconciliation_id")
+  reconciliation   BankReconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  ledgerEntryId    String?            @map("ledger_entry_id")
+  isMatched        Boolean            @default(false) @map("is_matched")
+  statementAmount  Decimal?           @map("statement_amount") @db.Decimal(15, 2)
+  statementDesc    String?            @map("statement_desc")
+  statementDate    DateTime?          @map("statement_date")
+  createdAt        DateTime           @default(now()) @map("created_at")
+
+  @@index([reconciliationId])
+  @@map("bank_reconciliation_items")
+}
+
+model TaxConfig {
+  id        String   @id @default(uuid())
+  name      String
+  rate      Decimal  @db.Decimal(5, 2)
+  type      String // sales, purchase, withholding
+  accountId String?  @map("account_id")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tax_configs")
+}
+
+model VendorDepositApplication {
+  id                String          @id @default(uuid())
+  depositPaymentId  String          @map("deposit_payment_id")
+  depositPayment    Payment         @relation("DepositApplications", fields: [depositPaymentId], references: [id])
+  purchaseInvoiceId String          @map("purchase_invoice_id")
+  purchaseInvoice   PurchaseInvoice @relation("DepositApplied", fields: [purchaseInvoiceId], references: [id])
+  appliedAmount     Decimal         @map("applied_amount") @db.Decimal(15, 2)
+  journalEntryId    String?         @unique @map("journal_entry_id")
+  journalEntry      JournalEntry?   @relation(fields: [journalEntryId], references: [id])
+  isCancelled       Boolean         @default(false) @map("is_cancelled")
+  appliedAt         DateTime        @default(now()) @map("applied_at")
+  cancelledAt       DateTime?       @map("cancelled_at")
+  createdBy         String          @map("created_by")
+  user              User            @relation(fields: [createdBy], references: [id])
+
+  @@index([depositPaymentId])
+  @@index([purchaseInvoiceId])
+  @@map("vendor_deposit_applications")
+}
+
+model CustomerDepositApplication {
+  id               String        @id @default(uuid())
+  depositPaymentId String        @map("deposit_payment_id")
+  depositPayment   Payment       @relation("CustomerDepositApplications", fields: [depositPaymentId], references: [id])
+  salesInvoiceId   String        @map("sales_invoice_id")
+  salesInvoice     SalesInvoice  @relation("CustomerDepositApplied", fields: [salesInvoiceId], references: [id])
+  appliedAmount    Decimal       @map("applied_amount") @db.Decimal(15, 2)
+  journalEntryId   String?       @unique @map("journal_entry_id")
+  journalEntry     JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  isCancelled      Boolean       @default(false) @map("is_cancelled")
+  appliedAt        DateTime      @default(now()) @map("applied_at")
+  cancelledAt      DateTime?     @map("cancelled_at")
+  createdBy        String        @map("created_by")
+  user             User          @relation(fields: [createdBy], references: [id])
+
+  @@index([depositPaymentId])
+  @@index([salesInvoiceId])
+  @@map("customer_deposit_applications")
+}
+
+model ServiceItem {
+  id                String             @id @default(uuid())
+  code              String             @unique
+  name              String
+  unit              String             @default("Jasa")
+  defaultRate       Decimal?           @map("default_rate") @db.Decimal(15, 2)
+  accountId         String             @map("account_id")
+  account           Account            @relation("ServiceItemAccount", fields: [accountId], references: [id])
+  description       String?
+  isActive          Boolean            @default(true) @map("is_active")
+  isDummy           Boolean            @default(false) @map("is_dummy")
+  salesInvoiceItems SalesInvoiceItem[] @relation("SalesInvoiceService")
+  quotationItems    QuotationItem[]    @relation("QuotationItemService")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  @@index([accountId])
+  @@map("service_items")
+}
+
+model TransactionAttachment {
+  id            String   @id @default(uuid())
+  referenceType String   @map("reference_type")
+  referenceId   String   @map("reference_id")
+  fileName      String   @map("file_name")
+  storedName    String   @map("stored_name")
+  mimeType      String   @map("mime_type")
+  fileSize      Int      @map("file_size")
+  filePath      String   @map("file_path")
+  uploadedBy    String   @map("uploaded_by")
+  user          User     @relation(fields: [uploadedBy], references: [id])
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([referenceType, referenceId])
+  @@index([uploadedBy])
+  @@map("transaction_attachments")
+}
+
+model FixedAsset {
+  id                      String              @id @default(uuid())
+  assetNumber             String              @unique @map("asset_number")
+  // Link ke master aset EAM (ga_assets). Aset EAM = master tunggal;
+  // FixedAsset = profil keuangan/penyusutan yang menempel.
+  gaAssetId               String?             @unique @map("ga_asset_id")
+  gaAsset                 GaAsset?            @relation("FixedAssetEam", fields: [gaAssetId], references: [id])
+  name                    String
+  category                String
+  description             String?
+  acquisitionDate         DateTime            @map("acquisition_date")
+  acquisitionCost         Decimal             @map("acquisition_cost") @db.Decimal(20, 2)
+  usefulLifeMonths        Int                 @map("useful_life_months")
+  salvageValue            Decimal             @default(0) @map("salvage_value") @db.Decimal(20, 2)
+  depreciationMethod      String              @default("straight_line") @map("depreciation_method")
+  accumulatedDepreciation Decimal             @default(0) @map("accumulated_depreciation") @db.Decimal(20, 2)
+  bookValue               Decimal             @map("book_value") @db.Decimal(20, 2)
+  status                  String              @default("Active")
+  disposalDate            DateTime?           @map("disposal_date")
+  disposalAmount          Decimal?            @map("disposal_amount") @db.Decimal(20, 2)
+  assetAccountId          String              @map("asset_account_id")
+  assetAccount            Account             @relation("AssetAccount", fields: [assetAccountId], references: [id])
+  depreciationAccountId   String              @map("depreciation_account_id")
+  depreciationAccount     Account             @relation("DepreciationAccount", fields: [depreciationAccountId], references: [id])
+  accumulatedDepAccountId String              @map("accumulated_dep_account_id")
+  accumulatedDepAccount   Account             @relation("AccumulatedDepAccount", fields: [accumulatedDepAccountId], references: [id])
+  fiscalYearId            String              @map("fiscal_year_id")
+  fiscalYear              FiscalYear          @relation(fields: [fiscalYearId], references: [id])
+  createdBy               String              @map("created_by")
+  user                    User                @relation("AssetCreatedBy", fields: [createdBy], references: [id])
+  depreciationEntries     DepreciationEntry[]
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([status])
+  @@map("fixed_assets")
+}
+
+model DepreciationEntry {
+  id             String        @id @default(uuid())
+  fixedAssetId   String        @map("fixed_asset_id")
+  fixedAsset     FixedAsset    @relation(fields: [fixedAssetId], references: [id], onDelete: Cascade)
+  periodDate     DateTime      @map("period_date")
+  amount         Decimal       @db.Decimal(20, 2)
+  journalEntryId String?       @map("journal_entry_id")
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+  isPosted       Boolean       @default(false) @map("is_posted")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  @@index([fixedAssetId])
+  @@index([periodDate])
+  @@map("depreciation_entries")
+}
+
+model ApprovalRule {
+  id           String   @id @default(uuid())
+  documentType String   @map("document_type")
+  minAmount    Decimal  @default(0) @map("min_amount") @db.Decimal(20, 2)
+  requiredRole String   @map("required_role")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([documentType])
+  @@map("approval_rules")
+}
+
+model ApprovalRequest {
+  id             String    @id @default(uuid())
+  documentType   String    @map("document_type")
+  // Null sampai disetujui — utk gate "approve-before-effect", dokumen baru
+  // dibuat saat approve. payload menyimpan body submit asli.
+  documentId     String?   @map("document_id")
+  documentNumber String?   @map("document_number")
+  amount         Decimal?  @db.Decimal(20, 2)
+  payload        Json?
+  status         String    @default("Pending")
+  requestedBy    String    @map("requested_by")
+  requester      User      @relation("ApprovalRequester", fields: [requestedBy], references: [id])
+  approvedBy     String?   @map("approved_by")
+  approver       User?     @relation("ApprovalApprover", fields: [approvedBy], references: [id])
+  rejectedBy     String?   @map("rejected_by")
+  rejecter       User?     @relation("ApprovalRejecter", fields: [rejectedBy], references: [id])
+  notes          String?
+  decidedAt      DateTime? @map("decided_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([documentType, documentId])
+  @@index([status])
+  @@index([requestedBy])
+  @@map("approval_requests")
+}
+
+// COGS Backfill Queue
+// Tracks pending COGS adjustments for sales invoices posted with negative stock.
+// Settled FIFO when matching inventory replenishes (purchase / production / adjustment).
+model CogsBackfillQueue {
+  id                 String                   @id @default(uuid())
+  salesInvoiceId     String                   @map("sales_invoice_id")
+  salesInvoice       SalesInvoice             @relation(fields: [salesInvoiceId], references: [id], onDelete: Cascade)
+  salesInvoiceItemId String                   @map("sales_invoice_item_id")
+  salesInvoiceItem   SalesInvoiceItem         @relation(fields: [salesInvoiceItemId], references: [id], onDelete: Cascade)
+  inventoryItemId    String                   @map("inventory_item_id")
+  inventoryItem      InventoryItem            @relation("CogsBackfillItem", fields: [inventoryItemId], references: [id])
+  qtyPending         Decimal                  @map("qty_pending") @db.Decimal(15, 3)
+  qtyOriginal        Decimal                  @map("qty_original") @db.Decimal(15, 3)
+  costAtSale         Decimal                  @map("cost_at_sale") @db.Decimal(20, 2)
+  status             String                   @default("Pending") // Pending / PartiallySettled / Settled
+  fiscalYearId       String                   @map("fiscal_year_id")
+  fiscalYear         FiscalYear               @relation("CogsBackfillFY", fields: [fiscalYearId], references: [id])
+  settlements        CogsBackfillSettlement[]
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  settledAt          DateTime?                @map("settled_at")
+
+  @@index([status])
+  @@index([inventoryItemId, status])
+  @@index([salesInvoiceId])
+  @@index([createdAt])
+  @@map("cogs_backfill_queue")
+}
+
+model CogsBackfillSettlement {
+  id             String            @id @default(uuid())
+  queueId        String            @map("queue_id")
+  queue          CogsBackfillQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  qtySettled     Decimal           @map("qty_settled") @db.Decimal(15, 3)
+  costAtSettle   Decimal           @map("cost_at_settle") @db.Decimal(20, 2)
+  differential   Decimal           @db.Decimal(20, 2)
+  journalEntryId String?           @map("journal_entry_id")
+  journalEntry   JournalEntry?     @relation("CogsBackfillJE", fields: [journalEntryId], references: [id])
+  triggerSource  String            @map("trigger_source") // PurchaseInvoice / ProductionRun / StockMovement
+  triggerRefId   String?           @map("trigger_ref_id")
+  triggerRefNo   String?           @map("trigger_ref_no")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  @@index([queueId])
+  @@index([journalEntryId])
+  @@map("cogs_backfill_settlements")
+}
+
+// Purchase Order (PO)
+// Pemesanan ke supplier. Tidak ada GL impact, tidak ada stok impact.
+// partyId nullable → "PO Umum" (boleh dipenuhi supplier mana saja). Kalau
+// di-set → "PO Khusus" terikat ke supplier itu.
+model PurchaseOrder {
+  id                   String              @id @default(uuid())
+  poNumber             String              @unique @map("po_number")
+  date                 DateTime
+  partyId              String?             @map("party_id")
+  supplier             Party?              @relation("PurchaseOrderSupplier", fields: [partyId], references: [id])
+  status               DocumentStatus      @default(Submitted)
+  notes                String?
+  terms                String?
+  expectedDeliveryDate DateTime?           @map("expected_delivery_date")
+  totalEstimated       Decimal             @default(0) @map("total_estimated") @db.Decimal(15, 2)
+  // Pricing lives in services/purchaseOrderCalc.ts. totalEstimated = grandTotal.
+  subtotal             Decimal             @default(0) @db.Decimal(15, 2)
+  discountTotal        Decimal             @default(0) @map("discount_total") @db.Decimal(15, 2)
+  taxTotal             Decimal             @default(0) @map("tax_total") @db.Decimal(15, 2)
+  otherCosts           Decimal             @default(0) @map("other_costs") @db.Decimal(15, 2)
+  otherCostsLabel      String?             @map("other_costs_label")
+  grandTotal           Decimal             @default(0) @map("grand_total") @db.Decimal(15, 2)
+  paymentTermDays      Int?                @map("payment_term_days")
+  warehouseId          String?             @map("warehouse_id")
+  warehouse            Warehouse?          @relation("PurchaseOrderWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+  supplierQuoteRef     String?             @map("supplier_quote_ref")
+  // Approval (status stays Draft while pending): null | 'Pending' | 'Rejected'.
+  approvalStatus       String?             @map("approval_status")
+  approvalNote         String?             @map("approval_note")
+  items                PurchaseOrderItem[]
+  goodsReceipts        GoodsReceipt[]      @relation("GRFromPO")
+  purchaseInvoices     PurchaseInvoice[]   @relation("PIFromPO")
+  fiscalYearId         String              @map("fiscal_year_id")
+  fiscalYear           FiscalYear          @relation("PurchaseOrderFY", fields: [fiscalYearId], references: [id])
+  createdBy            String              @map("created_by")
+  user                 User                @relation("PurchaseOrderCreator", fields: [createdBy], references: [id])
+  submittedAt          DateTime?           @map("submitted_at")
+  cancelledAt          DateTime?           @map("cancelled_at")
+  // Short-close ("Tutup PO"): status tetap Submitted, sisa qty tidak lagi diharapkan.
+  closedAt             DateTime?           @map("closed_at")
+  closeReason          String?             @map("close_reason")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([fiscalYearId])
+  @@index([warehouseId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id                String             @id @default(uuid())
+  purchaseOrderId   String             @map("purchase_order_id")
+  purchaseOrder     PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId   String?            @map("inventory_item_id")
+  inventoryItem     InventoryItem?     @relation("POItemInventory", fields: [inventoryItemId], references: [id])
+  itemName          String             @map("item_name")
+  quantity          Decimal            @db.Decimal(15, 3)
+  unit              String
+  estimatedRate     Decimal            @default(0) @map("estimated_rate") @db.Decimal(15, 2)
+  estimatedAmount   Decimal            @default(0) @map("estimated_amount") @db.Decimal(15, 2)
+  discount          Decimal            @default(0) @db.Decimal(5, 2) // %
+  taxPct            Decimal            @default(0) @map("tax_pct") @db.Decimal(5, 2) // PPN %
+  taxAmount         Decimal            @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  // Denormalized counter — bumped when STT items reference this PO item.
+  qtyReceived       Decimal            @default(0) @map("qty_received") @db.Decimal(15, 3)
+  description       String?
+  goodsReceiptItems GoodsReceiptItem[] @relation("GRItemFromPOItem")
+
+  @@index([purchaseOrderId])
+  @@index([inventoryItemId])
+  @@map("purchase_order_items")
+}
+
+// Goods Receipt (STT / BPB)
+// Bukti Penerimaan Barang. Tempat stok physically masuk gudang (bukan lagi
+// di PurchaseInvoice). Bisa standalone tanpa PO. Bisa di-invoice nanti via PI.
+model GoodsReceipt {
+  id               String             @id @default(uuid())
+  sttNumber        String             @unique @map("stt_number")
+  date             DateTime
+  partyId          String             @map("party_id")
+  supplier         Party              @relation("GoodsReceiptSupplier", fields: [partyId], references: [id])
+  // Barang titipan pelanggan (jasa repros/maklon): qty tracked, nilai GL
+  // dipaksa 0, disembunyikan dari picker PI, averageCost item tak disentuh.
+  isCustomerOwned  Boolean            @default(false) @map("is_customer_owned")
+  // Optional link ke PO (kalau STT memang dipenuhi dari PO tertentu).
+  purchaseOrderId  String?            @map("purchase_order_id")
+  purchaseOrder    PurchaseOrder?     @relation("GRFromPO", fields: [purchaseOrderId], references: [id])
+  status           DocumentStatus     @default(Submitted)
+  notes            String?
+  // Physical-delivery metadata (untuk dicetak di BPB)
+  nomorMobil       String?            @map("nomor_mobil")
+  driverName       String?            @map("driver_name")
+  recipientName    String?            @map("recipient_name")
+  // PI linkage — set ketika items difold ke invoice. 1 STT → 1 PI aktif.
+  invoiceId        String?            @map("invoice_id")
+  invoice          PurchaseInvoice?   @relation("PIFromGR", fields: [invoiceId], references: [id])
+  invoicedAt       DateTime?          @map("invoiced_at")
+  // True kalau record ini dibuat via backfill script untuk PI legacy.
+  // Bedakan dari STT real supaya audit + UI bisa kasih badge yang sesuai.
+  isLegacyBackfill Boolean            @default(false) @map("is_legacy_backfill")
+  items            GoodsReceiptItem[]
+  fiscalYearId     String             @map("fiscal_year_id")
+  fiscalYear       FiscalYear         @relation("GoodsReceiptFY", fields: [fiscalYearId], references: [id])
+  createdBy        String             @map("created_by")
+  user             User               @relation("GoodsReceiptCreator", fields: [createdBy], references: [id])
+  submittedAt      DateTime?          @map("submitted_at")
+  cancelledAt      DateTime?          @map("cancelled_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([purchaseOrderId])
+  @@index([fiscalYearId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id                  String               @id @default(uuid())
+  goodsReceiptId      String               @map("goods_receipt_id")
+  goodsReceipt        GoodsReceipt         @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  inventoryItemId     String               @map("inventory_item_id")
+  inventoryItem       InventoryItem        @relation("GRItemInventory", fields: [inventoryItemId], references: [id])
+  warehouseId         String               @map("warehouse_id")
+  warehouse           Warehouse            @relation("GRItemWarehouse", fields: [warehouseId], references: [id])
+  itemName            String               @map("item_name")
+  quantity            Decimal              @db.Decimal(15, 3)
+  unit                String
+  // Harga kontrak/estimasi saat barang diterima. Locked ke movement supaya
+  // average cost & COGS proper. PI nanti bisa kasih harga berbeda → variance
+  // posted ke "Selisih Harga Pembelian".
+  lockedUnitCost      Decimal              @default(0) @map("locked_unit_cost") @db.Decimal(20, 2)
+  description         String?
+  // Optional link ke baris PO yang dipenuhi.
+  purchaseOrderItemId String?              @map("purchase_order_item_id")
+  purchaseOrderItem   PurchaseOrderItem?   @relation("GRItemFromPOItem", fields: [purchaseOrderItemId], references: [id])
+  // Stock movement In yang dibuat saat STT submit. UNIQUE — tiap baris STT
+  // hanya boleh punya 1 SM aktif.
+  stockMovementId     String?              @unique @map("stock_movement_id")
+  stockMovement       StockMovement?       @relation("GRLineMovement", fields: [stockMovementId], references: [id])
+  // Back-relation: baris PI yang mengambil baris STT ini untuk di-invoice.
+  invoiceItem         PurchaseInvoiceItem? @relation("PILineFromGRLine")
+
+  @@index([goodsReceiptId])
+  @@index([inventoryItemId])
+  @@index([warehouseId])
+  @@index([purchaseOrderItemId])
+  @@map("goods_receipt_items")
+}
+
+// Retur Penjualan (Sales Return / Credit Note)
+// Dokumen retur yang me-refer ke satu SalesInvoice. Submit memposting:
+//   - JE kontra-revenue (DR 4.3 Retur Penjualan + DR PPN Keluaran / CR Piutang
+//     + CR Uang Muka Pelanggan utk sisa kredit)
+//   - opsional stok masuk balik + balik HPP (DR Persediaan / CR HPP) per baris
+//     yang restock=true
+// Bukan mengubah InvoiceStatus — status retur dilacak di dokumen ini sendiri.
+model SalesReturn {
+  id                  String            @id @default(uuid())
+  returnNumber        String            @unique @map("return_number")
+  date                DateTime
+  partyId             String            @map("party_id")
+  customer            Party             @relation(fields: [partyId], references: [id])
+  salesInvoiceId      String            @map("sales_invoice_id")
+  salesInvoice        SalesInvoice      @relation(fields: [salesInvoiceId], references: [id])
+  status              String            @default("Submitted")
+  subtotal            Decimal           @db.Decimal(15, 2)
+  taxAmount           Decimal           @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalReturn         Decimal           @map("total_return") @db.Decimal(15, 2)
+  // Split: berapa yang mengurangi piutang vs jadi kredit (uang muka) pelanggan.
+  arReducedAmount     Decimal           @default(0) @map("ar_reduced_amount") @db.Decimal(15, 2)
+  creditCreatedAmount Decimal           @default(0) @map("credit_created_amount") @db.Decimal(15, 2)
+  // Payment (CustomerDeposit) yang dibuat untuk porsi kredit. Plain scalar.
+  customerDepositId   String?           @map("customer_deposit_id")
+  reason              String?
+  notes               String?
+  fiscalYearId        String            @map("fiscal_year_id")
+  createdBy           String            @map("created_by")
+  items               SalesReturnItem[]
+  submittedAt         DateTime?         @map("submitted_at")
+  cancelledAt         DateTime?         @map("cancelled_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([salesInvoiceId])
+  @@index([status])
+  @@index([date])
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id                 String           @id @default(uuid())
+  salesReturnId      String           @map("sales_return_id")
+  salesReturn        SalesReturn      @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  // Baris invoice asal — sumber harga & guard anti over-retur.
+  salesInvoiceItemId String           @map("sales_invoice_item_id")
+  salesInvoiceItem   SalesInvoiceItem @relation(fields: [salesInvoiceItemId], references: [id])
+  // Scalar (tanpa relation) supaya tak menambah back-relation di banyak model.
+  inventoryItemId    String?          @map("inventory_item_id")
+  warehouseId        String?          @map("warehouse_id")
+  accountId          String           @map("account_id")
+  itemName           String           @map("item_name")
+  quantity           Decimal          @db.Decimal(15, 3)
+  unit               String
+  rate               Decimal          @db.Decimal(15, 2)
+  discount           Decimal          @default(0) @db.Decimal(5, 2)
+  amount             Decimal          @db.Decimal(15, 2)
+  taxPct             Decimal          @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  // true = barang masuk stok kembali (layak jual) + balik HPP; false = rusak.
+  restock            Boolean          @default(true)
+  // Cost HPP asli (dari DO stockMovement / unitCostLoaded / averageCost).
+  unitCostLoaded     Decimal?         @map("unit_cost_loaded") @db.Decimal(20, 4)
+  // StockMovement In yang dibuat bila restock. Plain scalar.
+  stockMovementId    String?          @map("stock_movement_id")
+
+  @@index([salesReturnId])
+  @@index([salesInvoiceItemId])
+  @@map("sales_return_items")
+}
+
+// Uang Jaminan Proyek (Project Guarantee)
+// Deposit: DR Uang Jaminan (1.8) / CR Kas-Bank. Settlement (partial, repeatable): DR Kas-Bank
+// (returned) + DR Beban (forfeited) / CR Uang Jaminan. outstanding = amount - active settlements.
+// JE/ALE lines carry no partyId on purpose, or applyPartyImpact would raise the party's outstanding.
+model ProjectGuarantee {
+  id                 String                       @id @default(uuid())
+  guaranteeNumber    String                       @unique @map("guarantee_number")
+  date               DateTime
+  partyId            String                       @map("party_id")
+  party              Party                        @relation("ProjectGuaranteeParty", fields: [partyId], references: [id])
+  // Penawaran | Pelaksanaan | Pemeliharaan | Lainnya — divalidasi Zod, bukan enum.
+  guaranteeType      String                       @map("guarantee_type")
+  projectName        String                       @map("project_name")
+  referenceNo        String?                      @map("reference_no")
+  amount             Decimal                      @db.Decimal(15, 2)
+  // Akun kas/bank sumber dana. Plain scalar.
+  accountId          String                       @map("account_id")
+  expectedReturnDate DateTime?                    @map("expected_return_date")
+  notes              String?
+  // Disetor | Selesai | Dibatalkan
+  status             String                       @default("Disetor")
+  journalEntryId     String?                      @map("journal_entry_id")
+  fiscalYearId       String                       @map("fiscal_year_id")
+  createdBy          String                       @map("created_by")
+  settlements        ProjectGuaranteeSettlement[]
+  submittedAt        DateTime?                    @map("submitted_at")
+  cancelledAt        DateTime?                    @map("cancelled_at")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([expectedReturnDate])
+  @@index([fiscalYearId])
+  @@map("project_guarantees")
+}
+
+model ProjectGuaranteeSettlement {
+  id               String           @id @default(uuid())
+  guaranteeId      String           @map("guarantee_id")
+  guarantee        ProjectGuarantee @relation(fields: [guaranteeId], references: [id])
+  date             DateTime
+  returnAmount     Decimal          @default(0) @map("return_amount") @db.Decimal(15, 2)
+  forfeitAmount    Decimal          @default(0) @map("forfeit_amount") @db.Decimal(15, 2)
+  // Kas/bank tujuan pengembalian. Plain scalar.
+  returnAccountId  String?          @map("return_account_id")
+  // Akun beban utk porsi hangus. Plain scalar.
+  forfeitAccountId String?          @map("forfeit_account_id")
+  journalEntryId   String?          @map("journal_entry_id")
+  notes            String?
+  isCancelled      Boolean          @default(false) @map("is_cancelled")
+  cancelledAt      DateTime?        @map("cancelled_at")
+  createdBy        String           @map("created_by")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  @@index([guaranteeId])
+  @@map("project_guarantee_settlements")
+}
+
+// Konfigurasi Notifikasi Telegram (singleton)
+// Diisi lewat UI Settings (Admin). bot_token = secret: write-only dari UI
+// (GET tak pernah mengembalikannya). Pengiriman pesan: services/telegramService.
+model TelegramConfig {
+  id                   String   @id @default(uuid())
+  slug                 String   @unique @default("default")
+  enabled              Boolean  @default(false)
+  botToken             String?  @map("bot_token")
+  chatId               String?  @map("chat_id")
+  notifyApproval       Boolean  @default(true) @map("notify_approval")
+  notifyInvoiceOverdue Boolean  @default(true) @map("notify_invoice_overdue")
+  notifyLowStock       Boolean  @default(true) @map("notify_low_stock")
+  // Japri per-user: master toggle + offset polling getUpdates.
+  personalEnabled      Boolean  @default(true) @map("personal_enabled")
+  lastUpdateId         BigInt?  @map("last_update_id")
+  updatedBy            String?  @map("updated_by")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("telegram_config")
+}
+
+// State sementara alur "Minta Revisi" via Telegram (2 langkah)
+// Saat admin tekan tombol Minta Revisi, simpan request yg ditunggu alasannya;
+// balasan teks berikutnya di chat tsb jadi alasan revisi. Lihat telegramService.
+model TelegramPendingRevise {
+  chatId      String   @id @map("chat_id")
+  requestId   String   @map("request_id")
+  actorUserId String   @map("actor_user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("telegram_pending_revise")
+}
+
+// General Affairs (GA): physical assets, legal documents, GA inventory, work orders, vehicles,
+// buildings, equipment. Models are prefixed `Ga*` / `ga_*` to avoid clashing with ERP models;
+// user references are scalar FKs without relations.
+
+enum GaAssetStatus {
+  ACTIVE
+  IN_REPAIR
+  RETIRED
+  LOST
+}
+
+enum GaAssetCondition {
+  GOOD
+  FAIR
+  POOR
+  BROKEN
+}
+
+enum GaDocumentStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ARCHIVED
+}
+
+enum GaInventoryType {
+  SPAREPART
+  CONSUMABLE
+}
+
+enum GaMovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum GaWorkOrderType {
+  PREVENTIVE
+  CORRECTIVE
+}
+
+enum GaWorkOrderStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  DONE
+  CLOSED
+  CANCELLED
+}
+
+enum GaWorkOrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum GaWorkOrderPhotoType {
+  BEFORE
+  AFTER
+}
+
+enum GaMaterialRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  FULFILLED
+  PAID
+  CANCELLED
+}
+
+enum GaProcurementStatus {
+  REQUESTED
+  QUOTED
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+enum GaVehicleFuelType {
+  BENSIN
+  SOLAR
+  PERTAMAX
+  PERTALITE
+  DEX
+  LPG
+  LISTRIK
+  HYBRID
+  LAINNYA
+}
+
+enum GaVehicleServiceType {
+  OLI
+  TUNE_UP
+  SERVIS_BERKALA
+  PERBAIKAN
+  GANTI_BAN
+  ELEKTRIKAL
+  AC
+  LAINNYA
+}
+
+enum GaVehicleServiceRequestStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum GaVehicleTaxType {
+  STNK_TAHUNAN
+  STNK_5_TAHUNAN
+  KIR
+  PAJAK_KENDARAAN
+}
+
+enum GaVehicleTaxStatus {
+  ACTIVE
+  EXPIRED
+  IN_PROCESS
+  PAID
+}
+
+enum GaVehicleTaxRequestStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum GaVehicleInsuranceType {
+  ALL_RISK
+  TLO
+  KECELAKAAN_DIRI
+  LAINNYA
+}
+
+enum GaVehicleInsuranceStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum GaVehicleInspectionResult {
+  BAIK
+  PERLU_PERHATIAN
+  TIDAK_LAYAK
+}
+
+enum GaVehicleFuelLevel {
+  KOSONG
+  SEPEREMPAT
+  SETENGAH
+  TIGA_PEREMPAT
+  PENUH
+}
+
+enum GaVehicleIncidentSeverity {
+  RINGAN
+  SEDANG
+  BERAT
+}
+
+enum GaVehicleIncidentStatus {
+  DILAPORKAN
+  DALAM_PROSES
+  SELESAI
+  KLAIM_ASURANSI
+}
+
+enum GaVehicleTirePosition {
+  DEPAN_KIRI
+  DEPAN_KANAN
+  BELAKANG_KIRI
+  BELAKANG_KANAN
+  BELAKANG_KIRI_DALAM
+  BELAKANG_KIRI_LUAR
+  BELAKANG_KANAN_DALAM
+  BELAKANG_KANAN_LUAR
+  CADANGAN
+}
+
+enum GaVehicleTireStatus {
+  ACTIVE
+  ARCHIVED
+  SPARE
+}
+
+enum GaBuildingType {
+  KANTOR
+  GUDANG
+  PABRIK
+  RUMAH
+  MESS
+  RUKO
+  LAINNYA
+}
+
+enum GaBuildingOwnership {
+  MILIK_SENDIRI
+  SEWA_MASUK
+  SEWA_KELUAR
+  PINJAM_PAKAI
+}
+
+enum GaLandCertificateType {
+  HM
+  HGB
+  HGU
+  HP_AKTA
+  GIRIK
+  BELUM_SERTIFIKAT
+}
+
+enum GaBuildingRentalArah {
+  SEWA_MASUK
+  SEWA_KELUAR
+}
+
+enum GaBuildingRentalPeriode {
+  BULANAN
+  TAHUNAN
+}
+
+enum GaBuildingRentalStatus {
+  AKTIF
+  BERAKHIR
+  DIBATALKAN
+}
+
+enum GaWeighingUnit {
+  KG
+  GRAM
+  TON
+  LBS
+}
+
+enum GaCalibrationResult {
+  PASS
+  FAIL
+  CONDITIONAL
+}
+
+enum GaCalibrationMode {
+  ON_SITE
+  SHIPPED
+}
+
+model GaBranch {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  address     String?
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  costCenters GaCostCenter[]
+  assets      GaAsset[]
+  locations   GaLocation[]
+
+  @@map("ga_branches")
+}
+
+model GaCostCenter {
+  id                  String               @id @default(cuid())
+  code                String               @unique
+  name                String
+  branchId            String               @map("branch_id")
+  isActive            Boolean              @default(true) @map("is_active")
+  branch              GaBranch             @relation(fields: [branchId], references: [id])
+  assets              GaAsset[]
+  paymentRequests     PaymentRequest[]     @relation("PaymentRequestCostCenter")
+  paymentRequestLines PaymentRequestLine[] @relation("PaymentRequestLineCostCenter")
+
+  @@index([branchId])
+  @@map("ga_cost_centers")
+}
+
+model GaAssetCategory {
+  id                         String    @id @default(cuid())
+  code                       String    @unique
+  name                       String
+  customFieldsSchema         Json?     @map("custom_fields_schema")
+  maintenanceChecklistSchema Json?     @map("maintenance_checklist_schema")
+  isActive                   Boolean   @default(true) @map("is_active")
+  assets                     GaAsset[]
+
+  @@map("ga_asset_categories")
+}
+
+model GaAsset {
+  id                           String                    @id @default(cuid())
+  code                         String                    @unique
+  name                         String
+  categoryId                   String                    @map("category_id")
+  branchId                     String                    @map("branch_id")
+  costCenterId                 String?                   @map("cost_center_id")
+  picUserId                    String?                   @map("pic_user_id")
+  serialNumber                 String?                   @map("serial_number")
+  acquisitionDate              DateTime?                 @map("acquisition_date")
+  acquisitionCost              Decimal?                  @map("acquisition_cost") @db.Decimal(18, 2)
+  status                       GaAssetStatus             @default(ACTIVE)
+  condition                    GaAssetCondition          @default(GOOD)
+  location                     String?
+  notes                        String?
+  customFields                 Json?                     @map("custom_fields")
+  maintenanceChecklistOverride Json?                     @map("maintenance_checklist_override")
+  createdAt                    DateTime                  @default(now()) @map("created_at")
+  updatedAt                    DateTime                  @updatedAt @map("updated_at")
+  category                     GaAssetCategory           @relation(fields: [categoryId], references: [id])
+  branch                       GaBranch                  @relation(fields: [branchId], references: [id])
+  costCenter                   GaCostCenter?             @relation(fields: [costCenterId], references: [id])
+  photos                       GaAssetPhoto[]
+  qr                           GaAssetQr?
+  documents                    GaDocument[]
+  maintenanceSchedules         GaMaintenanceSchedule[]
+  workOrders                   GaWorkOrder[]
+  vehicleData                  GaVehicleData?
+  vehicleServiceLogs           GaVehicleServiceLog[]
+  vehicleServiceRequests       GaVehicleServiceRequest[]
+  buildingData                 GaBuildingData?
+  buildingRentals              GaBuildingRental[]
+  equipmentData                GaEquipmentData?
+  fixedAsset                   FixedAsset?               @relation("FixedAssetEam")
+  calibrationLogs              GaCalibrationLog[]
+  materialRequests             GaMaterialRequest[]
+  vehicleTaxes                 GaVehicleTax[]
+  vehicleTaxRequests           GaVehicleTaxRequest[]
+  vehicleInsurances            GaVehicleInsurance[]
+  vehicleFuelLogs              GaVehicleFuelLog[]
+  vehicleInspections           GaVehicleInspection[]
+  vehicleIncidents             GaVehicleIncident[]
+  vehicleTires                 GaVehicleTire[]
+  vehicleOilLogs               GaVehicleOilLog[]
+
+  @@index([categoryId])
+  @@index([branchId])
+  @@index([picUserId])
+  @@index([status])
+  @@map("ga_assets")
+}
+
+model GaAssetPhoto {
+  id        String   @id @default(cuid())
+  assetId   String   @map("asset_id")
+  filePath  String   @map("file_path")
+  caption   String?
+  orderIdx  Int      @default(0) @map("order_idx")
+  createdAt DateTime @default(now()) @map("created_at")
+  asset     GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("ga_asset_photos")
+}
+
+model GaAssetQr {
+  id        String   @id @default(cuid())
+  assetId   String   @unique @map("asset_id")
+  qrCode    String   @unique @map("qr_code")
+  createdAt DateTime @default(now()) @map("created_at")
+  asset     GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("ga_asset_qrs")
+}
+
+model GaDocumentType {
+  id                 String       @id @default(cuid())
+  code               String       @unique
+  name               String
+  category           String?
+  customFieldsSchema Json?        @map("custom_fields_schema")
+  isActive           Boolean      @default(true) @map("is_active")
+  documents          GaDocument[]
+
+  @@map("ga_document_types")
+}
+
+model GaDocument {
+  id                String               @id @default(cuid())
+  code              String               @unique
+  title             String
+  typeId            String               @map("type_id")
+  assetId           String?              @map("asset_id")
+  issuedBy          String?              @map("issued_by")
+  issuedNumber      String?              @map("issued_number")
+  effectiveDate     DateTime?            @map("effective_date")
+  expiryDate        DateTime?            @map("expiry_date")
+  status            GaDocumentStatus     @default(ACTIVE)
+  customFields      Json?                @map("custom_fields")
+  createdBy         String?              @map("created_by")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  type              GaDocumentType       @relation(fields: [typeId], references: [id])
+  asset             GaAsset?             @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  versions          GaDocumentVersion[]
+  buildingRentals   GaBuildingRental[]
+  calibrationLog    GaCalibrationLog?
+  vehicleTaxes      GaVehicleTax[]
+  vehicleInsurances GaVehicleInsurance[]
+
+  @@index([typeId])
+  @@index([assetId])
+  @@index([expiryDate])
+  @@index([status])
+  @@map("ga_documents")
+}
+
+model GaDocumentVersion {
+  id         String     @id @default(cuid())
+  documentId String     @map("document_id")
+  versionNo  Int        @map("version_no")
+  filePath   String     @map("file_path")
+  fileSize   Int        @map("file_size")
+  uploadedBy String     @map("uploaded_by")
+  notes      String?
+  createdAt  DateTime   @default(now()) @map("created_at")
+  document   GaDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, versionNo])
+  @@index([documentId])
+  @@map("ga_document_versions")
+}
+
+model GaInventoryCategory {
+  id    String            @id @default(cuid())
+  code  String            @unique
+  name  String
+  type  GaInventoryType
+  items GaInventoryItem[]
+
+  @@map("ga_inventory_categories")
+}
+
+model GaLocation {
+  id                   String                  @id @default(cuid())
+  code                 String                  @unique
+  name                 String
+  branchId             String                  @map("branch_id")
+  branch               GaBranch                @relation(fields: [branchId], references: [id])
+  stocks               GaStockByLocation[]
+  movsFrom             GaInventoryMovement[]   @relation("GaMovFrom")
+  movsTo               GaInventoryMovement[]   @relation("GaMovTo")
+  workOrderParts       GaWorkOrderPart[]
+  materialRequestItems GaMaterialRequestItem[]
+
+  @@index([branchId])
+  @@map("ga_locations")
+}
+
+model GaInventoryItem {
+  id                   String                  @id @default(cuid())
+  sku                  String                  @unique
+  name                 String
+  categoryId           String                  @map("category_id")
+  uom                  String
+  minStock             Decimal                 @default(0) @map("min_stock") @db.Decimal(12, 2)
+  imagePath            String?                 @map("image_path")
+  isActive             Boolean                 @default(true) @map("is_active")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  category             GaInventoryCategory     @relation(fields: [categoryId], references: [id])
+  stocks               GaStockByLocation[]
+  movements            GaInventoryMovement[]
+  workOrderParts       GaWorkOrderPart[]
+  materialRequestItems GaMaterialRequestItem[]
+
+  @@index([categoryId])
+  @@map("ga_inventory_items")
+}
+
+model GaStockByLocation {
+  id         String          @id @default(cuid())
+  itemId     String          @map("item_id")
+  locationId String          @map("location_id")
+  quantity   Decimal         @default(0) @db.Decimal(12, 2)
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  item       GaInventoryItem @relation(fields: [itemId], references: [id])
+  location   GaLocation      @relation(fields: [locationId], references: [id])
+
+  @@unique([itemId, locationId])
+  @@index([itemId])
+  @@map("ga_stock_by_location")
+}
+
+model GaInventoryMovement {
+  id             String           @id @default(cuid())
+  itemId         String           @map("item_id")
+  type           GaMovementType
+  quantity       Decimal          @db.Decimal(12, 2)
+  fromLocationId String?          @map("from_location_id")
+  toLocationId   String?          @map("to_location_id")
+  referenceNo    String?          @map("reference_no")
+  notes          String?
+  createdBy      String           @map("created_by")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  item           GaInventoryItem  @relation(fields: [itemId], references: [id])
+  fromLocation   GaLocation?      @relation("GaMovFrom", fields: [fromLocationId], references: [id])
+  toLocation     GaLocation?      @relation("GaMovTo", fields: [toLocationId], references: [id])
+  workOrderPart  GaWorkOrderPart?
+
+  @@index([itemId])
+  @@index([createdAt])
+  @@map("ga_inventory_movements")
+}
+
+model GaMaintenanceSchedule {
+  id            String        @id @default(cuid())
+  assetId       String        @map("asset_id")
+  intervalDays  Int?          @map("interval_days")
+  intervalHours Int?          @map("interval_hours")
+  intervalKm    Int?          @map("interval_km")
+  lastDoneAtKm  Int?          @map("last_done_at_km")
+  nextDueAtKm   Int?          @map("next_due_at_km")
+  nextDueAt     DateTime      @map("next_due_at")
+  lastDoneAt    DateTime?     @map("last_done_at")
+  isActive      Boolean       @default(true) @map("is_active")
+  notes         String?
+  createdBy     String        @map("created_by")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  asset         GaAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  workOrders    GaWorkOrder[]
+
+  @@index([assetId])
+  @@index([nextDueAt, isActive])
+  @@map("ga_maintenance_schedules")
+}
+
+model GaWorkOrder {
+  id                String                   @id @default(cuid())
+  code              String                   @unique
+  assetId           String                   @map("asset_id")
+  type              GaWorkOrderType
+  status            GaWorkOrderStatus        @default(OPEN)
+  priority          GaWorkOrderPriority      @default(MEDIUM)
+  title             String
+  description       String?
+  reportedById      String?                  @map("reported_by_id")
+  reportedAt        DateTime                 @default(now()) @map("reported_at")
+  assignedToId      String?                  @map("assigned_to_id")
+  assignedAt        DateTime?                @map("assigned_at")
+  assignedById      String?                  @map("assigned_by_id")
+  startedAt         DateTime?                @map("started_at")
+  completedAt       DateTime?                @map("completed_at")
+  completedById     String?                  @map("completed_by_id")
+  resolution        String?
+  wasLate           Boolean                  @default(false) @map("was_late")
+  closedAt          DateTime?                @map("closed_at")
+  closedById        String?                  @map("closed_by_id")
+  cancelledAt       DateTime?                @map("cancelled_at")
+  cancelledById     String?                  @map("cancelled_by_id")
+  cancelReason      String?                  @map("cancel_reason")
+  scheduleId        String?                  @map("schedule_id")
+  dueAt             DateTime?                @map("due_at")
+  laborHours        Decimal?                 @map("labor_hours") @db.Decimal(6, 2)
+  laborCost         Decimal?                 @map("labor_cost") @db.Decimal(14, 2)
+  externalVendor    String?                  @map("external_vendor")
+  externalCost      Decimal?                 @map("external_cost") @db.Decimal(14, 2)
+  component         String?
+  checklist         Json?
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  asset             GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  schedule          GaMaintenanceSchedule?   @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  photos            GaWorkOrderPhoto[]
+  parts             GaWorkOrderPart[]
+  materialRequests  GaMaterialRequest[]
+  vehicleServiceLog GaVehicleServiceLog?
+  vehicleServiceReq GaVehicleServiceRequest?
+  calibrationLog    GaCalibrationLog?
+
+  @@index([assetId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([scheduleId])
+  @@index([dueAt])
+  @@map("ga_work_orders")
+}
+
+model GaWorkOrderPhoto {
+  id          String               @id @default(cuid())
+  workOrderId String               @map("work_order_id")
+  filePath    String               @map("file_path")
+  type        GaWorkOrderPhotoType
+  caption     String?
+  createdAt   DateTime             @default(now()) @map("created_at")
+  workOrder   GaWorkOrder          @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@map("ga_work_order_photos")
+}
+
+model GaWorkOrderPart {
+  id                  String               @id @default(cuid())
+  workOrderId         String               @map("work_order_id")
+  inventoryItemId     String               @map("inventory_item_id")
+  fromLocationId      String?              @map("from_location_id")
+  quantity            Decimal              @db.Decimal(12, 2)
+  unitCost            Decimal              @map("unit_cost") @db.Decimal(14, 2)
+  inventoryMovementId String?              @unique @map("inventory_movement_id")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  workOrder           GaWorkOrder          @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  inventoryItem       GaInventoryItem      @relation(fields: [inventoryItemId], references: [id])
+  fromLocation        GaLocation?          @relation(fields: [fromLocationId], references: [id])
+  movement            GaInventoryMovement? @relation(fields: [inventoryMovementId], references: [id])
+
+  @@index([workOrderId])
+  @@index([inventoryItemId])
+  @@map("ga_work_order_parts")
+}
+
+model GaMaterialRequest {
+  id                String                  @id @default(cuid())
+  code              String                  @unique
+  status            GaMaterialRequestStatus @default(DRAFT)
+  workOrderId       String?                 @map("work_order_id")
+  assetId           String?                 @map("asset_id")
+  machineTarget     String?                 @map("machine_target")
+  notes             String?
+  requestedById     String                  @map("requested_by_id")
+  requestedAt       DateTime                @default(now()) @map("requested_at")
+  approvedById      String?                 @map("approved_by_id")
+  approvedAt        DateTime?               @map("approved_at")
+  rejectedById      String?                 @map("rejected_by_id")
+  rejectedAt        DateTime?               @map("rejected_at")
+  rejectReason      String?                 @map("reject_reason")
+  // Forward-compat OPSI B (nullable, tidak dipakai sekarang): link ke PO/GL resmi.
+  purchaseOrderId   String?                 @map("purchase_order_id")
+  glAccountId       String?                 @map("gl_account_id")
+  // Linkage keuangan (diisi Akuntan saat bayar di ERP).
+  journalEntryId    String?                 @unique @map("journal_entry_id")
+  purchaseInvoiceId String?                 @map("purchase_invoice_id")
+  creditAccountId   String?                 @map("credit_account_id")
+  paidById          String?                 @map("paid_by_id")
+  paidAt            DateTime?               @map("paid_at")
+  paidAmount        Decimal?                @map("paid_amount") @db.Decimal(14, 2)
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  workOrder         GaWorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  asset             GaAsset?                @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  items             GaMaterialRequestItem[]
+  journalEntry      JournalEntry?           @relation("GaMaterialRequestJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice   PurchaseInvoice?        @relation("GaMaterialRequestInvoice", fields: [purchaseInvoiceId], references: [id])
+  glAccount         Account?                @relation("GaMaterialRequestExpense", fields: [glAccountId], references: [id])
+  creditAccount     Account?                @relation("GaMaterialRequestCredit", fields: [creditAccountId], references: [id])
+
+  @@index([status])
+  @@index([workOrderId])
+  @@index([assetId])
+  @@map("ga_material_requests")
+}
+
+model GaMaterialRequestItem {
+  id                     String              @id @default(cuid())
+  materialRequestId      String              @map("material_request_id")
+  inventoryItemId        String?             @map("inventory_item_id")
+  itemName               String              @map("item_name")
+  sku                    String?
+  uom                    String
+  quantity               Decimal             @db.Decimal(12, 2)
+  notes                  String?
+  // Procurement (diisi bertahap saat pengadaan sparepart).
+  vendorName             String?             @map("vendor_name")
+  unitPrice              Decimal             @default(0) @map("unit_price") @db.Decimal(14, 2)
+  poNumber               String?             @map("po_number")
+  procurementStatus      GaProcurementStatus @default(REQUESTED) @map("procurement_status")
+  receivedQty            Decimal             @default(0) @map("received_qty") @db.Decimal(12, 2)
+  receivedAt             DateTime?           @map("received_at")
+  receivedIntoLocationId String?             @map("received_into_location_id")
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  materialRequest        GaMaterialRequest   @relation(fields: [materialRequestId], references: [id], onDelete: Cascade)
+  inventoryItem          GaInventoryItem?    @relation(fields: [inventoryItemId], references: [id])
+  receivedIntoLocation   GaLocation?         @relation(fields: [receivedIntoLocationId], references: [id])
+
+  @@index([materialRequestId])
+  @@index([inventoryItemId])
+  @@map("ga_material_request_items")
+}
+
+model GaVehicleData {
+  id               String             @id @default(cuid())
+  assetId          String             @unique @map("asset_id")
+  noPlat           String?            @unique @map("no_plat")
+  brand            String?
+  tipe             String?
+  tahunProduksi    Int?               @map("tahun_produksi")
+  noMesin          String?            @map("no_mesin")
+  noRangka         String?            @map("no_rangka")
+  jenisBBM         GaVehicleFuelType? @map("jenis_bbm")
+  kapasitasTangki  Decimal?           @map("kapasitas_tangki") @db.Decimal(8, 2)
+  warna            String?
+  odometerSaatBeli Int?               @map("odometer_saat_beli")
+  odometerTerakhir Int?               @map("odometer_terakhir")
+  notes            String?
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  asset            GaAsset            @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("ga_vehicle_data")
+}
+
+model GaVehicleServiceLog {
+  id                String                   @id @default(cuid())
+  assetId           String                   @map("asset_id")
+  tanggal           DateTime
+  odometer          Int?
+  jenisService      GaVehicleServiceType     @map("jenis_service")
+  deskripsi         String
+  bengkel           String?
+  biaya             Decimal?                 @db.Decimal(14, 2)
+  workOrderId       String?                  @unique @map("work_order_id")
+  journalEntryId    String?                  @unique @map("journal_entry_id")
+  purchaseInvoiceId String?                  @map("purchase_invoice_id")
+  accountId         String?                  @map("account_id")
+  creditAccountId   String?                  @map("credit_account_id")
+  source            String                   @default("EAM")
+  externalRef       String?                  @unique @map("external_ref")
+  createdById       String?                  @map("created_by_id")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  asset             GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  workOrder         GaWorkOrder?             @relation(fields: [workOrderId], references: [id])
+  journalEntry      JournalEntry?            @relation("GaVehicleServiceJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice   PurchaseInvoice?         @relation("GaServiceLogInvoice", fields: [purchaseInvoiceId], references: [id])
+  account           Account?                 @relation("GaVehicleServiceExpense", fields: [accountId], references: [id])
+  creditAccount     Account?                 @relation("GaVehicleServiceCredit", fields: [creditAccountId], references: [id])
+  serviceRequest    GaVehicleServiceRequest?
+
+  @@index([assetId, tanggal])
+  @@index([source])
+  @@map("ga_vehicle_service_logs")
+}
+
+model GaVehicleServiceRequest {
+  id             String                        @id @default(cuid())
+  assetId        String                        @map("asset_id")
+  requestedById  String                        @map("requested_by_id")
+  jenisService   GaVehicleServiceType          @map("jenis_service")
+  odometer       Int?
+  deskripsi      String
+  urgensi        GaWorkOrderPriority           @default(MEDIUM)
+  status         GaVehicleServiceRequestStatus @default(SUBMITTED)
+  approvedById   String?                       @map("approved_by_id")
+  approvedAt     DateTime?                     @map("approved_at")
+  rejectedReason String?                       @map("rejected_reason")
+  workOrderId    String?                       @unique @map("work_order_id")
+  serviceLogId   String?                       @unique @map("service_log_id")
+  createdAt      DateTime                      @default(now()) @map("created_at")
+  updatedAt      DateTime                      @updatedAt @map("updated_at")
+  asset          GaAsset                       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  workOrder      GaWorkOrder?                  @relation(fields: [workOrderId], references: [id])
+  serviceLog     GaVehicleServiceLog?          @relation(fields: [serviceLogId], references: [id])
+
+  @@index([assetId])
+  @@index([status])
+  @@index([requestedById])
+  @@map("ga_vehicle_service_requests")
+}
+
+// Fleet management: tax, insurance, fuel, inspections, incidents. Scoped to GaAsset (vehicle)
+// via assetId; kept out of GaVehicleData (1-1) because each one keeps a 1-many history.
+
+model GaVehicleTax {
+  id                String               @id @default(cuid())
+  assetId           String               @map("asset_id")
+  type              GaVehicleTaxType
+  periodYear        Int                  @map("period_year")
+  amount            Decimal?             @db.Decimal(14, 2)
+  paidAt            DateTime?            @map("paid_at")
+  dueDate           DateTime             @map("due_date")
+  status            GaVehicleTaxStatus   @default(ACTIVE)
+  documentId        String?              @map("document_id")
+  notes             String?
+  createdById       String?              @map("created_by_id")
+  // Linkage keuangan (diisi Akuntan saat bayar di ERP).
+  paidAmount        Decimal?             @map("paid_amount") @db.Decimal(14, 2)
+  paidById          String?              @map("paid_by_id")
+  journalEntryId    String?              @unique @map("journal_entry_id")
+  purchaseInvoiceId String?              @map("purchase_invoice_id")
+  accountId         String?              @map("account_id")
+  creditAccountId   String?              @map("credit_account_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  asset             GaAsset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document          GaDocument?          @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  request           GaVehicleTaxRequest?
+  journalEntry      JournalEntry?        @relation("GaVehicleTaxJournal", fields: [journalEntryId], references: [id])
+  purchaseInvoice   PurchaseInvoice?     @relation("GaVehicleTaxInvoice", fields: [purchaseInvoiceId], references: [id])
+  account           Account?             @relation("GaVehicleTaxExpense", fields: [accountId], references: [id])
+  creditAccount     Account?             @relation("GaVehicleTaxCredit", fields: [creditAccountId], references: [id])
+
+  @@index([assetId])
+  @@index([dueDate, status])
+  @@map("ga_vehicle_taxes")
+}
+
+model GaVehicleTaxRequest {
+  id              String                    @id @default(cuid())
+  assetId         String                    @map("asset_id")
+  requestedById   String                    @map("requested_by_id")
+  type            GaVehicleTaxType
+  periodYear      Int                       @map("period_year")
+  estimatedAmount Decimal?                  @map("estimated_amount") @db.Decimal(14, 2)
+  dueDate         DateTime                  @map("due_date")
+  deskripsi       String?
+  urgensi         GaWorkOrderPriority       @default(MEDIUM)
+  status          GaVehicleTaxRequestStatus @default(SUBMITTED)
+  approvedById    String?                   @map("approved_by_id")
+  approvedAt      DateTime?                 @map("approved_at")
+  rejectedReason  String?                   @map("rejected_reason")
+  taxId           String?                   @unique @map("tax_id")
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+  asset           GaAsset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tax             GaVehicleTax?             @relation(fields: [taxId], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([status])
+  @@index([requestedById])
+  @@map("ga_vehicle_tax_requests")
+}
+
+model GaVehicleInsurance {
+  id            String                   @id @default(cuid())
+  assetId       String                   @map("asset_id")
+  type          GaVehicleInsuranceType
+  provider      String
+  policyNumber  String?                  @map("policy_number")
+  premium       Decimal?                 @db.Decimal(14, 2)
+  coverageValue Decimal?                 @map("coverage_value") @db.Decimal(16, 2)
+  startDate     DateTime                 @map("start_date")
+  endDate       DateTime                 @map("end_date")
+  status        GaVehicleInsuranceStatus @default(ACTIVE)
+  documentId    String?                  @map("document_id")
+  notes         String?
+  createdById   String?                  @map("created_by_id")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+  asset         GaAsset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document      GaDocument?              @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([endDate, status])
+  @@map("ga_vehicle_insurances")
+}
+
+model GaVehicleFuelLog {
+  id            String   @id @default(cuid())
+  assetId       String   @map("asset_id")
+  tanggal       DateTime
+  odometer      Int?
+  liters        Decimal  @db.Decimal(8, 2)
+  pricePerLiter Decimal? @map("price_per_liter") @db.Decimal(10, 2)
+  totalCost     Decimal  @map("total_cost") @db.Decimal(14, 2)
+  spbu          String?
+  driverName    String?  @map("driver_name")
+  notes         String?
+  createdById   String?  @map("created_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  asset         GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, tanggal])
+  @@map("ga_vehicle_fuel_logs")
+}
+
+model GaVehicleInspection {
+  id              String                     @id @default(cuid())
+  assetId         String                     @map("asset_id")
+  tanggal         DateTime
+  odometer        Int?
+  checklist       Json
+  overallResult   GaVehicleInspectionResult  @map("overall_result")
+  notes           String?
+  inspectorName   String?                    @map("inspector_name")
+  inspectorUserId String?                    @map("inspector_user_id")
+  fuelLevel       GaVehicleFuelLevel?        @map("fuel_level")
+  nextDueDate     DateTime?                  @map("next_due_date")
+  inspectedById   String?                    @map("inspected_by_id")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  asset           GaAsset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  photos          GaVehicleInspectionPhoto[]
+
+  @@index([assetId, tanggal])
+  @@index([nextDueDate])
+  @@map("ga_vehicle_inspections")
+}
+
+/// Foto bukti visual per KATEGORI checklist inspeksi (mesin/kelistrikan/rem/ban/
+/// keselamatan/lain). Satu inspeksi bisa punya beberapa foto, satu per kategori
+/// (tidak per sub-item — terlalu granular).
+model GaVehicleInspectionPhoto {
+  id           String              @id @default(cuid())
+  inspectionId String              @map("inspection_id")
+  category     String
+  filePath     String              @map("file_path")
+  caption      String?
+  createdAt    DateTime            @default(now()) @map("created_at")
+  inspection   GaVehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@index([inspectionId])
+  @@map("ga_vehicle_inspection_photos")
+}
+
+model GaVehicleIncident {
+  id               String                    @id @default(cuid())
+  assetId          String                    @map("asset_id")
+  tanggal          DateTime
+  location         String?
+  driverName       String?                   @map("driver_name")
+  description      String
+  severity         GaVehicleIncidentSeverity
+  status           GaVehicleIncidentStatus   @default(DILAPORKAN)
+  estimatedCost    Decimal?                  @map("estimated_cost") @db.Decimal(14, 2)
+  actualCost       Decimal?                  @map("actual_cost") @db.Decimal(14, 2)
+  insuranceClaimNo String?                   @map("insurance_claim_no")
+  reportedById     String?                   @map("reported_by_id")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+  asset            GaAsset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, tanggal])
+  @@index([status])
+  @@map("ga_vehicle_incidents")
+}
+
+// Fleet management: monitoring khusus Ban & Oli
+// Penangkal supir nakal tukar ban -- track nomor seri per posisi.
+// Monitoring oli -- track odometer terkahir vs target odometer berikutnya.
+
+model GaVehicleTire {
+  id                String                @id @default(cuid())
+  assetId           String                @map("asset_id")
+  serialNumber      String                @map("serial_number")
+  brand             String
+  model             String?
+  size              String?
+  position          GaVehicleTirePosition
+  installedAt       DateTime              @map("installed_at")
+  installedOdometer Int?                  @map("installed_odometer")
+  notes             String?
+  status            GaVehicleTireStatus   @default(ACTIVE)
+  createdById       String?               @map("created_by_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  asset             GaAsset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, position])
+  @@index([assetId])
+  @@index([serialNumber])
+  @@map("ga_vehicle_tires")
+}
+
+model GaVehicleOilLog {
+  id              String   @id @default(cuid())
+  assetId         String   @map("asset_id")
+  tanggal         DateTime
+  odometer        Int
+  nextOdometerDue Int      @map("next_odometer_due")
+  brand           String
+  volume          Decimal  @db.Decimal(5, 2)
+  notes           String?
+  createdById     String?  @map("created_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  asset           GaAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, tanggal])
+  @@map("ga_vehicle_oil_logs")
+}
+
+model GaBuildingData {
+  id                String                 @id @default(cuid())
+  assetId           String                 @unique @map("asset_id")
+  jenis             GaBuildingType
+  ownership         GaBuildingOwnership    @default(MILIK_SENDIRI)
+  luasTanah         Decimal?               @map("luas_tanah") @db.Decimal(12, 2)
+  luasBangunan      Decimal?               @map("luas_bangunan") @db.Decimal(12, 2)
+  jumlahLantai      Int?                   @map("jumlah_lantai")
+  tahunBangun       Int?                   @map("tahun_bangun")
+  tahunRenovasi     Int?                   @map("tahun_renovasi")
+  alamatLengkap     String?                @map("alamat_lengkap")
+  kelurahan         String?
+  kecamatan         String?
+  kota              String?
+  provinsi          String?
+  kodePos           String?                @map("kode_pos")
+  certificateType   GaLandCertificateType? @map("certificate_type")
+  certificateNumber String?                @map("certificate_number")
+  njopTanah         Decimal?               @map("njop_tanah") @db.Decimal(16, 2)
+  njopBangunan      Decimal?               @map("njop_bangunan") @db.Decimal(16, 2)
+  notes             String?
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  asset             GaAsset                @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([jenis])
+  @@index([ownership])
+  @@map("ga_building_data")
+}
+
+model GaBuildingRental {
+  id           String                  @id @default(cuid())
+  assetId      String                  @map("asset_id")
+  arah         GaBuildingRentalArah
+  pihak        String
+  kontak       String?
+  nilaiSewa    Decimal                 @map("nilai_sewa") @db.Decimal(16, 2)
+  periode      GaBuildingRentalPeriode
+  tanggalMulai DateTime                @map("tanggal_mulai")
+  tanggalAkhir DateTime                @map("tanggal_akhir")
+  status       GaBuildingRentalStatus  @default(AKTIF)
+  documentId   String?                 @map("document_id")
+  notes        String?
+  createdById  String?                 @map("created_by_id")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  asset        GaAsset                 @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document     GaDocument?             @relation(fields: [documentId], references: [id])
+
+  @@index([assetId, status])
+  @@index([tanggalAkhir])
+  @@map("ga_building_rentals")
+}
+
+model GaEquipmentData {
+  id                 String          @id @default(cuid())
+  assetId            String          @unique @map("asset_id")
+  maxCapacity        Decimal?        @map("max_capacity") @db.Decimal(12, 3)
+  unit               GaWeighingUnit?
+  accuracy           Decimal?        @db.Decimal(10, 4)
+  classLabel         String?         @map("class_label")
+  defaultCalibrator  String?         @map("default_calibrator")
+  intervalMonths     Int             @default(12) @map("interval_months")
+  lastCalibratedAt   DateTime?       @map("last_calibrated_at")
+  nextCalibrationDue DateTime?       @map("next_calibration_due")
+  notes              String?
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  asset              GaAsset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([nextCalibrationDue])
+  @@map("ga_equipment_data")
+}
+
+model GaCalibrationLog {
+  id           String              @id @default(cuid())
+  assetId      String              @map("asset_id")
+  tanggal      DateTime
+  lembaga      String
+  noSertifikat String              @map("no_sertifikat")
+  mode         GaCalibrationMode   @default(ON_SITE)
+  biaya        Decimal?            @db.Decimal(14, 2)
+  hasil        GaCalibrationResult
+  deviasi      String?
+  rangeTested  String?             @map("range_tested")
+  validUntil   DateTime            @map("valid_until")
+  documentId   String?             @unique @map("document_id")
+  workOrderId  String?             @unique @map("work_order_id")
+  createdById  String?             @map("created_by_id")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  asset        GaAsset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  document     GaDocument?         @relation(fields: [documentId], references: [id])
+  workOrder    GaWorkOrder?        @relation(fields: [workOrderId], references: [id])
+
+  @@index([assetId, tanggal])
+  @@index([validUntil])
+  @@map("ga_calibration_logs")
+}
+
+// AIRA — AI Tool Layer & Tool Router (sisi aplikasi ERP). Tabel Ai* terisolasi,
+// NOL perubahan tabel ERP existing (NFR1). Lihat docs/erd-ai-layer/PRD.
+
+/// Override per-tool dari UI (file registry = default; DB = override editable).
+model AiToolConfig {
+  id        String   @id @default(uuid())
+  toolName  String   @unique @map("tool_name")
+  enabled   Boolean? // null = ikut registry
+  tier      String? // null = ikut risk→tier default
+  updatedBy String?  @map("updated_by") // User.id (tanpa FK, isolasi)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_tool_configs")
+}
+
+/// Saklar layer AIRA (sisi Entaris saja). Model AI, memori, dan kanal dikelola
+/// engine AIRA, bukan Entaris. Model ini hanya menyimpan saklar on/off MCP.
+model AiSetting {
+  id             String   @id @default(uuid())
+  agenticEnabled Boolean  @default(false) @map("agentic_enabled") // toggle on/off seluruh layer agentic
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_settings")
+}
+
+// Pengajuan Pembayaran (Payment Request)
+// Flow: request, supervisor, finance, director (when >= ApprovalRule 'PaymentRequest'), paid
+// (JV DR expense or advance / CR cash-bank). settlement*/travel* hold the advance settlement;
+// source/sourceRef mark EAM bills. kind/status are TEXT (see services/paymentRequestRules.ts).
+
+model PaymentRequestType {
+  id                      String           @id @default(uuid())
+  code                    String           @unique
+  name                    String
+  kind                    String // REIMBURSEMENT | VENDOR_PAYMENT | CASH_ADVANCE | TRAVEL | OTHER
+  description             String?
+  defaultExpenseAccountId String?          @map("default_expense_account_id")
+  defaultExpenseAccount   Account?         @relation("PaymentRequestTypeAccount", fields: [defaultExpenseAccountId], references: [id], onDelete: SetNull)
+  requiresAttachment      Boolean          @default(false) @map("requires_attachment")
+  requiresSettlement      Boolean          @default(false) @map("requires_settlement")
+  isActive                Boolean          @default(true) @map("is_active")
+  sortOrder               Int              @default(0) @map("sort_order")
+  requests                PaymentRequest[]
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+
+  @@map("payment_request_types")
+}
+
+model PaymentRequest {
+  id                             String                         @id @default(uuid())
+  number                         String                         @unique
+  requesterId                    String                         @map("requester_id")
+  requester                      User                           @relation("PaymentRequestRequester", fields: [requesterId], references: [id])
+  // Snapshot atasan saat diajukan (perubahan atasan di user tidak memindah antrian).
+  supervisorId                   String?                        @map("supervisor_id")
+  supervisor                     User?                          @relation("PaymentRequestSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  typeId                         String                         @map("type_id")
+  type                           PaymentRequestType             @relation(fields: [typeId], references: [id])
+  costCenterId                   String?                        @map("cost_center_id")
+  costCenter                     GaCostCenter?                  @relation("PaymentRequestCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
+  department                     String?
+  payeeKind                      String                         @default("EMPLOYEE") @map("payee_kind") // EMPLOYEE | VENDOR
+  partyId                        String?                        @map("party_id")
+  party                          Party?                         @relation("PaymentRequestParty", fields: [partyId], references: [id], onDelete: SetNull)
+  payeeName                      String                         @map("payee_name")
+  bankName                       String?                        @map("bank_name")
+  bankAccountNo                  String?                        @map("bank_account_no")
+  bankAccountHolder              String?                        @map("bank_account_holder")
+  purpose                        String
+  neededBy                       DateTime?                      @map("needed_by")
+  currency                       String                         @default("IDR")
+  totalAmount                    Decimal                        @default(0) @map("total_amount") @db.Decimal(15, 2)
+  status                         String                         @default("DRAFT")
+  // Role direktur yang wajib menyetujui (snapshot ApprovalRule saat verifikasi keuangan).
+  directorRole                   String?                        @map("director_role")
+  submittedAt                    DateTime?                      @map("submitted_at")
+  supervisorApprovedAt           DateTime?                      @map("supervisor_approved_at")
+  financeApprovedAt              DateTime?                      @map("finance_approved_at")
+  financeApprovedBy              String?                        @map("finance_approved_by")
+  directorApprovedAt             DateTime?                      @map("director_approved_at")
+  directorApprovedBy             String?                        @map("director_approved_by")
+  approvedAt                     DateTime?                      @map("approved_at")
+  rejectedAt                     DateTime?                      @map("rejected_at")
+  lastNote                       String?                        @map("last_note")
+  cancelledAt                    DateTime?                      @map("cancelled_at")
+  // Pembayaran
+  paidAt                         DateTime?                      @map("paid_at")
+  paidById                       String?                        @map("paid_by")
+  paidBy                         User?                          @relation("PaymentRequestPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  paymentDate                    DateTime?                      @map("payment_date")
+  cashAccountId                  String?                        @map("cash_account_id")
+  cashAccount                    Account?                       @relation("PaymentRequestCashAccount", fields: [cashAccountId], references: [id], onDelete: SetNull)
+  journalEntryId                 String?                        @unique @map("journal_entry_id")
+  journalEntry                   JournalEntry?                  @relation("PaymentRequestJournal", fields: [journalEntryId], references: [id], onDelete: SetNull)
+  paymentReference               String?                        @map("payment_reference")
+  // Perjalanan dinas (type.kind = TRAVEL). "Keperluan" perjalanan = purpose.
+  travelDestination              String?                        @map("travel_destination")
+  travelStartDate                DateTime?                      @map("travel_start_date")
+  travelEndDate                  DateTime?                      @map("travel_end_date")
+  travelParticipants             String?                        @map("travel_participants")
+  // Settlement of a cash advance / business travel (one per request).
+  // settlementStatus: null (bukan uang muka / tidak wajib) | OPEN | SUBMITTED |
+  // PENDING_FINANCE | REVISION | SETTLED.
+  settlementStatus               String?                        @map("settlement_status")
+  settledAt                      DateTime?                      @map("settled_at")
+  settlementJournalId            String?                        @unique @map("settlement_journal_id")
+  settlementJournal              JournalEntry?                  @relation("PaymentRequestSettlementJournal", fields: [settlementJournalId], references: [id], onDelete: SetNull)
+  settlementSupervisorId         String?                        @map("settlement_supervisor_id")
+  settlementSupervisor           User?                          @relation("PaymentRequestSettlementSupervisor", fields: [settlementSupervisorId], references: [id], onDelete: SetNull)
+  settlementNote                 String?                        @map("settlement_note")
+  settlementDeadline             DateTime?                      @map("settlement_deadline")
+  settlementSubmittedAt          DateTime?                      @map("settlement_submitted_at")
+  settlementSupervisorApprovedAt DateTime?                      @map("settlement_supervisor_approved_at")
+  settlementLastNote             String?                        @map("settlement_last_note")
+  settlementDate                 DateTime?                      @map("settlement_date")
+  settlementRealized             Decimal?                       @map("settlement_realized") @db.Decimal(15, 2)
+  settlementCashAccountId        String?                        @map("settlement_cash_account_id")
+  settlementCashAccount          Account?                       @relation("PaymentRequestSettlementCash", fields: [settlementCashAccountId], references: [id], onDelete: SetNull)
+  settlementReference            String?                        @map("settlement_reference")
+  // Document origin (EAM bills etc.).
+  source                         String                         @default("MANUAL")
+  sourceRef                      String?                        @map("source_ref")
+  lines                          PaymentRequestLine[]
+  settlementLines                PaymentRequestSettlementLine[]
+  attachments                    PaymentRequestAttachment[]
+  history                        PaymentRequestHistory[]
+  createdAt                      DateTime                       @default(now()) @map("created_at")
+  updatedAt                      DateTime                       @updatedAt @map("updated_at")
+
+  @@index([requesterId])
+  @@index([supervisorId])
+  @@index([status])
+  @@index([typeId])
+  @@index([createdAt])
+  @@index([source, sourceRef])
+  @@index([settlementStatus])
+  @@index([settlementSupervisorId])
+  @@map("payment_requests")
+}
+
+model PaymentRequestLine {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  lineNo           Int            @default(0) @map("line_no")
+  description      String
+  amount           Decimal        @db.Decimal(15, 2)
+  expenseAccountId String?        @map("expense_account_id")
+  expenseAccount   Account?       @relation("PaymentRequestLineAccount", fields: [expenseAccountId], references: [id], onDelete: SetNull)
+  costCenterId     String?        @map("cost_center_id")
+  costCenter       GaCostCenter?  @relation("PaymentRequestLineCostCenter", fields: [costCenterId], references: [id], onDelete: SetNull)
+  expenseDate      DateTime?      @map("expense_date")
+  // Perjalanan dinas: kategori + tarif × jumlah (mis. uang saku = tarif × hari). amount tetap total baris.
+  category         String?
+  quantity         Decimal?       @db.Decimal(12, 2)
+  unitAmount       Decimal?       @map("unit_amount") @db.Decimal(15, 2)
+
+  @@index([paymentRequestId])
+  @@map("payment_request_lines")
+}
+
+// Realisasi pertanggungjawaban uang muka / perjalanan dinas.
+model PaymentRequestSettlementLine {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  lineNo           Int            @default(0) @map("line_no")
+  description      String
+  expenseDate      DateTime?      @map("expense_date")
+  amount           Decimal        @db.Decimal(15, 2)
+  category         String?
+  // Baris rencana asal (perjalanan dinas) — hanya acuan, tanpa FK.
+  plannedLineId    String?        @map("planned_line_id")
+  expenseAccountId String?        @map("expense_account_id")
+  expenseAccount   Account?       @relation("PaymentRequestSettlementLineAccount", fields: [expenseAccountId], references: [id], onDelete: SetNull)
+
+  @@index([paymentRequestId])
+  @@map("payment_request_settlement_lines")
+}
+
+model PaymentRequestAttachment {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  fileName         String         @map("file_name")
+  storedName       String         @map("stored_name")
+  mimeType         String         @map("mime_type")
+  fileSize         Int            @map("file_size")
+  filePath         String         @map("file_path")
+  uploadedBy       String         @map("uploaded_by")
+  // REQUEST (lampiran pengajuan) | SETTLEMENT (bukti pertanggungjawaban)
+  scope            String         @default("REQUEST")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([paymentRequestId])
+  @@map("payment_request_attachments")
+}
+
+model PaymentRequestHistory {
+  id               String         @id @default(uuid())
+  paymentRequestId String         @map("payment_request_id")
+  paymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  action           String // CREATE | UPDATE | SUBMIT | APPROVE | REJECT | RETURN | CANCEL | PAY | CANCEL_PAYMENT | VERIFY | SETTLE_SUBMIT | SETTLE_APPROVE | SETTLE_RETURN | SETTLE_POST | SETTLE_CANCEL
+  actorId          String         @map("actor_id")
+  actor            User           @relation("PaymentRequestHistoryActor", fields: [actorId], references: [id])
+  note             String?
+  fromStatus       String?        @map("from_status")
+  toStatus         String?        @map("to_status")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([paymentRequestId, createdAt])
+  @@map("payment_request_history")
+}
+
+// MCP (AIRA)
+/// Token servis per profil engine AIRA untuk endpoint /mcp. Token TIDAK disimpan (hanya sha256);
+/// signingSecretEnc = secret HMAC (AES-256-GCM) untuk memverifikasi actor assertion.
+model McpToken {
+  id                 String       @id @default(uuid())
+  name               String
+  prefix             String
+  tokenHash          String       @unique @map("token_hash")
+  signingSecretEnc   String       @map("signing_secret_enc")
+  defaultActorUserId String?      @map("default_actor_user_id")
+  expiresAt          DateTime?    @map("expires_at")
+  revokedAt          DateTime?    @map("revoked_at")
+  lastUsedAt         DateTime?    @map("last_used_at")
+  lastUsedIp         String?      @map("last_used_ip")
+  createdById        String       @map("created_by_id")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  rateLimitPerMin    Int          @default(120) @map("rate_limit_per_min")
+  calls              McpCallLog[]
+  nonces             McpNonce[]
+
+  @@map("mcp_tokens")
+}
+
+/// Riwayat panggilan MCP (satu baris per tools/call). idempotencyKey unik per token (replay).
+model McpCallLog {
+  id             String   @id @default(uuid())
+  tokenId        String   @map("token_id")
+  token          McpToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  actorUserId    String?  @map("actor_user_id")
+  channel        String?
+  tool           String
+  risk           String
+  argsHash       String   @map("args_hash")
+  /// allowed | queued | denied | error | inflight
+  decision       String
+  httpStatus     Int?     @map("http_status")
+  durationMs     Int      @default(0) @map("duration_ms")
+  approvalId     String?  @map("approval_id")
+  error          String?
+  idempotencyKey String?  @map("idempotency_key")
+  /// hasil pertama (untuk replay idempotency); hanya diisi bila idempotencyKey ada
+  resultJson     Json?    @map("result_json")
+  /// `ref` dari actor assertion (panel chat: `<sessionId>:<turnId>`), untuk korelasi panggilan per giliran
+  ref            String?
+  /// petunjuk kartu hasil (kind/title/href/summary) yang diturunkan dari hasil tool; bukan hasil mentah
+  card           Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([tokenId, idempotencyKey])
+  @@index([ref])
+  @@index([createdAt])
+  @@index([tool])
+  @@index([tokenId])
+  @@map("mcp_call_logs")
+}
+
+/// Nonce actor assertion yang sudah dipakai (sekali pakai). Disimpan di DB agar atomik
+/// (unique insert) lintas replika & tahan restart; dibersihkan terjadwal.
+model McpNonce {
+  tokenId   String   @map("token_id")
+  token     McpToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  nonce     String
+  expiresAt DateTime @map("expires_at")
+
+  @@id([tokenId, nonce])
+  @@index([expiresAt])
+  @@map("mcp_nonces")
+}
+
+/// Sesi panel chat AIRA milik satu user. Entaris adalah sumber kebenaran transkrip
+/// (engine AIRA tidak menyimpan state yang dibutuhkan untuk melanjutkan).
+model ChatSession {
+  id                   String        @id @default(uuid())
+  userId               String        @map("user_id")
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                String?
+  /// auto | user
+  titleSource          String        @default("auto") @map("title_source")
+  /// active | archived
+  status               String        @default("active")
+  /// ringkasan bergulir untuk giliran lama (diperbarui bertahap)
+  summary              String?
+  /// pesan terakhir (seq) yang sudah tercakup ringkasan
+  summaryUpToMessageId String?       @map("summary_up_to_message_id")
+  messageCount         Int           @default(0) @map("message_count")
+  lastMessageAt        DateTime      @default(now()) @map("last_message_at")
+  /// terakhir dibuka (lintas perangkat): panel membuka sesi ini lebih dulu
+  lastOpenedAt         DateTime?     @map("last_opened_at")
+  /// giliran yang sedang berjalan (satu per sesi) + waktu mulai (lease)
+  inflightTurnId       String?       @map("inflight_turn_id")
+  inflightSince        DateTime?     @map("inflight_since")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  messages             ChatMessage[]
+
+  @@index([userId, status, lastMessageAt(sort: Desc)])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String           @id @default(uuid())
+  /// urutan global monoton (urutan tampil & kursor paging)
+  seq           Int              @default(autoincrement())
+  sessionId     String           @map("session_id")
+  session       ChatSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  turnId        String           @map("turn_id")
+  /// user | assistant | system
+  role          String
+  content       String           @default("")
+  /// kartu hasil + progres tool + metadata lampiran (snapshot)
+  parts         Json?
+  /// ok | error | aborted | streaming
+  status        String           @default("ok")
+  error         String?
+  model         String?
+  durationMs    Int?             @map("duration_ms")
+  /// bukti otoritas yang berlaku pada giliran ini (uid, role, tier, jabatan, hash toolset, versi blok)
+  actorSnapshot Json?            @map("actor_snapshot")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  attachments   ChatAttachment[]
+
+  @@index([sessionId, createdAt])
+  @@index([sessionId, seq])
+  @@index([turnId])
+  /// indeks trigram (pg_trgm) untuk pencarian substring; dibuat oleh migrasi SQL lepas bila ekstensi tersedia
+  @@index([content(ops: raw("gin_trgm_ops"))], type: Gin, map: "chat_messages_content_trgm_idx")
+  @@map("chat_messages")
+}
+
+model ChatAttachment {
+  id        String      @id @default(uuid())
+  messageId String      @map("message_id")
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  fileName  String      @map("file_name")
+  mimeType  String      @map("mime_type")
+  size      Int
+  filePath  String      @map("file_path")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([messageId])
+  @@map("chat_attachments")
+}
+
+/// Ledger of loose SQL migrations (prisma/migrations/*.sql) applied by prisma/apply-loose-sql.mjs.
+model LooseSqlMigration {
+  filename  String   @id
+  checksum  String
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@map("_loose_sql_migrations")
+}
+
+/// Satu proses pembuatan data uji coba lintas modul (mode uji coba eksklusif).
+model DemoDataBatch {
+  id         String           @id @default(uuid())
+  /// running | done | failed | wiping
+  status     String           @default("running")
+  /// langkah skenario yang sedang/terakhir dijalankan
+  step       String?
+  doneSteps  Int              @default(0) @map("done_steps")
+  totalSteps Int              @default(0) @map("total_steps")
+  error      String?
+  createdBy  String?          @map("created_by")
+  startedAt  DateTime         @default(now()) @map("started_at")
+  finishedAt DateTime?        @map("finished_at")
+  records    DemoDataRecord[]
+
+  @@map("demo_data_batches")
+}
+
+/// Master yang dibuat data uji coba (mitra, item, gudang, aset, ...), dihapus saat data uji coba dihapus.
+model DemoDataRecord {
+  id        String        @id @default(uuid())
+  batchId   String        @map("batch_id")
+  batch     DemoDataBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  /// nama tabel database (mis. "parties")
+  model     String
+  recordId  String        @map("record_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@unique([model, recordId])
+  @@index([batchId])
+  @@map("demo_data_records")
+}

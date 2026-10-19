@@ -1,0 +1,88 @@
+# ============================================================================
+# Entaris — Docker Compose Project
+#
+# Setup:
+#   cp .env.docker.example .env
+#   nano .env                          # ganti JWT_SECRET!
+#   docker compose up -d --build       # build & start
+#   docker compose logs -f app         # lihat log
+#
+# Update aplikasi:
+#   git pull
+#   docker compose up -d --build       # rebuild app saja, data tetap aman
+#
+# Backup database:
+#   docker compose exec db pg_dump -U keuangan keuangan_db > backup.sql
+# ============================================================================
+
+# Lock project name explicitly so renaming the folder doesn't break the
+# existing volumes/network/container names. Project = entaris
+# regardless of working directory.
+name: entaris
+
+services:
+  # ── Database ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5435:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-keuangan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}
+      POSTGRES_DB: ${POSTGRES_DB:-keuangan_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-keuangan}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Application (API + Frontend) ──────────────────────────────────────────
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT:-3001}:3001"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-keuangan}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}@db:5432/${POSTGRES_DB:-keuangan_db}?schema=public"
+      PORT: "3001"
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET wajib diisi di .env}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:5173}"
+      APP_BASE_URL: "${APP_BASE_URL:-}"
+      # Opsional: parent domain cookie sesi, hanya perlu bila sesi dibagi
+      # lintas subdomain (kosong = host-only, default).
+      COOKIE_DOMAIN: "${COOKIE_DOMAIN:-}"
+      # Zona waktu bisnis untuk filter tanggal (default WIB).
+      APP_UTC_OFFSET: "${APP_UTC_OFFSET:-+07:00}"
+      # Zona waktu proses server (batas periode laporan). Default WIB.
+      TZ: "${TZ:-Asia/Jakarta}"
+      NODE_ENV: "production"
+      UPLOADS_DIR: "/app/uploads"
+      # ── AIRA MCP (/mcp) — kunci enkripsi signing secret token MCP (AES-256-GCM, HKDF). ──
+      # OPSIONAL: kosong = diturunkan dari JWT_SECRET (memutar JWT_SECRET lalu butuh rotate-secret
+      # semua token MCP). Disarankan diisi terpisah (>= 32 karakter acak).
+      MCP_SECRET_KEY: "${MCP_SECRET_KEY:-}"
+      # ── AIRA panel chat — engine AIRA lewat API HTTP kompatibel-OpenAI (POST /v1/chat/completions). ──
+      # Semua OPSIONAL: kosong = panel chat menampilkan "engine offline" (sesi & riwayat tetap tersimpan di Entaris).
+      # Alamat/kunci TIDAK diatur di UI Pengaturan. Kontrak: docs/ai-tools/PANEL-CHAT.md
+      AIRA_ENGINE_URL: "${AIRA_ENGINE_URL:-}"            # mis. http://100.x.y.z:8642 (tanpa /v1)
+      AIRA_ENGINE_KEY: "${AIRA_ENGINE_KEY:-}"            # Bearer key engine
+      AIRA_ENGINE_MODEL: "${AIRA_ENGINE_MODEL:-}"        # nama model/profil (kosong = "aira")
+      AIRA_ENGINE_TIMEOUT_MS: "${AIRA_ENGINE_TIMEOUT_MS:-120000}"  # batas diam tanpa byte dari engine
+      # Rahasia bersama (>= 32 karakter acak) untuk menandatangani tiket giliran yang diverifikasi hook sisi engine.
+      AIRA_ENGINE_TURN_SECRET: "${AIRA_ENGINE_TURN_SECRET:-}"
+      # Retensi chat: kosong = sesi disimpan selamanya. Bila diisi (hari), HANYA sesi ARSIP yang lebih tua dihapus harian.
+      AIRA_CHAT_RETENTION_DAYS: "${AIRA_CHAT_RETENTION_DAYS:-}"
+    volumes:
+      - backups:/app/server/backups
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  backups:
+  uploads:
