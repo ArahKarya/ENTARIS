@@ -24,6 +24,7 @@ export interface Source {
 const PO: Source = { model: 'purchaseOrder', fields: ['poNumber'] };
 const SO: Source = { model: 'salesOrder', fields: ['soNumber'] };
 const QUOT: Source = { model: 'quotation', fields: ['quotationNumber'] };
+const PROFORMA: Source = { model: 'proformaInvoice', fields: ['proformaNumber'] };
 const SALES_INV: Source = { model: 'salesInvoice', fields: ['invoiceNumber'] };
 const PURCH_INV: Source = { model: 'purchaseInvoice', fields: ['invoiceNumber'] };
 const PAYMENT: Source = { model: 'payment', fields: ['paymentNumber'] };
@@ -41,6 +42,7 @@ const ID_BY_RESOURCE: Record<string, Source> = {
   'purchase-orders': PO,
   'sales-orders': SO,
   quotations: QUOT,
+  'proforma-invoices': PROFORMA,
   'sales/invoices': SALES_INV,
   'purchase/invoices': PURCH_INV,
   payments: PAYMENT,

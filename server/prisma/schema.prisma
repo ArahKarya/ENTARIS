@@ -41,6 +41,7 @@ model Account {
   salesItems                    SalesInvoiceItem[]
   purchaseItems                 PurchaseInvoiceItem[]
   quotationItems                QuotationItem[]                @relation("QuotationItemAccount")
+  proformaItems ProformaInvoiceItem[] @relation("ProformaItemAccount")
   payments                      Payment[]                      @relation("PaymentAccount")
   paymentSplits                 PaymentSplit[]                 @relation("PaymentSplitAccount")
   inventoryItems                InventoryItem[]                @relation("ItemAccount")
@@ -95,6 +96,7 @@ model Party {
   purchaseInvoices       PurchaseInvoice[]
   payments               Payment[]
   quotations             Quotation[]             @relation("QuotationCustomer")
+  proformaInvoices       ProformaInvoice[]       @relation("ProformaCustomer")
   inquiries              Inquiry[]               @relation("InquiryParty")
   deliveryOrders         DeliveryOrder[]         @relation("DeliveryOrderCustomer")
   salesOrders            SalesOrder[]            @relation("SalesOrderCustomer")
@@ -218,6 +220,7 @@ model SalesInvoice {
   cogsBackfills       CogsBackfillQueue[]
   depositApplications CustomerDepositApplication[] @relation("CustomerDepositApplied")
   quotation           Quotation?                   @relation("QuotationConvertedTo")
+  proformaConverted   ProformaInvoice?             @relation("ProformaConvertedTo")
   deliveryOrders      DeliveryOrder[]              @relation("DeliveryOrderInvoice")
   returns             SalesReturn[]
   submittedAt         DateTime?                    @map("submitted_at")
@@ -275,6 +278,7 @@ model SalesOrder {
   items            SalesOrderItem[]
   deliveryOrders   DeliveryOrder[]  @relation("DOFromSO")
   depositPayments  Payment[]        @relation("SalesOrderDeposits")
+  proformaInvoices ProformaInvoice[] @relation("ProformaFromSO")
   submittedAt      DateTime?        @map("submitted_at")
   cancelledAt      DateTime?        @map("cancelled_at")
   createdAt        DateTime         @default(now()) @map("created_at")
@@ -332,6 +336,7 @@ model Quotation {
   salesInvoiceId   String?         @unique @map("sales_invoice_id")
   salesInvoice     SalesInvoice?   @relation("QuotationConvertedTo", fields: [salesInvoiceId], references: [id])
   salesOrders      SalesOrder[]    @relation("SalesOrderFromQuotation")
+  proformaInvoices ProformaInvoice[] @relation("ProformaFromQuotation")
   inquiry          Inquiry?        @relation("QuotationFromInquiry")
   fiscalYearId     String          @map("fiscal_year_id")
   fiscalYear       FiscalYear      @relation("QuotationFiscalYear", fields: [fiscalYearId], references: [id])
@@ -383,6 +388,92 @@ model QuotationItem {
   @@index([inventoryItemId])
   @@index([serviceItemId])
   @@map("quotation_items")
+}
+
+// Status terbayar / kedaluwarsa TIDAK disimpan: dihitung saat dibaca dari DP tertaut + validUntil.
+enum ProformaStatus {
+  Draft
+  Sent
+  Converted
+  Cancelled
+}
+
+// Proforma Invoice: dokumen tagihan awal (mis. minta DP). TIDAK ada efek stok, GL, atau piutang.
+// Pembayaran DP dicatat lewat alur Customer Deposit yang ada (payments.proforma_invoice_id).
+model ProformaInvoice {
+  id               String          @id @default(uuid())
+  proformaNumber   String          @unique @map("proforma_number")
+  date             DateTime
+  validUntil       DateTime        @map("valid_until")
+  partyId          String          @map("party_id")
+  customer         Party           @relation("ProformaCustomer", fields: [partyId], references: [id])
+  customerRefNo    String?         @map("customer_ref_no")
+  status           ProformaStatus  @default(Draft)
+  quotationId      String?         @map("quotation_id")
+  quotation        Quotation?      @relation("ProformaFromQuotation", fields: [quotationId], references: [id])
+  salesOrderId     String?         @map("sales_order_id")
+  salesOrder       SalesOrder?     @relation("ProformaFromSO", fields: [salesOrderId], references: [id])
+  // Hasil konversi (Sales Invoice berstatus Draft).
+  salesInvoiceId   String?         @unique @map("sales_invoice_id")
+  salesInvoice     SalesInvoice?   @relation("ProformaConvertedTo", fields: [salesInvoiceId], references: [id])
+  subtotal         Decimal         @db.Decimal(15, 2)
+  taxPct           Decimal         @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  potongan         Decimal         @default(0) @db.Decimal(15, 2)
+  biayaLain        Decimal         @default(0) @map("biaya_lain") @db.Decimal(15, 2)
+  labelPotongan    String?         @map("label_potongan")
+  labelBiaya       String?         @map("label_biaya")
+  grandTotal       Decimal         @map("grand_total") @db.Decimal(15, 2)
+  // Jumlah DP yang diminta; null = tagih penuh grandTotal.
+  requestedAmount  Decimal?        @map("requested_amount") @db.Decimal(15, 2)
+  terms            String?
+  notes            String?
+  fiscalYearId     String          @map("fiscal_year_id")
+  fiscalYear       FiscalYear      @relation("ProformaFiscalYear", fields: [fiscalYearId], references: [id])
+  createdBy        String          @map("created_by")
+  user             User            @relation("ProformaCreator", fields: [createdBy], references: [id])
+  items            ProformaInvoiceItem[]
+  deposits         Payment[]       @relation("ProformaDeposits")
+  sentAt           DateTime?       @map("sent_at")
+  convertedAt      DateTime?       @map("converted_at")
+  cancelledAt      DateTime?       @map("cancelled_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@index([partyId])
+  @@index([status])
+  @@index([date])
+  @@index([quotationId])
+  @@index([salesOrderId])
+  @@index([fiscalYearId])
+  @@map("proforma_invoices")
+}
+
+model ProformaInvoiceItem {
+  id               String          @id @default(uuid())
+  proformaId       String          @map("proforma_id")
+  proforma         ProformaInvoice @relation(fields: [proformaId], references: [id], onDelete: Cascade)
+  itemType         String          @default("product") @map("item_type")
+  inventoryItemId  String?         @map("inventory_item_id")
+  inventoryItem    InventoryItem?  @relation("ProformaItemInventory", fields: [inventoryItemId], references: [id])
+  serviceItemId    String?         @map("service_item_id")
+  serviceItem      ServiceItem?    @relation("ProformaItemService", fields: [serviceItemId], references: [id])
+  accountId        String?         @map("account_id")
+  account          Account?        @relation("ProformaItemAccount", fields: [accountId], references: [id])
+  itemName         String          @map("item_name")
+  quantity         Decimal         @db.Decimal(15, 3)
+  unit             String          @default("Kg")
+  rate             Decimal         @db.Decimal(15, 2)
+  discount         Decimal         @default(0) @db.Decimal(5, 2)
+  amount           Decimal         @db.Decimal(15, 2)
+  taxPct           Decimal         @default(0) @map("tax_pct") @db.Decimal(5, 2)
+  pphPct           Decimal         @default(0) @map("pph_pct") @db.Decimal(5, 2)
+  description      String?
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  @@index([proformaId])
+  @@index([inventoryItemId])
+  @@index([serviceItemId])
+  @@map("proforma_invoice_items")
 }
 
 enum InquiryStatus {
@@ -689,6 +780,9 @@ model Payment {
   // Optional: kalau pembayaran ini uang muka (CustomerDeposit) untuk SO tertentu.
   salesOrderId                String?                      @map("sales_order_id")
   salesOrder                  SalesOrder?                  @relation("SalesOrderDeposits", fields: [salesOrderId], references: [id])
+  // Optional: pembayaran DP yang ditagih lewat Proforma Invoice tertentu.
+  proformaInvoiceId           String?                      @map("proforma_invoice_id")
+  proformaInvoice             ProformaInvoice?             @relation("ProformaDeposits", fields: [proformaInvoiceId], references: [id])
   fiscalYearId                String                       @map("fiscal_year_id")
   fiscalYear                  FiscalYear                   @relation(fields: [fiscalYearId], references: [id])
   submittedAt                 DateTime?                    @map("submitted_at")
@@ -701,6 +795,7 @@ model Payment {
   @@index([status])
   @@index([date])
   @@index([fiscalYearId])
+  @@index([proformaInvoiceId])
   @@map("payments")
 }
 
@@ -745,6 +840,7 @@ model FiscalYear {
   salesInvoices    SalesInvoice[]
   purchaseInvoices PurchaseInvoice[]
   quotations       Quotation[]             @relation("QuotationFiscalYear")
+  proformaInvoices ProformaInvoice[]             @relation("ProformaFiscalYear")
   inquiries        Inquiry[]               @relation("InquiryFiscalYear")
   payments         Payment[]
   stockMovements   StockMovement[]
@@ -788,6 +884,7 @@ model User {
   salesInvoices                       SalesInvoice[]
   purchaseInvoices                    PurchaseInvoice[]
   quotations                          Quotation[]                  @relation("QuotationCreator")
+  proformaInvoices                    ProformaInvoice[]            @relation("ProformaCreator")
   inquiries                           Inquiry[]                    @relation("InquiryCreator")
   payments                            Payment[]
   closedYears                         FiscalYear[]                 @relation("ClosedBy")
@@ -1048,6 +1145,7 @@ model InventoryItem {
   salesInvoiceItems    SalesInvoiceItem[]       @relation("SalesInvoiceInventory")
   purchaseInvoiceItems PurchaseInvoiceItem[]    @relation("PurchaseInvoiceInventory")
   quotationItems       QuotationItem[]          @relation("QuotationItemInventory")
+  proformaItems ProformaInvoiceItem[] @relation("ProformaItemInventory")
   opnameLines          StockOpnameItem[]        @relation("OpnameLines")
   cogsBackfills        CogsBackfillQueue[]      @relation("CogsBackfillItem")
   transferLines        StockTransferItem[]
@@ -1723,6 +1821,7 @@ model ServiceItem {
   isDummy           Boolean            @default(false) @map("is_dummy")
   salesInvoiceItems SalesInvoiceItem[] @relation("SalesInvoiceService")
   quotationItems    QuotationItem[]    @relation("QuotationItemService")
+  proformaItems ProformaInvoiceItem[] @relation("ProformaItemService")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 

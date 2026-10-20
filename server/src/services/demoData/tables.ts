@@ -119,6 +119,8 @@ export const DATA_TABLES = [
   'production_run_machines',
   'production_run_processes',
   'production_runs',
+  'proforma_invoice_items',
+  'proforma_invoices',
   'project_guarantee_settlements',
   'project_guarantees',
   'purchase_invoice_items',

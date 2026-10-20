@@ -662,5 +662,32 @@
   },
   "company": {
     "fallbackName": "Perusahaan"
+  },
+  "proforma": {
+    "docTitle": "Proforma Invoice {{number}}",
+    "title": "PROFORMA INVOICE",
+    "subtitle": "Bukan Faktur Pajak / Not a Tax Invoice",
+    "validUntilLine": "Berlaku sampai: {{date}}",
+    "number": "No. Proforma",
+    "validUntil": "Berlaku Sampai",
+    "customerRef": "No. Referensi",
+    "status": {
+      "Draft": "Draft",
+      "Sent": "Terkirim",
+      "PartiallyPaid": "Dibayar Sebagian",
+      "Paid": "Lunas",
+      "Expired": "Kadaluarsa",
+      "Converted": "Menjadi Invoice",
+      "Cancelled": "Dibatalkan"
+    },
+    "columns": {
+      "no": "No"
+    },
+    "billedAmount": "Jumlah Ditagih",
+    "paidAmount": "Sudah Dibayar",
+    "remaining": "Sisa Tagihan",
+    "regards": "Hormat Kami,",
+    "receivedBy": "Diterima Oleh,",
+    "disclaimer": "Proforma invoice ini adalah tagihan awal dan bukan faktur pajak. Pesanan diproses setelah pembayaran diterima. Faktur pajak diterbitkan sesuai transaksi sebenarnya."
   }
 }

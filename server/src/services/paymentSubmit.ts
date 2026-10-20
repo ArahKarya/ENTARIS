@@ -35,6 +35,7 @@ export interface SubmitPaymentInput {
   isOpeningBalance?: boolean;
   refundSourcePaymentId?: string | null;
   salesOrderId?: string | null;
+  proformaInvoiceId?: string | null;
 }
 
 /**
@@ -75,6 +76,16 @@ export async function submitPaymentInTx(
   if (!party) throw new BusinessError('Data mitra tidak ditemukan.');
   if (!party.isActive) throw new BusinessError('Mitra sudah tidak aktif.');
 
+  // Tag Proforma hanya untuk CustomerDeposit; proforma harus aktif dan milik customer yang sama.
+  let proformaInvoiceId: string | null = null;
+  if (body.paymentType === 'CustomerDeposit' && body.proformaInvoiceId) {
+    const pf = await tx.proformaInvoice.findUnique({ where: { id: body.proformaInvoiceId } });
+    if (!pf) throw new BusinessError('Proforma Invoice tidak ditemukan.');
+    if (pf.status === 'Cancelled') throw new BusinessError('Proforma Invoice sudah dibatalkan.');
+    if (pf.partyId !== body.partyId) throw new BusinessError('Customer pada uang muka tidak sama dengan Proforma Invoice.');
+    proformaInvoiceId = pf.id;
+  }
+
   const paymentNumber = await generateDocumentNumber(tx, 'PAY', parsedDate, fiscalYear.id);
   const numAmount = body.amount;
 
@@ -95,6 +106,7 @@ export async function submitPaymentInTx(
       notes: body.notes || null,
       // Tag SO hanya untuk CustomerDeposit (uang muka pesanan).
       salesOrderId: body.paymentType === 'CustomerDeposit' ? (body.salesOrderId ?? null) : null,
+      proformaInvoiceId,
       fiscalYearId: fiscalYear.id,
       createdBy: userId,
       submittedAt: new Date(),

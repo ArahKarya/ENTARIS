@@ -964,7 +964,8 @@
       "doFailed": "Could not create the delivery order.",
       "pdfReady_one": "PDF + {{count}} attachment ready to download.",
       "pdfReady_other": "PDF + {{count}} attachments ready to download."
-    }
+    },
+    "createProforma": "Create Proforma"
   },
   "inquiryDetailDrawer": {
     "channels": {
@@ -1221,7 +1222,8 @@
       "reject": "Reject",
       "accept": "Accepted",
       "createSalesOrder": "Create Sales Order",
-      "convertToInvoice": "Convert to Sales Invoice"
+      "convertToInvoice": "Convert to Sales Invoice",
+      "createProforma": "Create Proforma"
     },
     "confirm": {
       "send": {
@@ -1471,7 +1473,10 @@
       "reference": "Reference no.",
       "referencePlaceholder": "Cheque no., transfer, etc.",
       "notes": "Notes",
-      "notesPlaceholder": "Optional notes..."
+      "notesPlaceholder": "Optional notes...",
+      "proforma": "Proforma Invoice (optional)",
+      "proformaHint": "Link this deposit to a proforma; its payment status follows.",
+      "proformaNone": "No proforma"
     },
     "currentBalance": "Current deposit balance: <amount>{{amount}}</amount>",
     "activeDeposits": "{{total}} active deposits",
@@ -1718,5 +1723,205 @@
     "totalQty": "Total qty",
     "paidPercent": "Percentage paid",
     "payment": "Payment"
+  },
+  "proformaModal": {
+    "defaults": {
+      "terms": "Down payment / settlement as per the billed amount. The order is processed once payment is received.",
+      "discountLabel": "Discount",
+      "otherCostLabel": "Other costs"
+    },
+    "toast": {
+      "updated": "Proforma invoice updated.",
+      "created": "Proforma invoice created."
+    },
+    "errors": {
+      "saveFailed": "Failed to save the proforma invoice.",
+      "noItems": "Add at least one item.",
+      "noCustomer": "Select a customer.",
+      "validUntilBeforeDate": "The valid-until date must be after the proforma date.",
+      "missingRevenueAccount": "Item \"{{name}}\" has no revenue account.",
+      "requestedAboveTotal": "The billed amount cannot exceed the proforma total."
+    },
+    "titleEdit": "Edit Proforma Invoice {{number}}",
+    "titleCreate": "Create Proforma Invoice",
+    "description": "A preliminary bill to the customer (e.g. down payment) before the formal invoice. No effect on stock, journals, or receivables.",
+    "fields": {
+      "date": "Date",
+      "validUntil": "Valid until",
+      "customer": "Customer",
+      "notes": "Notes",
+      "terms": "Terms & conditions",
+      "customerRef": "PO / Reference No.",
+      "requestedAmount": "Amount Billed (DP)"
+    },
+    "placeholders": {
+      "customer": "Select customer...",
+      "notes": "Additional notes for the customer..."
+    },
+    "items": {
+      "title": "Proforma Items",
+      "addRow": "Add row",
+      "rowLabel": "Proforma item {{n}}",
+      "typeLabel": "Item type {{n}}",
+      "product": "Product",
+      "service": "Service",
+      "removeRow": "Remove row {{n}}",
+      "item": "Item",
+      "productItemLabel": "Product item, row {{n}}",
+      "productPlaceholder": "Select an item or type a name...",
+      "serviceItemLabel": "Service item, row {{n}}",
+      "servicePlaceholder": "Select a service or type a name...",
+      "freeNameLabel": "Custom item name, row {{n}}",
+      "freeNamePlaceholder": "Or type a custom item name",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitLabel": "Unit, row {{n}}",
+      "rate": "Unit price",
+      "discountPct": "Discount %",
+      "vatPct": "VAT %",
+      "pphPct": "Income tax (PPh) %"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "vat": "VAT",
+      "pph": "Income tax (PPh)",
+      "discountLabelAria": "Discount label",
+      "discountValueAria": "Discount amount",
+      "otherCostLabelAria": "Other costs label",
+      "otherCostValueAria": "Other costs amount",
+      "grandTotal": "Grand total"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "saveDraft": "Save draft"
+    },
+    "footer": {
+      "total": "Total: {{amount}}",
+      "incomplete": "Select a customer and add at least 1 item."
+    },
+    "hints": {
+      "requestedAmount": "Leave empty to bill the full total."
+    }
+  },
+  "proformaPage": {
+    "title": "Proforma Invoice",
+    "description": "A preliminary bill to the customer (e.g. down payment) before the formal invoice. No effect on stock, journals, or receivables.",
+    "create": "Create Proforma",
+    "columns": {
+      "number": "Proforma No.",
+      "date": "Date",
+      "customer": "Customer",
+      "source": "From",
+      "validUntil": "Valid until",
+      "total": "Total",
+      "paid": "Paid",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "paidOfTarget": "{{pct}}% of the billed amount",
+    "rowActions": {
+      "label": "Actions for {{number}}",
+      "view": "View",
+      "edit": "Edit"
+    },
+    "search": {
+      "label": "Search proforma",
+      "placeholder": "Search proforma number or customer..."
+    },
+    "table": {
+      "label": "Proforma invoice list",
+      "itemLabel": "proforma invoices"
+    },
+    "empty": {
+      "title": "No proforma invoices yet",
+      "description": "Create a proforma to bill a down payment to the customer before the formal invoice.",
+      "action": "Create first proforma"
+    },
+    "errors": {
+      "sourceLoadFailed": "Failed to load the source document for the proforma."
+    }
+  },
+  "proformaDetailDrawer": {
+    "title": "Proforma Invoice Detail",
+    "loading": "Loading...",
+    "loadingProforma": "Loading proforma invoice...",
+    "convertedFromNote": "Created from Proforma Invoice {{number}}.",
+    "fields": {
+      "status": "Status",
+      "date": "Date",
+      "validUntil": "Valid Until",
+      "customer": "Customer",
+      "customerRef": "PO / Reference No.",
+      "quotation": "From Quotation",
+      "salesOrder": "From Sales Order",
+      "salesInvoice": "Invoice",
+      "notes": "Notes",
+      "terms": "Terms & Conditions"
+    },
+    "items": {
+      "title": "Items",
+      "tableLabel": "Proforma items",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Price",
+      "total": "Total"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "otherCosts": "Other Costs",
+      "grandTotal": "Total"
+    },
+    "payment": {
+      "billed": "Amount Billed",
+      "paid": "Paid ({{pct}}%)",
+      "remaining": "Balance Due",
+      "howTo": "Record the payment under Customer Deposits and pick this proforma."
+    },
+    "actions": {
+      "edit": "Edit",
+      "send": "Send",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "convertToInvoice": "Convert to Invoice"
+    },
+    "toast": {
+      "sent": "Proforma marked as sent.",
+      "cancelled": "Proforma cancelled.",
+      "deleted": "Proforma deleted.",
+      "invoiceCreated": "Invoice {{number}} created from the proforma.",
+      "applyDeposit": "A deposit of {{amount}} is not applied yet. Apply it to this invoice under Customer Deposits."
+    },
+    "errors": {
+      "sendFailed": "Failed to send the proforma.",
+      "cancelFailed": "Failed to cancel the proforma.",
+      "deleteFailed": "Failed to delete the proforma.",
+      "convertFailed": "Failed to convert the proforma to an invoice."
+    },
+    "confirm": {
+      "send": {
+        "title": "Send proforma?",
+        "description": "Proforma {{number}} is marked as sent to the customer and can no longer be edited.",
+        "confirm": "Send"
+      },
+      "convert": {
+        "title": "Convert to Invoice?",
+        "description": "A sales invoice is created from this proforma through the official flow (stock and journals follow the invoice).",
+        "descriptionWithDeposit": "A sales invoice is created from this proforma. The {{amount}} deposit already received is NOT applied automatically; apply it yourself under Customer Deposits.",
+        "confirm": "Create Invoice"
+      },
+      "cancel": {
+        "title": "Cancel proforma?",
+        "description": "The proforma is cancelled. Rejected while an active linked deposit exists.",
+        "confirm": "Cancel"
+      },
+      "delete": {
+        "title": "Delete proforma?",
+        "description": "The draft proforma is permanently deleted.",
+        "confirm": "Delete"
+      }
+    }
   }
 }

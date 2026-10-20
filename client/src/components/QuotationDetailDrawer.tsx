@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Send, CheckCircle2, XCircle, FileCheck2, Download, Edit3, Trash2, Ban, ClipboardList } from 'lucide-react';
+import { Loader2, Send, CheckCircle2, XCircle, FileCheck2, Download, Edit3, Trash2, Ban, ClipboardList, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { can } from '@/lib/permissions';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -311,6 +312,16 @@ const QuotationDetailDrawer: React.FC<Props> = ({ quotationId, onClose, onEdit }
                     onClick={() => navigate(`/sales-orders?fromQuotation=${encodeURIComponent(q.id)}`)}
                   >
                     <ClipboardList aria-hidden /> {t('quotationDetailDrawer.actions.createSalesOrder')}
+                  </Button>
+                )}
+
+                {['Sent', 'Accepted'].includes(q.status) && can('proforma_invoice', 'edit') && (
+                  <Button
+                    variant="outline"
+                    className={footBtn}
+                    onClick={() => navigate(`/proforma-invoices?fromQuotation=${encodeURIComponent(q.id)}`)}
+                  >
+                    <FileText aria-hidden /> {t('quotationDetailDrawer.actions.createProforma')}
                   </Button>
                 )}
 

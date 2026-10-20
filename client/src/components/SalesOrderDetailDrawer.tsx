@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Pencil, Send, Ban, Truck, CheckCircle2, Download } from 'lucide-react';
+import { Pencil, Send, Ban, Truck, CheckCircle2, Download, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { can } from '@/lib/permissions';
 import { LOCALE, formatRupiah, formatDate } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,6 +37,7 @@ interface Props {
 
 const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
   const { t } = useTranslation('sales');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const company = useCompanyPDF();
   const [genDOOpen, setGenDOOpen] = useState(false);
@@ -602,6 +605,11 @@ const SalesOrderDetailDrawer: React.FC<Props> = ({ soId, onClose, onEdit }) => {
                       {!submitMut.isPending && <Send aria-hidden />} {t('salesOrderDetailDrawer.submit')}
                     </Button>
                   </>
+                )}
+                {['Submitted', 'PartiallyDelivered'].includes(so.status) && can('proforma_invoice', 'edit') && (
+                  <Button variant="outline" className="max-sm:h-11" onClick={() => navigate(`/proforma-invoices?fromSalesOrder=${encodeURIComponent(so.id)}`)}>
+                    <FileText aria-hidden /> {t('salesOrderDetailDrawer.createProforma')}
+                  </Button>
                 )}
                 {canGenerateDO && !genDOOpen && (
                   <Button className="max-sm:h-11" onClick={() => setGenDOOpen(true)}>

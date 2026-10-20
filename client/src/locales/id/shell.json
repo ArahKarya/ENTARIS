@@ -78,7 +78,8 @@
     "settings": "Pengaturan",
     "users": "Manajemen Pengguna",
     "audit": "Jejak Audit",
-    "healthCheck": "Pemeriksaan Sistem"
+    "healthCheck": "Pemeriksaan Sistem",
+    "proformaInvoices": "Proforma Invoice"
   },
   "commandPalette": {
     "title": "Palet perintah",

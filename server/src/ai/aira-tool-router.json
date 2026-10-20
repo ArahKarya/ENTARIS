@@ -7,6 +7,7 @@
     "delivery_order",
     "sales_invoice",
     "quotation",
+    "proforma_invoice",
     "sales_return",
     "customer_deposit",
     "purchase_order",
@@ -31405,6 +31406,827 @@
       ],
       "related": [
         "quot_get"
+      ]
+    },
+    {
+      "name": "proforma_create",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Membuat Proforma Invoice (nomor PRO otomatis, status Draft): tagihan awal / permintaan DP kepada pelanggan, bisa tertaut penawaran (quotationId) atau Sales Order (salesOrderId). TIDAK ada efek stok/GL/piutang.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "date": "date",
+        "validUntil": "string",
+        "partyId": "string",
+        "items": "array<object>",
+        "notes": "string",
+        "potongan": "number",
+        "biayaLain": "number",
+        "labelPotongan": "string",
+        "labelBiaya": "string",
+        "terms": "string",
+        "customerRefNo": "string",
+        "quotationId": "uuid",
+        "salesOrderId": "uuid",
+        "requestedAmount": "number"
+      },
+      "params": [
+        {
+          "name": "date",
+          "in": "body",
+          "type": "date",
+          "required": true,
+          "description": "Tanggal dokumen (YYYY-MM-DD)."
+        },
+        {
+          "name": "validUntil",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "Tanggal berlaku-sampai (YYYY-MM-DD); proforma Sent yang lewat tanggal ini tampil sebagai Expired."
+        },
+        {
+          "name": "partyId",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "ID pelanggan/vendor (Party)."
+        },
+        {
+          "name": "items",
+          "in": "body",
+          "type": "array<object>",
+          "required": true,
+          "fields": [
+            {
+              "name": "itemName",
+              "in": "body",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "itemType",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "product",
+                "service"
+              ]
+            },
+            {
+              "name": "inventoryItemId",
+              "in": "body",
+              "type": "uuid",
+              "required": false
+            },
+            {
+              "name": "warehouseId",
+              "in": "body",
+              "type": "uuid",
+              "required": false,
+              "description": "multi-warehouse: source for SI, destination for PI"
+            },
+            {
+              "name": "serviceItemId",
+              "in": "body",
+              "type": "uuid",
+              "required": false
+            },
+            {
+              "name": "accountId",
+              "in": "body",
+              "type": "uuid",
+              "required": false
+            },
+            {
+              "name": "quantity",
+              "in": "body",
+              "type": "number",
+              "required": true
+            },
+            {
+              "name": "unit",
+              "in": "body",
+              "type": "string",
+              "required": false
+            },
+            {
+              "name": "rate",
+              "in": "body",
+              "type": "number",
+              "required": true
+            },
+            {
+              "name": "discount",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "persen diskon per baris"
+            },
+            {
+              "name": "taxPct",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "PPN % per baris"
+            },
+            {
+              "name": "pphPct",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "PPh % per baris"
+            },
+            {
+              "name": "description",
+              "in": "body",
+              "type": "string",
+              "required": false
+            },
+            {
+              "name": "deliveryOrderItemId",
+              "in": "body",
+              "type": "uuid",
+              "required": false,
+              "description": "From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS."
+            },
+            {
+              "name": "sourceMovementId",
+              "in": "body",
+              "type": "uuid",
+              "required": false,
+              "description": "the sales line for Phase 6 \"loaded margin\" reports."
+            }
+          ],
+          "description": "Baris penawaran: itemType product|service, inventoryItemId/serviceItemId, itemName, quantity, unit, rate, discount, taxPct, pphPct."
+        },
+        {
+          "name": "notes",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Catatan bebas."
+        },
+        {
+          "name": "potongan",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Potongan nominal tingkat dokumen."
+        },
+        {
+          "name": "biayaLain",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Biaya tambahan (boleh negatif)."
+        },
+        {
+          "name": "labelPotongan",
+          "in": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "labelBiaya",
+          "in": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "terms",
+          "in": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "customerRefNo",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "No. PO / referensi pelanggan."
+        },
+        {
+          "name": "quotationId",
+          "in": "body",
+          "type": "uuid",
+          "required": false,
+          "description": "Penawaran asal (opsional). Customer harus sama."
+        },
+        {
+          "name": "salesOrderId",
+          "in": "body",
+          "type": "uuid",
+          "required": false,
+          "description": "Sales Order asal (opsional). Customer harus sama."
+        },
+        {
+          "name": "requestedAmount",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Jumlah DP yang ditagih. Kosong = tagih penuh total proforma. Tidak boleh melebihi total."
+        }
+      ],
+      "output": {
+        "id": "string",
+        "number": "string"
+      },
+      "outputSummary": "Quotation yang dibuat (id, quotationNumber, status Draft, items, subtotal, grandTotal).",
+      "handler": "POST /api/proforma-invoices",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/piutang. Hanya dokumen Proforma Invoice berstatus Draft.",
+      "confirm_template": "Buat proforma invoice untuk pelanggan {partyId}, berlaku sampai {validUntil}? Tidak ada efek GL/stok/piutang. Hanya dokumen berstatus Draft.",
+      "prerequisites": [
+        "Tahun fiskal terbuka pada tanggal penawaran.",
+        "Pelanggan terdaftar."
+      ],
+      "errors": [
+        "400: format tanggal tidak valid.",
+        "400: validasi body (minimal satu item)."
+      ],
+      "related": [
+        "proforma_send",
+        "proforma_update"
+      ]
+    },
+    {
+      "name": "proforma_update",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Mengubah proforma invoice berstatus Draft (ganti baris, total, jumlah tagihan, syarat). Total dihitung ulang server.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "date": "date",
+        "validUntil": "string",
+        "partyId": "string",
+        "items": "array<object>",
+        "notes": "string",
+        "potongan": "number",
+        "biayaLain": "number",
+        "labelPotongan": "string",
+        "labelBiaya": "string",
+        "terms": "string",
+        "customerRefNo": "string",
+        "requestedAmount": "number"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        },
+        {
+          "name": "date",
+          "in": "body",
+          "type": "date",
+          "required": true,
+          "description": "Tanggal dokumen (YYYY-MM-DD)."
+        },
+        {
+          "name": "validUntil",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "Berlaku sampai (YYYY-MM-DD)."
+        },
+        {
+          "name": "partyId",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "ID pelanggan/vendor (Party)."
+        },
+        {
+          "name": "items",
+          "in": "body",
+          "type": "array<object>",
+          "required": true,
+          "fields": [
+            {
+              "name": "itemName",
+              "in": "body",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "itemType",
+              "in": "body",
+              "type": "enum",
+              "required": false,
+              "enum": [
+                "product",
+                "service"
+              ]
+            },
+            {
+              "name": "inventoryItemId",
+              "in": "body",
+              "type": "uuid",
+              "required": false
+            },
+            {
+              "name": "warehouseId",
+              "in": "body",
+              "type": "uuid",
+              "required": false,
+              "description": "multi-warehouse: source for SI, destination for PI"
+            },
+            {
+              "name": "serviceItemId",
+              "in": "body",
+              "type": "uuid",
+              "required": false
+            },
+            {
+              "name": "accountId",
+              "in": "body",
+              "type": "uuid",
+              "required": false
+            },
+            {
+              "name": "quantity",
+              "in": "body",
+              "type": "number",
+              "required": true
+            },
+            {
+              "name": "unit",
+              "in": "body",
+              "type": "string",
+              "required": false
+            },
+            {
+              "name": "rate",
+              "in": "body",
+              "type": "number",
+              "required": true
+            },
+            {
+              "name": "discount",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "persen diskon per baris"
+            },
+            {
+              "name": "taxPct",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "PPN % per baris"
+            },
+            {
+              "name": "pphPct",
+              "in": "body",
+              "type": "number",
+              "required": false,
+              "description": "PPh % per baris"
+            },
+            {
+              "name": "description",
+              "in": "body",
+              "type": "string",
+              "required": false
+            },
+            {
+              "name": "deliveryOrderItemId",
+              "in": "body",
+              "type": "uuid",
+              "required": false,
+              "description": "From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS."
+            },
+            {
+              "name": "sourceMovementId",
+              "in": "body",
+              "type": "uuid",
+              "required": false,
+              "description": "the sales line for Phase 6 \"loaded margin\" reports."
+            }
+          ],
+          "description": "Baris dokumen (item)."
+        },
+        {
+          "name": "notes",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Catatan bebas."
+        },
+        {
+          "name": "potongan",
+          "in": "body",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "biayaLain",
+          "in": "body",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "labelPotongan",
+          "in": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "labelBiaya",
+          "in": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "terms",
+          "in": "body",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "customerRefNo",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "No. PO / referensi pelanggan."
+        },
+        {
+          "name": "requestedAmount",
+          "in": "body",
+          "type": "number",
+          "required": false,
+          "description": "Jumlah DP yang ditagih. Kosong = tagih penuh."
+        }
+      ],
+      "output": {
+        "id": "string"
+      },
+      "outputSummary": "Quotation setelah diubah (total dihitung ulang).",
+      "handler": "PUT /api/proforma-invoices/:id",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok/WAC.",
+      "confirm_template": "Ubah proforma {id} untuk pelanggan {partyId}?",
+      "errors": [
+        "400: hanya Draft yang dapat diedit.",
+        "404: tidak ditemukan."
+      ],
+      "related": [
+        "proforma_get"
+      ]
+    },
+    {
+      "name": "proforma_delete",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Menghapus permanen proforma invoice berstatus Draft. Yang sudah diterbitkan harus memakai proforma_cancel.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        }
+      ],
+      "output": {
+        "status": "string"
+      },
+      "outputSummary": "{ success: true }.",
+      "handler": "DELETE /api/proforma-invoices/:id",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "draftCapable": false,
+      "postingEffect": "Tidak ada efek GL/stok. Draft dihapus permanen.",
+      "confirm_template": "Hapus permanen draft proforma {id}?",
+      "errors": [
+        "404: tidak ditemukan.",
+        "400: hanya Draft yang bisa dihapus."
+      ],
+      "related": [
+        "proforma_cancel"
+      ]
+    },
+    {
+      "name": "proforma_send",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Menandai proforma invoice terkirim ke pelanggan (Draft -> Sent). Setelah itu tidak bisa diedit.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        }
+      ],
+      "output": {
+        "status": "string"
+      },
+      "outputSummary": "Quotation berstatus Sent.",
+      "handler": "PATCH /api/proforma-invoices/:id/send",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "draftCapable": false,
+      "postingEffect": "Tidak ada efek GL/stok/piutang. Status Draft -> Sent (sentAt terisi); setelah itu tidak bisa diedit.",
+      "confirm_template": "Tandai proforma {id} sebagai terkirim ke pelanggan?",
+      "errors": [
+        "400: hanya Draft yang bisa dikirim.",
+        "400: validUntil sudah lewat.",
+        "400: minimal satu item."
+      ]
+    },
+    {
+      "name": "proforma_cancel",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Membatalkan proforma invoice. Ditolak bila sudah dikonversi ke Sales Invoice atau masih ada uang muka aktif tertaut (batalkan uang muka lewat menu Uang Muka Pelanggan dulu).",
+      "risk": "critical",
+      "roles": [
+        "Admin"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        }
+      ],
+      "output": {
+        "status": "string"
+      },
+      "outputSummary": "Quotation berstatus Cancelled.",
+      "handler": "PATCH /api/proforma-invoices/:id/cancel",
+      "permAction": "edit",
+      "requiresCapability": "doc.cancel",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "draftCapable": false,
+      "postingEffect": "Tidak ada efek GL/stok. Status menjadi Cancelled (tidak bisa diaktifkan lagi).",
+      "confirm_template": "Batalkan proforma {id}?",
+      "errors": [
+        "400: sudah dikonversi ke Sales Invoice.",
+        "400: masih ada uang muka aktif tertaut."
+      ]
+    },
+    {
+      "name": "proforma_get",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Detail proforma invoice: baris, pelanggan, penawaran/SO asal, DP tertaut, status tampilan (Paid/PartiallyPaid/Expired dihitung) dan ringkasan pembayaran.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        }
+      ],
+      "output": {
+        "quotation": "object"
+      },
+      "outputSummary": "Objek Quotation lengkap.",
+      "handler": "GET /api/proforma-invoices/:id",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "errors": [
+        "404: proforma invoice tidak ditemukan."
+      ]
+    },
+    {
+      "name": "proforma_list",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Daftar proforma invoice dengan paging. Filter: status (Draft/Sent/Converted/Cancelled atau turunan Paid/PartiallyPaid/Expired), pelanggan, pencarian nomor/pelanggan.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "page": "number",
+        "limit": "number",
+        "status": "enum",
+        "partyId": "uuid",
+        "search": "string"
+      },
+      "params": [
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Nomor halaman."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "Baris per halaman (maks 500)."
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "type": "enum",
+          "required": false,
+          "enum": [
+            "Draft",
+            "Sent",
+            "Converted",
+            "Cancelled",
+            "PartiallyPaid",
+            "Paid",
+            "Expired"
+          ],
+          "description": "Filter status."
+        },
+        {
+          "name": "partyId",
+          "in": "query",
+          "type": "uuid",
+          "required": false,
+          "description": "ID pelanggan."
+        },
+        {
+          "name": "search",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Cari nomor penawaran / nama pelanggan."
+        }
+      ],
+      "output": {
+        "items": "array"
+      },
+      "outputSummary": "{ data: Quotation[], total, page, limit } — nomor QO, pelanggan, status, validUntil, grandTotal.",
+      "handler": "GET /api/proforma-invoices",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "related": [
+        "proforma_get"
+      ]
+    },
+    {
+      "name": "proforma_convert_payload",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Data prefill untuk membuat Sales Invoice dari proforma (hanya status Sent). Menyertakan DP yang sudah dibayar; DP TIDAK otomatis diterapkan, gunakan Terapkan Uang Muka setelah invoice terbit.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "Viewer"
+      ],
+      "input": {
+        "id": "string"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        }
+      ],
+      "output": {
+        "payload": "object"
+      },
+      "outputSummary": "{ quotationId, quotationNumber, partyId, partyName, potongan, biayaLain, terms, notes, items[] } siap dipakai untuk si_create.",
+      "handler": "GET /api/proforma-invoices/:id/convert-payload",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "errors": [
+        "400: hanya proforma Sent yang bisa dikonversi."
+      ],
+      "related": [
+        "si_create",
+        "proforma_link"
+      ]
+    },
+    {
+      "name": "proforma_link",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "proforma_invoice",
+      "desc": "Menautkan Sales Invoice yang baru dibuat ke proforma (proforma menjadi Converted). Dipanggil setelah si_create berhasil.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant"
+      ],
+      "input": {
+        "id": "string",
+        "salesInvoiceId": "uuid"
+      },
+      "params": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "string",
+          "required": true,
+          "description": "ID penawaran."
+        },
+        {
+          "name": "salesInvoiceId",
+          "in": "body",
+          "type": "uuid",
+          "required": true,
+          "description": "ID Invoice Penjualan hasil konversi."
+        }
+      ],
+      "output": {
+        "status": "string"
+      },
+      "outputSummary": "Quotation dengan salesInvoice {id, invoiceNumber}.",
+      "handler": "POST /api/proforma-invoices/:id/link",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 1,
+      "phase": 1,
+      "draftCapable": false,
+      "postingEffect": "Tidak ada efek GL/stok baru (invoice sudah diposting oleh si_create). Hanya mengisi salesInvoiceId/convertedAt dan status Converted pada proforma.",
+      "confirm_template": "Tautkan invoice {salesInvoiceId} ke proforma {id}?",
+      "prerequisites": [
+        "Penawaran Accepted.",
+        "Invoice sudah dibuat (si_create)."
+      ],
+      "errors": [
+        "400: hanya Accepted yang bisa di-link.",
+        "400: sudah ter-link ke invoice lain.",
+        "400: customer invoice tidak sama dengan penawaran."
       ]
     },
     {

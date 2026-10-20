@@ -30,7 +30,7 @@
 
 **File output:**
 - Live registry: `server/src/ai/aira-tool-router.json` (386 tool — TIMPA v1 16-tool).
-- Registry dibangun dari katalog route (lihat `server/scripts/ai-tools/`).json + EXCLUDE explicit).
+- Builder reproducible: `build_full_registry_all.py` (basis branch full.json + EXCLUDE explicit).
 - Validator: `scripts/validate-aira-config.mjs` (replikasi `validateTool()` di `registry.ts`).
 
 ---

@@ -17,6 +17,7 @@ const COAPage = lazyPage(() => import('./pages/COAPage').then((m) => ({ default:
 const SalesInvoices = lazyPage(() => import('./pages/SalesInvoices').then((m) => ({ default: m.SalesInvoices })));
 const PurchaseInvoices = lazyPage(() => import('./pages/PurchaseInvoices').then((m) => ({ default: m.PurchaseInvoices })));
 const Quotations = lazyPage(() => import('./pages/Quotations'));
+const ProformaInvoices = lazyPage(() => import('./pages/ProformaInvoices'));
 const SalesOrders = lazyPage(() => import('./pages/SalesOrders'));
 const SalesReturnsPage = lazyPage(() => import('./pages/SalesReturnsPage'));
 const Inquiries = lazyPage(() => import('./pages/Inquiries'));
@@ -95,6 +96,7 @@ const ROUTE_PRELOAD: Record<string, () => void> = {
   '/sales': SalesInvoices.preload,
   '/inquiries': Inquiries.preload,
   '/quotations': Quotations.preload,
+  '/proforma-invoices': ProformaInvoices.preload,
   '/sales-orders': SalesOrders.preload,
   '/sales-returns': SalesReturnsPage.preload,
   '/purchase': PurchaseInvoices.preload,
@@ -225,6 +227,7 @@ function App() {
             <Route path="/sales" element={<PermRoute module="sales_invoice"><SalesInvoices /></PermRoute>} />
             <Route path="/inquiries" element={<PermRoute module="quotation"><Inquiries /></PermRoute>} />
             <Route path="/quotations" element={<PermRoute module="quotation"><Quotations /></PermRoute>} />
+            <Route path="/proforma-invoices" element={<PermRoute module="proforma_invoice"><ProformaInvoices /></PermRoute>} />
             <Route path="/sales-orders" element={<PermRoute module="sales_order"><SalesOrders /></PermRoute>} />
             <Route path="/sales-returns" element={<PermRoute module="sales_return"><SalesReturnsPage /></PermRoute>} />
             <Route path="/purchase" element={<PermRoute module="purchase_invoice"><PurchaseInvoices /></PermRoute>} />

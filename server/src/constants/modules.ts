@@ -17,6 +17,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'delivery_order', label: 'Surat Jalan (DO)', group: 'Penjualan' },
   { key: 'sales_invoice', label: 'Invoice Penjualan', group: 'Penjualan' },
   { key: 'quotation', label: 'Penawaran & Inquiry', group: 'Penjualan' },
+  { key: 'proforma_invoice', label: 'Proforma Invoice', group: 'Penjualan' },
   { key: 'sales_return', label: 'Retur Penjualan', group: 'Penjualan' },
   { key: 'customer_deposit', label: 'Uang Muka Pelanggan', group: 'Penjualan' },
   { key: 'purchase_order', label: 'Pesanan Pembelian (PO)', group: 'Pembelian' },
@@ -94,7 +95,7 @@ export const BUILTIN_ROLES: BuiltinRoleDef[] = [
  */
 export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
   Accountant: {
-    sales_order: 'edit', delivery_order: 'edit', sales_invoice: 'edit', quotation: 'edit',
+    sales_order: 'edit', delivery_order: 'edit', sales_invoice: 'edit', quotation: 'edit', proforma_invoice: 'edit',
     sales_return: 'edit', customer_deposit: 'edit',
     purchase_order: 'edit', goods_receipt: 'edit', purchase_invoice: 'edit', vendor_deposit: 'edit',
     inventory: 'edit', stock_transfer: 'edit', stock_opname: 'edit', production: 'edit', warehouse: 'edit',
@@ -109,7 +110,7 @@ export const DEFAULT_MATRIX: Record<string, Record<string, PermAction>> = {
     approvals: 'edit', parties: 'edit',
   },
   Viewer: {
-    sales_order: 'view', delivery_order: 'view', sales_invoice: 'view', quotation: 'view',
+    sales_order: 'view', delivery_order: 'view', sales_invoice: 'view', quotation: 'view', proforma_invoice: 'view',
     purchase_order: 'view', goods_receipt: 'view',
     inventory: 'view', payment: 'view', project_guarantee: 'view',
     coa: 'view', journal: 'view', fixed_assets: 'view', reports: 'view',
