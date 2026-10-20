@@ -2,7 +2,7 @@
 
 > Dibangkitkan otomatis dari `server/src/ai/aira-tool-router.json` — jangan edit manual. Panduan alur: `docs/ai-tools/_guides/`.
 
-Endpoint MCP target: `/mcp/penjualan` · 65 tool (read 28, write 22, critical 15)
+Endpoint MCP target: `/mcp/penjualan` · 74 tool (read 31, write 27, critical 16)
 
 ## Tujuan
 
@@ -121,6 +121,15 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 | [`inq_stats`](#inq_stats) | read | - | `GET /api/inquiries/stats` |
 | [`inq_summary`](#inq_summary) | read | - | `GET /api/inquiries/summary` |
 | [`inq_update`](#inq_update) | write | ya | `PUT /api/inquiries/:id` |
+| [`proforma_cancel`](#proforma_cancel) | critical | tidak | `PATCH /api/proforma-invoices/:id/cancel` |
+| [`proforma_convert_payload`](#proforma_convert_payload) | read | - | `GET /api/proforma-invoices/:id/convert-payload` |
+| [`proforma_create`](#proforma_create) | write | ya | `POST /api/proforma-invoices` |
+| [`proforma_delete`](#proforma_delete) | write | tidak | `DELETE /api/proforma-invoices/:id` |
+| [`proforma_get`](#proforma_get) | read | - | `GET /api/proforma-invoices/:id` |
+| [`proforma_link`](#proforma_link) | write | tidak | `POST /api/proforma-invoices/:id/link` |
+| [`proforma_list`](#proforma_list) | read | - | `GET /api/proforma-invoices` |
+| [`proforma_send`](#proforma_send) | write | tidak | `PATCH /api/proforma-invoices/:id/send` |
+| [`proforma_update`](#proforma_update) | write | ya | `PUT /api/proforma-invoices/:id` |
 | [`quot_accept`](#quot_accept) | write | tidak | `PATCH /api/quotations/:id/accept` |
 | [`quot_cancel`](#quot_cancel) | critical | tidak | `PATCH /api/quotations/:id/cancel` |
 | [`quot_convert_payload`](#quot_convert_payload) | read | - | `GET /api/quotations/:id/convert-payload` |
@@ -1527,6 +1536,531 @@ Biaya (HPP) diambil dengan prioritas: unitCost pergerakan stok DO -> `unitCostLo
 - 400: validasi body.
 
 **Tool terkait:** [`inq_get`](#inq_get), [`inq_set_status`](#inq_set_status)
+
+### proforma_cancel
+
+**Ringkasan:** Membatalkan proforma invoice. Ditolak bila sudah dikonversi ke Sales Invoice atau masih ada uang muka aktif tertaut (batalkan uang muka lewat menu Uang Muka Pelanggan dulu).
+
+- **Risk / tier:** `critical` / Wajib-Approve
+- **Draft-capable:** tidak (efek langsung)
+- **Roles & izin:** Admin (modul `proforma_invoice` / `edit`, capability `doc.cancel`)
+- **Handler:** `PATCH /api/proforma-invoices/:id/cancel` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_cancel",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Batalkan proforma <id>?"
+}
+```
+
+**Isi hasil:** Quotation berstatus Cancelled.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok. Status menjadi Cancelled (tidak bisa diaktifkan lagi).
+
+**Teks konfirmasi:** Batalkan proforma {id}?
+
+**Error umum**
+
+- 400: sudah dikonversi ke Sales Invoice.
+- 400: masih ada uang muka aktif tertaut.
+
+### proforma_convert_payload
+
+**Ringkasan:** Data prefill untuk membuat Sales Invoice dari proforma (hanya status Sent). Menyertakan DP yang sudah dibayar; DP TIDAK otomatis diterapkan, gunakan Terapkan Uang Muka setelah invoice terbit.
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `proforma_invoice` / `view`)
+- **Handler:** `GET /api/proforma-invoices/:id/convert-payload` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_convert_payload",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<{ quotationId, quotationNumber, partyId, partyName, potongan, biayaLain, terms, notes, ite>"
+}
+```
+
+**Isi hasil:** { quotationId, quotationNumber, partyId, partyName, potongan, biayaLain, terms, notes, items[] } siap dipakai untuk si_create.
+
+**Error umum**
+
+- 400: hanya proforma Sent yang bisa dikonversi.
+
+**Tool terkait:** [`si_create`](#si_create), [`proforma_link`](#proforma_link)
+
+### proforma_create
+
+**Ringkasan:** Membuat Proforma Invoice (nomor PRO otomatis, status Draft): tagihan awal / permintaan DP kepada pelanggan, bisa tertaut penawaran (quotationId) atau Sales Order (salesOrderId). TIDAK ada efek stok/GL/piutang.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `proforma_invoice` / `edit`)
+- **Handler:** `POST /api/proforma-invoices` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `date` | body | `date` | ya | Tanggal dokumen (YYYY-MM-DD). |
+| `validUntil` | body | `string` | ya | Tanggal berlaku-sampai (YYYY-MM-DD); proforma Sent yang lewat tanggal ini tampil sebagai Expired. |
+| `partyId` | body | `string` | ya | ID pelanggan/vendor (Party). |
+| `items` | body | `array<object>` | ya | Baris penawaran: itemType product\|service, inventoryItemId/serviceItemId, itemName, quantity, unit, rate, discount, taxPct, pphPct. |
+| `items[].itemName` | body | `string` | ya |  |
+| `items[].itemType` | body | enum: `product`, `service` | tidak |  |
+| `items[].inventoryItemId` | body | `uuid` | tidak |  |
+| `items[].warehouseId` | body | `uuid` | tidak | multi-warehouse: source for SI, destination for PI |
+| `items[].serviceItemId` | body | `uuid` | tidak |  |
+| `items[].accountId` | body | `uuid` | tidak |  |
+| `items[].quantity` | body | `number` | ya |  |
+| `items[].unit` | body | `string` | tidak |  |
+| `items[].rate` | body | `number` | ya |  |
+| `items[].discount` | body | `number` | tidak | persen diskon per baris |
+| `items[].taxPct` | body | `number` | tidak | PPN % per baris |
+| `items[].pphPct` | body | `number` | tidak | PPh % per baris |
+| `items[].description` | body | `string` | tidak |  |
+| `items[].deliveryOrderItemId` | body | `uuid` | tidak | From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS. |
+| `items[].sourceMovementId` | body | `uuid` | tidak | the sales line for Phase 6 "loaded margin" reports. |
+| `notes` | body | `string` | tidak | Catatan bebas. |
+| `potongan` | body | `number` | tidak | Potongan nominal tingkat dokumen. |
+| `biayaLain` | body | `number` | tidak | Biaya tambahan (boleh negatif). |
+| `labelPotongan` | body | `string` | tidak |  |
+| `labelBiaya` | body | `string` | tidak |  |
+| `terms` | body | `string` | tidak |  |
+| `customerRefNo` | body | `string` | tidak | No. PO / referensi pelanggan. |
+| `quotationId` | body | `uuid` | tidak | Penawaran asal (opsional). Customer harus sama. |
+| `salesOrderId` | body | `uuid` | tidak | Sales Order asal (opsional). Customer harus sama. |
+| `requestedAmount` | body | `number` | tidak | Jumlah DP yang ditagih. Kosong = tagih penuh total proforma. Tidak boleh melebihi total. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_create",
+  "args": {
+    "date": "2026-01-31",
+    "validUntil": "<validUntil>",
+    "partyId": "<id>",
+    "items": [
+      {
+        "itemName": "<itemName>",
+        "quantity": 1,
+        "rate": 1
+      }
+    ]
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Buat proforma invoice untuk pelanggan <id>, berlaku sampai <validUntil>? Tidak ada efek GL/stok/piutang. Hanya dokumen berstatus Draft."
+}
+```
+
+**Isi hasil:** Quotation yang dibuat (id, quotationNumber, status Draft, items, subtotal, grandTotal).
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/piutang. Hanya dokumen Proforma Invoice berstatus Draft.
+
+**Teks konfirmasi:** Buat proforma invoice untuk pelanggan {partyId}, berlaku sampai {validUntil}? Tidak ada efek GL/stok/piutang. Hanya dokumen berstatus Draft.
+
+**Prasyarat**
+
+- Tahun fiskal terbuka pada tanggal penawaran.
+- Pelanggan terdaftar.
+
+**Error umum**
+
+- 400: format tanggal tidak valid.
+- 400: validasi body (minimal satu item).
+
+**Tool terkait:** [`proforma_send`](#proforma_send), [`proforma_update`](#proforma_update)
+
+### proforma_delete
+
+**Ringkasan:** Menghapus permanen proforma invoice berstatus Draft. Yang sudah diterbitkan harus memakai proforma_cancel.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** tidak (efek langsung)
+- **Roles & izin:** Admin, Accountant (modul `proforma_invoice` / `edit`)
+- **Handler:** `DELETE /api/proforma-invoices/:id` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_delete",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Hapus permanen draft proforma <id>?"
+}
+```
+
+**Isi hasil:** { success: true }.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok. Draft dihapus permanen.
+
+**Teks konfirmasi:** Hapus permanen draft proforma {id}?
+
+**Error umum**
+
+- 404: tidak ditemukan.
+- 400: hanya Draft yang bisa dihapus.
+
+**Tool terkait:** [`proforma_cancel`](#proforma_cancel)
+
+### proforma_get
+
+**Ringkasan:** Detail proforma invoice: baris, pelanggan, penawaran/SO asal, DP tertaut, status tampilan (Paid/PartiallyPaid/Expired dihitung) dan ringkasan pembayaran.
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `proforma_invoice` / `view`)
+- **Handler:** `GET /api/proforma-invoices/:id` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_get",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<Objek Quotation lengkap.>"
+}
+```
+
+**Isi hasil:** Objek Quotation lengkap.
+
+**Error umum**
+
+- 404: proforma invoice tidak ditemukan.
+
+### proforma_link
+
+**Ringkasan:** Menautkan Sales Invoice yang baru dibuat ke proforma (proforma menjadi Converted). Dipanggil setelah si_create berhasil.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** tidak (efek langsung)
+- **Roles & izin:** Admin, Accountant (modul `proforma_invoice` / `edit`)
+- **Handler:** `POST /api/proforma-invoices/:id/link` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+| `salesInvoiceId` | body | `uuid` | ya | ID Invoice Penjualan hasil konversi. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_link",
+  "args": {
+    "id": "<id>",
+    "salesInvoiceId": "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Tautkan invoice 00000000-0000-0000-0000-000000000000 ke proforma <id>?"
+}
+```
+
+**Isi hasil:** Quotation dengan salesInvoice {id, invoiceNumber}.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok baru (invoice sudah diposting oleh si_create). Hanya mengisi salesInvoiceId/convertedAt dan status Converted pada proforma.
+
+**Teks konfirmasi:** Tautkan invoice {salesInvoiceId} ke proforma {id}?
+
+**Prasyarat**
+
+- Penawaran Accepted.
+- Invoice sudah dibuat (si_create).
+
+**Error umum**
+
+- 400: hanya Accepted yang bisa di-link.
+- 400: sudah ter-link ke invoice lain.
+- 400: customer invoice tidak sama dengan penawaran.
+
+### proforma_list
+
+**Ringkasan:** Daftar proforma invoice dengan paging. Filter: status (Draft/Sent/Converted/Cancelled atau turunan Paid/PartiallyPaid/Expired), pelanggan, pencarian nomor/pelanggan.
+
+- **Risk / tier:** `read` / Auto
+- **Roles & izin:** Admin, Accountant, Viewer (modul `proforma_invoice` / `view`)
+- **Handler:** `GET /api/proforma-invoices` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `page` | query | `number` | tidak | Nomor halaman. |
+| `limit` | query | `number` | tidak | Baris per halaman (maks 500). |
+| `status` | query | enum: `Draft`, `Sent`, `Converted`, `Cancelled`, `PartiallyPaid`, `Paid`, `Expired` | tidak | Filter status. |
+| `partyId` | query | `uuid` | tidak | ID pelanggan. |
+| `search` | query | `string` | tidak | Cari nomor penawaran / nama pelanggan. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_list",
+  "args": {
+    "page": 1,
+    "limit": 1
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<{ data: Quotation[], total, page, limit } — nomor QO, pelanggan, status, validUntil, grand>"
+}
+```
+
+**Isi hasil:** { data: Quotation[], total, page, limit } — nomor QO, pelanggan, status, validUntil, grandTotal.
+
+**Tool terkait:** [`proforma_get`](#proforma_get)
+
+### proforma_send
+
+**Ringkasan:** Menandai proforma invoice terkirim ke pelanggan (Draft -> Sent). Setelah itu tidak bisa diedit.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** tidak (efek langsung)
+- **Roles & izin:** Admin, Accountant (modul `proforma_invoice` / `edit`)
+- **Handler:** `PATCH /api/proforma-invoices/:id/send` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_send",
+  "args": {
+    "id": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Tandai proforma <id> sebagai terkirim ke pelanggan?"
+}
+```
+
+**Isi hasil:** Quotation berstatus Sent.
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/piutang. Status Draft -> Sent (sentAt terisi); setelah itu tidak bisa diedit.
+
+**Teks konfirmasi:** Tandai proforma {id} sebagai terkirim ke pelanggan?
+
+**Error umum**
+
+- 400: hanya Draft yang bisa dikirim.
+- 400: validUntil sudah lewat.
+- 400: minimal satu item.
+
+### proforma_update
+
+**Ringkasan:** Mengubah proforma invoice berstatus Draft (ganti baris, total, jumlah tagihan, syarat). Total dihitung ulang server.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant (modul `proforma_invoice` / `edit`)
+- **Handler:** `PUT /api/proforma-invoices/:id` (src/routes/proformaInvoices.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `id` | path | `string` | ya | ID penawaran. |
+| `date` | body | `date` | ya | Tanggal dokumen (YYYY-MM-DD). |
+| `validUntil` | body | `string` | ya | Berlaku sampai (YYYY-MM-DD). |
+| `partyId` | body | `string` | ya | ID pelanggan/vendor (Party). |
+| `items` | body | `array<object>` | ya | Baris dokumen (item). |
+| `items[].itemName` | body | `string` | ya |  |
+| `items[].itemType` | body | enum: `product`, `service` | tidak |  |
+| `items[].inventoryItemId` | body | `uuid` | tidak |  |
+| `items[].warehouseId` | body | `uuid` | tidak | multi-warehouse: source for SI, destination for PI |
+| `items[].serviceItemId` | body | `uuid` | tidak |  |
+| `items[].accountId` | body | `uuid` | tidak |  |
+| `items[].quantity` | body | `number` | ya |  |
+| `items[].unit` | body | `string` | tidak |  |
+| `items[].rate` | body | `number` | ya |  |
+| `items[].discount` | body | `number` | tidak | persen diskon per baris |
+| `items[].taxPct` | body | `number` | tidak | PPN % per baris |
+| `items[].pphPct` | body | `number` | tidak | PPh % per baris |
+| `items[].description` | body | `string` | tidak |  |
+| `items[].deliveryOrderItemId` | body | `uuid` | tidak | From-DO line: skip stock-out (DO already did) + use locked unitCost for COGS. |
+| `items[].sourceMovementId` | body | `uuid` | tidak | the sales line for Phase 6 "loaded margin" reports. |
+| `notes` | body | `string` | tidak | Catatan bebas. |
+| `potongan` | body | `number` | tidak |  |
+| `biayaLain` | body | `number` | tidak |  |
+| `labelPotongan` | body | `string` | tidak |  |
+| `labelBiaya` | body | `string` | tidak |  |
+| `terms` | body | `string` | tidak |  |
+| `customerRefNo` | body | `string` | tidak | No. PO / referensi pelanggan. |
+| `requestedAmount` | body | `number` | tidak | Jumlah DP yang ditagih. Kosong = tagih penuh. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "proforma_update",
+  "args": {
+    "id": "<id>",
+    "date": "2026-01-31",
+    "validUntil": "<validUntil>",
+    "partyId": "<id>",
+    "items": [
+      {
+        "itemName": "<itemName>",
+        "quantity": 1,
+        "rate": 1
+      }
+    ]
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Ubah proforma <id> untuk pelanggan <id>?"
+}
+```
+
+**Isi hasil:** Quotation setelah diubah (total dihitung ulang).
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok/WAC.
+
+**Teks konfirmasi:** Ubah proforma {id} untuk pelanggan {partyId}?
+
+**Error umum**
+
+- 400: hanya Draft yang dapat diedit.
+- 404: tidak ditemukan.
+
+**Tool terkait:** [`proforma_get`](#proforma_get)
 
 ### quot_accept
 

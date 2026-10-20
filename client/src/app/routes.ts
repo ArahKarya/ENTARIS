@@ -177,6 +177,7 @@ export const ROUTES: readonly RouteEntry[] = [
   // Penjualan
   r({ path: '/inquiries', labelKey: 'nav.inquiries', section: 'sales', icon: Inbox, module: 'quotation', keywords: ['inquiry', 'pertanyaan pelanggan', 'permintaan', 'tanya harga', 'prospek'] }),
   r({ path: '/quotations', labelKey: 'nav.quotations', section: 'sales', icon: FileSignature, module: 'quotation', keywords: ['quotation', 'sq', 'penawaran harga'] }),
+  r({ path: '/proforma-invoices', labelKey: 'nav.proformaInvoices', section: 'sales', icon: FileSignature, module: 'proforma_invoice', keywords: ['proforma', 'proforma invoice', 'invoice proforma', 'tagihan dp', 'uang muka', 'down payment', 'pra-faktur'] }),
   r({ path: '/sales-orders', labelKey: 'nav.salesOrders', shortLabel: 'SO', section: 'sales', icon: ClipboardList, module: 'sales_order', keywords: ['so', 'sales order', 'pesanan penjualan', 'pesanan'] }),
   r({ path: '/delivery-orders', labelKey: 'nav.deliveryOrders', shortLabel: 'DO', section: 'sales', icon: Truck, module: 'delivery_order', keywords: ['do', 'delivery order', 'pengiriman'] }),
   r({ path: '/sales', labelKey: 'nav.salesInvoices', section: 'sales', icon: Receipt, module: 'sales_invoice', keywords: ['faktur penjualan', 'invoice penjualan', 'sales invoice', 'tagihan pelanggan', 'tagihan customer', 'piutang'] }),

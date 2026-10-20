@@ -78,7 +78,8 @@
     "settings": "Settings",
     "users": "User management",
     "audit": "Audit trail",
-    "healthCheck": "System check"
+    "healthCheck": "System check",
+    "proformaInvoices": "Proforma Invoice"
   },
   "commandPalette": {
     "title": "Command palette",

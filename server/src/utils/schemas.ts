@@ -114,6 +114,30 @@ export const CreateQuotationSchema = z.object({
 
 export const UpdateQuotationSchema = CreateQuotationSchema;
 
+// Proforma Invoice — tagihan awal (mis. DP) dari Quotation / Sales Order. Tanpa efek stok/GL/piutang.
+export const CreateProformaSchema = z.object({
+  date: z.string().min(1, 'Tanggal wajib diisi.'),
+  validUntil: z.string().min(1, 'Tanggal berlaku-sampai wajib diisi.'),
+  partyId: z.string().min(1, 'Customer wajib dipilih.'),
+  customerRefNo: z.string().max(100).nullable().optional(),
+  quotationId: z.string().nullable().optional(),
+  salesOrderId: z.string().nullable().optional(),
+  items: z.array(InvoiceItemSchema).min(1, 'Minimal satu item.'),
+  notes: z.string().nullable().optional(),
+  potongan: z.coerce.number().min(0).optional().default(0),
+  biayaLain: z.coerce.number().optional().default(0),
+  labelPotongan: z.string().nullable().optional(),
+  labelBiaya: z.string().nullable().optional(),
+  terms: z.string().nullable().optional(),
+  // Jumlah DP yang diminta; kosong = tagih penuh grandTotal.
+  requestedAmount: z.coerce.number().positive('Jumlah tagihan harus lebih dari 0.').nullable().optional(),
+}).refine(
+  (data) => new Date(data.validUntil) >= new Date(data.date),
+  { message: 'Tanggal berlaku-sampai harus sama dengan atau setelah tanggal proforma.', path: ['validUntil'] },
+);
+
+export const UpdateProformaSchema = CreateProformaSchema;
+
 // Sales Order — komitmen jual sebelum DO+Invoice. Schema mirror Quotation
 // tapi tanpa validUntil/terms (yang specific ke penawaran). Inventory/service
 // line dibedakan via inventoryItemId (null = non-inventory misc charge).
@@ -270,6 +294,8 @@ export const CreatePaymentSchema = z.object({
   // CustomerDeposit-only: tag uang muka ini ke Sales Order tertentu, supaya
   // dari layar SO kelihatan DP yang sudah diterima untuk pesanan itu.
   salesOrderId: z.string().uuid().nullable().optional(),
+  // CustomerDeposit-only: tag uang muka ini ke Proforma Invoice yang menagihnya.
+  proformaInvoiceId: z.string().uuid().nullable().optional(),
 });
 
 // Vendor Deposit Application

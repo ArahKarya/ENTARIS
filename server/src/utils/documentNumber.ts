@@ -11,7 +11,7 @@ import { Prisma } from '@prisma/client';
  */
 export async function generateDocumentNumber(
   tx: Prisma.TransactionClient,
-  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ' | 'ST' | 'DO' | 'STT' | 'PO' | 'PSN' | 'RN' | 'UJ' | 'PP' | 'DPR' | 'DKB',
+  prefix: 'JV' | 'SI' | 'PI' | 'PAY' | 'SM' | 'PR' | 'OB' | 'SO' | 'QO' | 'INQ' | 'ST' | 'DO' | 'STT' | 'PO' | 'PSN' | 'RN' | 'UJ' | 'PP' | 'DPR' | 'DKB' | 'PRO',
   date: Date,
   fiscalYearId: string
 ): Promise<string> {
@@ -59,6 +59,9 @@ export async function generateDocumentNumber(
   } else if (prefix === 'QO') {
     const r = await tx.quotation.findFirst({ where: { quotationNumber: startsWith }, orderBy: { quotationNumber: 'desc' }, select: { quotationNumber: true } });
     lastNumber = r?.quotationNumber ?? null;
+  } else if (prefix === 'PRO') {
+    const r = await tx.proformaInvoice.findFirst({ where: { proformaNumber: startsWith }, orderBy: { proformaNumber: 'desc' }, select: { proformaNumber: true } });
+    lastNumber = r?.proformaNumber ?? null;
   } else if (prefix === 'INQ') {
     const r = await tx.inquiry.findFirst({ where: { inquiryNumber: startsWith }, orderBy: { inquiryNumber: 'desc' }, select: { inquiryNumber: true } });
     lastNumber = r?.inquiryNumber ?? null;
@@ -109,7 +112,7 @@ export async function generateDocumentNumber(
 
   // Most documents name their journal `JV-<documentNumber>`, so an orphan JV left by a
   // deleted document would hit P2002 at submit. Skip sequences whose JV name is taken.
-  const derivesJournal = prefix !== 'JV' && prefix !== 'OB' && prefix !== 'DPR' && prefix !== 'DKB';
+  const derivesJournal = prefix !== 'JV' && prefix !== 'OB' && prefix !== 'DPR' && prefix !== 'DKB' && prefix !== 'PRO';
   let seq = lastSeq + 1;
   if (derivesJournal) {
     for (let attempt = 0; attempt < 200; attempt++) {

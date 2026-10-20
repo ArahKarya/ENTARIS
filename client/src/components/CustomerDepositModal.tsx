@@ -37,6 +37,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
   const [error, setError] = useState('');
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isOpeningBalance, setIsOpeningBalance] = useState(false);
+  const [proformaId, setProformaId] = useState('none');
 
   const queryClient = useQueryClient();
 
@@ -51,8 +52,16 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
       setError('');
       setSavedId(null);
       setIsOpeningBalance(false);
+      setProformaId('none');
     }
   }, [isOpen]);
+
+  // Proforma yang masih menunggu pembayaran milik customer terpilih (opsional ditautkan ke DP ini).
+  const { data: proformas } = useQuery({
+    queryKey: ['proforma-invoices', 'for-deposit', partyId],
+    queryFn: async () => (await api.get('/proforma-invoices', { params: { partyId, status: 'Sent', limit: 50 } })).data,
+    enabled: isOpen && !!partyId && !isOpeningBalance,
+  });
 
   const partyPicker = usePartyPicker({ type: 'Customer', selectedId: partyId || null, enabled: isOpen });
 
@@ -102,6 +111,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
       referenceNo: referenceNo || null,
       notes: notes || null,
       isOpeningBalance,
+      proformaInvoiceId: !isOpeningBalance && proformaId !== 'none' ? proformaId : null,
     });
   };
 
@@ -131,7 +141,7 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
                   required
                   {...partyPicker.pickerProps}
                   value={partyId}
-                  onChange={setPartyId}
+                  onChange={(v) => { setPartyId(v); setProformaId('none'); }}
                   placeholder={t('customerDepositModal.fields.customerPlaceholder')}
                   disabled={!!savedId}
                 />
@@ -209,6 +219,26 @@ const CustomerDepositModal: React.FC<CustomerDepositModalProps> = ({ isOpen, onC
                 </Field>
               )}
             </div>
+
+            {!isOpeningBalance && partyId && (proformas?.data ?? []).length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t('customerDepositModal.fields.proforma')} hint={t('customerDepositModal.fields.proformaHint')}>
+                  {(control) => (
+                    <Select value={proformaId} onValueChange={setProformaId} disabled={!!savedId}>
+                      <SelectTrigger {...control}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{t('customerDepositModal.fields.proformaNone')}</SelectItem>
+                        {(proformas?.data ?? []).map((pf: { id: string; proformaNumber: string; grandTotal: number | string; payment?: { remaining?: number } }) => (
+                          <SelectItem key={pf.id} value={pf.id}>
+                            {pf.proformaNumber} · {formatRupiah(Number(pf.payment?.remaining ?? pf.grandTotal))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Field>
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t('customerDepositModal.fields.reference')}>

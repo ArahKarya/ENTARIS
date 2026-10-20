@@ -964,7 +964,8 @@
       "doFailed": "Gagal generate Surat Jalan.",
       "pdfReady_one": "PDF + {{count}} lampiran siap diunduh.",
       "pdfReady_other": "PDF + {{count}} lampiran siap diunduh."
-    }
+    },
+    "createProforma": "Buat Proforma"
   },
   "inquiryDetailDrawer": {
     "channels": {
@@ -1221,7 +1222,8 @@
       "reject": "Tolak",
       "accept": "Diterima",
       "createSalesOrder": "Buat Sales Order",
-      "convertToInvoice": "Konversi ke Invoice Penjualan"
+      "convertToInvoice": "Konversi ke Invoice Penjualan",
+      "createProforma": "Buat Proforma"
     },
     "confirm": {
       "send": {
@@ -1471,7 +1473,10 @@
       "reference": "No. Referensi",
       "referencePlaceholder": "No. cek, transfer, dll.",
       "notes": "Catatan",
-      "notesPlaceholder": "Keterangan opsional..."
+      "notesPlaceholder": "Keterangan opsional...",
+      "proforma": "Proforma Invoice (opsional)",
+      "proformaHint": "Tautkan DP ini ke proforma; status proforma ikut terhitung.",
+      "proformaNone": "Tanpa proforma"
     },
     "currentBalance": "Saldo uang muka saat ini: <amount>{{amount}}</amount>",
     "activeDeposits": "{{total}} deposit aktif",
@@ -1718,5 +1723,205 @@
     "totalQty": "Total Qty",
     "paidPercent": "Persentase terbayar",
     "payment": "Pembayaran"
+  },
+  "proformaModal": {
+    "defaults": {
+      "terms": "Pembayaran DP/pelunasan sesuai jumlah tagihan. Pesanan diproses setelah pembayaran diterima.",
+      "discountLabel": "Potongan",
+      "otherCostLabel": "Biaya Lain"
+    },
+    "toast": {
+      "updated": "Proforma invoice diperbarui.",
+      "created": "Proforma invoice dibuat."
+    },
+    "errors": {
+      "saveFailed": "Gagal menyimpan proforma invoice.",
+      "noItems": "Tambahkan minimal satu item.",
+      "noCustomer": "Pilih customer.",
+      "validUntilBeforeDate": "Tanggal berlaku-sampai harus setelah tanggal proforma.",
+      "missingRevenueAccount": "Item \"{{name}}\" belum punya akun pendapatan.",
+      "requestedAboveTotal": "Jumlah tagihan tidak boleh melebihi total proforma."
+    },
+    "titleEdit": "Edit Proforma Invoice {{number}}",
+    "titleCreate": "Buat Proforma Invoice",
+    "description": "Tagihan awal ke customer (mis. DP) sebelum invoice resmi. Tidak berefek ke stok, jurnal, atau piutang.",
+    "fields": {
+      "date": "Tanggal",
+      "validUntil": "Berlaku Sampai",
+      "customer": "Customer",
+      "notes": "Catatan",
+      "terms": "Syarat & Ketentuan",
+      "customerRef": "No. PO / Referensi",
+      "requestedAmount": "Jumlah Ditagih (DP)"
+    },
+    "placeholders": {
+      "customer": "Pilih customer...",
+      "notes": "Catatan tambahan untuk customer..."
+    },
+    "items": {
+      "title": "Item Proforma",
+      "addRow": "Tambah baris",
+      "rowLabel": "Item proforma {{n}}",
+      "typeLabel": "Jenis item {{n}}",
+      "product": "Produk",
+      "service": "Jasa",
+      "removeRow": "Hapus baris {{n}}",
+      "item": "Item",
+      "productItemLabel": "Item produk baris {{n}}",
+      "productPlaceholder": "Pilih item / ketik nama bebas...",
+      "serviceItemLabel": "Item jasa baris {{n}}",
+      "servicePlaceholder": "Pilih jasa / ketik nama bebas...",
+      "freeNameLabel": "Nama item bebas baris {{n}}",
+      "freeNamePlaceholder": "Atau ketik nama item bebas",
+      "qty": "Qty",
+      "unit": "Unit",
+      "unitLabel": "Unit baris {{n}}",
+      "rate": "Harga Satuan",
+      "discountPct": "Diskon %",
+      "vatPct": "PPN %",
+      "pphPct": "PPh %"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "vat": "PPN",
+      "pph": "PPh",
+      "discountLabelAria": "Label potongan",
+      "discountValueAria": "Nilai potongan",
+      "otherCostLabelAria": "Label biaya lain",
+      "otherCostValueAria": "Nilai biaya lain",
+      "grandTotal": "Grand Total"
+    },
+    "actions": {
+      "cancel": "Batal",
+      "saving": "Menyimpan…",
+      "saveChanges": "Simpan Perubahan",
+      "saveDraft": "Simpan Draft"
+    },
+    "footer": {
+      "total": "Total: {{amount}}",
+      "incomplete": "Lengkapi customer dan minimal 1 item."
+    },
+    "hints": {
+      "requestedAmount": "Kosongkan untuk menagih penuh sesuai total."
+    }
+  },
+  "proformaPage": {
+    "title": "Proforma Invoice",
+    "description": "Tagihan awal ke customer (mis. DP) sebelum invoice resmi. Tidak berefek ke stok, jurnal, atau piutang.",
+    "create": "Buat Proforma",
+    "columns": {
+      "number": "No. Proforma",
+      "date": "Tanggal",
+      "customer": "Customer",
+      "source": "Dari",
+      "validUntil": "Berlaku s/d",
+      "total": "Total",
+      "paid": "Dibayar",
+      "status": "Status",
+      "actions": "Aksi"
+    },
+    "paidOfTarget": "{{pct}}% dari jumlah tagihan",
+    "rowActions": {
+      "label": "Aksi untuk {{number}}",
+      "view": "Lihat",
+      "edit": "Edit"
+    },
+    "search": {
+      "label": "Cari proforma",
+      "placeholder": "Cari nomor proforma atau customer..."
+    },
+    "table": {
+      "label": "Daftar proforma invoice",
+      "itemLabel": "proforma invoice"
+    },
+    "empty": {
+      "title": "Belum ada proforma invoice",
+      "description": "Buat proforma untuk menagih DP ke customer sebelum invoice resmi.",
+      "action": "Buat proforma pertama"
+    },
+    "errors": {
+      "sourceLoadFailed": "Gagal memuat dokumen sumber untuk proforma."
+    }
+  },
+  "proformaDetailDrawer": {
+    "title": "Detail Proforma Invoice",
+    "loading": "Memuat...",
+    "loadingProforma": "Memuat proforma invoice...",
+    "convertedFromNote": "Dibuat dari Proforma Invoice {{number}}.",
+    "fields": {
+      "status": "Status",
+      "date": "Tanggal",
+      "validUntil": "Berlaku Sampai",
+      "customer": "Customer",
+      "customerRef": "No. PO / Referensi",
+      "quotation": "Dari Penawaran",
+      "salesOrder": "Dari Sales Order",
+      "salesInvoice": "Invoice",
+      "notes": "Catatan",
+      "terms": "Syarat & Ketentuan"
+    },
+    "items": {
+      "title": "Item",
+      "tableLabel": "Item proforma",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Harga",
+      "total": "Total"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "discount": "Potongan",
+      "otherCosts": "Biaya Lain",
+      "grandTotal": "Total"
+    },
+    "payment": {
+      "billed": "Jumlah Ditagih",
+      "paid": "Sudah Dibayar ({{pct}}%)",
+      "remaining": "Sisa Tagihan",
+      "howTo": "Catat pembayaran lewat menu Uang Muka Customer dan pilih proforma ini."
+    },
+    "actions": {
+      "edit": "Edit",
+      "send": "Kirim",
+      "cancel": "Batalkan",
+      "delete": "Hapus",
+      "convertToInvoice": "Konversi ke Invoice"
+    },
+    "toast": {
+      "sent": "Proforma ditandai terkirim.",
+      "cancelled": "Proforma dibatalkan.",
+      "deleted": "Proforma dihapus.",
+      "invoiceCreated": "Invoice {{number}} dibuat dari proforma.",
+      "applyDeposit": "Ada DP {{amount}} yang belum diterapkan. Terapkan lewat menu Uang Muka Customer ke invoice ini."
+    },
+    "errors": {
+      "sendFailed": "Gagal mengirim proforma.",
+      "cancelFailed": "Gagal membatalkan proforma.",
+      "deleteFailed": "Gagal menghapus proforma.",
+      "convertFailed": "Gagal mengonversi proforma ke invoice."
+    },
+    "confirm": {
+      "send": {
+        "title": "Kirim proforma?",
+        "description": "Proforma {{number}} ditandai terkirim ke customer dan tidak bisa diedit lagi.",
+        "confirm": "Kirim"
+      },
+      "convert": {
+        "title": "Konversi ke Invoice?",
+        "description": "Invoice penjualan dibuat dari proforma ini lewat jalur resmi (stok dan jurnal mengikuti invoice).",
+        "descriptionWithDeposit": "Invoice penjualan dibuat dari proforma ini. DP {{amount}} yang sudah diterima TIDAK diterapkan otomatis; terapkan sendiri lewat menu Uang Muka Customer.",
+        "confirm": "Buat Invoice"
+      },
+      "cancel": {
+        "title": "Batalkan proforma?",
+        "description": "Proforma dibatalkan. Ditolak bila masih ada DP aktif tertaut.",
+        "confirm": "Batalkan"
+      },
+      "delete": {
+        "title": "Hapus proforma?",
+        "description": "Draft proforma dihapus permanen.",
+        "confirm": "Hapus"
+      }
+    }
   }
 }

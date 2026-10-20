@@ -662,5 +662,32 @@
   },
   "company": {
     "fallbackName": "Company"
+  },
+  "proforma": {
+    "docTitle": "Proforma Invoice {{number}}",
+    "title": "PROFORMA INVOICE",
+    "subtitle": "Not a tax invoice",
+    "validUntilLine": "Valid until: {{date}}",
+    "number": "Proforma No.",
+    "validUntil": "Valid Until",
+    "customerRef": "Reference No.",
+    "status": {
+      "Draft": "Draft",
+      "Sent": "Sent",
+      "PartiallyPaid": "Partially Paid",
+      "Paid": "Paid",
+      "Expired": "Expired",
+      "Converted": "Invoiced",
+      "Cancelled": "Cancelled"
+    },
+    "columns": {
+      "no": "No"
+    },
+    "billedAmount": "Amount Billed",
+    "paidAmount": "Paid",
+    "remaining": "Balance Due",
+    "regards": "Sincerely,",
+    "receivedBy": "Received by,",
+    "disclaimer": "This proforma invoice is a preliminary bill and not a tax invoice. The order is processed once payment is received. A tax invoice is issued for the actual transaction."
   }
 }

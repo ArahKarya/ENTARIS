@@ -2,13 +2,13 @@
 
 > Dibangkitkan otomatis — jangan edit manual (`npm run ai-tools:docs`).
 
-Total **475** tool (read 219 · write 151 · critical 105); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
+Total **484** tool (read 222 · write 156 · critical 106); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
 
 ## Toolset
 
 | Toolset | Tool | read | write | critical | Ringkas |
 |---|---|---|---|---|---|
-| [Penjualan](penjualan.md) | 65 | 28 | 22 | 15 | Penawaran, Sales Order, Surat Jalan, Invoice Penjualan, Retur, Uang Muka Pelanggan. |
+| [Penjualan](penjualan.md) | 74 | 31 | 27 | 16 | Penawaran, Sales Order, Surat Jalan, Invoice Penjualan, Retur, Uang Muka Pelanggan. |
 | [Pembelian](pembelian.md) | 28 | 12 | 5 | 11 | PO, Penerimaan Barang (STT/BPB), Invoice Pembelian, Uang Muka Vendor. |
 | [Persediaan](persediaan.md) | 34 | 19 | 6 | 9 | Barang, gudang, mutasi stok, transfer, stok opname. |
 | [Produksi](produksi.md) | 28 | 13 | 9 | 6 | Draft & posting produksi, standar biaya, proses, mesin. |
@@ -388,6 +388,15 @@ Total **475** tool (read 219 · write 151 · critical 105); semuanya aktif secar
 | [`prod_run_list`](produksi.md#prod_run_list) | produksi | read | - | Admin, Accountant, StaffProduksi | `GET /api/inventory/production-runs` |
 | [`prod_run_summary`](produksi.md#prod_run_summary) | produksi | read | - | Admin, Accountant, StaffProduksi | `GET /api/inventory/production-runs/summary` |
 | [`prod_run_update`](produksi.md#prod_run_update) | produksi | critical | ya | Admin, Accountant, StaffProduksi | `PUT /api/inventory/production-runs/:id` |
+| [`proforma_cancel`](penjualan.md#proforma_cancel) | penjualan | critical | tidak | Admin | `PATCH /api/proforma-invoices/:id/cancel` |
+| [`proforma_convert_payload`](penjualan.md#proforma_convert_payload) | penjualan | read | - | Admin, Accountant, Viewer | `GET /api/proforma-invoices/:id/convert-payload` |
+| [`proforma_create`](penjualan.md#proforma_create) | penjualan | write | ya | Admin, Accountant | `POST /api/proforma-invoices` |
+| [`proforma_delete`](penjualan.md#proforma_delete) | penjualan | write | tidak | Admin, Accountant | `DELETE /api/proforma-invoices/:id` |
+| [`proforma_get`](penjualan.md#proforma_get) | penjualan | read | - | Admin, Accountant, Viewer | `GET /api/proforma-invoices/:id` |
+| [`proforma_link`](penjualan.md#proforma_link) | penjualan | write | tidak | Admin, Accountant | `POST /api/proforma-invoices/:id/link` |
+| [`proforma_list`](penjualan.md#proforma_list) | penjualan | read | - | Admin, Accountant, Viewer | `GET /api/proforma-invoices` |
+| [`proforma_send`](penjualan.md#proforma_send) | penjualan | write | tidak | Admin, Accountant | `PATCH /api/proforma-invoices/:id/send` |
+| [`proforma_update`](penjualan.md#proforma_update) | penjualan | write | ya | Admin, Accountant | `PUT /api/proforma-invoices/:id` |
 | [`quot_accept`](penjualan.md#quot_accept) | penjualan | write | tidak | Admin, Accountant | `PATCH /api/quotations/:id/accept` |
 | [`quot_cancel`](penjualan.md#quot_cancel) | penjualan | critical | tidak | Admin | `PATCH /api/quotations/:id/cancel` |
 | [`quot_convert_payload`](penjualan.md#quot_convert_payload) | penjualan | read | - | Admin, Accountant, Viewer | `GET /api/quotations/:id/convert-payload` |

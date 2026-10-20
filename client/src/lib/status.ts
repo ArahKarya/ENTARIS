@@ -18,6 +18,7 @@ export interface StatusMeta {
 
 export type DocType =
   | 'quotation'
+  | 'proforma_invoice'
   | 'sales_order'
   | 'sales_invoice'
   | 'sales_return'
@@ -133,6 +134,14 @@ const POSTED = m('posted', 'success');
 
 /** Per-document meaning where the generic label would mislead. */
 const BY_DOC: Readonly<Partial<Record<DocType, Readonly<Record<string, StatusDef>>>>> = {
+  // Proforma: Paid/PartiallyPaid/Expired diturunkan server dari DP tertaut + validUntil; Converted = sudah jadi invoice.
+  proforma_invoice: {
+    sent: m('sent', 'info'),
+    partiallypaid: m('partiallyPaid', 'warning'),
+    paid: m('paidInFull', 'success'),
+    expired: m('expired', 'danger'),
+    converted: m('converted', 'success'),
+  },
   sales_invoice: { submitted: m('unpaid', 'warning') },
   purchase_invoice: { submitted: m('unpaid', 'warning') },
   sales_order: { submitted: m('confirmed', 'info') },

@@ -59,6 +59,7 @@ import systemAccountRoutes from './routes/systemAccounts';
 import attachmentRoutes from './routes/attachments';
 import stockOpnameRoutes from './routes/stockOpname';
 import quotationRoutes from './routes/quotations';
+import proformaInvoiceRoutes from './routes/proformaInvoices';
 import inquiryRoutes from './routes/inquiries';
 import warehouseRoutes from './routes/warehouses';
 import stockTransferRoutes from './routes/stockTransfers';
@@ -238,6 +239,7 @@ app.use('/api/customer-deposits', requirePerm('customer_deposit'), customerDepos
 app.use('/api/stock-opname', requirePerm('stock_opname'), stockOpnameRoutes);
 app.use('/api/fixed-assets', requirePerm('fixed_assets'), fixedAssetRoutes);
 app.use('/api/quotations', requirePerm('quotation'), quotationRoutes);
+app.use('/api/proforma-invoices', requirePerm('proforma_invoice'), proformaInvoiceRoutes);
 app.use('/api/inquiries', requirePerm('quotation'), inquiryRoutes);
 app.use('/api/stock-transfers', requirePerm('stock_transfer'), stockTransferRoutes);
 app.use('/api/delivery-orders', requirePerm('delivery_order'), deliveryOrderRoutes);

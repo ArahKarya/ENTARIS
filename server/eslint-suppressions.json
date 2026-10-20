@@ -141,7 +141,7 @@
   },
   "src/routes/quotations.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 3
+      "count": 2
     }
   },
   "src/routes/recurring.ts": {
