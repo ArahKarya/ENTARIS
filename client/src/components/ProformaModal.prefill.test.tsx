@@ -8,6 +8,8 @@ vi.mock('@/lib/api', () => ({ default: { get, post, put: vi.fn() } }));
 
 import ProformaModal from './ProformaModal';
 
+type EditTarget = NonNullable<React.ComponentProps<typeof ProformaModal>['editTarget']>;
+
 const coa = [
   { id: 'rev-4-1', accountNumber: '4.1', name: 'Penjualan', isGroup: false },
   { id: 'rev-4-2', accountNumber: '4.2', name: 'Pendapatan Jasa', isGroup: false },
@@ -29,7 +31,7 @@ beforeEach(() => {
 });
 
 /** Item dari Sales Order tidak membawa accountId (tabel sales_order_items tidak menyimpannya). */
-const fromSalesOrder = {
+const fromSalesOrder: EditTarget = {
   sourceKey: 'so-1', salesOrderId: 'so-1', partyId: 'cust-1',
   items: [
     { itemName: 'Pellet Sekam', itemType: 'product', inventoryItemId: 'inv-1', quantity: 10, unit: 'Kg', rate: 1000 },
