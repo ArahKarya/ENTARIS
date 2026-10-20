@@ -304,7 +304,12 @@ const ProformaModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreated
     if (!partyId) { setError(t('proformaModal.errors.noCustomer')); return; }
     if (new Date(validUntil) < new Date(date)) { setError(t('proformaModal.errors.validUntilBeforeDate')); return; }
     if (requestedAmount > grandTotal) { setError(t('proformaModal.errors.requestedAboveTotal')); return; }
-    for (const it of validItems) {
+    // Item dari Sales Order / prefill tidak membawa akun pendapatan: pakai default (4.1 barang, 4.2 jasa).
+    const resolved = validItems.map((it) => ({
+      ...it,
+      accountId: it.accountId || (it.itemType === 'service' ? defaultServiceAccountId : defaultProductAccountId),
+    }));
+    for (const it of resolved) {
       if (!it.accountId) { setError(t('proformaModal.errors.missingRevenueAccount', { name: it.itemName })); return; }
     }
     mutation.mutate({
@@ -321,7 +326,7 @@ const ProformaModal: React.FC<Props> = ({ isOpen, onClose, editTarget, onCreated
       biayaLain,
       labelPotongan: labelPotongan || null,
       labelBiaya: labelBiaya || null,
-      items: validItems.map((it) => ({
+      items: resolved.map((it) => ({
         itemType: it.itemType,
         inventoryItemId: it.itemType === 'product' ? it.inventoryItemId || null : null,
         serviceItemId: it.itemType === 'service' ? it.serviceItemId || null : null,
