@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Proforma Invoice
+**Ditambah**: Proforma Invoice (`/proforma-invoices`), tagihan awal ke customer (mis. DP) sebelum invoice resmi. Dibuat dari Quotation atau Sales Order, tanpa efek stok/jurnal/piutang. DP dicatat lewat Uang Muka Customer yang ditautkan ke proforma; status Dibayar Sebagian/Lunas/Kedaluwarsa dihitung dari DP tertaut. Konversi ke Sales Invoice lewat jalur resmi (DP diterapkan manual). PDF, 9 tool AIRA `proforma_*`, modul RBAC `proforma_invoice`, prefiks nomor `PRO`.
+
 ### Istilah
 **Diubah**: istilah "Rendemen" di antarmuka, laporan, label pengajuan edit produksi, dan panduan AIRA diganti "Yield" agar netral untuk semua jenis industri pengolahan. Nama field (`yieldPct`) tidak berubah.
 
