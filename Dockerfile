@@ -34,7 +34,7 @@ COPY docs/ai-tools/catalog.json ./docs/ai-tools/catalog.json
 RUN cd client && npm run build
 
 # Generate Prisma client + build server (TypeScript → server/dist/)
-RUN cd server && npx prisma generate && npm run build
+RUN cd server && npx prisma generate && NODE_OPTIONS=--max-old-space-size=3000 npm run build
 
 # ── Stage 3: Production runner ──────────────────────────────────────────────
 FROM node:20-alpine AS runner
