@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-25
+
+Entaris kini punya Proforma Invoice, PDF dan lampiran yang bisa diambil agen AIRA, serta berlisensi AGPL-3.0.
+
 ### AIRA/MCP: PDF dan lampiran untuk agen
 **Ditambah**:
 - `doc_pdf_get`: tautan unduh PDF resmi (templat sama dengan tombol PDF) untuk 11 jenis dokumen (Penawaran, Proforma, SO, PO, Surat Jalan, STT, Transfer Stok, Opname, Produksi, Invoice Penjualan/Pembelian) dan 6 laporan (Laba Rugi, Neraca, Neraca Saldo, Arus Kas, Umur Piutang/Utang, Laporan Harian). Dirender server dari bundel SSR templat klien (`npm run build:pdf`).
@@ -19,6 +23,9 @@
 **Diubah**:
 - Lisensi berganti dari **proprietary** menjadi **GNU AGPL-3.0-only**. `LICENSE` berisi teks resmi AGPL-3.0, badge dan bagian Lisensi README diperbarui, `package.json` server/client ditandai `"license": "AGPL-3.0-only"`. Merek Entaris/AIRA/Arah tetap milik PT Arah Karya Sinergi (`TRADEMARK.md`).
 **Ditambah**: `CONTRIBUTING.md` (DCO), `SECURITY.md`, `CODE_OF_CONDUCT.md`, `TRADEMARK.md`.
+
+### Catatan upgrade
+Tidak ada variabel env baru. Migrasi Proforma Invoice berjalan otomatis saat container naik (migrasi lepas idempoten). Image bertambah karena bundel templat PDF dan dependensi `@react-pdf/renderer`, `react`, `react-dom` di server; build di mesin ber-RAM kecil sebaiknya memakai `NODE_OPTIONS=--max-old-space-size=3000`.
 
 ## [4.1.3] - 2026-10-14
 
