@@ -16306,6 +16306,206 @@
       ]
     },
     {
+      "name": "att_download_link",
+      "group": "Master & Sistem",
+      "toolset": "sistem",
+      "module": "attachments",
+      "desc": "Buat TAUTAN UNDUH isi satu lampiran (PDF/JPG/PNG/WebP). Mengembalikan url bertanda tangan (berlaku 5 menit, sekali pakai), fileName, mimeType, size. Agen mengunduh url itu dengan HTTP GET biasa tanpa header otorisasi. Izin = membaca dokumen induk lampiran. Cari id lampiran lewat att_list / payreq_get.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "attachmentId": "string"
+      },
+      "params": [
+        {
+          "name": "attachmentId",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "ID lampiran (UUID) dari att_list / payreq_get."
+        }
+      ],
+      "output": {},
+      "outputSummary": "{url, fileName, mimeType, size, expiresInSeconds, oneTimeUse, warning?}. url sudah absolut bila PUBLIC_BASE_URL terisi.",
+      "handler": "POST /api/attachments/download-link",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 6,
+      "accessNote": "Pemeriksaan view dokumen induk saat membuat tautan DAN saat mengunduh.",
+      "related": [
+        "att_list",
+        "att_counts",
+        "payreq_get"
+      ],
+      "safeNonGet": true
+    },
+    {
+      "name": "att_upload",
+      "group": "Master & Sistem",
+      "toolset": "sistem",
+      "module": "attachments",
+      "desc": "Melampirkan SATU berkas (JPG/PNG/WebP/PDF, maks. 5 MB, maks. 5 berkas per dokumen) ke dokumen transaksi apa pun. referenceType: payment, journal, purchase_invoice, sales_invoice, sales_order, delivery_order, goods_receipt, quotation, proforma_invoice, purchase_order, sales_return, stock_transfer, stock_opname, production_run, fixed_asset, approval_request. Dua cara: (1) tanpa contentBase64 → salin lampiran dari panel chat Entaris pengguna ini (default: lampiran pada pesan chat saat ini, atau pilih dengan chatAttachmentId); (2) contentBase64+fileName → isi berkas dibawa langsung (batas body MCP 256 KB ≈ 180 KB berkas). Jenis berkas ditentukan dari isi, bukan nama. Izin = edit pada modul dokumen induk. Untuk pengajuan pembayaran pakai payreq_attachment_add.",
+      "risk": "write",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "referenceType": "string",
+        "referenceId": "string",
+        "fileName": "string",
+        "contentBase64": "string",
+        "mimeType": "string",
+        "chatAttachmentId": "string"
+      },
+      "params": [
+        {
+          "name": "referenceType",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "Jenis dokumen induk: payment, journal, purchase_invoice, sales_invoice, sales_order, delivery_order, goods_receipt, quotation, proforma_invoice, purchase_order, sales_return, stock_transfer, stock_opname, production_run, fixed_asset, approval_request."
+        },
+        {
+          "name": "referenceId",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "ID dokumen induk (UUID)."
+        },
+        {
+          "name": "fileName",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Nama berkas (wajib bila contentBase64 diisi; opsional untuk mengganti nama lampiran chat)."
+        },
+        {
+          "name": "contentBase64",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Isi berkas base64 (tanpa/dengan prefix data:). Maks. ±180 KB karena batas body MCP; kosongkan untuk memakai lampiran panel chat."
+        },
+        {
+          "name": "mimeType",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "Petunjuk jenis (image/jpeg, image/png, image/webp, application/pdf); ditolak bila tak cocok dengan isi berkas."
+        },
+        {
+          "name": "chatAttachmentId",
+          "in": "body",
+          "type": "string",
+          "required": false,
+          "description": "ID lampiran panel chat milik pengguna ini. Kosong → lampiran pada pesan chat yang sedang berjalan."
+        }
+      ],
+      "output": {
+        "data": "object"
+      },
+      "outputSummary": "Metadata lampiran tersimpan (array 1 elemen: id, fileName, mimeType, fileSize, referenceType, referenceId).",
+      "handler": "POST /api/attachments/json",
+      "permAction": "edit",
+      "enabled": true,
+      "level": 2,
+      "phase": 1,
+      "draftCapable": true,
+      "postingEffect": "Tidak ada efek GL/stok; berkas tersimpan sebagai lampiran pengajuan.",
+      "confirm_template": "Lampirkan berkas ke {referenceType} {referenceId}?",
+      "accessNote": "Butuh izin edit modul dokumen induk (approval_request: hanya pengaju). Lampiran chat harus milik pengguna yang sama.",
+      "related": [
+        "att_list",
+        "att_counts",
+        "att_download_link",
+        "payreq_attachment_add"
+      ],
+      "errors": [
+        "400: Tidak ada lampiran pada pesan chat ini",
+        "400: Maksimal 10 lampiran per pengajuan",
+        "400: File tidak dikenali sebagai JPG/PNG/WebP/PDF",
+        "400: Ukuran file maksimal 5 MB",
+        "400: pengajuan tidak bisa diedit",
+        "413: body MCP > 256 KB (pakai lampiran chat)"
+      ]
+    },
+    {
+      "name": "doc_pdf_get",
+      "group": "Penjualan",
+      "toolset": "penjualan",
+      "module": "sales_order",
+      "desc": "Buat TAUTAN UNDUH PDF resmi sebuah dokumen atau laporan (dirender server dengan templat yang sama dengan tombol PDF di aplikasi). Dokumen transaksi (docId = ID/UUID): quotation, proforma_invoice, sales_order, purchase_order, delivery_order (Surat Jalan), goods_receipt (STT), stock_transfer, stock_opname, production_run, sales_invoice (Invoice Penjualan), purchase_invoice (Invoice Pembelian). Laporan (docId = parameter, bukan ID; butuh izin modul Laporan): report_profit_loss, report_trial_balance, report_cash_flow → docId 'YYYY-MM-DD..YYYY-MM-DD' (mulai..akhir); report_balance_sheet, report_daily → docId 'YYYY-MM-DD' (tanggal); report_aging → docId 'Customer' (umur piutang) atau 'Supplier' (umur utang, posisi hari ini). Mengembalikan url bertanda tangan (berlaku 5 menit, sekali pakai). Agen mengunduh url itu dengan HTTP GET biasa tanpa header otorisasi. Izin = lihat dokumen/laporan tersebut.",
+      "risk": "read",
+      "roles": [
+        "Admin",
+        "Accountant",
+        "StaffProduksi",
+        "Viewer"
+      ],
+      "input": {
+        "docType": "string",
+        "docId": "string"
+      },
+      "params": [
+        {
+          "name": "docType",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "quotation",
+            "proforma_invoice",
+            "sales_order",
+            "purchase_order",
+            "delivery_order",
+            "goods_receipt",
+            "stock_transfer",
+            "stock_opname",
+            "production_run",
+            "sales_invoice",
+            "purchase_invoice",
+            "report_profit_loss",
+            "report_balance_sheet",
+            "report_trial_balance",
+            "report_cash_flow",
+            "report_aging",
+            "report_daily"
+          ],
+          "description": "Jenis dokumen/laporan: quotation, proforma_invoice, sales_order, purchase_order, delivery_order, goods_receipt, stock_transfer, stock_opname, production_run, sales_invoice, purchase_invoice, report_profit_loss, report_balance_sheet, report_trial_balance, report_cash_flow, report_aging, report_daily."
+        },
+        {
+          "name": "docId",
+          "in": "body",
+          "type": "string",
+          "required": true,
+          "description": "Dokumen transaksi: ID (UUID). Laporan: periode 'YYYY-MM-DD..YYYY-MM-DD' (laba rugi, neraca saldo, arus kas), tanggal 'YYYY-MM-DD' (neraca, laporan harian), atau 'Customer'/'Supplier' (aging)."
+        }
+      ],
+      "output": {},
+      "outputSummary": "{url, docType, docId, mimeType:application/pdf, expiresInSeconds, oneTimeUse, warning?}.",
+      "handler": "POST /api/attachments/pdf-link",
+      "permAction": "view",
+      "enabled": true,
+      "level": 1,
+      "phase": 6,
+      "accessNote": "Butuh izin view modul dokumen (laporan: modul Laporan); dicek ulang atas nama pengguna saat PDF dirender.",
+      "related": [
+        "att_download_link",
+        "att_upload",
+        "att_list"
+      ],
+      "safeNonGet": true
+    },
+    {
       "name": "coa_create",
       "group": "Akuntansi",
       "toolset": "akuntansi",

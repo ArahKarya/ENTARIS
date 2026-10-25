@@ -2,13 +2,13 @@
 
 > Dibangkitkan otomatis — jangan edit manual (`npm run ai-tools:docs`).
 
-Total **484** tool (read 222 · write 156 · critical 106); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
+Total **487** tool (read 224 · write 157 · critical 106); semuanya aktif secara default (override per tool di Settings → AIRA). Endpoint terlarang: [DENYLIST.md](DENYLIST.md). Istilah: [GLOSARIUM.md](GLOSARIUM.md).
 
 ## Toolset
 
 | Toolset | Tool | read | write | critical | Ringkas |
 |---|---|---|---|---|---|
-| [Penjualan](penjualan.md) | 74 | 31 | 27 | 16 | Penawaran, Sales Order, Surat Jalan, Invoice Penjualan, Retur, Uang Muka Pelanggan. |
+| [Penjualan](penjualan.md) | 75 | 32 | 27 | 16 | Penawaran, Sales Order, Surat Jalan, Invoice Penjualan, Retur, Uang Muka Pelanggan. |
 | [Pembelian](pembelian.md) | 28 | 12 | 5 | 11 | PO, Penerimaan Barang (STT/BPB), Invoice Pembelian, Uang Muka Vendor. |
 | [Persediaan](persediaan.md) | 34 | 19 | 6 | 9 | Barang, gudang, mutasi stok, transfer, stok opname. |
 | [Produksi](produksi.md) | 28 | 13 | 9 | 6 | Draft & posting produksi, standar biaya, proses, mesin. |
@@ -20,7 +20,7 @@ Total **484** tool (read 222 · write 156 · critical 106); semuanya aktif secar
 | [Laporan](laporan.md) | 15 | 15 | 0 | 0 | Laporan keuangan, operasional dan pembelian. |
 | [Dashboard](dashboard.md) | 17 | 17 | 0 | 0 | Ringkasan dan indikator dashboard. |
 | [Master Data](master-data.md) | 12 | 6 | 5 | 1 | Pelanggan & vendor (Party). |
-| [Sistem](sistem.md) | 17 | 14 | 2 | 1 | Jejak audit, notifikasi, pencarian, profil perusahaan, kesehatan sistem. |
+| [Sistem](sistem.md) | 19 | 15 | 3 | 1 | Jejak audit, notifikasi, pencarian, profil perusahaan, kesehatan sistem. |
 | [Obrolan (memori percakapan)](obrolan.md) | 2 | 2 | 0 | 0 | Pencarian dan pembacaan riwayat percakapan panel chat milik pemanggil sendiri. |
 
 ## Semua tool
@@ -42,8 +42,10 @@ Total **484** tool (read 222 · write 156 · critical 106); semuanya aktif secar
 | [`appr_rule_update`](persetujuan.md#appr_rule_update) | persetujuan | critical | tidak | Admin | `PUT /api/approvals/rules/:id` |
 | [`appr_rules_list`](persetujuan.md#appr_rules_list) | persetujuan | read | - | Admin | `GET /api/approvals/rules` |
 | [`att_counts`](sistem.md#att_counts) | sistem | read | - | Admin, Accountant, StaffProduksi, Viewer | `POST /api/attachments/counts` |
+| [`att_download_link`](sistem.md#att_download_link) | sistem | read | - | Admin, Accountant, StaffProduksi, Viewer | `POST /api/attachments/download-link` |
 | [`att_invoice_related`](sistem.md#att_invoice_related) | sistem | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/attachments/invoice/:type/:id/related` |
 | [`att_list`](sistem.md#att_list) | sistem | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/attachments/:referenceType/:referenceId` |
+| [`att_upload`](sistem.md#att_upload) | sistem | write | ya | Admin, Accountant, StaffProduksi, Viewer | `POST /api/attachments/json` |
 | [`audit_facets`](sistem.md#audit_facets) | sistem | read | - | Admin | `GET /api/audit-logs/facets` |
 | [`audit_get`](sistem.md#audit_get) | sistem | read | - | Admin | `GET /api/audit-logs/:id` |
 | [`audit_list`](sistem.md#audit_list) | sistem | read | - | Admin | `GET /api/audit-logs` |
@@ -73,6 +75,7 @@ Total **484** tool (read 222 · write 156 · critical 106); semuanya aktif secar
 | [`do_patch`](penjualan.md#do_patch) | penjualan | write | tidak | Admin, Accountant, StaffProduksi | `PATCH /api/delivery-orders/:id` |
 | [`do_pending`](penjualan.md#do_pending) | penjualan | read | - | Admin, Accountant, StaffProduksi, Viewer | `GET /api/delivery-orders/pending` |
 | [`do_update`](penjualan.md#do_update) | penjualan | critical | tidak | Admin, Accountant, StaffProduksi | `PUT /api/delivery-orders/:id` |
+| [`doc_pdf_get`](penjualan.md#doc_pdf_get) | penjualan | read | - | Admin, Accountant, StaffProduksi, Viewer | `POST /api/attachments/pdf-link` |
 | [`eambill_cancel`](pengajuan-pembayaran.md#eambill_cancel) | pengajuan-pembayaran | critical | tidak | Admin, Accountant | `POST /api/payment-requests/eam/:kind/:id/cancel` |
 | [`eambill_list`](pengajuan-pembayaran.md#eambill_list) | pengajuan-pembayaran | read | - | Admin, Accountant | `GET /api/payment-requests/eam` |
 | [`eambill_pay`](pengajuan-pembayaran.md#eambill_pay) | pengajuan-pembayaran | critical | tidak | Admin, Accountant | `POST /api/payment-requests/eam/:kind/:id/pay` |

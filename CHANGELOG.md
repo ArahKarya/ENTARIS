@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### AIRA/MCP: PDF dan lampiran untuk agen
+**Ditambah**:
+- `doc_pdf_get`: tautan unduh PDF resmi (templat sama dengan tombol PDF) untuk 11 jenis dokumen (Penawaran, Proforma, SO, PO, Surat Jalan, STT, Transfer Stok, Opname, Produksi, Invoice Penjualan/Pembelian) dan 6 laporan (Laba Rugi, Neraca, Neraca Saldo, Arus Kas, Umur Piutang/Utang, Laporan Harian). Dirender server dari bundel SSR templat klien (`npm run build:pdf`).
+- `att_download_link` dan `att_upload`: unduh dan unggah lampiran transaksi (16 jenis dokumen) lewat tautan bertanda tangan 5 menit sekali pakai (`/api/files/dl/:tiket`) dan JSON/base64; ACL dicek ulang saat unduh.
+- `payreq_attachment_add`: lampiran Pengajuan Pembayaran lewat MCP.
+**Diperbaiki**: baris Termin dan No. Ref Pelanggan di PDF Invoice tidak tercetak; kolom Kode di PDF Produksi menempel ke Nama pada kode panjang.
+
 ### Proforma Invoice
 **Ditambah**: Proforma Invoice (`/proforma-invoices`), tagihan awal ke customer (mis. DP) sebelum invoice resmi. Dibuat dari Quotation atau Sales Order, tanpa efek stok/jurnal/piutang. DP dicatat lewat Uang Muka Customer yang ditautkan ke proforma; status Dibayar Sebagian/Lunas/Kedaluwarsa dihitung dari DP tertaut. Konversi ke Sales Invoice lewat jalur resmi (DP diterapkan manual). PDF, 9 tool AIRA `proforma_*`, modul RBAC `proforma_invoice`, prefiks nomor `PRO`.
 

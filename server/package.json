@@ -32,6 +32,7 @@
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@react-pdf/renderer": "^4.3.2",
     "@types/node-cron": "^3.0.11",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -49,6 +50,8 @@
     "pg": "^8.20.0",
     "pino": "^10.3.1",
     "prisma": "^7.5.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "zod": "^4.3.6"

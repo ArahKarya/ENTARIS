@@ -22,8 +22,8 @@ const fmtRp = (n: number, dec = 0) => (dec > 0 ? pdfRpAuto(n) : pdfRp(n));
 
 const itemCols = (t: PdfT): PdfColumn[] => [
   { key: 'no', label: t('ncr.columns.no'), width: 0.45, align: 'center' },
-  { key: 'code', label: t('ncr.columns.code'), width: 1.5 },
-  { key: 'name', label: t('production.columns.name'), width: 3.2 },
+  { key: 'code', label: t('ncr.columns.code'), width: 2.1 },
+  { key: 'name', label: t('production.columns.name'), width: 2.9 },
   { key: 'qty', label: t('ncr.columns.qty'), width: 1.2, align: 'right' },
   { key: 'unit', label: t('ncr.columns.unit'), width: 0.7, align: 'center' },
   { key: 'cost', label: t('production.columns.unitCost'), width: 1.7, align: 'right' },

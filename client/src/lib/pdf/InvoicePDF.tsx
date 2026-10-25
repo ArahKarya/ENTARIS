@@ -49,6 +49,7 @@ const S = StyleSheet.create({
   metaBold: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.dark },
   metaGrid: { flexDirection: 'row', gap: 16 },
   metaItem: { flex: 1 },
+  metaItemStacked: { flexShrink: 0 },
   metaItemLabel: { fontSize: 7, color: C.faint, marginBottom: 1 },
   metaItemValue: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
 
@@ -292,13 +293,13 @@ const InvoicePDF: React.FC<InvoicePDFProps> = (props) => {
                 </View>
               </View>
               {terms && (
-                <View style={S.metaItem}>
+                <View style={S.metaItemStacked}>
                   <Text style={S.metaItemLabel}>{t('invoice.terms')}</Text>
                   <Text style={S.metaItemValue}>{terms}</Text>
                 </View>
               )}
               {customerRefNo && (
-                <View style={S.metaItem}>
+                <View style={S.metaItemStacked}>
                   <Text style={S.metaItemLabel}>{t('invoice.customerRef')}</Text>
                   <Text style={S.metaItemValue}>{customerRefNo}</Text>
                 </View>

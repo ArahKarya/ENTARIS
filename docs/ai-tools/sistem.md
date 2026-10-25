@@ -2,7 +2,7 @@
 
 > Dibangkitkan otomatis dari `server/src/ai/aira-tool-router.json` — jangan edit manual. Panduan alur: `docs/ai-tools/_guides/`.
 
-Endpoint MCP target: `/mcp/sistem` · 17 tool (read 14, write 2, critical 1)
+Endpoint MCP target: `/mcp/sistem` · 19 tool (read 15, write 3, critical 1)
 
 ## Tujuan
 
@@ -89,8 +89,10 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 | Tool | Risk | Draft | Handler |
 |---|---|---|---|
 | [`att_counts`](#att_counts) | read | - | `POST /api/attachments/counts` |
+| [`att_download_link`](#att_download_link) | read | - | `POST /api/attachments/download-link` |
 | [`att_invoice_related`](#att_invoice_related) | read | - | `GET /api/attachments/invoice/:type/:id/related` |
 | [`att_list`](#att_list) | read | - | `GET /api/attachments/:referenceType/:referenceId` |
+| [`att_upload`](#att_upload) | write | ya | `POST /api/attachments/json` |
 | [`audit_facets`](#audit_facets) | read | - | `GET /api/audit-logs/facets` |
 | [`audit_get`](#audit_get) | read | - | `GET /api/audit-logs/:id` |
 | [`audit_list`](#audit_list) | read | - | `GET /api/audit-logs` |
@@ -150,6 +152,47 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 **Isi hasil:** Objek {referenceId: jumlah}; {} bila input kosong.
 
 **Tool terkait:** [`att_list`](#att_list)
+
+### att_download_link
+
+**Ringkasan:** Buat TAUTAN UNDUH isi satu lampiran (PDF/JPG/PNG/WebP). Mengembalikan url bertanda tangan (berlaku 5 menit, sekali pakai), fileName, mimeType, size. Agen mengunduh url itu dengan HTTP GET biasa tanpa header otorisasi. Izin = membaca dokumen induk lampiran. Cari id lampiran lewat att_list / payreq_get.
+
+- **Risk / tier:** `read` / Auto (POST murni baca)
+- **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `attachments` / `view`)
+- **Catatan akses:** Pemeriksaan view dokumen induk saat membuat tautan DAN saat mengunduh.
+- **Handler:** `POST /api/attachments/download-link` (src/routes/attachmentLinks.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `attachmentId` | body | `string` | ya | ID lampiran (UUID) dari att_list / payreq_get. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "att_download_link",
+  "args": {
+    "attachmentId": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "read",
+  "data": "<{url, fileName, mimeType, size, expiresInSeconds, oneTimeUse, warning?}. url sudah absolut>"
+}
+```
+
+**Isi hasil:** {url, fileName, mimeType, size, expiresInSeconds, oneTimeUse, warning?}. url sudah absolut bila PUBLIC_BASE_URL terisi.
+
+**Tool terkait:** [`att_list`](#att_list), [`att_counts`](#att_counts), [`payreq_get`](pengajuan-pembayaran.md#payreq_get)
 
 ### att_invoice_related
 
@@ -240,6 +283,69 @@ Autentikasi (`/api/auth/*`), administrasi user dan role (`/api/users`, `/api/rol
 **Isi hasil:** Array lampiran {id, referenceType, referenceId, fileName, mimeType, fileSize, createdAt, user{fullName}}. Catatan: ikut membawa filePath/storedName internal.
 
 **Tool terkait:** [`att_counts`](#att_counts), [`att_invoice_related`](#att_invoice_related)
+
+### att_upload
+
+**Ringkasan:** Melampirkan SATU berkas (JPG/PNG/WebP/PDF, maks. 5 MB, maks. 5 berkas per dokumen) ke dokumen transaksi apa pun. referenceType: payment, journal, purchase_invoice, sales_invoice, sales_order, delivery_order, goods_receipt, quotation, proforma_invoice, purchase_order, sales_return, stock_transfer, stock_opname, production_run, fixed_asset, approval_request. Dua cara: (1) tanpa contentBase64 → salin lampiran dari panel chat Entaris pengguna ini (default: lampiran pada pesan chat saat ini, atau pilih dengan chatAttachmentId); (2) contentBase64+fileName → isi berkas dibawa langsung (batas body MCP 256 KB ≈ 180 KB berkas). Jenis berkas ditentukan dari isi, bukan nama. Izin = edit pada modul dokumen induk. Untuk pengajuan pembayaran pakai payreq_attachment_add.
+
+- **Risk / tier:** `write` / Draft/Approve
+- **Draft-capable:** ya (hanya membuat draft / pengajuan pending)
+- **Roles & izin:** Admin, Accountant, StaffProduksi, Viewer (modul `attachments` / `edit`)
+- **Catatan akses:** Butuh izin edit modul dokumen induk (approval_request: hanya pengaju). Lampiran chat harus milik pengguna yang sama.
+- **Handler:** `POST /api/attachments/json` (src/routes/attachments.ts)
+- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)
+
+**Parameter**
+
+| Nama | Lokasi | Tipe | Wajib | Keterangan |
+|---|---|---|---|---|
+| `referenceType` | body | `string` | ya | Jenis dokumen induk: payment, journal, purchase_invoice, sales_invoice, sales_order, delivery_order, goods_receipt, quotation, proforma_invoice, purchase_order, sales_return, stock_transfer, stock_opname, production_run, fixed_asset, approval_request. |
+| `referenceId` | body | `string` | ya | ID dokumen induk (UUID). |
+| `fileName` | body | `string` | tidak | Nama berkas (wajib bila contentBase64 diisi; opsional untuk mengganti nama lampiran chat). |
+| `contentBase64` | body | `string` | tidak | Isi berkas base64 (tanpa/dengan prefix data:). Maks. ±180 KB karena batas body MCP; kosongkan untuk memakai lampiran panel chat. |
+| `mimeType` | body | `string` | tidak | Petunjuk jenis (image/jpeg, image/png, image/webp, application/pdf); ditolak bila tak cocok dengan isi berkas. |
+| `chatAttachmentId` | body | `string` | tidak | ID lampiran panel chat milik pengguna ini. Kosong → lampiran pada pesan chat yang sedang berjalan. |
+
+**Contoh pemanggilan**
+
+```json
+{
+  "tool": "att_upload",
+  "args": {
+    "referenceType": "<referenceType>",
+    "referenceId": "<id>"
+  }
+}
+```
+
+**Contoh hasil (dipersingkat)**
+
+```json
+{
+  "ok": true,
+  "kind": "action",
+  "status": "pending_approval",
+  "approvalId": "<id>",
+  "confirm": "Lampirkan berkas ke <referenceType> <id>?"
+}
+```
+
+**Isi hasil:** Metadata lampiran tersimpan (array 1 elemen: id, fileName, mimeType, fileSize, referenceType, referenceId).
+
+**Efek pembukuan/stok:** Tidak ada efek GL/stok; berkas tersimpan sebagai lampiran pengajuan.
+
+**Teks konfirmasi:** Lampirkan berkas ke {referenceType} {referenceId}?
+
+**Error umum**
+
+- 400: Tidak ada lampiran pada pesan chat ini
+- 400: Maksimal 10 lampiran per pengajuan
+- 400: File tidak dikenali sebagai JPG/PNG/WebP/PDF
+- 400: Ukuran file maksimal 5 MB
+- 400: pengajuan tidak bisa diedit
+- 413: body MCP > 256 KB (pakai lampiran chat)
+
+**Tool terkait:** [`att_list`](#att_list), [`att_counts`](#att_counts), [`att_download_link`](#att_download_link), [`payreq_attachment_add`](pengajuan-pembayaran.md#payreq_attachment_add)
 
 ### audit_facets
 
