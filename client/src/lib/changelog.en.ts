@@ -8,6 +8,17 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.2.0': {
+    title: 'Proforma Invoice, PDFs and Attachments for AIRA',
+    changes: [
+      'Proforma Invoice (Sales menu): an advance bill to the customer, created from a Quotation or Sales Order and convertible to a draft Sales Invoice; no stock, GL or receivable effect, and down payments are recorded through a linked Customer Deposit',
+      'AIRA can now fetch official PDFs of 11 document types and 6 reports (Profit & Loss, Balance Sheet, Trial Balance, Cash Flow, Receivables/Payables Aging, Daily Report) through the doc_pdf_get tool, using the same templates as the PDF button; download links last 5 minutes and work once',
+      'AIRA can download and upload transaction attachments for 16 document types (att_download_link, att_upload); permissions are re-checked when the file is downloaded',
+      'PDF fixes: the Terms and Customer Ref rows on the Invoice now print, and the Code column on the Production PDF no longer runs into Name',
+      'The term "Rendemen" was replaced by "Yield" in the interface, reports and AIRA guidance',
+      'The licence is now GNU AGPL-3.0-only',
+    ],
+  },
   '4.1.3': {
     title: 'Payment Request Attachments via AIRA',
     changes: [

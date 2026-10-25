@@ -4,8 +4,8 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.1.3';
-export const APP_BUILD_DATE = '2026-10-14';
+export const APP_VERSION = '4.2.0';
+export const APP_BUILD_DATE = '2026-10-25';
 export const APP_NAME = 'Entaris';
 
 export interface ChangelogEntry {
@@ -25,6 +25,19 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.2.0',
+    date: '2026-10-25',
+    title: 'Proforma Invoice, PDF dan Lampiran untuk AIRA',
+    changes: [
+      'Proforma Invoice (menu Penjualan): tagihan awal ke customer, dibuat dari Quotation atau Sales Order, dapat dikonversi ke Invoice Penjualan draf; tanpa efek stok, GL, maupun piutang, dan uang muka dicatat lewat Deposit Customer yang ditautkan',
+      'AIRA kini bisa mengambil PDF resmi 11 jenis dokumen dan 6 laporan (Laba Rugi, Neraca, Neraca Saldo, Arus Kas, Umur Piutang/Utang, Laporan Harian) lewat tool doc_pdf_get, dengan templat yang sama dengan tombol PDF; tautan unduh berlaku 5 menit dan sekali pakai',
+      'AIRA bisa mengunduh dan mengunggah lampiran transaksi untuk 16 jenis dokumen (att_download_link, att_upload); izin dicek ulang saat berkas diunduh',
+      'Perbaikan PDF: baris Termin dan No. Ref Pelanggan di Invoice kini tercetak, dan kolom Kode di PDF Produksi tidak lagi menempel ke Nama',
+      'Istilah "Rendemen" diganti "Yield" di antarmuka, laporan, dan panduan AIRA',
+      'Lisensi menjadi GNU AGPL-3.0-only',
+    ],
+  },
   {
     version: '4.1.3',
     date: '2026-10-14',
