@@ -11,6 +11,8 @@ import { buildIdentityBlock, type IdentityChannel } from '../ai/identityBlock';
 import { claimIdempotency, finishClaimed, hashArgs, recordCall, releaseClaim, type CallDecision } from './callLog';
 import type { ActorContext } from './context';
 import { callHandler, ArgsError, missingRequired, validateArgs } from './execute';
+import { findBadIds, formatBadIds } from './idShape';
+import { findMissingIds, formatMissingIds } from './idExists';
 import { cariTool, dokumenTool, isMetaTool, whoami, type MetaResult } from './meta';
 import { effectiveUserTier } from './policy';
 import { buildPreview } from './preview';
@@ -167,6 +169,16 @@ async function checkDomainCall(
   const invalid = validateArgs(tool, args);
   if (invalid.length) {
     return { ok: false, risk: tool.risk, outcome: { result: errorResult(`Argumen tidak valid: ${invalid.join('; ')}.`), decision: 'error', httpStatus: 400, error: 'invalid_args' } };
+  }
+  // Bentuk ID (UUID/CUID) untuk tool tulis: nama/nomor dokumen ditolak SEBELUM antrean persetujuan,
+  // bukan baru gagal saat disetujui. Keberadaan di DB dicek terpisah (mcp/idExists.ts).
+  const badIds = findBadIds(tool, args);
+  if (badIds.length) {
+    return { ok: false, risk: tool.risk, outcome: { result: errorResult(`Argumen tidak valid: ${formatBadIds(badIds)}.`), decision: 'error', httpStatus: 400, error: 'invalid_id' } };
+  }
+  const missingIds = await findMissingIds(tool, args);
+  if (missingIds.length) {
+    return { ok: false, risk: tool.risk, outcome: { result: errorResult(`Argumen tidak valid: ${formatMissingIds(missingIds)}.`), decision: 'error', httpStatus: 404, error: 'id_not_found' } };
   }
   return { ok: true, call: { entry, verdict, args, idempotencyKey } };
 }

@@ -105,6 +105,16 @@ describe('approveQueuedToolCall (execution as the original actor)', () => {
     expect(m.notifyUsers).not.toHaveBeenCalled();
   });
 
+  it('handler says partner not found -> lastError carries the corrective hint (party_search)', async () => {
+    m.callHandler.mockResolvedValue({ status: 404, ok: false, body: { kind: 'json', data: { error: 'Data mitra tidak ditemukan.' } } });
+    const r = await approveQueuedToolCall(REQ, 'admin-1', '');
+    expect(r.ok).toBe(false);
+    const upd = m.db.approvalRequest.update.mock.calls[0][0].data;
+    expect(upd.payload.lastError).toContain('Data mitra tidak ditemukan.');
+    expect(upd.payload.lastError).toContain('party_search');
+    expect(upd.payload.lastErrorAt).toBeTruthy();
+  });
+
   it('inactive requester or revoked AIRA access -> refuses to execute', async () => {
     m.db.user.findUnique.mockResolvedValueOnce({ id: 'u1', role: 'Accountant', isActive: false, airaEnabled: true, fullName: 'Budi' });
     expect((await approveQueuedToolCall(REQ, 'a', '')).error).toContain('tidak aktif');

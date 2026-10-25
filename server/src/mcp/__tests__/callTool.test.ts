@@ -28,7 +28,7 @@ vi.mock('../callLog', async () => ({
 
 import { handleToolCall, type CallContext } from '../callTool';
 
-const DRAFT = { date: '2026-10-01', inputs: [{ itemId: 'a', quantity: 1 }], outputs: [{ itemId: 'b', quantity: 1 }] };
+const DRAFT = { date: '2026-10-01', inputs: [{ itemId: '11111111-1111-4111-8111-111111111111', quantity: 1 }], outputs: [{ itemId: '22222222-2222-4222-8222-222222222222', quantity: 1 }] };
 const actor = (over: Record<string, unknown> = {}) => ({
   id: 'u1', fullName: 'Budi', email: 'b@x', role: 'Accountant', airaTier: 'standard', airaJabatan: 'Kasir', channel: 'whatsapp' as const, groupFloor: false, viaAssertion: true, ...over,
 });
@@ -72,7 +72,7 @@ describe('handleToolCall: tier policy', () => {
   });
 
   it('critical tool is queued for a standard actor, executed for a direct actor', async () => {
-    const args = { id: 'pr-1', cashAccountId: 'c', paymentDate: '2026-10-01' };
+    const args = { id: '11111111-1111-4111-8111-111111111111', cashAccountId: '11111111-1111-4111-8111-111111111111', paymentDate: '2026-10-01' };
     expect(sc(await handleToolCall(ctx(), 'payreq_pay', args)).status).toBe('pending_approval');
     expect(m.callHandler).not.toHaveBeenCalled();
     const r = await handleToolCall(ctx({ airaTier: 'direct' }), 'payreq_pay', args);
@@ -104,7 +104,7 @@ describe('handleToolCall: tier policy', () => {
 
   it('capability gate: tool needing a capability the role lacks is denied', async () => {
     m.hasCap.mockResolvedValue(false);
-    const r = await handleToolCall(ctx({ airaTier: 'direct' }), 'appr_approve', { id: 'a1' });
+    const r = await handleToolCall(ctx({ airaTier: 'direct' }), 'appr_approve', { id: '11111111-1111-4111-8111-111111111111' });
     expect(r.isError).toBe(true);
     expect(m.callHandler).not.toHaveBeenCalled();
   });

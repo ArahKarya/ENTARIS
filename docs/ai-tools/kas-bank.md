@@ -1064,22 +1064,22 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
 | Nama | Lokasi | Tipe | Wajib | Keterangan |
 |---|---|---|---|---|
 | `date` | body | `date` | ya | Tanggal transaksi (YYYY-MM-DD). |
-| `partyId` | body | `string` | ya | ID pelanggan/pemasok. |
+| `partyId` | body | `uuid` | ya | ID pelanggan/pemasok. |
 | `amount` | body | `number` | ya | Jumlah Rp > 0. |
 | `paymentType` | body | enum: `Receive`, `Pay`, `VendorDeposit`, `CustomerDeposit`, `VendorRefund`, `CustomerRefund` | ya | Receive \| Pay \| VendorDeposit \| CustomerDeposit \| VendorRefund \| CustomerRefund. |
-| `accountId` | body | `string` | ya | Akun kas/bank (harus akun kas 1.1.x bila tanpa splits). |
+| `accountId` | body | `uuid` | ya | Akun kas/bank (harus akun kas 1.1.x bila tanpa splits). |
 | `allocations` | body | `array<object>` | tidak | Alokasi manual ke invoice: { invoiceType (SalesInvoice\|PurchaseInvoice), invoiceId, amount }. Kosong = otomatis ke invoice terlama. |
 | `allocations[].invoiceType` | body | enum: `SalesInvoice`, `PurchaseInvoice` | ya |  |
-| `allocations[].invoiceId` | body | `string` | ya |  |
+| `allocations[].invoiceId` | body | `uuid` | ya |  |
 | `allocations[].amount` | body | `number` | ya |  |
 | `splits` | body | `array<object>` | tidak | Pecahan multi-akun { accountId, amount, notes }; total harus sama dengan amount. |
-| `splits[].accountId` | body | `string` | ya |  |
+| `splits[].accountId` | body | `uuid` | ya |  |
 | `splits[].amount` | body | `number` | ya |  |
 | `splits[].notes` | body | `string` | tidak |  |
 | `referenceNo` | body | `string` | tidak |  |
 | `notes` | body | `string` | tidak | Catatan bebas. |
 | `isOpeningBalance` | body | `boolean` | tidak | true = uang muka saldo awal (lawan akun Ekuitas Saldo Awal). |
-| `refundSourcePaymentId` | body | `string` | tidak | Refund: ID pembayaran asal yang dikoreksi sebagian. |
+| `refundSourcePaymentId` | body | `uuid` | tidak | Refund: ID pembayaran asal yang dikoreksi sebagian. |
 | `salesOrderId` | body | `uuid` | tidak | CustomerDeposit: tautkan uang muka ke Sales Order. |
 
 **Contoh pemanggilan**
@@ -1089,10 +1089,10 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
   "tool": "pay_record",
   "args": {
     "date": "2026-01-31",
-    "partyId": "<id>",
+    "partyId": "00000000-0000-0000-0000-000000000000",
     "amount": 1,
     "paymentType": "Receive",
-    "accountId": "<id>"
+    "accountId": "00000000-0000-0000-0000-000000000000"
   }
 }
 ```
@@ -1105,7 +1105,7 @@ Akun kas/bank yang valid = akun detail (non-grup) bernomor 1.1.x (Kas Kecil, BRI
   "kind": "action",
   "status": "pending_approval",
   "approvalId": "<id>",
-  "confirm": "Catat Receive Rp 1 untuk pihak <id> tanggal 2026-01-31 lewat akun <id>. Jurnal akan diposting. Setujui?"
+  "confirm": "Catat Receive Rp 1 untuk pihak 00000000-0000-0000-0000-000000000000 tanggal 2026-01-31 lewat akun 00000000-0000-0000-0000-000000000000. Jurnal akan diposting. Setujui?"
 }
 ```
 
