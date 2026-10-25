@@ -120,7 +120,7 @@
   },
   "src/components/InvoiceDetailDrawer.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 26
+      "count": 21
     }
   },
   "src/components/JournalDetailDrawer.tsx": {

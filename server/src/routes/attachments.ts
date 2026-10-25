@@ -2,7 +2,11 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
-import { saveAttachment, deleteAttachment, getFullPath, detectMimeFromMagicBytes, ATTACHMENT_MIME } from '../utils/fileStorage';
+import { deleteAttachment, getFullPath, ATTACHMENT_MIME } from '../utils/fileStorage';
+import { addTransactionAttachments, checkReference } from '../services/transactionAttachments';
+import { fileFromBase64, fileFromChat } from '../services/paymentRequestAttachments';
+import { AttachmentUploadJsonSchema } from '../utils/schemas';
+import { validateBody } from '../utils/validate';
 import { handleRouteError } from '../utils/errors';
 import { ATTACHMENT_REF_TYPES, checkAttachmentAccess, isAttachmentRefType, type AccessResult } from '../services/attachmentAccess';
 
@@ -51,86 +55,15 @@ router.post(
       const access = await checkAttachmentAccess(actorOf(req), referenceType, String(referenceId), 'edit');
       if (!access.ok) return deny(res, access);
 
-      // Validate reference exists
-      if (referenceType === 'payment') {
-        const payment = await prisma.payment.findUnique({ where: { id: referenceId } });
-        if (!payment) return res.status(404).json({ error: 'Transaksi pembayaran tidak ditemukan.' });
-      } else if (referenceType === 'journal') {
-        const journal = await prisma.journalEntry.findUnique({ where: { id: referenceId } });
-        if (!journal) return res.status(404).json({ error: 'Jurnal tidak ditemukan.' });
-      } else if (referenceType === 'purchase_invoice') {
-        const pi = await prisma.purchaseInvoice.findUnique({ where: { id: referenceId } });
-        if (!pi) return res.status(404).json({ error: 'Invoice pembelian tidak ditemukan.' });
-      } else if (referenceType === 'sales_invoice') {
-        const si = await prisma.salesInvoice.findUnique({ where: { id: referenceId } });
-        if (!si) return res.status(404).json({ error: 'Invoice penjualan tidak ditemukan.' });
-      } else if (referenceType === 'sales_order') {
-        const so = await prisma.salesOrder.findUnique({ where: { id: referenceId } });
-        if (!so) return res.status(404).json({ error: 'Pesanan (SO) tidak ditemukan.' });
-      } else if (referenceType === 'delivery_order') {
-        const dord = await prisma.deliveryOrder.findUnique({ where: { id: referenceId } });
-        if (!dord) return res.status(404).json({ error: 'Surat Jalan tidak ditemukan.' });
-      } else if (referenceType === 'goods_receipt') {
-        const stt = await prisma.goodsReceipt.findUnique({ where: { id: referenceId } });
-        if (!stt) return res.status(404).json({ error: 'STT/BPB tidak ditemukan.' });
-      } else if (referenceType === 'approval_request') {
-        // Lampiran pengajuan (dokumen belum dibuat). Hanya pengaju sendiri atau
-        // pemegang approval.view_all; hanya selagi masih bisa diputuskan/direvisi.
-        const ar = await prisma.approvalRequest.findUnique({ where: { id: referenceId } });
-        if (!ar) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
-        if (!['Pending', 'NeedsRevision'].includes(ar.status)) {
-          return res.status(400).json({ error: 'Pengajuan sudah diproses; lampirkan ke dokumennya.' });
-        }
-      }
-
-      // Check existing count
-      const existingCount = await prisma.transactionAttachment.count({
-        where: { referenceType, referenceId },
-      });
+      const ref = await checkReference(referenceType, String(referenceId));
+      if (!ref.ok) return res.status(ref.status).json({ error: ref.error });
 
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
         return res.status(400).json({ error: 'Tidak ada file yang diupload.' });
       }
 
-      if (existingCount + files.length > MAX_FILES) {
-        return res.status(400).json({
-          error: `Maksimal ${MAX_FILES} file per transaksi. Saat ini sudah ada ${existingCount} file.`,
-        });
-      }
-
-      // Verify magic bytes against claimed mimetype before saving.
-      for (const file of files) {
-        const detected = detectMimeFromMagicBytes(file.buffer);
-        if (!detected || !ALLOWED_MIME.includes(detected)) {
-          return res.status(400).json({
-            error: `File "${file.originalname}" tidak dikenali sebagai JPG/PNG/WebP/PDF (magic-byte mismatch).`,
-          });
-        }
-        if (detected !== file.mimetype) {
-          return res.status(400).json({
-            error: `File "${file.originalname}" Content-Type (${file.mimetype}) tidak cocok dengan isi file (${detected}).`,
-          });
-        }
-      }
-
-      const results = [];
-      for (const file of files) {
-        const saved = await saveAttachment(file.buffer, file.originalname, file.mimetype);
-        const record = await prisma.transactionAttachment.create({
-          data: {
-            referenceType,
-            referenceId,
-            fileName: file.originalname,
-            storedName: saved.storedName,
-            mimeType: saved.mimeType,
-            fileSize: saved.fileSize,
-            filePath: saved.filePath,
-            uploadedBy: req.user!.userId,
-          },
-        });
-        results.push(record);
-      }
+      const results = await addTransactionAttachments(referenceType, String(referenceId), req.user!.userId, files);
 
       return res.status(201).json(results);
     } catch (error: any) {
@@ -141,6 +74,32 @@ router.post(
     }
   },
 );
+
+// POST /api/attachments/json: unggah SATU berkas via JSON (agen MCP). Aturan identik dengan /upload:
+// izin `edit` dokumen induk, dokumen harus ada, jenis via magic byte, maks 5 MB, maks 5 berkas per dokumen.
+router.post('/json', async (req: AuthRequest, res: Response) => {
+  try {
+    const body = validateBody(AttachmentUploadJsonSchema, req.body, res);
+    if (!body) return;
+    const { referenceType, referenceId } = body;
+    if (!isAttachmentRefType(referenceType)) {
+      return res.status(400).json({ error: `referenceType harus salah satu dari: ${ATTACHMENT_REF_TYPES.join(', ')}.` });
+    }
+    const access = await checkAttachmentAccess(actorOf(req), referenceType, referenceId, 'edit');
+    if (!access.ok) return deny(res, access);
+    const ref = await checkReference(referenceType, referenceId);
+    if (!ref.ok) return res.status(ref.status).json({ error: ref.error });
+
+    const file = body.contentBase64
+      ? fileFromBase64(body.fileName ?? 'lampiran', body.contentBase64, body.mimeType)
+      : await fileFromChat(req.user!.userId, { chatAttachmentId: body.chatAttachmentId, ref: req.user!.mcpRef });
+    if (body.fileName && !body.contentBase64) file.originalname = body.fileName;
+    const created = await addTransactionAttachments(referenceType, referenceId, req.user!.userId, [file]);
+    return res.status(201).json(created);
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /attachments/json', 'Gagal melampirkan berkas.');
+  }
+});
 
 // GET /api/attachments/file/:id: serve file (auth-gated)
 // NOTE: Must be registered BEFORE the /:referenceType/:referenceId route below,

@@ -20,6 +20,49 @@ export interface InvoicePdfArgs {
   paymentBreakdown: any[];
 }
 
+/**
+ * Turunan angka PDF dari payload GET detail invoice (satu sumber untuk drawer UI DAN render server).
+ * Sebelumnya tersebar di InvoiceDetailDrawer; dipindah agar PDF agen identik dengan tombol PDF.
+ */
+export function deriveInvoicePdfArgs(
+  type: 'sales' | 'purchase',
+  invoice: any,
+): Omit<InvoicePdfArgs, 'company'> {
+  const isSales = type === 'sales';
+  const party = isSales ? invoice?.customer : invoice?.supplier;
+  const items: any[] = invoice?.items ?? [];
+  const outstanding = Number(invoice?.outstanding ?? 0);
+  const allocations: any[] = invoice?.paymentAllocations ?? [];
+  const depositApplications: any[] = invoice?.depositApplications ?? [];
+  // Hanya alokasi yang pembayarannya tidak dibatalkan.
+  const paymentBreakdown = allocations
+    .filter((a: any) => a.payment && a.payment.status !== 'Cancelled')
+    .map((a: any) => ({
+      paymentNumber: a.payment.paymentNumber,
+      date: a.payment.date,
+      amount: a.payment.amount,
+      allocatedAmount: a.allocatedAmount,
+      referenceNo: a.payment.referenceNo ?? null,
+      notes: a.payment.notes ?? null,
+      primaryAccount: a.payment.account
+        ? { accountNumber: a.payment.account.accountNumber, name: a.payment.account.name, rootType: a.payment.account.rootType }
+        : null,
+      splits: (a.payment.splits ?? []).map((sp: any) => ({
+        accountNumber: sp.account.accountNumber,
+        accountName: sp.account.name,
+        rootType: sp.account.rootType,
+        amount: sp.amount,
+        notes: sp.notes ?? null,
+      })),
+    }));
+  const paidFromDeposit = depositApplications
+    .filter((a: any) => !a.isCancelled)
+    .reduce((sum: number, a: any) => sum + Number(a.appliedAmount ?? 0), 0);
+  const paidFromCash = Math.max(0, Number(invoice?.grandTotal ?? 0) - outstanding - paidFromDeposit);
+  const partyDepositBalance = Number((isSales ? party?.customerDepositBalance : party?.depositBalance) ?? 0);
+  return { type, invoice, party, items, outstanding, paidFromCash, paidFromDeposit, partyDepositBalance, paymentBreakdown };
+}
+
 export function buildInvoicePdf({
   type,
   invoice,

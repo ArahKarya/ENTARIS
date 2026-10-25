@@ -114,7 +114,13 @@ export const DENY_RULES: DenyRule[] = [
     id: 'attachment-binary',
     category: 'file-biner',
     exact: ['POST /api/attachments/upload', 'GET /api/attachments/file/:p', 'DELETE /api/attachments/:p'],
-    reason: 'Unggah/unduh/hapus berkas biner (multipart/stream). Tool hanya mengekspos metadata lampiran, bukan isi berkas.',
+    reason: 'Unggah/unduh/hapus berkas biner (multipart/stream) tidak bisa lewat JSON-RPC. Padanannya: att_upload (JSON/base64/lampiran chat) dan att_download_link (tautan bertanda tangan).',
+  },
+  {
+    id: 'file-ticket-download',
+    category: 'file-biner',
+    pathPrefix: '/api/files',
+    reason: 'Unduh biner via tiket bertanda tangan (tanpa sesi). Agen mendapat tautan dari tool att_download_link / doc_pdf_get lalu mengunduhnya sendiri; bukan panggilan tool JSON.',
   },
   {
     id: 'infra-meta',

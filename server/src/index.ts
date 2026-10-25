@@ -57,6 +57,8 @@ import projectGuaranteeRoutes from './routes/projectGuarantees';
 import customerDepositRoutes from './routes/customerDeposits';
 import systemAccountRoutes from './routes/systemAccounts';
 import attachmentRoutes from './routes/attachments';
+import attachmentLinkRoutes from './routes/attachmentLinks';
+import fileDownloadRoutes from './routes/files';
 import stockOpnameRoutes from './routes/stockOpname';
 import quotationRoutes from './routes/quotations';
 import proformaInvoiceRoutes from './routes/proformaInvoices';
@@ -186,6 +188,7 @@ app.use('/api', apiRateLimit);
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/ga/public', gaPublicQrRoutes); // GA: QR publik (tanpa auth)
+app.use('/api/files', fileDownloadRoutes); // unduh via tiket bertanda tangan (agen MCP, tanpa cookie); ACL dicek ulang
 
 // Changes on every process start (every deploy); the client VersionWatcher uses it to prompt a reload.
 const BUILD_VERSION = `${Date.now()}`;
@@ -269,6 +272,7 @@ app.use(
   dashboardRoutes,
 );
 app.use('/api/search', searchRoutes);                // pencarian global
+app.use('/api/attachments', attachmentLinkRoutes);
 app.use('/api/attachments', attachmentRoutes);       // access follows the parent document
 app.use('/api/notifications', notificationRoutes);   // per-user; POST /check di-gate di file
 app.use('/api/settings', settingsRoutes);            // GET /company terbuka; tulis di-gate di file

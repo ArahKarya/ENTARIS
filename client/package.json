@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pdf": "vite build -c vite.pdf.config.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:prune": "eslint . --prune-suppressions",
     "preview": "vite preview",

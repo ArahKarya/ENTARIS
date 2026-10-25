@@ -2,7 +2,7 @@
 
 > File ini dibangkitkan dari `docs/ai-tools/_guides/_README.md` oleh `npm run ai-tools:docs` — edit sumbernya, bukan hasilnya.
 
-Katalog ini mendokumentasikan **semua fungsi Entaris** yang dapat dipanggil agen (AIRA) sebagai *tool*. Saat ini: **484** tool dalam **14** toolset (read 222, write 156, critical 106); 573 route API terinventaris. Seluruh tool **aktif** secara default dan disajikan lewat satu endpoint MCP `/mcp` (lihat ARSITEKTUR-MCP.md); tier read/write/critical menentukan apakah panggilan langsung dieksekusi atau menunggu persetujuan manusia, dan owner dapat menonaktifkan/menetapkan tier per tool.
+Katalog ini mendokumentasikan **semua fungsi Entaris** yang dapat dipanggil agen (AIRA) sebagai *tool*. Saat ini: **487** tool dalam **14** toolset (read 224, write 157, critical 106); 577 route API terinventaris. Seluruh tool **aktif** secara default dan disajikan lewat satu endpoint MCP `/mcp` (lihat ARSITEKTUR-MCP.md); tier read/write/critical menentukan apakah panggilan langsung dieksekusi atau menunggu persetujuan manusia, dan owner dapat menonaktifkan/menetapkan tier per tool.
 
 Arsitektur MCP (identitas per-user, tier, antrian persetujuan, spesifikasi token + actor assertion): [ARSITEKTUR-MCP.md](ARSITEKTUR-MCP.md). Panduan klien MCP + implementasi referensi penanda tangan: [PANDUAN-KLIEN-MCP.md](PANDUAN-KLIEN-MCP.md). Panel chat (sesi disimpan Entaris, kontrak ke engine, blok identitas): [PANEL-CHAT.md](PANEL-CHAT.md).
 

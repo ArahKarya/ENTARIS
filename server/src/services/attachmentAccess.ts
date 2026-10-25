@@ -16,6 +16,14 @@ export const ATTACHMENT_REF_TYPES = [
   'sales_order',
   'delivery_order',
   'goods_receipt',
+  'quotation',
+  'proforma_invoice',
+  'purchase_order',
+  'sales_return',
+  'stock_transfer',
+  'stock_opname',
+  'production_run',
+  'fixed_asset',
   'approval_request',
 ] as const;
 
@@ -36,6 +44,14 @@ export const ATTACHMENT_MODULES: Record<DocumentRefType, Record<PermAction, stri
   sales_order: { view: ['sales_order'], edit: ['sales_order'] },
   delivery_order: { view: ['delivery_order'], edit: ['delivery_order'] },
   goods_receipt: { view: ['goods_receipt'], edit: ['goods_receipt'] },
+  quotation: { view: ['quotation'], edit: ['quotation'] },
+  proforma_invoice: { view: ['proforma_invoice'], edit: ['proforma_invoice'] },
+  purchase_order: { view: ['purchase_order'], edit: ['purchase_order'] },
+  sales_return: { view: ['sales_return'], edit: ['sales_return'] },
+  stock_transfer: { view: ['stock_transfer'], edit: ['stock_transfer'] },
+  stock_opname: { view: ['stock_opname'], edit: ['stock_opname'] },
+  production_run: { view: ['production'], edit: ['production'] },
+  fixed_asset: { view: ['fixed_assets'], edit: ['fixed_assets'] },
 };
 
 /** Deposit payments (and their refunds) are managed from the deposit modules. */

@@ -21,7 +21,7 @@ import ApplyDepositModal from './ApplyDepositModal';
 import ApplyCustomerDepositModal from './ApplyCustomerDepositModal';
 import DeliveryOrderFromInvoiceModal from './DeliveryOrderFromInvoiceModal';
 import { ThreeWayMatchPanel } from './purchase/ThreeWayMatchPanel';
-import { buildInvoicePdf } from './invoice-detail/buildInvoicePdf';
+import { buildInvoicePdf, deriveInvoicePdfArgs } from './invoice-detail/buildInvoicePdf';
 import { InvoiceStatusProgress } from './invoice-detail/InvoiceStatusProgress';
 import { InvoiceInfoGrid } from './invoice-detail/InvoiceInfoGrid';
 import { InvoiceItemsSection } from './invoice-detail/InvoiceItemsSection';
@@ -294,40 +294,8 @@ const InvoiceDetailDrawer: React.FC<Props> = ({ type, invoiceId, onClose, onEdit
   const deductions = computeDeductions(allocations);
   const netAfterDeductions = grandTotal - deductions.total;
 
-  // Build "Rincian Pembayaran" rows for the invoice PDF. Show only
-  // non-cancelled allocations (Cancelled payments are excluded).
-  const paymentBreakdown = allocations
-    .filter((a: any) => a.payment && a.payment.status !== 'Cancelled')
-    .map((a: any) => ({
-      paymentNumber: a.payment.paymentNumber,
-      date: a.payment.date,
-      amount: a.payment.amount,
-      allocatedAmount: a.allocatedAmount,
-      referenceNo: a.payment.referenceNo ?? null,
-      notes: a.payment.notes ?? null,
-      primaryAccount: a.payment.account
-        ? {
-            accountNumber: a.payment.account.accountNumber,
-            name: a.payment.account.name,
-            rootType: a.payment.account.rootType,
-          }
-        : null,
-      splits: (a.payment.splits ?? []).map((s: any) => ({
-        accountNumber: s.account.accountNumber,
-        accountName: s.account.name,
-        rootType: s.account.rootType,
-        amount: s.amount,
-        notes: s.notes ?? null,
-      })),
-    }));
-  // Payment breakdown: deposit-applied vs cash-paid
-  const paidFromDeposit = depositApplications
-    .filter((a: any) => !a.isCancelled)
-    .reduce((s: number, a: any) => s + Number(a.appliedAmount ?? 0), 0);
-  const paidFromCash = Math.max(0, (Number(invoice?.grandTotal ?? 0) - Number(invoice?.outstanding ?? 0)) - paidFromDeposit);
-  const partyDepositBalance = Number(
-    (isSales ? party?.customerDepositBalance : party?.depositBalance) ?? 0,
-  );
+  // Rincian pembayaran PDF + angka turunan: satu sumber dengan render server (deriveInvoicePdfArgs).
+  const { paymentBreakdown, paidFromDeposit, paidFromCash, partyDepositBalance } = deriveInvoicePdfArgs(type, invoice);
 
   const isOverdue = invoice?.dueDate && new Date(invoice.dueDate) < new Date() && outstanding > 0;
   const canCancel = invoice && invoice.status !== 'Cancelled' && (invoice.status !== 'Paid' || grandTotal === 0); // invoice Rp 0 (sumbangan) auto-Paid tapi tetap boleh dibatalkan
