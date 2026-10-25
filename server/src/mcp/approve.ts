@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { notifyUsers } from '../services/notificationService';
 import { executeApprovedToolCall, type QueuedToolPayload } from './queue';
+import { explainExecutionError } from './idShape';
 
 export interface AiToolApprovalOutcome {
   ok: boolean;
@@ -32,7 +33,7 @@ export async function approveQueuedToolCall(
 
   if (!exec.ok) {
     // Tak ada efek (handler menolak / aktor tak valid) → kembali Pending; approver boleh menolak.
-    const failed = { ...(original ?? {}), lastError: exec.error ?? 'Eksekusi gagal.', lastErrorAt: new Date().toISOString() };
+    const failed = { ...(original ?? {}), lastError: explainExecutionError(exec.error ?? 'Eksekusi gagal.'), lastErrorAt: new Date().toISOString() };
     await prisma.approvalRequest.update({
       where: { id: request.id },
       data: { status: 'Pending', payload: failed as unknown as Prisma.InputJsonValue },

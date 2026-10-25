@@ -23310,16 +23310,16 @@
       ],
       "input": {
         "date": "date",
-        "partyId": "string",
+        "partyId": "uuid",
         "amount": "number",
         "paymentType": "enum",
-        "accountId": "string",
+        "accountId": "uuid",
         "allocations": "array<object>",
         "splits": "array<object>",
         "referenceNo": "string",
         "notes": "string",
         "isOpeningBalance": "boolean",
-        "refundSourcePaymentId": "string",
+        "refundSourcePaymentId": "uuid",
         "salesOrderId": "uuid"
       },
       "params": [
@@ -23333,7 +23333,7 @@
         {
           "name": "partyId",
           "in": "body",
-          "type": "string",
+          "type": "uuid",
           "required": true,
           "description": "ID pelanggan/pemasok."
         },
@@ -23362,7 +23362,7 @@
         {
           "name": "accountId",
           "in": "body",
-          "type": "string",
+          "type": "uuid",
           "required": true,
           "description": "Akun kas/bank (harus akun kas 1.1.x bila tanpa splits)."
         },
@@ -23385,7 +23385,7 @@
             {
               "name": "invoiceId",
               "in": "body",
-              "type": "string",
+              "type": "uuid",
               "required": true
             },
             {
@@ -23406,7 +23406,7 @@
             {
               "name": "accountId",
               "in": "body",
-              "type": "string",
+              "type": "uuid",
               "required": true
             },
             {
@@ -23447,7 +23447,7 @@
         {
           "name": "refundSourcePaymentId",
           "in": "body",
-          "type": "string",
+          "type": "uuid",
           "required": false,
           "description": "Refund: ID pembayaran asal yang dikoreksi sebagian."
         },

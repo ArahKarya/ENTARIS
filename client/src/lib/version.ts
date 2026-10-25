@@ -4,7 +4,7 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.2.0';
+export const APP_VERSION = '4.2.1';
 export const APP_BUILD_DATE = '2026-10-25';
 export const APP_NAME = 'Entaris';
 
@@ -25,6 +25,16 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.2.1',
+    date: '2026-10-26',
+    title: 'Perbaikan Pengajuan AIRA',
+    changes: [
+      'Pengajuan AIRA yang berisi nama atau nomor dokumen di kolom ID (mis. nama pelanggan atau nomor invoice) kini ditolak sebelum masuk antrean Persetujuan, dengan petunjuk mencari ID yang benar',
+      'ID yang tidak ada di database (pelanggan/pemasok, akun, invoice, pembayaran) juga ditolak lebih awal',
+      'Pengajuan yang gagal dieksekusi menampilkan penyebab dan langkah perbaikan di kartu Detail Persetujuan',
+    ],
+  },
   {
     version: '4.2.0',
     date: '2026-10-25',

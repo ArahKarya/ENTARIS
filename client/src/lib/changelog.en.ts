@@ -8,6 +8,14 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.2.1': {
+    title: 'AIRA Request Fixes',
+    changes: [
+      'AIRA requests that put a name or document number in an ID field (e.g. a customer name or invoice number) are now rejected before reaching the Approvals queue, with a hint on how to look up the correct ID',
+      'IDs that do not exist in the database (customer/supplier, account, invoice, payment) are also rejected earlier',
+      'Requests that fail to execute show the cause and the corrective step on the Approval detail card',
+    ],
+  },
   '4.2.0': {
     title: 'Proforma Invoice, PDFs and Attachments for AIRA',
     changes: [

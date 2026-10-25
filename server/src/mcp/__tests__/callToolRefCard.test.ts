@@ -42,7 +42,7 @@ describe('call log ref + card hint', () => {
     const events: CallEvent[] = [];
     const off = onCall((e) => events.push(e));
     m.callHandler.mockResolvedValue({ status: 201, ok: true, body: { kind: 'json', data: { id: 'd1', draftNumber: 'DKB-1', title: 'T', status: 'Draft', rows: [{}] } } });
-    const r = await handleToolCall(ctx('s1:t1'), 'kas_buat_draft_dari_baris', { entryDate: '2026-10-01', cashAccountId: 'a', rows: [{ description: 'x', amount: 1, direction: 'keluar' }] });
+    const r = await handleToolCall(ctx('s1:t1'), 'kas_buat_draft_dari_baris', { entryDate: '2026-10-01', cashAccountId: '11111111-1111-4111-8111-111111111111', rows: [{ description: 'x', amount: 1, direction: 'keluar' }] });
     off();
     expect(r.isError).toBe(false);
     expect(sc(r).card).toMatchObject({ kind: 'cash_book_draft', href: '/cash-book-drafts/d1' });
@@ -54,7 +54,7 @@ describe('call log ref + card hint', () => {
   });
 
   it('queued tool → approval card + ref', async () => {
-    const r = await handleToolCall(ctx('s1:t2'), 'kas_draft_posting', { id: 'd1' });
+    const r = await handleToolCall(ctx('s1:t2'), 'kas_draft_posting', { id: '11111111-1111-4111-8111-111111111111' });
     expect(sc(r).status).toBe('pending_approval');
     expect(sc(r).card).toMatchObject({ kind: 'approval', href: '/approvals' });
     expect(m.recordCall.mock.calls[0][0]).toMatchObject({ decision: 'queued', ref: 's1:t2', card: { kind: 'approval' } });

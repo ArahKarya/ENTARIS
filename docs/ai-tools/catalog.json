@@ -22106,16 +22106,16 @@
       ],
       "input": {
         "date": "date",
-        "partyId": "string",
+        "partyId": "uuid",
         "amount": "number",
         "paymentType": "enum",
-        "accountId": "string",
+        "accountId": "uuid",
         "allocations": "array<object>",
         "splits": "array<object>",
         "referenceNo": "string",
         "notes": "string",
         "isOpeningBalance": "boolean",
-        "refundSourcePaymentId": "string",
+        "refundSourcePaymentId": "uuid",
         "salesOrderId": "uuid"
       },
       "params": [
@@ -22129,7 +22129,7 @@
         {
           "name": "partyId",
           "in": "body",
-          "type": "string",
+          "type": "uuid",
           "required": true,
           "description": "ID pelanggan/pemasok."
         },
@@ -22158,7 +22158,7 @@
         {
           "name": "accountId",
           "in": "body",
-          "type": "string",
+          "type": "uuid",
           "required": true,
           "description": "Akun kas/bank (harus akun kas 1.1.x bila tanpa splits)."
         },
@@ -22181,7 +22181,7 @@
             {
               "name": "invoiceId",
               "in": "body",
-              "type": "string",
+              "type": "uuid",
               "required": true
             },
             {
@@ -22202,7 +22202,7 @@
             {
               "name": "accountId",
               "in": "body",
-              "type": "string",
+              "type": "uuid",
               "required": true
             },
             {
@@ -22243,7 +22243,7 @@
         {
           "name": "refundSourcePaymentId",
           "in": "body",
-          "type": "string",
+          "type": "uuid",
           "required": false,
           "description": "Refund: ID pembayaran asal yang dikoreksi sebagian."
         },
@@ -22287,15 +22287,15 @@
         "pay_cancel",
         "pay_ledger"
       ],
-      "doc": "### pay_record\n\n**Ringkasan:** Mencatat transaksi kas/bank dan langsung memposting jurnal. Enam jenis (paymentType): Receive (terima dari pelanggan), Pay (bayar ke pemasok), VendorDeposit, CustomerDeposit, VendorRefund, CustomerRefund. Receive/Pay otomatis dialokasikan ke invoice terlama (atau sesuai allocations) dan boleh multi-akun lewat splits.\n\n- **Risk / tier:** `critical` / Wajib-Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant (modul `payment` / `edit`)\n- **Handler:** `POST /api/payments` (src/routes/payments.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `date` | body | `date` | ya | Tanggal transaksi (YYYY-MM-DD). |\n| `partyId` | body | `string` | ya | ID pelanggan/pemasok. |\n| `amount` | body | `number` | ya | Jumlah Rp > 0. |\n| `paymentType` | body | enum: `Receive`, `Pay`, `VendorDeposit`, `CustomerDeposit`, `VendorRefund`, `CustomerRefund` | ya | Receive \\| Pay \\| VendorDeposit \\| CustomerDeposit \\| VendorRefund \\| CustomerRefund. |\n| `accountId` | body | `string` | ya | Akun kas/bank (harus akun kas 1.1.x bila tanpa splits). |\n| `allocations` | body | `array<object>` | tidak | Alokasi manual ke invoice: { invoiceType (SalesInvoice\\|PurchaseInvoice), invoiceId, amount }. Kosong = otomatis ke invoice terlama. |\n| `allocations[].invoiceType` | body | enum: `SalesInvoice`, `PurchaseInvoice` | ya |  |\n| `allocations[].invoiceId` | body | `string` | ya |  |\n| `allocations[].amount` | body | `number` | ya |  |\n| `splits` | body | `array<object>` | tidak | Pecahan multi-akun { accountId, amount, notes }; total harus sama dengan amount. |\n| `splits[].accountId` | body | `string` | ya |  |\n| `splits[].amount` | body | `number` | ya |  |\n| `splits[].notes` | body | `string` | tidak |  |\n| `referenceNo` | body | `string` | tidak |  |\n| `notes` | body | `string` | tidak | Catatan bebas. |\n| `isOpeningBalance` | body | `boolean` | tidak | true = uang muka saldo awal (lawan akun Ekuitas Saldo Awal). |\n| `refundSourcePaymentId` | body | `string` | tidak | Refund: ID pembayaran asal yang dikoreksi sebagian. |\n| `salesOrderId` | body | `uuid` | tidak | CustomerDeposit: tautkan uang muka ke Sales Order. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"pay_record\",\n  \"args\": {\n    \"date\": \"2026-01-31\",\n    \"partyId\": \"<id>\",\n    \"amount\": 1,\n    \"paymentType\": \"Receive\",\n    \"accountId\": \"<id>\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Catat Receive Rp 1 untuk pihak <id> tanggal 2026-01-31 lewat akun <id>. Jurnal akan diposting. Setujui?\"\n}\n```\n\n**Isi hasil:** Payment yang dibuat + party + unallocatedAmount. HTTP 201.\n\n**Efek pembukuan/stok:** Receive: DR Kas/Bank (per split) / CR Piutang Usaha (1.2.1), outstanding SI turun. Pay: DR Hutang Usaha (2.1.1) / CR Kas/Bank (per split), outstanding PI turun. VendorDeposit: DR Uang Muka Vendor (1.3) / CR Kas-Bank (atau CR Ekuitas Saldo Awal 3.1 bila isOpeningBalance). CustomerDeposit: DR Kas-Bank / CR Uang Muka Pelanggan (2.1.2). VendorRefund: DR Bank / CR Hutang Usaha. CustomerRefund: DR Piutang Usaha / CR Bank. Sisa tak teralokasi mengurangi saldo awal pihak.\n\n**Teks konfirmasi:** Catat {paymentType} Rp {amount} untuk pihak {partyId} tanggal {date} lewat akun {accountId}. Jurnal akan diposting. Setujui?\n\n**Prasyarat**\n\n- Periode fiskal terbuka\n- Pihak aktif dan tipe sesuai (uang muka vendor hanya Supplier, uang muka pelanggan hanya Customer)\n- Akun kas/bank valid\n\n**Error umum**\n\n- 400: Total split tidak sama dengan jumlah pembayaran\n- 400: Akun yang dipilih bukan akun kas/bank\n- 400: Uang muka hanya dapat dibuat untuk Supplier\n- 400: Nilai refund melebihi alokasi pembayaran asal\n\n**Tool terkait:** [`pi_list`](pembelian.md#pi_list), [`vdep_apply`](pembelian.md#vdep_apply), [`pay_cancel`](#pay_cancel), [`pay_ledger`](#pay_ledger)\n",
+      "doc": "### pay_record\n\n**Ringkasan:** Mencatat transaksi kas/bank dan langsung memposting jurnal. Enam jenis (paymentType): Receive (terima dari pelanggan), Pay (bayar ke pemasok), VendorDeposit, CustomerDeposit, VendorRefund, CustomerRefund. Receive/Pay otomatis dialokasikan ke invoice terlama (atau sesuai allocations) dan boleh multi-akun lewat splits.\n\n- **Risk / tier:** `critical` / Wajib-Approve\n- **Draft-capable:** tidak (efek langsung)\n- **Roles & izin:** Admin, Accountant (modul `payment` / `edit`)\n- **Handler:** `POST /api/payments` (src/routes/payments.ts)\n- **Status default:** aktif (dapat dinonaktifkan per tool di Settings → AIRA)\n\n**Parameter**\n\n| Nama | Lokasi | Tipe | Wajib | Keterangan |\n|---|---|---|---|---|\n| `date` | body | `date` | ya | Tanggal transaksi (YYYY-MM-DD). |\n| `partyId` | body | `uuid` | ya | ID pelanggan/pemasok. |\n| `amount` | body | `number` | ya | Jumlah Rp > 0. |\n| `paymentType` | body | enum: `Receive`, `Pay`, `VendorDeposit`, `CustomerDeposit`, `VendorRefund`, `CustomerRefund` | ya | Receive \\| Pay \\| VendorDeposit \\| CustomerDeposit \\| VendorRefund \\| CustomerRefund. |\n| `accountId` | body | `uuid` | ya | Akun kas/bank (harus akun kas 1.1.x bila tanpa splits). |\n| `allocations` | body | `array<object>` | tidak | Alokasi manual ke invoice: { invoiceType (SalesInvoice\\|PurchaseInvoice), invoiceId, amount }. Kosong = otomatis ke invoice terlama. |\n| `allocations[].invoiceType` | body | enum: `SalesInvoice`, `PurchaseInvoice` | ya |  |\n| `allocations[].invoiceId` | body | `uuid` | ya |  |\n| `allocations[].amount` | body | `number` | ya |  |\n| `splits` | body | `array<object>` | tidak | Pecahan multi-akun { accountId, amount, notes }; total harus sama dengan amount. |\n| `splits[].accountId` | body | `uuid` | ya |  |\n| `splits[].amount` | body | `number` | ya |  |\n| `splits[].notes` | body | `string` | tidak |  |\n| `referenceNo` | body | `string` | tidak |  |\n| `notes` | body | `string` | tidak | Catatan bebas. |\n| `isOpeningBalance` | body | `boolean` | tidak | true = uang muka saldo awal (lawan akun Ekuitas Saldo Awal). |\n| `refundSourcePaymentId` | body | `uuid` | tidak | Refund: ID pembayaran asal yang dikoreksi sebagian. |\n| `salesOrderId` | body | `uuid` | tidak | CustomerDeposit: tautkan uang muka ke Sales Order. |\n\n**Contoh pemanggilan**\n\n```json\n{\n  \"tool\": \"pay_record\",\n  \"args\": {\n    \"date\": \"2026-01-31\",\n    \"partyId\": \"00000000-0000-0000-0000-000000000000\",\n    \"amount\": 1,\n    \"paymentType\": \"Receive\",\n    \"accountId\": \"00000000-0000-0000-0000-000000000000\"\n  }\n}\n```\n\n**Contoh hasil (dipersingkat)**\n\n```json\n{\n  \"ok\": true,\n  \"kind\": \"action\",\n  \"status\": \"pending_approval\",\n  \"approvalId\": \"<id>\",\n  \"confirm\": \"Catat Receive Rp 1 untuk pihak 00000000-0000-0000-0000-000000000000 tanggal 2026-01-31 lewat akun 00000000-0000-0000-0000-000000000000. Jurnal akan diposting. Setujui?\"\n}\n```\n\n**Isi hasil:** Payment yang dibuat + party + unallocatedAmount. HTTP 201.\n\n**Efek pembukuan/stok:** Receive: DR Kas/Bank (per split) / CR Piutang Usaha (1.2.1), outstanding SI turun. Pay: DR Hutang Usaha (2.1.1) / CR Kas/Bank (per split), outstanding PI turun. VendorDeposit: DR Uang Muka Vendor (1.3) / CR Kas-Bank (atau CR Ekuitas Saldo Awal 3.1 bila isOpeningBalance). CustomerDeposit: DR Kas-Bank / CR Uang Muka Pelanggan (2.1.2). VendorRefund: DR Bank / CR Hutang Usaha. CustomerRefund: DR Piutang Usaha / CR Bank. Sisa tak teralokasi mengurangi saldo awal pihak.\n\n**Teks konfirmasi:** Catat {paymentType} Rp {amount} untuk pihak {partyId} tanggal {date} lewat akun {accountId}. Jurnal akan diposting. Setujui?\n\n**Prasyarat**\n\n- Periode fiskal terbuka\n- Pihak aktif dan tipe sesuai (uang muka vendor hanya Supplier, uang muka pelanggan hanya Customer)\n- Akun kas/bank valid\n\n**Error umum**\n\n- 400: Total split tidak sama dengan jumlah pembayaran\n- 400: Akun yang dipilih bukan akun kas/bank\n- 400: Uang muka hanya dapat dibuat untuk Supplier\n- 400: Nilai refund melebihi alokasi pembayaran asal\n\n**Tool terkait:** [`pi_list`](pembelian.md#pi_list), [`vdep_apply`](pembelian.md#vdep_apply), [`pay_cancel`](#pay_cancel), [`pay_ledger`](#pay_ledger)\n",
       "example": {
         "tool": "pay_record",
         "args": {
           "date": "2026-01-31",
-          "partyId": "<id>",
+          "partyId": "00000000-0000-0000-0000-000000000000",
           "amount": 1,
           "paymentType": "Receive",
-          "accountId": "<id>"
+          "accountId": "00000000-0000-0000-0000-000000000000"
         }
       }
     },

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-10-26
+
+Perbaikan: pengajuan AIRA dengan argumen ID yang pasti gagal tidak lagi masuk antrean Persetujuan.
+
+### Diperbaiki
+- Tool tulis AIRA/MCP kini menolak SEBELUM antrean bila argumen ber-ID (`partyId`, `accountId`, `invoiceId`, `allocations[].invoiceId`, dan sejenisnya) berisi nama atau nomor dokumen, bukan ID. Pesan penolakan menyebut tool baca untuk mencari ID (`party_search`, `coa_flat`, `si_list`, dan lainnya).
+- ID berbentuk benar tetapi tidak ada di database (pelanggan/pemasok, akun, invoice, pembayaran) juga ditolak sebelum antrean. Pra-cek ini gagal-terbuka bila database lambat.
+- Pengajuan AIRA yang gagal dieksekusi menyimpan penyebab beserta langkah perbaikan di kartu Detail Persetujuan.
+- `pay_record`: `partyId`, `accountId`, dan `invoiceId` bertipe `uuid` di katalog tool.
+
 ## [4.2.0] - 2026-10-25
 
 Entaris kini punya Proforma Invoice, PDF dan lampiran yang bisa diambil agen AIRA, serta berlisensi AGPL-3.0.

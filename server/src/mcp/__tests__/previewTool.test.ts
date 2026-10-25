@@ -26,7 +26,7 @@ const ctx = (airaTier = 'standard'): CallContext => ({
   actor: { id: 'u1', fullName: 'Budi', email: 'b@x', role: 'Accountant', airaTier, airaJabatan: null, channel: 'telegram', groupFloor: false, viaAssertion: true } as never,
 });
 const sc = (r: unknown) => (r as { structuredContent: Record<string, unknown> }).structuredContent;
-const DRAFT_ARGS = { entryDate: '2026-10-01', cashAccountId: 'a', rows: [{ description: 'x', amount: 1, direction: 'keluar' }] };
+const DRAFT_ARGS = { entryDate: '2026-10-01', cashAccountId: '11111111-1111-4111-8111-111111111111', rows: [{ description: 'x', amount: 1, direction: 'keluar' }] };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,18 +44,18 @@ describe('pratinjau_tool', () => {
   });
 
   it('queued write: needs confirmation, official text, nothing runs', async () => {
-    const r = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: 'DKB-1' } });
+    const r = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: '11111111-1111-4111-8111-111111111111' } });
     expect(r.isError).toBe(false);
     expect(sc(r)).toMatchObject({ tool: 'kas_draft_posting', tindakan: 'persetujuan', perlu_konfirmasi: true });
-    expect(String(sc(r).konfirmasi)).toContain('DKB-1');
-    expect(sc(r).rincian).toEqual([{ label: 'id', value: 'DKB-1' }]);
+    expect(String(sc(r).konfirmasi)).toContain('11111111-1111-4111-8111-111111111111');
+    expect(sc(r).rincian).toEqual([{ label: 'id', value: '11111111-1111-4111-8111-111111111111' }]);
     expect(m.callHandler).not.toHaveBeenCalled();
     expect(m.queueToolCall).not.toHaveBeenCalled();
     expect(m.recordCall.mock.calls[0][0]).toMatchObject({ tool: 'pratinjau_tool', risk: 'read', decision: 'allowed' });
   });
 
   it('direct level executes at once: still needs confirmation', async () => {
-    const r = await handleToolCall(ctx('direct'), 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: 'DKB-1' } });
+    const r = await handleToolCall(ctx('direct'), 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: '11111111-1111-4111-8111-111111111111' } });
     expect(sc(r)).toMatchObject({ tindakan: 'langsung', perlu_konfirmasi: true });
   });
 
@@ -68,15 +68,15 @@ describe('pratinjau_tool', () => {
   });
 
   it('deletes, posts and critical draft-capable tools still need a card', async () => {
-    const del = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'po_delete', args: { id: 'po-1' } });
+    const del = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'po_delete', args: { id: '11111111-1111-4111-8111-111111111111' } });
     expect(sc(del)).toMatchObject({ tindakan: 'langsung', perlu_konfirmasi: true });
-    const post = await handleToolCall(ctx('direct'), 'pratinjau_tool', { tool: 'prod_draft_post', args: { id: 'd-1' } });
+    const post = await handleToolCall(ctx('direct'), 'pratinjau_tool', { tool: 'prod_draft_post', args: { id: '22222222-2222-4222-8222-222222222222' } });
     expect(sc(post)).toMatchObject({ perlu_konfirmasi: true });
   });
 
   it('a group chat lowers direct to the approval queue', async () => {
     const group = { ...ctx('direct'), actor: { ...ctx('direct').actor, groupFloor: true } } as CallContext;
-    const r = await handleToolCall(group, 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: 'DKB-1' } });
+    const r = await handleToolCall(group, 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: '11111111-1111-4111-8111-111111111111' } });
     expect(sc(r)).toMatchObject({ tindakan: 'persetujuan', perlu_konfirmasi: true });
   });
 
@@ -92,7 +92,7 @@ describe('pratinjau_tool', () => {
   it('refuses what the real call would refuse', async () => {
     const missing = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'kas_draft_posting', args: {} });
     expect(missing.isError).toBe(true);
-    const readOnly = await handleToolCall(ctx('read'), 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: 'x' } });
+    const readOnly = await handleToolCall(ctx('read'), 'pratinjau_tool', { tool: 'kas_draft_posting', args: { id: '11111111-1111-4111-8111-111111111111' } });
     expect(readOnly.isError).toBe(true);
     const meta = await handleToolCall(ctx(), 'pratinjau_tool', { tool: 'panggil_tool', args: {} });
     expect(meta.isError).toBe(true);
