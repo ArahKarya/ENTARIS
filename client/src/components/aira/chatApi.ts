@@ -41,6 +41,12 @@ export async function removeSession(id: string): Promise<void> {
   await api.delete(`/ai/chat/sessions/${id}`);
 }
 
+/** Hentikan giliran yang sedang berjalan di server (koneksi putus tidak lagi menghentikannya). */
+export async function stopSessionTurn(id: string, turnId?: string): Promise<boolean> {
+  const { data } = await api.post<{ ok: boolean; stopped: boolean }>(`/ai/chat/sessions/${id}/stop`, turnId ? { turn_id: turnId } : {});
+  return data.stopped;
+}
+
 export async function fetchHealth(): Promise<EngineHealth> {
   const { data } = await api.get<EngineHealth>('/ai/chat/health');
   return data;

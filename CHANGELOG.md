@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [4.2.3] - 2026-10-26
+
+Perbaikan: jawaban AIRA tidak lagi berhenti saat pengguna pindah modul atau tab.
+
+### Diperbaiki
+- Panel chat AIRA: giliran dibatalkan dua kali saat pengguna meninggalkan halaman (klien membatalkan SSE saat unmount, server membatalkan engine saat koneksi putus) sehingga jawaban berhenti "dihentikan". Kini koneksi SSE putus TIDAK membatalkan giliran; giliran dicatat di `services/chat/turnRegistry.ts` dan berjalan sampai selesai (tetap dibatasi timeout engine dan lease).
+- Endpoint baru `POST /api/ai/chat/sessions/:id/stop` (`turn_id` opsional, hanya pemilik sesi) untuk tombol Stop / Esc. Bila giliran tidak hidup di proses ini (mis. setelah restart), lease yatim dilepas dan pesan ditandai dihentikan.
+- Klien: membuka sesi yang gilirannya masih berjalan mengikuti lewat polling 2 detik sampai selesai; aliran yang putus di tengah beralih ke polling, bukan galat.
+
 ## [4.2.2] - 2026-10-26
 
 Perbaikan: item baru (belum pernah ada stok masuk) kini bisa diterima lewat STT.
