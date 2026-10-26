@@ -209,6 +209,9 @@
     "errorSupplier": "Supplier wajib dipilih.",
     "errorDate": "Tanggal wajib diisi.",
     "errorItems": "Minimal satu item dengan qty > 0 dan gudang terpilih.",
+    "errorEstimatedCost": "Isi Harga perkiraan untuk '{{name}}' — item baru ini belum punya harga rata-rata.",
+    "estimatedCost": "Harga perkiraan / satuan",
+    "estimatedCostHint": "Item baru (belum pernah ada stok masuk). Harga per {{unit}} ini sementara — dikoreksi otomatis saat Invoice Pembelian dibuat.",
     "title": "Buat BPB / Surat Tanda Terima",
     "description": "Penerimaan barang dari supplier: stok bertambah dan hutang dicatat.",
     "submit": "Simpan STT",
@@ -242,7 +245,7 @@
     "removeItem": "Hapus item {{n}}",
     "addRow": "Tambah baris",
     "noteLabel": "Catatan:",
-    "costNote": "STT hanya mencatat qty barang yang diterima. Harga aktual akan diinput saat invoice pembelian dibuat dari STT ini. Sementara harga belum ada, sistem pakai averageCost item saat ini sebagai provisional cost.",
+    "costNote": "STT hanya mencatat qty barang yang diterima. Harga aktual akan diinput saat invoice pembelian dibuat dari STT ini. Sementara harga belum ada, sistem pakai harga rata-rata item saat ini sebagai harga sementara (item baru: Harga perkiraan yang diisi di baris).",
     "replaceLines": {
       "title": "Ganti baris dengan sisa PO?",
       "description": "Baris yang sudah Anda isi akan diganti dengan {{count}} baris sisa {{number}} (item, qty sisa, satuan, gudang tujuan). Pilih Batal untuk tetap memakai baris Anda; PO tetap terpilih tetapi baris Anda tidak terhubung ke baris PO.",

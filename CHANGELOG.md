@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [4.2.2] - 2026-10-26
+
+Perbaikan: item baru (belum pernah ada stok masuk) kini bisa diterima lewat STT.
+
+### Diperbaiki
+- Form STT tidak punya kolom harga dan selalu mengirim harga 0, sehingga harga sementara jatuh ke harga rata-rata item. Untuk item baru nilainya 0, dan pengaman WAC menolak STT ("Harga satuan untuk '...' belum ada (nilai 0)"). Baris dengan item tanpa harga rata-rata (bukan Barang Titipan) kini menampilkan kolom wajib **Harga perkiraan / satuan**; STT dari PO mengisinya dari harga PO.
+- Server: harga sementara = harga di baris STT, lalu harga rata-rata item, lalu `estimatedRate` baris PO tertaut. Pengaman WAC tetap ada bila semuanya 0; pesan galat menunjuk kolom baru.
+- Efek GL tidak berubah: STT tetap DR Persediaan / CR Hutang Belum Tagih @ harga sementara; Invoice Pembelian dari STT membalik akrual, memposting selisih ke Persediaan, dan menyesuaikan harga rata-rata ke harga aktual.
+
 ## [4.2.1] - 2026-10-26
 
 Perbaikan: pengajuan AIRA dengan argumen ID yang pasti gagal tidak lagi masuk antrean Persetujuan.
