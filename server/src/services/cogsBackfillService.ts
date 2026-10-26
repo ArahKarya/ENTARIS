@@ -47,6 +47,8 @@ export async function settleCogsBackfillForItem(
     where: {
       inventoryItemId: itemId,
       status: { in: ['Pending', 'PartiallySettled'] },
+      // Defensive: never settle deferred COGS of a cancelled invoice (its COGS JV is void).
+      salesInvoice: { status: { not: 'Cancelled' } },
     },
     orderBy: { createdAt: 'asc' },
   });

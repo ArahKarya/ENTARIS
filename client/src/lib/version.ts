@@ -4,7 +4,7 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.2.3';
+export const APP_VERSION = '4.2.4';
 export const APP_BUILD_DATE = '2026-10-26';
 export const APP_NAME = 'Entaris';
 
@@ -25,6 +25,15 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.2.4',
+    date: '2026-10-26',
+    title: 'Batal Invoice Menutup HPP Tertunda',
+    changes: [
+      'Membatalkan Invoice Penjualan kini ikut menutup antrean HPP tertundanya, sehingga produksi atau pembelian berikutnya tidak lagi membuat jurnal Auto-settle COGS untuk penjualan yang sudah batal',
+      'Jurnal Auto-settle COGS milik invoice yang dibatalkan ikut dibatalkan, saldo Persediaan dan HPP kembali sesuai',
+    ],
+  },
   {
     version: '4.2.3',
     date: '2026-10-26',
