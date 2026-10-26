@@ -207,23 +207,65 @@ d('panel chat: giliran & agen', () => {
     }
   });
 
-  it('abort mid-stream: upstream cancelled, partial text kept as "aborted", lease released', async () => {
-    h.agent.setBehavior(() => ({ chunks: ['Sebagian ', 'jawaban'], hangAfterChunks: true }));
-    const r = await h.stream(staff, { input: 'jawab panjang' }, { abortAfterEvents: 4 });
+  it('client disconnect does NOT cancel the turn: it finishes server-side as "ok" and the lease is released', async () => {
+    h.agent.setBehavior(() => ({ chunks: ['Sebagian ', 'jawaban ', 'lengkap.'], chunkDelayMs: 250 }));
+    const r = await h.stream(staff, { input: 'jawab panjang' }, { abortAfterEvents: 3 });
     const session = sid(r.events);
     expect(names(r.events)).toContain('delta');
-    await sleep(500);
     const { prisma } = await import('../../lib/prisma');
+    // Masih berjalan sesaat setelah klien pergi: sesi tampak sibuk, pesan masih streaming.
+    const mid = await (await h.api(staff, 'GET', `/api/ai/chat/sessions/${session}/messages`)).json() as { data: Array<{ status: string }>; session: { busy: boolean } };
+    expect(mid.session.busy).toBe(true);
+    expect(mid.data[1].status).toBe('streaming');
+    await sleep(1200);
     const rows = await prisma.chatMessage.findMany({ where: { sessionId: session }, orderBy: { seq: 'asc' } });
-    expect(rows.map((m) => `${m.role}:${m.status}`)).toEqual(['user:ok', 'assistant:aborted']);
-    expect(rows[1].content).toContain('Sebagian');
+    expect(rows.map((m) => `${m.role}:${m.status}`)).toEqual(['user:ok', 'assistant:ok']);
+    expect(rows[1].content).toBe('Sebagian jawaban lengkap.');
     expect((await prisma.chatSession.findUnique({ where: { id: session } }))?.inflightTurnId).toBeNull();
-    // sesi bisa langsung dipakai lagi
     h.agent.setBehavior(() => ({ chunks: ['lanjut'] }));
     expect(names((await h.stream(staff, { input: 'lanjut', session_id: session })).events)).toContain('done');
+  });
+
+  it('POST /sessions/:id/stop cancels the running turn: partial text kept as "aborted", lease released', async () => {
+    h.agent.setBehavior(() => ({ chunks: ['Sebagian ', 'jawaban'], hangAfterChunks: true }));
+    const streaming = h.stream(staff, { input: 'jawab panjang' });
+    await sleep(400);
+    const { prisma } = await import('../../lib/prisma');
+    const busy = await prisma.chatSession.findFirst({ where: { userId: staff.id, inflightTurnId: { not: null } } });
+    expect(busy).not.toBeNull();
+    // Pengguna lain tidak bisa menghentikan sesi milik orang lain.
+    expect((await h.api(viewer, 'POST', `/api/ai/chat/sessions/${busy!.id}/stop`, {})).status).toBe(404);
+    const stop = await h.api(staff, 'POST', `/api/ai/chat/sessions/${busy!.id}/stop`, {});
+    expect(stop.status).toBe(200);
+    expect(await stop.json()).toMatchObject({ ok: true, stopped: true });
+    const r = await streaming;
+    expect(names(r.events)).not.toContain('done');
+    await sleep(300);
+    const rows = await prisma.chatMessage.findMany({ where: { sessionId: busy!.id }, orderBy: { seq: 'asc' } });
+    expect(rows.map((m) => `${m.role}:${m.status}`)).toEqual(['user:ok', 'assistant:aborted']);
+    expect(rows[1].content).toContain('Sebagian');
+    expect((await prisma.chatSession.findUnique({ where: { id: busy!.id } }))?.inflightTurnId).toBeNull();
+    // stop lagi = tidak ada yang dihentikan
+    expect(await (await h.api(staff, 'POST', `/api/ai/chat/sessions/${busy!.id}/stop`, {})).json()).toMatchObject({ stopped: false });
+    h.agent.setBehavior(() => ({ chunks: ['lanjut'] }));
+    expect(names((await h.stream(staff, { input: 'lanjut', session_id: busy!.id })).events)).toContain('done');
     // jawaban parsial ikut menjadi konteks giliran berikutnya
     const req = h.agent.requests[h.agent.requests.length - 1];
     expect(JSON.stringify(req.body.messages)).toContain('Sebagian jawaban');
+  });
+
+  it('stop on an orphan lease (turn not alive in this process) clears it and marks the answer stopped', async () => {
+    const { prisma } = await import('../../lib/prisma');
+    h.agent.setBehavior(() => ({ chunks: ['ok'] }));
+    const r = await h.stream(staff, { input: 'siapkan sesi' });
+    const session = sid(r.events);
+    await prisma.chatSession.update({ where: { id: session }, data: { inflightTurnId: 'ghost-turn', inflightSince: new Date() } });
+    const ghost = await prisma.chatMessage.findFirst({ where: { sessionId: session, role: 'assistant' } });
+    await prisma.chatMessage.update({ where: { id: ghost!.id }, data: { status: 'streaming' } });
+    expect(await (await h.api(staff, 'POST', `/api/ai/chat/sessions/${session}/stop`, { turn_id: 'lain' })).json()).toMatchObject({ stopped: false });
+    expect(await (await h.api(staff, 'POST', `/api/ai/chat/sessions/${session}/stop`, { turn_id: 'ghost-turn' })).json()).toMatchObject({ stopped: true });
+    expect((await prisma.chatSession.findUnique({ where: { id: session } }))?.inflightTurnId).toBeNull();
+    expect((await prisma.chatMessage.findUnique({ where: { id: ghost!.id } }))?.status).toBe('aborted');
   });
 
   it('one in-flight turn per session → 409 with a clear message; other sessions are unaffected', async () => {
@@ -239,8 +281,12 @@ d('panel chat: giliran & agen', () => {
     expect(second.json).toMatchObject({ error: 'turn_in_progress' });
     expect(String(second.json?.message)).toMatch(/masih memproses/);
     expect((await h.api(staff, 'DELETE', `/api/ai/chat/sessions/${busy!.id}`)).status).toBe(409);
+    // Memutus koneksi saja tidak menghentikan giliran; lease tetap dipegang.
     ctl.abort();
     await firstTurn;
+    await sleep(300);
+    expect((await prisma.chatSession.findUnique({ where: { id: busy!.id } }))?.inflightTurnId).not.toBeNull();
+    await h.api(staff, 'POST', `/api/ai/chat/sessions/${busy!.id}/stop`, {});
     await sleep(300);
     h.agent.setBehavior(() => ({ chunks: ['ok'] }));
     expect(names((await h.stream(staff, { input: 'sesi lain', })).events)).toContain('done');

@@ -186,6 +186,21 @@ export async function reconcileStale(session: ChatSession): Promise<void> {
   }
 }
 
+/**
+ * Stop untuk giliran yang tidak hidup di proses ini (server restart / proses lain): lepas lease dan
+ * tandai pesan `streaming` sebagai dihentikan, teks parsial tetap. True bila ada yang dibersihkan.
+ */
+export async function abandonOrphanTurn(session: ChatSession, turnId?: string): Promise<boolean> {
+  if (!session.inflightTurnId) return false;
+  if (turnId && session.inflightTurnId !== turnId) return false;
+  await prisma.chatMessage.updateMany({ where: { sessionId: session.id, status: 'streaming' }, data: { status: 'aborted' } });
+  await prisma.chatSession.updateMany({
+    where: { id: session.id, inflightTurnId: session.inflightTurnId },
+    data: { inflightTurnId: null, inflightSince: null },
+  });
+  return true;
+}
+
 /** Ambil lease giliran secara atomik; false bila giliran lain masih berjalan. */
 export async function acquireTurnLease(sessionId: string, userId: string, turnId: string, now: Date = new Date()): Promise<boolean> {
   const expired = new Date(now.getTime() - TURN_LEASE_MS);

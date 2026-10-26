@@ -37,6 +37,7 @@ export const AIRA_MESSAGES: MessageDictionary = {
   "Gagal memuat daftar sesi.": "Failed to load sessions.",
   "Gagal memuat sesi terakhir.": "Failed to load the latest session.",
   "Gagal membuat sesi.": "Failed to create the session.",
+  "Gagal menghentikan jawaban.": "Failed to stop the answer.",
   "Sesi tidak ditemukan.": "Session not found.",
   "Gagal memuat riwayat sesi.": "Failed to load the session history.",
   "Gagal mengekspor sesi.": "Failed to export the session.",

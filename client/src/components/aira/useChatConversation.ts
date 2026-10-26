@@ -1,11 +1,21 @@
 // Keadaan percakapan aktif: memuat riwayat dari server (sumber kebenaran), mengirim giliran (SSE),
 // menghentikan, mencoba lagi. Pesan pengguna sudah tersimpan di server sebelum agen dipanggil.
+//
+// Giliran berjalan di SERVER, tidak terikat ke koneksi ini: pindah modul, pindah tab, refresh, atau
+// koneksi putus tidak menghentikan AIRA. Saat sesi dibuka lagi dan giliran masih berjalan, hook ini
+// mengikutinya lewat polling riwayat sampai selesai. Hanya `stop()` (tombol Stop / Esc) yang
+// menghentikan giliran, lewat POST /sessions/:id/stop.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import i18n from '@/i18n';
-import { fetchMessages } from './chatApi';
+import { fetchMessages, stopSessionTurn, type MessagesPage } from './chatApi';
 import { StreamHttpError, streamTurn } from './sse';
 import type { CardPart, ChatMessageDto, ConfirmChoice, StreamEvent, ToolChip, ViewMessage } from './types';
+
+/** Jeda polling saat mengikuti giliran yang berjalan tanpa koneksi SSE. */
+export const FOLLOW_POLL_MS = 2000;
+/** Galat jaringan beruntun saat polling sebelum berhenti mengikuti (giliran tetap jalan di server). */
+const FOLLOW_MAX_FAILURES = 30;
 
 const toView = (m: ChatMessageDto): ViewMessage => ({
   ...m,
@@ -17,6 +27,15 @@ const toView = (m: ChatMessageDto): ViewMessage => ({
 
 let tempSeq = 0;
 const tempId = (p: string): string => `tmp-${p}-${Date.now()}-${tempSeq++}`;
+
+const isRunning = (page: MessagesPage): boolean => !!page.session?.busy || page.data.some((m) => m.status === 'streaming');
+
+/** Gabungkan halaman riwayat terbaru dengan pesan lama yang sudah dimuat (lebih tua dari halaman). */
+function mergePage(prev: ViewMessage[], page: MessagesPage): ViewMessage[] {
+  const minSeq = page.data[0]?.seq ?? Number.POSITIVE_INFINITY;
+  const older = prev.filter((m) => typeof m.seq === 'number' && m.seq < minSeq);
+  return [...older, ...page.data.map(toView)];
+}
 
 export interface SendOutcome {
   ok: boolean;
@@ -67,14 +86,87 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
   const [announce, setAnnounce] = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const sessionRef = useRef<string | null>(null);
+  /** giliran SSE yang sedang berjalan (diisi dari event `turn`) */
+  const turnRef = useRef<{ sessionId: string; turnId: string } | null>(null);
+  /** Stop ditekan sebelum event `turn` tiba: dijalankan begitu id giliran diketahui. */
+  const pendingStopRef = useRef(false);
+  /** sesi yang sedang diikuti lewat polling (null = tidak mengikuti) */
+  const followRef = useRef<string | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbacks = useRef({ onSessionsChanged });
   sessionRef.current = sessionId;
+  useEffect(() => {
+    callbacks.current = { onSessionsChanged };
+  }, [onSessionsChanged]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  /** Lepas koneksi SSE lokal TANPA menghentikan giliran di server. */
+  const detach = useCallback(() => {
+    const ctl = abortRef.current;
+    abortRef.current = null;
+    turnRef.current = null;
+    pendingStopRef.current = false;
+    ctl?.abort();
+  }, []);
+
+  const stopFollowing = useCallback(() => {
+    followRef.current = null;
+    if (pollTimer.current) clearTimeout(pollTimer.current);
+    pollTimer.current = null;
+  }, []);
+
+  useEffect(() => () => {
+    detach();
+    stopFollowing();
+  }, [detach, stopFollowing]);
+
+  /** Ikuti giliran yang masih berjalan di server: muat ulang riwayat berkala sampai selesai. */
+  const follow = useCallback((id: string, delayMs: number = FOLLOW_POLL_MS) => {
+    stopFollowing();
+    followRef.current = id;
+    setBusy(true);
+    setAnnounce(i18n.t('aira:conversation.answering'));
+    let failures = 0;
+    const finish = (status: string | undefined): void => {
+      followRef.current = null;
+      pollTimer.current = null;
+      setBusy(false);
+      setAnnounce(
+        i18n.t(status === 'ok' ? 'aira:conversation.answerDone' : status === 'aborted' ? 'aira:conversation.answerStopped' : 'aira:conversation.answerFailed'),
+      );
+      callbacks.current.onSessionsChanged();
+    };
+    const tick = async (): Promise<void> => {
+      if (followRef.current !== id) return;
+      try {
+        const page = await fetchMessages(id);
+        if (followRef.current !== id || sessionRef.current !== id) return;
+        failures = 0;
+        setMessages((prev) => mergePage(prev, page));
+        setHasOlder((h) => h || page.hasMore);
+        if (isRunning(page)) {
+          pollTimer.current = setTimeout(() => void tick(), FOLLOW_POLL_MS);
+          return;
+        }
+        finish([...page.data].reverse().find((m) => m.role === 'assistant')?.status);
+      } catch {
+        if (followRef.current !== id) return;
+        failures += 1;
+        if (failures >= FOLLOW_MAX_FAILURES) {
+          finish(undefined);
+          return;
+        }
+        pollTimer.current = setTimeout(() => void tick(), FOLLOW_POLL_MS);
+      }
+    };
+    pollTimer.current = setTimeout(() => void tick(), delayMs);
+  }, [stopFollowing]);
 
   const open = useCallback(async (id: string | null): Promise<boolean> => {
-    abortRef.current?.abort();
+    detach();
+    stopFollowing();
     setBusy(false);
     setSessionId(id);
+    sessionRef.current = id;
     setMessages([]);
     setHasOlder(false);
     if (!id) return true;
@@ -84,6 +176,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
       if (sessionRef.current !== id) return true;
       setMessages(page.data.map(toView));
       setHasOlder(page.hasMore);
+      if (isRunning(page)) follow(id);
       return true;
     } catch {
       setSessionId(null);
@@ -91,7 +184,7 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [detach, follow, stopFollowing]);
 
   const loadOlder = useCallback(async () => {
     const id = sessionRef.current;
@@ -106,16 +199,21 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
     try {
       const page = await fetchMessages(id);
       if (sessionRef.current !== id || page.data.length === 0) return;
-      setMessages((prev) => {
-        const minSeq = page.data[0]?.seq ?? Number.POSITIVE_INFINITY;
-        const older = prev.filter((m) => typeof m.seq === 'number' && m.seq < minSeq);
-        return [...older, ...page.data.map(toView)];
-      });
+      setMessages((prev) => mergePage(prev, page));
       setHasOlder((h) => h || page.hasMore);
     } catch {
       // tampilan lokal tetap dipakai
     }
   }, []);
+
+  /** Minta server menghentikan giliran; bila sedang mengikuti, segarkan segera. */
+  const requestStop = useCallback((sid: string, turnId?: string) => {
+    void stopSessionTurn(sid, turnId)
+      .catch(() => undefined)
+      .finally(() => {
+        if (followRef.current === sid) follow(sid, 0);
+      });
+  }, [follow]);
 
   const run = useCallback(
     async (
@@ -123,12 +221,16 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
       userId: string | null,
       assistantId: string,
     ): Promise<SendOutcome> => {
+      stopFollowing();
       const ctl = new AbortController();
       abortRef.current = ctl;
+      turnRef.current = null;
+      pendingStopRef.current = false;
       setBusy(true);
       setAnnounce(i18n.t('aira:conversation.answering'));
       let sid = sessionRef.current;
-      let finalStatus: 'ok' | 'error' | 'aborted' = 'aborted';
+      // 'detached' = koneksi lepas tetapi giliran masih berjalan di server → ikuti lewat polling
+      let finalStatus: 'ok' | 'error' | 'aborted' | 'detached' = 'aborted';
       let engineError = false;
       try {
         const request = { input: req.input, file: req.file, sessionId: sid ?? undefined, retryMessageId: req.retryMessageId, confirm: req.confirm };
@@ -155,6 +257,13 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
             );
             assistantId = newBot;
             userId = newUser;
+            if (sid) {
+              turnRef.current = { sessionId: sid, turnId: e.data.turn_id };
+              if (pendingStopRef.current) {
+                requestStop(sid, e.data.turn_id);
+                ctl.abort();
+              }
+            }
           } else if (e.event === 'title') {
             onSessionsChanged();
           } else {
@@ -167,36 +276,52 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
             }
           }
         }
-        if (finalStatus === 'aborted' && !ctl.signal.aborted) finalStatus = 'error';
+        // Aliran berakhir tanpa done/error (proxy/jaringan HP memutus): giliran masih jalan di server.
+        if (finalStatus === 'aborted' && !ctl.signal.aborted) finalStatus = sid && turnRef.current ? 'detached' : 'error';
         return { ok: finalStatus === 'ok' };
       } catch (err) {
         if (ctl.signal.aborted) return { ok: false };
         if (err instanceof StreamHttpError) {
           // Ditolak sebelum tersimpan: buang gelembung sementara, kembalikan teks ke kotak pesan.
           setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userId));
+          finalStatus = 'error';
           return { ok: false, restore: req.input, error: { code: err.code, message: err.message } };
+        }
+        if (sid && turnRef.current) {
+          finalStatus = 'detached';
+          return { ok: false };
         }
         setMessages((prev) => applyEvent(prev, assistantId, { event: 'error', data: { message: i18n.t('aira:conversation.connectionLost'), code: 'network' } }));
         finalStatus = 'error';
         engineError = true;
         return { ok: false };
       } finally {
-        if (ctl.signal.aborted) {
-          setMessages((prev) => prev.map((m) => (m.id === assistantId && m.status === 'streaming' ? { ...m, status: 'aborted' } : m)));
+        // Dilepas oleh open()/unmount (abortRef sudah diganti): giliran tetap jalan di server, state tak disentuh.
+        if (abortRef.current === ctl) {
+          abortRef.current = null;
+          turnRef.current = null;
+          pendingStopRef.current = false;
+          if (finalStatus === 'detached' && sid) {
+            follow(sid, 0);
+          } else {
+            if (ctl.signal.aborted) {
+              const target = assistantId;
+              setMessages((prev) => prev.map((m) => (m.id === target && m.status === 'streaming' ? { ...m, status: 'aborted' } : m)));
+            }
+            setBusy(false);
+            setAnnounce(
+              i18n.t(
+                finalStatus === 'ok' ? 'aira:conversation.answerDone' : finalStatus === 'error' ? 'aira:conversation.answerFailed' : 'aira:conversation.answerStopped',
+              ),
+            );
+            if (engineError) onEngineError();
+            onSessionsChanged();
+            if (sid) void resync(sid);
+          }
         }
-        setBusy(false);
-        abortRef.current = null;
-        setAnnounce(
-          i18n.t(
-            finalStatus === 'ok' ? 'aira:conversation.answerDone' : finalStatus === 'error' ? 'aira:conversation.answerFailed' : 'aira:conversation.answerStopped',
-          ),
-        );
-        if (engineError) onEngineError();
-        onSessionsChanged();
-        if (sid) void resync(sid);
       }
     },
-    [onEngineError, onSessionId, onSessionsChanged, resync],
+    [follow, onEngineError, onSessionId, onSessionsChanged, requestStop, resync, stopFollowing],
   );
 
   const send = useCallback(
@@ -233,7 +358,23 @@ export function useChatConversation({ onSessionId, onSessionsChanged, onEngineEr
     [run],
   );
 
-  const stop = useCallback(() => abortRef.current?.abort(), []);
+  /** Hentikan jawaban (tombol Stop / Esc): hentikan giliran di server, lalu lepas koneksi lokal. */
+  const stop = useCallback(() => {
+    const ctl = abortRef.current;
+    if (ctl) {
+      const turn = turnRef.current;
+      if (!turn) {
+        // id giliran belum diketahui: tunda sampai event `turn` tiba
+        pendingStopRef.current = true;
+        return;
+      }
+      requestStop(turn.sessionId, turn.turnId);
+      ctl.abort();
+      return;
+    }
+    const following = followRef.current;
+    if (following) requestStop(following);
+  }, [requestStop]);
 
   return { sessionId, messages, loading, hasOlder, busy, announce, open, loadOlder, send, retry, stop };
 }

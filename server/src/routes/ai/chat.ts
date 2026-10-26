@@ -11,7 +11,8 @@
 //   PATCH  /api/ai/chat/sessions/:id            ubah judul / arsip
 //   DELETE /api/ai/chat/sessions/:id            hapus sesi + lampiran (diaudit)
 //   GET    /api/ai/chat/attachments/:id         lampiran milik sendiri
-//   POST   /api/ai/chat/stream                  satu giliran (SSE)
+//   POST   /api/ai/chat/stream                  satu giliran (SSE); tetap jalan walau klien putus
+//   POST   /api/ai/chat/sessions/:id/stop       hentikan giliran yang sedang berjalan
 
 import fs from 'node:fs/promises';
 import { Router, type Response } from 'express';
@@ -30,6 +31,7 @@ import { exportSession } from '../../services/chat/exportSession';
 import { checkTurnRate } from '../../services/chat/rateLimit';
 import { allowLinkRequest, requestLinkCode } from '../../services/chat/telegramLink';
 import {
+  abandonOrphanTurn,
   attachmentFor,
   createSession,
   deleteSession,
@@ -43,6 +45,7 @@ import {
 } from '../../services/chat/sessionService';
 import { prepareTurn, TurnHttpError } from '../../services/chat/turnPrepare';
 import { runTurn } from '../../services/chat/turnRun';
+import { registerTurn, stopTurn, unregisterTurn } from '../../services/chat/turnRegistry';
 import { translateFields } from '../../i18n/translateFields';
 import { requestLanguage } from '../../middleware/responseLanguage';
 
@@ -285,10 +288,9 @@ router.post('/stream', upload.single('file'), async (req: AuthRequest, res) => {
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',
   });
-  const controller = new AbortController();
-  res.on('close', () => {
-    if (!res.writableEnded) controller.abort();
-  });
+  // The turn is NOT tied to this connection: leaving the page, switching tabs or a dropped
+  // network keeps it running server-side until done. Only POST /sessions/:id/stop cancels it.
+  const controller = registerTurn(prepared.session.id, userId, prepared.turnId);
   const keepAlive = setInterval(() => {
     if (!res.writableEnded && !res.destroyed) res.write(': ping\n\n');
   }, 15_000);
@@ -308,9 +310,30 @@ router.post('/stream', upload.single('file'), async (req: AuthRequest, res) => {
     );
   } finally {
     clearInterval(keepAlive);
-    if (!res.writableEnded) res.end();
+    unregisterTurn(prepared.session.id, prepared.turnId);
+    if (!res.writableEnded && !res.destroyed) res.end();
   }
   return undefined;
+});
+
+// POST /sessions/:id/stop: hentikan giliran yang sedang berjalan (tombol Stop / Esc). Hanya pemilik
+// sesi. Bila giliran tidak hidup di proses ini (mis. server restart), lease dilepas dan pesan
+// `streaming` ditandai dihentikan supaya sesi tidak tampak sibuk.
+router.post('/sessions/:id/stop', async (req: AuthRequest, res) => {
+  const userId = uid(req);
+  if (!userId) return res.status(401).json({ error: 'unauthenticated' });
+  const body = validateBody(z.object({ turn_id: z.string().min(1).max(64).optional() }), req.body ?? {}, res);
+  if (!body) return;
+  try {
+    const id = param(req, 'id');
+    const s = await getOwnedSession(userId, id);
+    if (!s) return res.status(404).json({ error: 'Sesi tidak ditemukan.' });
+    if (stopTurn(id, userId, body.turn_id)) return res.json({ ok: true, stopped: true });
+    const orphan = await abandonOrphanTurn(s, body.turn_id);
+    return res.json({ ok: true, stopped: orphan });
+  } catch (error) {
+    return handleRouteError(res, error, 'POST /ai/chat/sessions/:id/stop', 'Gagal menghentikan jawaban.');
+  }
 });
 
 export default router;

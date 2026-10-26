@@ -8,6 +8,14 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.2.3': {
+    title: 'AIRA Keeps Answering in the Background',
+    changes: [
+      'AIRA answers no longer stop when you switch modules or tabs, refresh, or lose the connection; the turn keeps running on the server until it finishes',
+      'Reopening a conversation while AIRA is still answering shows "AIRA is answering…" and updates the answer automatically',
+      'The Stop button / Esc stops the answer on the server; text already written is kept',
+    ],
+  },
   '4.2.2': {
     title: 'Goods Receipts for New Items',
     changes: [
