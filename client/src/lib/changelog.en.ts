@@ -8,6 +8,13 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.2.4': {
+    title: 'Cancelling an Invoice Closes Deferred COGS',
+    changes: [
+      'Cancelling a sales invoice now also closes its deferred COGS queue, so later production or purchases no longer post Auto-settle COGS journals for a sale that was cancelled',
+      'Auto-settle COGS journals belonging to the cancelled invoice are cancelled too, so Inventory and COGS balances stay correct',
+    ],
+  },
   '4.2.3': {
     title: 'AIRA Keeps Answering in the Background',
     changes: [

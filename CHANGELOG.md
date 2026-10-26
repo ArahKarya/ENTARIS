@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [4.2.4] - 2026-10-26
+
+Perbaikan: membatalkan Invoice Penjualan kini juga menutup antrean HPP tertundanya.
+
+### Diperbaiki
+- Pembatalan Sales Invoice membatalkan jurnal `JV-COGS-SI` tetapi antrean HPP tertunda (`cogs_backfill_queue`) tetap terbuka, sehingga tiap stok masuk berikutnya (Produksi, Invoice Pembelian, mutasi manual) terus memposting jurnal "Auto-settle COGS" untuk penjualan yang sudah batal dan saldo GL Persediaan bisa minus. Kini `cancelSalesInvoiceInTx` menutup antrean (status `Cancelled`), menghapus settlement-nya, dan membatalkan jurnal auto-settle miliknya (jurnal gabungan yang juga memuat invoice lain yang masih aktif dibiarkan).
+- Penyelesaian HPP tertunda tidak lagi memproses antrean milik invoice yang sudah batal (melindungi data lama), dan pembalikan dokumen pemicu tidak membuka ulang antrean yang sudah ditutup.
+
 ## [4.2.3] - 2026-10-26
 
 Perbaikan: jawaban AIRA tidak lagi berhenti saat pengguna pindah modul atau tab.

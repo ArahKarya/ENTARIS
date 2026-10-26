@@ -1,4 +1,4 @@
-import { reverseCogsSettlementsByTrigger } from './cogsBackfillReverse';
+import { reverseCogsSettlementsByTrigger, closeCogsBackfillForSalesInvoice } from './cogsBackfillReverse';
 import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';
 import { updateAccountBalance, recalcPartyOutstanding } from '../utils/accountBalance';
@@ -78,6 +78,10 @@ export async function cancelSalesInvoiceInTx(
       await updateAccountBalance(tx, ji.accountId, ji.credit, ji.debit);
     }
   }
+
+  // Deferred COGS of this invoice is void with it: close its backfill queue and reverse its
+  // auto-settle JVs, otherwise later stock-ins keep moving inventory value into HPP.
+  await closeCogsBackfillForSalesInvoice(tx, invoice.id);
 
   // Only direct-sale movements are reversed; from-DO movements belong to the DO and stay valid.
   const stockMovements = await tx.stockMovement.findMany({
