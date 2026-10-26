@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.2.5] - 2026-10-26
+
+Perbaikan: membatalkan invoice kini ikut membatalkan jurnal koreksinya.
+
+### Diperbaiki
+- Pembatalan Sales/Purchase Invoice hanya mencari `JV-<no>` dan `JV-COGS-<no>` dengan nomor persis, sehingga jurnal koreksi yang menempel ke invoice yang sama (`JV-<no>-CORR`, `-CORR-PPN`, `-CORR-QTY-n`, `-WAPU`, `-RATE-FIX`, `-SPLIT-ANGK`, …) tetap aktif dan terus memengaruhi piutang/hutang, pendapatan, PPh, dan PPN invoice yang sudah batal. Kini `cancelDocumentJournals` (utils/journalCancel) membatalkan jurnal utama beserta turunannya `<no>-…` (batas tanda strip, sehingga `SI-…-0038` tidak mengenai `SI-…-00380`), menandai buku besarnya batal, dan membalik saldo per baris; jurnal yang sudah batal dilewati.
+
 ## [4.2.4] - 2026-10-26
 
 Perbaikan: membatalkan Invoice Penjualan kini juga menutup antrean HPP tertundanya.

@@ -4,7 +4,7 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.2.4';
+export const APP_VERSION = '4.2.5';
 export const APP_BUILD_DATE = '2026-10-26';
 export const APP_NAME = 'Entaris';
 
@@ -25,6 +25,14 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.2.5',
+    date: '2026-10-26',
+    title: 'Batal Invoice Ikut Membatalkan Jurnal Koreksi',
+    changes: [
+      'Membatalkan Invoice Penjualan atau Pembelian kini ikut membatalkan semua jurnal koreksi milik invoice itu (mis. -CORR, -WAPU, -RATE-FIX), sehingga piutang/hutang, pendapatan, dan pajak invoice yang sudah batal tidak lagi tersisa di buku besar',
+    ],
+  },
   {
     version: '4.2.4',
     date: '2026-10-26',

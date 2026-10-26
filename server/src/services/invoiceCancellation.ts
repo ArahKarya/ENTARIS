@@ -3,11 +3,12 @@ import type { Prisma } from '@prisma/client';
 import { BusinessError } from '../utils/errors';
 import { updateAccountBalance, recalcPartyOutstanding } from '../utils/accountBalance';
 import { systemAccounts } from './systemAccounts';
+import { cancelDocumentJournals } from '../utils/journalCancel';
 
 type Tx = Prisma.TransactionClient;
 
 /**
- * Cancel a sales invoice: cancel its JE and COGS JE (balances reversed per JE item account, so
+ * Cancel a sales invoice: cancel its JE, COGS JE and their -suffixed satellites (balances reversed per JE item account, so
  * per-item COGS sub-accounts are restored), reverse its own stock movements, recompute party
  * outstanding. Caller owns the transaction.
  */
@@ -43,41 +44,10 @@ export async function cancelSalesInvoiceInTx(
     data: { status: 'Cancelled', outstanding: 0, cancelledAt: new Date() },
   });
 
-  // Main revenue/AR journal
-  const jvNumber = `JV-${invoice.invoiceNumber}`;
-  const journal = await tx.journalEntry.findUnique({ where: { entryNumber: jvNumber } });
-  if (journal) {
-    await tx.journalEntry.update({
-      where: { id: journal.id },
-      data: { status: 'Cancelled', cancelledAt: new Date() },
-    });
-    await tx.accountingLedgerEntry.updateMany({
-      where: { referenceId: journal.id },
-      data: { isCancelled: true },
-    });
-    const journalItems = await tx.journalItem.findMany({ where: { journalEntryId: journal.id } });
-    for (const ji of journalItems) {
-      await updateAccountBalance(tx, ji.accountId, ji.credit, ji.debit);
-    }
-  }
-
-  // COGS journal (separate JV-COGS-... entry)
-  const cogsJvNumber = `JV-COGS-${invoice.invoiceNumber}`;
-  const cogsJournal = await tx.journalEntry.findUnique({ where: { entryNumber: cogsJvNumber } });
-  if (cogsJournal) {
-    await tx.journalEntry.update({
-      where: { id: cogsJournal.id },
-      data: { status: 'Cancelled', cancelledAt: new Date() },
-    });
-    await tx.accountingLedgerEntry.updateMany({
-      where: { referenceId: cogsJournal.id },
-      data: { isCancelled: true },
-    });
-    const cogsItems = await tx.journalItem.findMany({ where: { journalEntryId: cogsJournal.id } });
-    for (const ji of cogsItems) {
-      await updateAccountBalance(tx, ji.accountId, ji.credit, ji.debit);
-    }
-  }
+  // Revenue/AR journal, COGS journal and every satellite of either (JV-<no>-CORR, -CORR-PPN,
+  // -CORR-QTY-n, -WAPU, -RATE-FIX, …). Satellites left active would keep moving AR, revenue, PPh
+  // and PPN for an invoice that no longer exists.
+  await cancelDocumentJournals(tx, [`JV-${invoice.invoiceNumber}`, `JV-COGS-${invoice.invoiceNumber}`]);
 
   // Deferred COGS of this invoice is void with it: close its backfill queue and reverse its
   // auto-settle JVs, otherwise later stock-ins keep moving inventory value into HPP.
@@ -158,22 +128,11 @@ export async function cancelPurchaseInvoiceInTx(
     data: { status: 'Cancelled', outstanding: 0, cancelledAt: new Date() },
   });
 
+  // Main AP journal plus satellites (JV-<no>-CORR, -CORR-2, …).
   const jvNumber = `JV-${invoice.invoiceNumber}`;
-  const journal = await tx.journalEntry.findUnique({ where: { entryNumber: jvNumber } });
-  if (journal) {
-    await tx.journalEntry.update({
-      where: { id: journal.id },
-      data: { status: 'Cancelled', cancelledAt: new Date() },
-    });
-    await tx.accountingLedgerEntry.updateMany({
-      where: { referenceId: journal.id },
-      data: { isCancelled: true },
-    });
-    const jeItems = await tx.journalItem.findMany({ where: { journalEntryId: journal.id } });
-    for (const ji of jeItems) {
-      await updateAccountBalance(tx, ji.accountId, ji.credit, ji.debit);
-    }
-  } else {
+  const mainExisted = await tx.journalEntry.count({ where: { entryNumber: jvNumber } });
+  await cancelDocumentJournals(tx, [jvNumber]);
+  if (mainExisted === 0) {
     // Legacy fallback for invoices created before per-item JE rows existed.
     const apAccount = await systemAccounts.getAccount('AP');
     const inventoryAccount = await systemAccounts.getAccount('INVENTORY');
