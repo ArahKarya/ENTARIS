@@ -8,6 +8,12 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.2.5': {
+    title: 'Cancelling an Invoice Also Cancels Its Correction Journals',
+    changes: [
+      'Cancelling a sales or purchase invoice now also cancels every correction journal belonging to it (e.g. -CORR, -WAPU, -RATE-FIX), so receivables/payables, revenue and taxes of a cancelled invoice no longer remain in the ledger',
+    ],
+  },
   '4.2.4': {
     title: 'Cancelling an Invoice Closes Deferred COGS',
     changes: [
