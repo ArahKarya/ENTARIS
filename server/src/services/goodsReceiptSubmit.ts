@@ -147,22 +147,29 @@ export async function submitGoodsReceiptInTx(
     if (!wh) throw new BusinessError(`Gudang tidak ditemukan untuk '${line.itemName}'.`);
 
     const qty = new Decimal(line.quantity);
-    // No price on the STT form: fall back to the current averageCost as a provisional cost.
-    // The PI later sets the actual price and posts the variance.
+    // Provisional cost, in order: price entered on the STT line → item's current averageCost →
+    // linked PO line's estimatedRate. The PI later sets the actual price and posts the variance.
     const provided = Number(line.lockedUnitCost ?? 0);
+    let unitCost = new Decimal(0);
+    if (!isCustomerOwned) {
+      if (provided > 0) unitCost = new Decimal(provided);
+      else if (Number(invItem.averageCost) > 0) unitCost = new Decimal(invItem.averageCost.toString());
+      else if (line.purchaseOrderItemId) {
+        const poLine = await tx.purchaseOrderItem.findUnique({
+          where: { id: line.purchaseOrderItemId },
+          select: { estimatedRate: true },
+        });
+        if (poLine && Number(poLine.estimatedRate) > 0) unitCost = new Decimal(poLine.estimatedRate.toString());
+      }
+    }
     // Customer-owned goods are valued at 0 (not our asset), so the JE is skipped (totalCr = 0).
-    const unitCost = isCustomerOwned
-      ? new Decimal(0)
-      : provided > 0
-        ? new Decimal(provided)
-        : new Decimal(invItem.averageCost.toString());
 
     // Own goods must not come in at cost 0: it dilutes WAC to 0 and later Outs drive the
     // inventory GL balance negative. Customer-owned goods are exempt.
     if (!isCustomerOwned && unitCost.lte(0)) {
       throw new BusinessError(
-        `Harga satuan untuk '${invItem.name}' belum ada (nilai 0). ` +
-          `Isi harga di STT, atau tandai STT ini sebagai Barang Titipan Customer ` +
+        `Harga satuan untuk '${invItem.name}' belum ada (item baru, belum pernah ada stok masuk). ` +
+          `Isi Harga perkiraan di baris STT, atau tandai STT ini sebagai Barang Titipan Customer ` +
           `bila barang bukan milik perusahaan.`,
       );
     }

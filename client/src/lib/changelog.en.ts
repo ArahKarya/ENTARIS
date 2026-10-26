@@ -8,6 +8,14 @@ export interface ChangelogTranslation {
 }
 
 export const CHANGELOG_EN: Readonly<Record<string, ChangelogTranslation>> = {
+  '4.2.2': {
+    title: 'Goods Receipts for New Items',
+    changes: [
+      'New items with no stock received yet can now be received through a goods receipt: their row shows a required Estimated price / unit field',
+      'A goods receipt created from a PO prefills the Estimated price from the PO price; existing items are unchanged (they keep using the average cost)',
+      'The Estimated price is provisional and is corrected to the actual price automatically when the purchase invoice is created from the goods receipt',
+    ],
+  },
   '4.2.1': {
     title: 'AIRA Request Fixes',
     changes: [

@@ -209,6 +209,9 @@
     "errorSupplier": "Select a supplier.",
     "errorDate": "Date is required.",
     "errorItems": "Add at least one item with qty > 0 and a warehouse.",
+    "errorEstimatedCost": "Enter an Estimated price for '{{name}}' — this new item has no average cost yet.",
+    "estimatedCost": "Estimated price / unit",
+    "estimatedCostHint": "New item (no stock received yet). This price per {{unit}} is provisional — corrected automatically when the purchase invoice is created.",
     "title": "New goods receipt",
     "description": "Goods received from a supplier: stock goes up and a payable is recorded.",
     "submit": "Save goods receipt",
@@ -242,7 +245,7 @@
     "removeItem": "Remove item {{n}}",
     "addRow": "Add row",
     "noteLabel": "Note:",
-    "costNote": "A goods receipt records received quantities only. The actual price is entered when the purchase invoice is created from it. Until then, the item's current average cost is used as a provisional cost.",
+    "costNote": "A goods receipt records received quantities only. The actual price is entered when the purchase invoice is created from it. Until then, the item's current average cost is used as a provisional cost (new items: the Estimated price entered on the line).",
     "replaceLines": {
       "title": "Replace lines with the PO balance?",
       "description": "The lines you entered will be replaced with {{count}} outstanding lines from {{number}} (item, remaining qty, unit, destination warehouse). Choose Cancel to keep your lines; the PO stays selected but your lines are not linked to the PO lines.",

@@ -4,8 +4,8 @@
  */
 import { CHANGELOG_EN } from './changelog.en';
 
-export const APP_VERSION = '4.2.1';
-export const APP_BUILD_DATE = '2026-10-25';
+export const APP_VERSION = '4.2.2';
+export const APP_BUILD_DATE = '2026-10-26';
 export const APP_NAME = 'Entaris';
 
 export interface ChangelogEntry {
@@ -25,6 +25,16 @@ export function localizedChangelog(language: string): ChangelogEntry[] {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '4.2.2',
+    date: '2026-10-26',
+    title: 'STT untuk Item Baru',
+    changes: [
+      'Item baru yang belum pernah ada stok masuk kini bisa diterima lewat STT: baris item tersebut menampilkan kolom wajib Harga perkiraan / satuan',
+      'STT dari PO mengisi Harga perkiraan otomatis dari harga PO; item lama tidak berubah (tetap memakai harga rata-rata)',
+      'Harga perkiraan hanya sementara dan dikoreksi otomatis ke harga aktual saat Invoice Pembelian dibuat dari STT',
+    ],
+  },
   {
     version: '4.2.1',
     date: '2026-10-26',

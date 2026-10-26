@@ -28,6 +28,11 @@ interface GRItem {
   purchaseOrderItemId?: string;
   /** PO the line was prefilled from; the PO-line link is sent only while the STT still points at it. */
   sourcePurchaseOrderId?: string;
+  /**
+   * Harga perkiraan per satuan. Hanya ditampilkan & wajib untuk item yang belum punya harga
+   * rata-rata (item baru). Dipakai sebagai provisional cost; Invoice Pembelian mengoreksinya.
+   */
+  estimatedCost?: number;
 }
 
 const defaultItem = (): GRItem => ({
@@ -54,6 +59,8 @@ export interface GoodsReceiptSourcePO {
     quantity: number | string;
     qtyReceived: number | string;
     description?: string | null;
+    /** Harga perkiraan baris PO — default Harga perkiraan STT untuk item baru. */
+    estimatedRate?: number | string | null;
   }>;
 }
 
@@ -81,6 +88,7 @@ function itemsFromPO(po: GoodsReceiptSourcePO): GRItem[] {
       description: it.description ?? '',
       purchaseOrderItemId: it.id,
       sourcePurchaseOrderId: po.id,
+      estimatedCost: Number(it.estimatedRate ?? 0) > 0 ? Number(it.estimatedRate) : undefined,
     }));
   return lines.length > 0 ? lines : [defaultItem()];
 }
@@ -202,16 +210,24 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     })) as SelectOption[]),
   ];
 
-  const itemOptions = (inventoryItems ?? []).map((i: any) => ({
-    value: i.id,
-    label: `${i.code} · ${i.name}`,
-    meta: { unit: i.unit, avgCost: Number(i.averageCost ?? 0), name: i.name },
-  }));
+  const itemOptions: Array<{ value: string; label: string; meta: { unit: string; avgCost: number; name: string } }> =
+    ((inventoryItems ?? []) as Array<{ id: string; code: string; name: string; unit: string; averageCost?: number | string | null }>).map((i) => ({
+      value: i.id,
+      label: `${i.code} · ${i.name}`,
+      meta: { unit: i.unit, avgCost: Number(i.averageCost ?? 0), name: i.name },
+    }));
 
   const warehouseOptions: SelectOption[] = (warehouses ?? []).map((w: any) => ({ value: w.id, label: w.name }));
 
+  /** Item belum punya harga rata-rata (belum pernah ada stok masuk) → butuh Harga perkiraan. */
+  const needsEstimate = (it: GRItem): boolean => {
+    if (isCustomerOwned || !it.inventoryItemId) return false;
+    const meta = itemOptions.find((o) => o.value === it.inventoryItemId)?.meta;
+    return !!meta && !(meta.avgCost > 0);
+  };
+
   const onItemPick = (idx: number, invId: string) => {
-    const meta = itemOptions.find((o: any) => o.value === invId)?.meta;
+    const meta = itemOptions.find((o) => o.value === invId)?.meta;
     setItems((prev) =>
       prev.map((it, i) =>
         i === idx
@@ -255,6 +271,8 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
     if (!date) return setError(t('receiptForm.errorDate'));
     const validItems = items.filter((it) => it.inventoryItemId && it.warehouseId && it.quantity > 0);
     if (validItems.length === 0) return setError(t('receiptForm.errorItems'));
+    const missingPrice = validItems.find((it) => needsEstimate(it) && !((it.estimatedCost ?? 0) > 0));
+    if (missingPrice) return setError(t('receiptForm.errorEstimatedCost', { name: missingPrice.itemName }));
 
     mutation.mutate({
       date,
@@ -271,9 +289,9 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
         itemName: it.itemName,
         quantity: Number(it.quantity),
         unit: it.unit,
-        // Harga di-set di PI nanti. Backend pakai averageCost saat ini sebagai
-        // provisional cost untuk JE accrual + weighted average.
-        lockedUnitCost: 0,
+        // Harga aktual di-set di PI nanti. Item lama: backend pakai averageCost sebagai provisional
+        // cost (0 = pakai averageCost). Item baru tanpa averageCost: kirim Harga perkiraan.
+        lockedUnitCost: needsEstimate(it) ? Number(it.estimatedCost ?? 0) : 0,
         description: it.description.trim() || null,
         // Only keep the PO-line link while the STT still points at the PO the line came from.
         // Manual/edited lines without a link: match the PO line with the same inventory item
@@ -436,7 +454,27 @@ const GoodsReceiptModal: React.FC<Props> = ({ onClose, initialPurchaseOrder = nu
                     placeholder={t('receiptForm.descriptionPlaceholder')}
                   />
                 </div>
-                <div className="flex md:col-span-1 md:justify-center">
+                {needsEstimate(it) && (
+                  <div className="flex flex-col gap-1 rounded-md bg-warning-subtle px-2 py-2 md:col-span-12 md:flex-row md:items-center md:gap-3">
+                    <label htmlFor={`gr-cost-${it.id}`} className="text-xs font-medium text-warning-text md:whitespace-nowrap">
+                      {t('receiptForm.estimatedCost')} <span aria-hidden>*</span>
+                    </label>
+                    <NumberInput
+                      id={`gr-cost-${it.id}`}
+                      step="0.01"
+                      inputMode="decimal"
+                      value={it.estimatedCost || ''}
+                      onChange={(e) => updateItem(idx, { estimatedCost: Number(e.target.value) })}
+                      aria-describedby={`gr-cost-hint-${it.id}`}
+                      required
+                      className="num h-10 text-right md:h-9 md:w-48"
+                    />
+                    <span id={`gr-cost-hint-${it.id}`} className="text-xs text-warning-text">
+                      {t('receiptForm.estimatedCostHint', { unit: it.unit })}
+                    </span>
+                  </div>
+                )}
+                <div className="flex md:col-span-1 md:justify-center md:row-start-1 md:col-start-12">
                   <Button
                     type="button"
                     variant="ghost"

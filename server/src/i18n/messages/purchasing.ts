@@ -59,7 +59,7 @@ export const PURCHASING_MESSAGES: MessageDictionary = {
   "Ada baris STT yang terhubung ke baris PO lain. Pilih ulang PO agar baris dimuat dari PO tersebut.": "Some goods receipt lines are linked to another purchase order's lines. Select the purchase order again to reload its lines.",
   "Item '{0}' muncul lebih dari satu kali di PO. Pilih baris PO secara eksplisit (muat ulang baris dari PO).": "Item '{0}' appears more than once on the purchase order. Pick the purchase order line explicitly (reload lines from the PO).",
   "Gudang tidak ditemukan untuk '{0}'.": "Warehouse not found for '{0}'.",
-  "Harga satuan untuk '{0}' belum ada (nilai 0). Isi harga di STT, atau tandai STT ini sebagai Barang Titipan Customer bila barang bukan milik perusahaan.": "No unit price for '{0}' (value 0). Enter the price on the goods receipt, or mark it as Customer Consignment if the goods are not company-owned.",
+  "Harga satuan untuk '{0}' belum ada (item baru, belum pernah ada stok masuk). Isi Harga perkiraan di baris STT, atau tandai STT ini sebagai Barang Titipan Customer bila barang bukan milik perusahaan.": "No unit price for '{0}' yet (new item with no stock received). Enter an Estimated price on the goods receipt line, or mark it as Customer Consignment if the goods are not company-owned.",
   "Status invoice tidak dikenal.": "Unknown invoice status.",
   "Alasan revisi harga wajib diisi (minimal 10 karakter).": "A reason for the price revision is required (at least 10 characters).",
   "Akun {0} (Selisih Harga Pembelian) tidak ditemukan.": "Account {0} (Selisih Harga Pembelian) not found.",
